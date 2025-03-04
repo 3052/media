@@ -6,28 +6,6 @@ import (
    "testing"
 )
 
-func Test(t *testing.T) {
-   for _, test := range web_tests {
-      content, err := test.content()
-      if err != nil {
-         t.Fatal(err)
-      }
-      stream := content.c.Streamings()
-      stream.Hd()
-      func() {
-         err := mullvad.Connect(test.location)
-         if err != nil {
-            t.Fatal(err)
-         }
-         defer mullvad.Disconnect()
-         _, err = stream.Info(test.language, content.class)
-         if err != nil {
-            t.Fatal(err)
-         }
-      }()
-   }
-}
-
 var web_tests = []web_test{
    {
       address:    "rakuten.tv/at/movies/ricky-bobby-koenig-der-rennfahrer",
@@ -137,4 +115,26 @@ func (w *web_test) content() (*content_class, error) {
 type content_class struct {
    c     *Content
    class int
+}
+
+func Test(t *testing.T) {
+   for _, test := range web_tests {
+      content, err := test.content()
+      if err != nil {
+         t.Fatal(err)
+      }
+      stream := content.c.Streamings()
+      stream.Hd()
+      func() {
+         err := mullvad.Connect(test.location)
+         if err != nil {
+            t.Fatal(err)
+         }
+         defer mullvad.Disconnect()
+         _, err = stream.Info(test.language, content.class)
+         if err != nil {
+            t.Fatal(err)
+         }
+      }()
+   }
 }

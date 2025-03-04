@@ -7,6 +7,7 @@ import (
    "flag"
    "fmt"
    "log"
+   "net/http"
    "os"
    "path/filepath"
 )
@@ -81,7 +82,7 @@ func (f *flags) do_language() error {
       if err != nil {
          return err
       }
-      err = f.write_file("/rakuten/Season")
+      err = f.write_file("/rakuten/Season", data)
       if err != nil {
          return err
       }
@@ -99,7 +100,7 @@ func (f *flags) do_language() error {
       if err != nil {
          return err
       }
-      err = f.write_file("/rakuten/Content")
+      err = f.write_file("/rakuten/Content", data)
       if err != nil {
          return err
       }
@@ -108,18 +109,7 @@ func (f *flags) do_language() error {
    return nil
 }
 
-///
-
 func (f *flags) download() error {
-   if f.dash != "" {
-      stream.Hd()
-      info, err = stream.Info(f.language, class)
-      if err != nil {
-         return err
-      }
-      f.e.Client = info
-      return f.e.Download(&represent)
-   }
    class, ok := f.address.ClassificationId()
    if !ok {
       return errors.New(".ClassificationId()")
@@ -151,6 +141,17 @@ func (f *flags) download() error {
       }
    }
    stream := content.Streamings()
+   if f.dash != "" {
+      stream.Hd()
+      info, err := stream.Info(f.language, class)
+      if err != nil {
+         return err
+      }
+      f.e.Widevine = func(data []byte) ([]byte, error) {
+         return info.Widevine(data)
+      }
+      return f.e.Download(f.media + "/Mpd", f.dash)
+   }
    stream.Fhd()
    info, err := stream.Info(f.language, class)
    if err != nil {

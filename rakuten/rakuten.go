@@ -11,6 +11,17 @@ import (
    "strings"
 )
 
+func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 type StreamInfo struct {
    LicenseUrl string `json:"license_url"`
    Url        string // MPD
@@ -59,17 +70,6 @@ func (a *Address) ClassificationId() (int, bool) {
       return 18, true
    }
    return 0, false
-}
-
-func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 // hard geo block
