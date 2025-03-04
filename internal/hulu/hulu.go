@@ -39,16 +39,16 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   data1, err := auth.Playlist(deep)
+   data, err = auth.Playlist(deep)
    if err != nil {
       return err
    }
-   err = f.write_file("/hulu/Playlist", data1)
+   err = f.write_file("/hulu/Playlist", data)
    if err != nil {
       return err
    }
    var play hulu.Playlist
-   err = play.Unmarshal(data1)
+   err = play.Unmarshal(data)
    if err != nil {
       return err
    }

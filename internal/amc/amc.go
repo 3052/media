@@ -49,16 +49,16 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   data1, err := auth.Playback(f.address)
+   data, err = auth.Playback(f.address)
    if err != nil {
       return err
    }
-   err = f.write_file("/amc/Playback", data1)
+   err = f.write_file("/amc/Playback", data)
    if err != nil {
       return err
    }
    var play amc.Playback
-   err = play.Unmarshal(data1)
+   err = play.Unmarshal(data)
    if err != nil {
       return err
    }

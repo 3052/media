@@ -10,6 +10,50 @@ import (
    "strings"
 )
 
+func (a Address) Content() (*Content, error) {
+   resp, err := http.Get(
+      "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      Data struct {
+         Content Content
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data.Content, nil
+}
+
+func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/licenseServer/widevine/v1/rbm-rtbf/license"
+   req.URL.RawQuery = url.Values{
+      "contentId":  {e.AssetId},
+      "ls_session": {e.PlayToken},
+   }.Encode()
+   req.Header.Set("content-type", "application/x-protobuf")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 type Address [1]string
 
 type Format struct {
@@ -44,26 +88,6 @@ func (a *Address) Set(data string) error {
 
 func (a Address) String() string {
    return a[0]
-}
-
-func (a Address) Content() (*Content, error) {
-   resp, err := http.Get(
-      "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Content Content
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data.Content, nil
 }
 
 type Content struct {
@@ -167,27 +191,6 @@ func (e *Entitlement) Dash() (*Format, bool) {
       }
    }
    return nil, false
-}
-
-func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/licenseServer/widevine/v1/rbm-rtbf/license"
-   req.URL.RawQuery = url.Values{
-      "contentId":  {e.AssetId},
-      "ls_session": {e.PlayToken},
-   }.Encode()
-   req.Header.Set("content-type", "application/x-protobuf")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type Entitlement struct {

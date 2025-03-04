@@ -5,7 +5,8 @@ import (
    "41.neocities.org/media/rtbf"
    "errors"
    "flag"
-   "fmt"
+   "log"
+   "net/http"
    "os"
    "path/filepath"
 )
@@ -40,7 +41,7 @@ func main() {
    flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
@@ -75,8 +76,19 @@ func (f *flags) authenticate() error {
 
 func (f *flags) download() error {
    if f.dash != "" {
-      f.e.Client = title
-      return f.e.Download(&represent)
+      data, err := os.ReadFile(f.media + "/rtbf/Entitlement")
+      if err != nil {
+         return err
+      }
+      var title rtbf.Entitlement
+      err = title.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      f.e.Widevine = func(data []byte) ([]byte, error) {
+         return title.Widevine(data)
+      }
+      return f.e.Download(f.media + "/Mpd", f.dash)
    }
    data, err := os.ReadFile(f.media + "/rtbf/Login")
    if err != nil {
@@ -99,7 +111,16 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   title, err := gigya.Entitlement(content)
+   data, err = gigya.Entitlement(content)
+   if err != nil {
+      return err
+   }
+   var title rtbf.Entitlement
+   err = title.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/rtbf/Entitlement", data)
    if err != nil {
       return err
    }

@@ -12,9 +12,8 @@ var tests = []struct {
    url    string
 }{
    {
-      key_id: "Ma5jT/1dR8K/ljWx/1Pb4A==",
-      path:   "/media/titanic-3286058",
-      url:    "auvio.rtbf.be/media/titanic-3286058",
+      path: "/emission/thelma-et-louise-29388",
+      url: "auvio.rtbf.be/emission/thelma-et-louise-29388",
    },
    {
       key_id: "xESyRLihQMacu++BvoakfA==",
