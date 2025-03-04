@@ -220,20 +220,20 @@ func (n *Login) Playback(watch *WatchUrl) (*Playback, error) {
       return nil, err
    }
    if len(play.Errors) >= 1 {
-      return nil, play.Errors[0].Message
+      return nil, errors.New(play.Errors[0].Message)
    }
    return &play, nil
 }
 
-///
+type Byte[T any] []byte
 
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
-func (Login) Marshal(token St) ([]byte, error) {
+func (s St) Login() (Byte[Login], error) {
    req, _ := http.NewRequest("POST", prd_api, nil)
    req.URL.Path = "/authentication/linkDevice/login"
-   req.AddCookie(token[0])
+   req.AddCookie(s[0])
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -242,6 +242,6 @@ func (Login) Marshal(token St) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (n *Login) Unmarshal(data []byte) error {
+func (n *Login) Unmarshal(data Byte[Login]) error {
    return json.Unmarshal(data, n)
 }
