@@ -11,25 +11,6 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   address string
-   dash    string
-   e       internal.License
-   media   string
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
 func main() {
    var f flags
    err := f.New()
@@ -66,7 +47,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return file.Widevine(data)
       }
-      return f.e.Download(f.media + "/Mpd", f.dash)
+      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    var id itv.EpisodeId
    err := id.Set(path.Base(f.address))
@@ -82,8 +63,8 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   log.Println("WriteFile", f.media + "/itv/Playlist")
-   err = os.WriteFile(f.media + "/itv/Playlist", data, os.ModePerm)
+   log.Println("WriteFile", f.media+"/itv/Playlist")
+   err = os.WriteFile(f.media+"/itv/Playlist", data, os.ModePerm)
    if err != nil {
       return err
    }
@@ -95,5 +76,24 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return internal.Mpd(f.media+"/Mpd", resp)
+}
+
+type flags struct {
+   address string
+   dash    string
+   e       internal.License
+   media   string
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
 }

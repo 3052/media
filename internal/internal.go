@@ -19,83 +19,6 @@ import (
    "strings"
 )
 
-func init() {
-   log.SetFlags(log.Ltime)
-   http.DefaultClient.Transport = &transport{
-      // github.com/golang/go/issues/18639
-      Protocols: &http.Protocols{},
-      Proxy: http.ProxyFromEnvironment,
-   }
-}
-
-type transport http.Transport
-
-func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-   if req.Header.Get("silent") == "" {
-      log.Println(req.Method, req.URL)
-   }
-   return (*http.Transport)(t).RoundTrip(req)
-}
-
-type License struct {
-   ClientId string
-   PrivateKey string
-   Widevine func([]byte) ([]byte, error)
-}
-
-func get(u *url.URL, head http.Header) ([]byte, error) {
-   req := http.Request{Method: "GET", URL: u}
-   if head != nil {
-      req.Header = head
-   } else {
-      req.Header = http.Header{}
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   switch resp.StatusCode {
-   case http.StatusOK, http.StatusPartialContent:
-   default:
-      var data strings.Builder
-      resp.Write(&data)
-      return nil, errors.New(data.String())
-   }
-   return io.ReadAll(resp.Body)
-}
-
-func (e *License) Download(name, id string) error {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return err
-   }
-   data1, data, _ := bytes.Cut(data, []byte{'\n'})
-   var base url.URL
-   err = base.UnmarshalBinary(data1)
-   if err != nil {
-      return err
-   }
-   var media dash.Mpd
-   err = media.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   media.Set(&base)
-   for represent := range media.Representation() {
-      if represent.Id == id {
-         if represent.SegmentBase != nil {
-            return e.segment_base(&represent)
-         }
-         if represent.SegmentList != nil {
-            return e.segment_list(&represent)
-         }
-         return e.segment_template(&represent)
-      }
-   }
-   return nil
-}
-
 func Mpd(name string, resp *http.Response) error {
    defer resp.Body.Close()
    data, err := io.ReadAll(resp.Body)
@@ -511,4 +434,80 @@ func dash_create(represent *dash.Representation) (*os.File, error) {
       return create(".m4v")
    }
    return nil, errors.New(*represent.MimeType)
+}
+func init() {
+   log.SetFlags(log.Ltime)
+   http.DefaultClient.Transport = &transport{
+      // github.com/golang/go/issues/18639
+      Protocols: &http.Protocols{},
+      Proxy: http.ProxyFromEnvironment,
+   }
+}
+
+type transport http.Transport
+
+func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
+   if req.Header.Get("silent") == "" {
+      log.Println(req.Method, req.URL)
+   }
+   return (*http.Transport)(t).RoundTrip(req)
+}
+
+type License struct {
+   ClientId string
+   PrivateKey string
+   Widevine func([]byte) ([]byte, error)
+}
+
+func get(u *url.URL, head http.Header) ([]byte, error) {
+   req := http.Request{Method: "GET", URL: u}
+   if head != nil {
+      req.Header = head
+   } else {
+      req.Header = http.Header{}
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   switch resp.StatusCode {
+   case http.StatusOK, http.StatusPartialContent:
+   default:
+      var data strings.Builder
+      resp.Write(&data)
+      return nil, errors.New(data.String())
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (e *License) Download(name, id string) error {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return err
+   }
+   data1, data, _ := bytes.Cut(data, []byte{'\n'})
+   var base url.URL
+   err = base.UnmarshalBinary(data1)
+   if err != nil {
+      return err
+   }
+   var media dash.Mpd
+   err = media.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   media.Set(&base)
+   for represent := range media.Representation() {
+      if represent.Id == id {
+         if represent.SegmentBase != nil {
+            return e.segment_base(&represent)
+         }
+         if represent.SegmentList != nil {
+            return e.segment_list(&represent)
+         }
+         return e.segment_template(&represent)
+      }
+   }
+   return nil
 }
