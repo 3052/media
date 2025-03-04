@@ -10,7 +10,7 @@ import (
    "strings"
 )
 
-func (m *MediaFile) License(data []byte) ([]byte, error) {
+func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
    )
@@ -19,15 +19,6 @@ func (m *MediaFile) License(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func (p *Playlist) Resolution1080() (*MediaFile, bool) {
-   for _, file := range p.Playlist.Video.MediaFiles {
-      if file.Resolution == "1080" {
-         return &file, true
-      }
-   }
-   return nil, false
 }
 
 type MediaFile struct {
@@ -44,6 +35,43 @@ type Playlist struct {
    }
 }
 
+type Href [1]string
+
+func (h *Href) UnmarshalText(data []byte) error {
+   (*h)[0] = strings.Replace(string(data), "itvpnpctv", "itvpnpdotcom", 1)
+   return nil
+}
+
+type LegacyId [3]string
+
+func (i LegacyId) String() string {
+   return strings.Join(i[:], "_") + ".001"
+}
+
+// https://www.itv.com/watch/gone-girl/10a5503a0001B
+func (i *LegacyId) Set(data string) error {
+   data = strings.TrimSuffix(data, "B")
+   var found bool
+   (*i)[0], data, found = strings.Cut(data, "a")
+   if !found {
+      return errors.New(`"a" not found`)
+   }
+   (*i)[1], (*i)[2], found = strings.Cut(data, "a")
+   if !found {
+      (*i)[2] = "0001"
+   }
+   return nil
+}
+
+func (p *Playlist) FullHd() (*MediaFile, bool) {
+   for _, file := range p.Playlist.Video.MediaFiles {
+      if file.Resolution == "1080" {
+         return &file, true
+      }
+   }
+   return nil, false
+}
+
 func (h Href) Mpd() (*http.Response, error) {
    var err error
    http.DefaultClient.Jar, err = cookiejar.New(nil)
@@ -51,13 +79,6 @@ func (h Href) Mpd() (*http.Response, error) {
       return nil, err
    }
    return http.Get(h[0])
-}
-
-type Href [1]string
-
-func (h *Href) UnmarshalText(data []byte) error {
-   (*h)[0] = strings.Replace(string(data), "itvpnpctv", "itvpnpdotcom", 1)
-   return nil
 }
 
 // hard geo block
@@ -95,34 +116,10 @@ func (i LegacyId) Playlist() (*Playlist, error) {
    if err != nil {
       return nil, err
    }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
    play := &Playlist{}
    err = json.NewDecoder(resp.Body).Decode(play)
    if err != nil {
       return nil, err
    }
    return play, nil
-}
-
-type LegacyId [3]string
-
-func (i LegacyId) String() string {
-   return strings.Join(i[:], "_") + ".001"
-}
-
-// https://www.itv.com/watch/gone-girl/10a5503a0001B
-func (i *LegacyId) Set(data string) error {
-   data = strings.TrimSuffix(data, "B")
-   var found bool
-   (*i)[0], data, found = strings.Cut(data, "a")
-   if !found {
-      return errors.New(`"a" not found`)
-   }
-   (*i)[1], (*i)[2], found = strings.Cut(data, "a")
-   if !found {
-      (*i)[2] = "0001"
-   }
-   return nil
 }

@@ -9,6 +9,35 @@ import (
    "strings"
 )
 
+func (i *Initiate) String() string {
+   var b strings.Builder
+   b.WriteString("target URL = ")
+   b.WriteString(i.TargetUrl)
+   b.WriteString("\nlinking code = ")
+   b.WriteString(i.LinkingCode)
+   return b.String()
+}
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 func (w *WatchUrl) String() string {
    var b strings.Builder
    if w.VideoId != "" {
@@ -62,24 +91,6 @@ func (s *St) New() error {
    return http.ErrNoCookie
 }
 
-func (s St) Initiate() (*Initiate, error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/initiate"
-   req.Header.Set("x-device-info", device_info)
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   value := &Initiate{}
-   err = json.NewDecoder(resp.Body).Decode(value)
-   if err != nil {
-      return nil, err
-   }
-   return value, nil
-}
-
 type St [1]*http.Cookie
 
 func (s *St) Set(data string) error {
@@ -100,15 +111,6 @@ const (
    disco_client = "!:!:beam:!"
    prd_api      = "https://default.prd.api.discomax.com"
 )
-
-type Initiate struct {
-   Data struct {
-      Attributes struct {
-         LinkingCode string
-         TargetUrl   string
-      }
-   }
-}
 
 type Login struct {
    Data struct {
@@ -142,21 +144,6 @@ func (s St) Login() (Byte[Login], error) {
 
 func (n *Login) Unmarshal(data Byte[Login]) error {
    return json.Unmarshal(data, n)
-}
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 type Playback struct {
@@ -247,4 +234,26 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
       return errors.New(p.Errors[0].Message)
    }
    return nil
+}
+
+func (s St) Initiate() (*Initiate, error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/initiate"
+   req.AddCookie(s[0])
+   req.Header.Set("x-device-info", device_info)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Attributes Initiate
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data.Attributes, nil
 }

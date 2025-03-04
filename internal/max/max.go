@@ -6,9 +6,34 @@ import (
    "flag"
    "fmt"
    "log"
+   "net/http"
    "os"
    "path/filepath"
 )
+
+func (f *flags) do_initiate() error {
+   var st max.St
+   err := st.New()
+   if err != nil {
+      return err
+   }
+   log.Println("Create", f.media + "/max/St")
+   file, err := os.Create(f.media + "/max/St")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = fmt.Fprint(file, st)
+   if err != nil {
+      return err
+   }
+   initiate, err := st.Initiate()
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return nil
+}
 
 type flags struct {
    dash     string
@@ -69,30 +94,6 @@ func main() {
    }
 }
 
-func (f *flags) do_initiate() error {
-   var st max.St
-   err := st.New()
-   if err != nil {
-      return err
-   }
-   log.Println("Create", f.media + "/max/St")
-   file, err := os.Create(f.media + "/max/St")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = fmt.Fprint(file, st)
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate()
-   if err != nil {
-      return err
-   }
-   fmt.Printf("%+v\n", initiate)
-   return nil
-}
-
 func (f *flags) write_file(name string, data []byte) error {
    log.Println("WriteFile", f.media + name)
    return os.WriteFile(f.media + name, data, os.ModePerm)
@@ -117,8 +118,19 @@ func (f *flags) do_login() error {
 
 func (f *flags) download() error {
    if f.dash != "" {
-      f.e.Client = play
-      return f.e.Download(&represent)
+      data, err := os.ReadFile(f.media + "/max/Playback")
+      if err != nil {
+         return err
+      }
+      var play max.Playback
+      err = play.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      f.e.Widevine = func(data []byte) ([]byte, error) {
+         return play.Widevine(data)
+      }
+      return f.e.Download(f.media + "/Mpd", f.dash)
    }
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
@@ -129,7 +141,16 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   play, err := login.Playback(&f.url)
+   data, err = login.Playback(&f.url)
+   if err != nil {
+      return err
+   }
+   var play max.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/max/Playback", data)
    if err != nil {
       return err
    }
