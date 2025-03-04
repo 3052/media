@@ -6,6 +6,7 @@ import (
    "41.neocities.org/sofia/pssh"
    "41.neocities.org/widevine"
    "41.neocities.org/x/progress"
+   "bufio"
    "bytes"
    "encoding/base64"
    "errors"
@@ -13,28 +14,68 @@ import (
    "io"
    "log"
    "net/http"
+   "net/http/cookiejar"
    "net/url"
    "os"
    "slices"
    "strings"
 )
 
-func Mpd(name string, resp *http.Response) error {
+func (e *License) Download(name, id string) error {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return err
+   }
+   resp, err := unmarshal(data)
+   if err != nil {
+      return err
+   }
    defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
+   data, err = io.ReadAll(resp.Body)
    if err != nil {
       return err
    }
-   file, err := create(name)
+   var media dash.Mpd
+   err = media.Unmarshal(data)
    if err != nil {
       return err
    }
-   defer file.Close()
-   _, err = fmt.Fprintln(file, resp.Request.URL)
+   media.Set(resp.Request.URL)
+   http.DefaultClient.Jar, err = cookiejar.New(nil)
    if err != nil {
       return err
    }
-   _, err = file.Write(data)
+   http.DefaultClient.Jar.SetCookies(resp.Request.URL, resp.Cookies())
+   for represent := range media.Representation() {
+      if represent.Id == id {
+         if represent.SegmentBase != nil {
+            return e.segment_base(&represent)
+         }
+         if represent.SegmentList != nil {
+            return e.segment_list(&represent)
+         }
+         return e.segment_template(&represent)
+      }
+   }
+   return nil
+}
+
+func Mpd(name string, resp *http.Response) error {
+   data, err := marshal(resp)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   err = os.WriteFile(name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   resp, err = unmarshal(data)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
    if err != nil {
       return err
    }
@@ -56,6 +97,31 @@ func Mpd(name string, resp *http.Response) error {
       fmt.Println(&represent)
    }
    return nil
+}
+
+func marshal(resp *http.Response) ([]byte, error) {
+   var buf bytes.Buffer
+   _, err := fmt.Fprintln(&buf, resp.Request.URL)
+   if err != nil {
+      return nil, err
+   }
+   err = resp.Write(&buf)
+   if err != nil {
+      return nil, err
+   }
+   return buf.Bytes(), nil
+}
+
+func unmarshal(data []byte) (*http.Response, error) {
+   data1, data, _ := bytes.Cut(data, []byte{'\n'})
+   var base url.URL
+   err := base.UnmarshalBinary(data1)
+   if err != nil {
+      return nil, err
+   }
+   return http.ReadResponse(
+      bufio.NewReader(bytes.NewReader(data)), &http.Request{URL: &base},
+   )
 }
 
 func (e *License) get_key(message *pssh_data) ([]byte, error) {
@@ -435,6 +501,7 @@ func dash_create(represent *dash.Representation) (*os.File, error) {
    }
    return nil, errors.New(*represent.MimeType)
 }
+
 func init() {
    log.SetFlags(log.Ltime)
    http.DefaultClient.Transport = &transport{
@@ -479,35 +546,4 @@ func get(u *url.URL, head http.Header) ([]byte, error) {
       return nil, errors.New(data.String())
    }
    return io.ReadAll(resp.Body)
-}
-
-func (e *License) Download(name, id string) error {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return err
-   }
-   data1, data, _ := bytes.Cut(data, []byte{'\n'})
-   var base url.URL
-   err = base.UnmarshalBinary(data1)
-   if err != nil {
-      return err
-   }
-   var media dash.Mpd
-   err = media.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   media.Set(&base)
-   for represent := range media.Representation() {
-      if represent.Id == id {
-         if represent.SegmentBase != nil {
-            return e.segment_base(&represent)
-         }
-         if represent.SegmentList != nil {
-            return e.segment_list(&represent)
-         }
-         return e.segment_template(&represent)
-      }
-   }
-   return nil
 }
