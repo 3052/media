@@ -47,8 +47,8 @@ func (s *Streamings) Info(
       return nil, err
    }
    // you can trigger this with wrong location
-   if err := value.Errors; len(err) >= 1 {
-      return nil, errors.New(err[0].Message)
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.StreamInfos[0], nil
 }
@@ -65,39 +65,33 @@ func (s *Streamings) Fhd() {
    s.DeviceStreamVideoQuality = "FHD"
 }
 
-type Address struct {
-   MarketCode string
-   SeasonId   string
-   ContentId  string
-}
-
-type Content struct {
-   ViewOptions struct {
-      Private struct {
-         Streams []struct {
-            AudioLanguages []struct {
-               Id string
-            } `json:"audio_languages"`
-         }
-      }
-   } `json:"view_options"`
-   Id   string
-   Type string
+type Streamings struct {
+   AudioLanguage            string `json:"audio_language"`
+   AudioQuality             string `json:"audio_quality"`
+   ClassificationId         int    `json:"classification_id"`
+   ContentId                string `json:"content_id"`
+   ContentType              string `json:"content_type"`
+   DeviceIdentifier         string `json:"device_identifier"`
+   DeviceSerial             string `json:"device_serial"`
+   DeviceStreamVideoQuality string `json:"device_stream_video_quality"`
+   Player                   string `json:"player"`
+   SubtitleLanguage         string `json:"subtitle_language"`
+   VideoType                string `json:"video_type"`
 }
 
 func (a *Address) String() string {
-   var data strings.Builder
-   data.WriteString(a.MarketCode)
-   data.WriteByte('/')
+   var b strings.Builder
+   b.WriteString(a.MarketCode)
+   b.WriteByte('/')
    if a.SeasonId != "" {
-      data.WriteString("player/episodes/stream/")
-      data.WriteString(a.SeasonId)
+      b.WriteString("player/episodes/stream/")
+      b.WriteString(a.SeasonId)
    } else {
-      data.WriteString("movies")
+      b.WriteString("movies")
    }
-   data.WriteByte('/')
-   data.WriteString(a.ContentId)
-   return data.String()
+   b.WriteByte('/')
+   b.WriteString(a.ContentId)
+   return b.String()
 }
 
 func (c *Content) String() string {
@@ -123,6 +117,20 @@ func (c *Content) String() string {
    b = append(b, "\ntype = "...)
    b = append(b, c.Type...)
    return string(b)
+}
+
+type Content struct {
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string
+            } `json:"audio_languages"`
+         }
+      }
+   } `json:"view_options"`
+   Id   string
+   Type string
 }
 
 func (a *Address) Movie(classification_id int) (*Content, error) {
@@ -166,6 +174,10 @@ func (a *Address) Set(data string) error {
    return nil
 }
 
+type Season struct {
+   Episodes []Content
+}
+
 func (s Season) Content(web *Address) (*Content, bool) {
    for _, episode := range s.Episodes {
       if episode.Id == web.ContentId {
@@ -198,6 +210,12 @@ func (a *Address) Season(classification_id int) (*Season, error) {
    return &value.Data, nil
 }
 
+type Address struct {
+   MarketCode string
+   SeasonId   string
+   ContentId  string
+}
+
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
 func (a *Address) ClassificationId() (int, bool) {
    switch a.MarketCode {
@@ -225,26 +243,9 @@ func (a *Address) ClassificationId() (int, bool) {
    return 0, false
 }
 
-type Streamings struct {
-   AudioLanguage            string `json:"audio_language"`
-   AudioQuality             string `json:"audio_quality"`
-   ClassificationId         int    `json:"classification_id"`
-   ContentId                string `json:"content_id"`
-   ContentType              string `json:"content_type"`
-   DeviceIdentifier         string `json:"device_identifier"`
-   DeviceSerial             string `json:"device_serial"`
-   DeviceStreamVideoQuality string `json:"device_stream_video_quality"`
-   Player                   string `json:"player"`
-   SubtitleLanguage         string `json:"subtitle_language"`
-   VideoType                string `json:"video_type"`
-}
-
-type Season struct {
-   Episodes []Content
-}
-
-func (s *StreamInfo) Mpd() (*http.Response, error) {
-   return http.Get(s.Url)
+type StreamInfo struct {
+   LicenseUrl string `json:"license_url"`
+   Url        string // MPD
 }
 
 func (s *StreamInfo) License(data []byte) ([]byte, error) {
@@ -256,9 +257,4 @@ func (s *StreamInfo) License(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-type StreamInfo struct {
-   LicenseUrl string `json:"license_url"`
-   Url        string
 }
