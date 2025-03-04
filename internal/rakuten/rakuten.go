@@ -11,6 +11,26 @@ import (
    "path/filepath"
 )
 
+type flags struct {
+   address  rakuten.Address
+   dash     string
+   e        internal.License
+   language string
+   media    string
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
 func main() {
    var f flags
    err := f.New()
@@ -19,9 +39,9 @@ func main() {
    }
    flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.language, "b", "", "language")
-   flag.StringVar(&f.s.ClientId, "c", f.s.ClientId, "client ID")
-   flag.StringVar(&f.representation, "i", "", "representation")
-   flag.StringVar(&f.s.PrivateKey, "k", f.s.PrivateKey, "private key")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "i", "", "DASH ID")
+   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.Parse()
    if f.address.MarketCode != "" {
       if f.language != "" {
@@ -40,41 +60,92 @@ func main() {
    }
 }
 
-func (f *flags) New() error {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   home = filepath.ToSlash(home)
-   f.s.ClientId = home + "/widevine/client_id.bin"
-   f.s.PrivateKey = home + "/widevine/private_key.pem"
-   return nil
+func (f *flags) write_file(name string, data []byte) error {
+   log.Println("WriteFile", f.media + name)
+   return os.WriteFile(f.media + name, data, os.ModePerm)
 }
 
-type flags struct {
-   address        rakuten.Address
-   representation string
-   s              internal.Stream
-   language       string
-}
-func (f *flags) download() error {
+func (f *flags) do_language() error {
    class, ok := f.address.ClassificationId()
    if !ok {
-      return errors.New("Address.ClassificationId")
+      return errors.New(".ClassificationId()")
    }
    var content *rakuten.Content
    if f.address.SeasonId != "" {
-      season, err := f.address.Season(class)
+      data, err := f.address.Season(class)
+      if err != nil {
+         return err
+      }
+      var season rakuten.Season
+      err = season.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      err = f.write_file("/rakuten/Season")
       if err != nil {
          return err
       }
       content, ok = season.Content(&f.address)
       if !ok {
-         return errors.New("Season.Content")
+         return errors.New(".Content")
       }
    } else {
-      var err error
-      content, err = f.address.Movie(class)
+      data, err := f.address.Movie(class)
+      if err != nil {
+         return err
+      }
+      content = &rakuten.Content{}
+      err = content.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      err = f.write_file("/rakuten/Content")
+      if err != nil {
+         return err
+      }
+   }
+   fmt.Println(content)
+   return nil
+}
+
+///
+
+func (f *flags) download() error {
+   if f.dash != "" {
+      stream.Hd()
+      info, err = stream.Info(f.language, class)
+      if err != nil {
+         return err
+      }
+      f.e.Client = info
+      return f.e.Download(&represent)
+   }
+   class, ok := f.address.ClassificationId()
+   if !ok {
+      return errors.New(".ClassificationId()")
+   }
+   var content *rakuten.Content
+   if f.address.SeasonId != "" {
+      data, err := os.ReadFile(f.media + "/rakuten/Season")
+      if err != nil {
+         return err
+      }
+      var season rakuten.Season
+      err = season.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      content, ok = season.Content(&f.address)
+      if !ok {
+         return errors.New(".Content")
+      }
+   } else {
+      data, err := os.ReadFile(f.media + "/rakuten/Content")
+      if err != nil {
+         return err
+      }
+      content = &rakuten.Content{}
+      err = content.Unmarshal(data)
       if err != nil {
          return err
       }
@@ -85,49 +156,9 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   represents, err := internal.Mpd(info)
+   resp, err := http.Get(info.Url)
    if err != nil {
       return err
    }
-   for _, represent := range represents {
-      switch f.representation {
-      case "":
-         fmt.Print(&represent, "\n\n")
-      case represent.Id:
-         stream.Hd()
-         info, err = stream.Info(f.language, class)
-         if err != nil {
-            return err
-         }
-         f.s.Client = info
-         return f.s.Download(&represent)
-      }
-   }
-   return nil
-}
-
-func (f *flags) do_language() error {
-   class, ok := f.address.ClassificationId()
-   if !ok {
-      return errors.New("Address.ClassificationId")
-   }
-   var content *rakuten.Content
-   if f.address.SeasonId != "" {
-      season, err := f.address.Season(class)
-      if err != nil {
-         return err
-      }
-      content, ok = season.Content(&f.address)
-      if !ok {
-         return errors.New("Season.Content")
-      }
-   } else {
-      var err error
-      content, err = f.address.Movie(class)
-      if err != nil {
-         return err
-      }
-   }
-   fmt.Println(content)
-   return nil
+   return internal.Mpd(f.media + "/Mpd", resp)
 }
