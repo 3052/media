@@ -42,21 +42,6 @@ type WatchUrl struct {
    VideoId string
 }
 
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
 func (s *St) New() error {
    req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
    req.Header = http.Header{
@@ -133,6 +118,47 @@ type Login struct {
    }
 }
 
+type Url [1]string
+
+func (u *Url) UnmarshalText(data []byte) error {
+   (*u)[0] = strings.Replace(string(data), "_fallback", "", 1)
+   return nil
+}
+
+// you must
+// /authentication/linkDevice/initiate
+// first or this will always fail
+func (s St) Login() (Byte[Login], error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/login"
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (n *Login) Unmarshal(data Byte[Login]) error {
+   return json.Unmarshal(data, n)
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 type Playback struct {
    Drm struct {
       Schemes struct {
@@ -151,14 +177,9 @@ type Playback struct {
    }
 }
 
-type Url [1]string
+type Byte[T any] []byte
 
-func (u *Url) UnmarshalText(data []byte) error {
-   (*u)[0] = strings.Replace(string(data), "_fallback", "", 1)
-   return nil
-}
-
-func (n *Login) Playback(watch *WatchUrl) (*Playback, error) {
+func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
       "consumptionType": "streaming",
       "editId": watch.EditId,
@@ -214,34 +235,16 @@ func (n *Login) Playback(watch *WatchUrl) (*Playback, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var play Playback
-   err = json.NewDecoder(resp.Body).Decode(&play)
-   if err != nil {
-      return nil, err
-   }
-   if len(play.Errors) >= 1 {
-      return nil, errors.New(play.Errors[0].Message)
-   }
-   return &play, nil
-}
-
-type Byte[T any] []byte
-
-// you must
-// /authentication/linkDevice/initiate
-// first or this will always fail
-func (s St) Login() (Byte[Login], error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/login"
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
 
-func (n *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, n)
+func (p *Playback) Unmarshal(data Byte[Playback]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if len(p.Errors) >= 1 {
+      return errors.New(p.Errors[0].Message)
+   }
+   return nil
 }
