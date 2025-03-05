@@ -7,6 +7,30 @@ import (
    "time"
 )
 
+func Test(t *testing.T) {
+   for _, test1 := range tests {
+      data, err := os.ReadFile("authenticate.txt")
+      if err != nil {
+         t.Fatal(err)
+      }
+      var auth Authenticate
+      err = auth.Unmarshal(data)
+      if err != nil {
+         t.Fatal(err)
+      }
+      base := path.Base(test1.url)
+      link, err := auth.DeepLink(Entity{base})
+      if err != nil {
+         t.Fatal(err)
+      }
+      _, err = auth.Playlist(link)
+      if err != nil {
+         t.Fatal(err)
+      }
+      time.Sleep(time.Second)
+   }
+}
+
 var tests = []struct {
    content string
    key_id  string
@@ -21,28 +45,4 @@ var tests = []struct {
       content: "film",
       url:     "hulu.com/watch/f70dfd4d-dbfb-46b8-abb3-136c841bba11",
    },
-}
-
-func Test(t *testing.T) {
-   for _, test := range tests {
-      data, err := os.ReadFile("authenticate.txt")
-      if err != nil {
-         t.Fatal(err)
-      }
-      var auth Authenticate
-      err = auth.Unmarshal(data)
-      if err != nil {
-         t.Fatal(err)
-      }
-      base := path.Base(test.url)
-      link, err := auth.DeepLink(&EntityId{base})
-      if err != nil {
-         t.Fatal(err)
-      }
-      _, err = auth.Playlist(link)
-      if err != nil {
-         t.Fatal(err)
-      }
-      time.Sleep(time.Second)
-   }
 }

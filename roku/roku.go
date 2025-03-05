@@ -3,26 +3,11 @@ package roku
 import (
    "bytes"
    "encoding/json"
+   "errors"
    "io"
    "net/http"
    "strings"
 )
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Widevine.LicenseServer, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playback) Unmarshal(data Byte[Playback]) error {
-   return json.Unmarshal(data, p)
-}
 
 func (a *AccountToken) Playback(roku_id string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]string{
@@ -40,16 +25,18 @@ func (a *AccountToken) Playback(roku_id string) (Byte[Playback], error) {
    if err != nil {
       return nil, err
    }
-   req.Header = http.Header{
-      "content-type":         {"application/json"},
-      "user-agent":           {user_agent},
-      "x-roku-content-token": {a.AuthToken},
-   }
+   // .Set to match .Get
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-roku-content-token", a.AuthToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
    return io.ReadAll(resp.Body)
 }
 
@@ -155,4 +142,20 @@ type Playback struct {
       }
    }
    Url string // MPD
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Widevine.LicenseServer, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Playback) Unmarshal(data Byte[Playback]) error {
+   return json.Unmarshal(data, p)
 }

@@ -1,8 +1,6 @@
 package kanopy
 
 import (
-   "fmt"
-   "net/http"
    "os/exec"
    "strings"
    "testing"

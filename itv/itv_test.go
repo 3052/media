@@ -14,7 +14,7 @@ var tests = []struct {
 }{
    {
       content_id: "MTAtNTUwMy0wMDAxLTAwMV8yMg==",
-      key_id: "FUl4yiBqSRC1imOJbh17og==",
+      key_id:     "FUl4yiBqSRC1imOJbh17og==",
       legacy_id:  LegacyId{"10", "5503", "0001"},
       url:        "itv.com/watch/gone-girl/10a5503a0001",
    },
@@ -33,8 +33,8 @@ var tests = []struct {
 }
 
 func Test(t *testing.T) {
-   for _, test := range tests {
-      play, err := test.legacy_id.Playlist()
+   for _, test1 := range tests {
+      play, err := test1.legacy_id.Playlist()
       if err != nil {
          t.Fatal(err)
       }
