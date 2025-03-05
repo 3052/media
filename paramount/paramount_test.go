@@ -6,6 +6,21 @@ import (
    "time"
 )
 
+func Test(t *testing.T) {
+   for _, test1 := range tests {
+      at1, err := ComCbsApp.At()
+      if err != nil {
+         t.Fatal(err)
+      }
+      session1, err := at1.Session(test1.content_id)
+      if err != nil {
+         t.Fatal(err)
+      }
+      fmt.Println(session1)
+      time.Sleep(time.Second)
+   }
+}
+
 var tests = []struct {
    content_id string
    key_id     string
@@ -48,15 +63,4 @@ var tests = []struct {
       location:   []string{"USA"},
       url:        "cbs.com/shows/video/rZ59lcp4i2fU4dAaZJ_iEgKqVg_ogrIf",
    },
-}
-
-func Test(t *testing.T) {
-   for _, test1 := range tests {
-      session, err := ComCbsApp.Session(test1.content_id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Println(session)
-      time.Sleep(time.Second)
-   }
 }

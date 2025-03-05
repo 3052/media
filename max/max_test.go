@@ -7,6 +7,31 @@ import (
    "time"
 )
 
+func Test(t *testing.T) {
+   data, err := os.ReadFile("login.txt")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var login1 Login
+   err = login1.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   for _, test1 := range tests {
+      var watch WatchUrl
+      err = watch.Set(test1.url)
+      if err != nil {
+         t.Fatal(err)
+      }
+      play, err := login1.Playback(&watch)
+      if err != nil {
+         t.Fatal(err)
+      }
+      fmt.Printf("%+v\n", play.Fallback)
+      time.Sleep(time.Second)
+   }
+}
+
 var tests = []struct {
    zero      string
    one      string
@@ -77,29 +102,4 @@ var tests = []struct {
          "Thailand",
       },
    },
-}
-
-func Test(t *testing.T) {
-   data, err := os.ReadFile("login.txt")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var login1 Login
-   err = login1.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   for _, test := range tests {
-      var watch WatchUrl
-      err = watch.Set(test.url)
-      if err != nil {
-         t.Fatal(err)
-      }
-      play, err := login1.Playback(&watch)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Printf("%+v\n", play.Fallback)
-      time.Sleep(time.Second)
-   }
 }

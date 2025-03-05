@@ -4,7 +4,7 @@
 2. with ads
 3. continue
 4. email
-   - 2024-7-1@mailsac.com
+   - mailsac.com
 5. confirm email
 6. password
 7. first name

@@ -28,13 +28,17 @@ var watch_tests = []struct {
 }
 
 func Test(t *testing.T) {
-   var user1 User
-   err := user1.New()
+   data, err := NewUser()
    if err != nil {
       t.Fatal(err)
    }
-   for _, test := range watch_tests {
-      match, err := user1.Match(Address{test.path})
+   var user1 User
+   err = user1.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   for _, test1 := range watch_tests {
+      match, err := user1.Match(Address{test1.path})
       if err != nil {
          t.Fatal(err)
       }

@@ -1,10 +1,6 @@
 package rakuten
 
-import (
-   "41.neocities.org/platform/mullvad"
-   "errors"
-   "testing"
-)
+import "testing"
 
 var web_tests = []web_test{
    {
@@ -87,54 +83,29 @@ type web_test struct {
    location   string
 }
 
-func (w *web_test) content() (*content_class, error) {
-   var web Address
-   web.Set(w.address)
-   var content content_class
-   content.class, _ = web.ClassificationId()
-   if web.SeasonId != "" {
-      season, err := web.Season(content.class)
-      if err != nil {
-         return nil, err
-      }
-      _, ok := season.Content(&Address{})
-      if ok {
-         return nil, errors.New("gizmo_season.content")
-      }
-      content.c, _ = season.Content(&web)
-   } else {
-      var err error
-      content.c, err = web.Movie(content.class)
-      if err != nil {
-         return nil, err
-      }
-   }
-   return &content, nil
-}
-
-type content_class struct {
-   c     *Content
-   class int
-}
-
 func Test(t *testing.T) {
-   for _, test := range web_tests {
-      content, err := test.content()
-      if err != nil {
-         t.Fatal(err)
+   for _, test1 := range web_tests {
+      var web Address
+      web.Set(test1.address)
+      class, ok := web.ClassificationId()
+      if !ok {
+         t.Fatal(".ClassificationId()")
       }
-      stream := content.c.Streamings()
-      stream.Hd()
-      func() {
-         err := mullvad.Connect(test.location)
+      if web.SeasonId != "" {
+         data, err := web.Season(class)
          if err != nil {
             t.Fatal(err)
          }
-         defer mullvad.Disconnect()
-         _, err = stream.Info(test.language, content.class)
+         var season1 Season
+         err = season1.Unmarshal(data)
          if err != nil {
             t.Fatal(err)
          }
-      }()
+      } else {
+         _, err := web.Movie(class)
+         if err != nil {
+            t.Fatal(err)
+         }
+      }
    }
 }

@@ -29,7 +29,7 @@ func Test(t *testing.T) {
       if err != nil {
          t.Fatal(err)
       }
-      video, err := web.Vod("")
+      video, err := web.Vod()
       if err != nil {
          t.Fatal(err)
       }
