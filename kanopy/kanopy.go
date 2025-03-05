@@ -8,6 +8,36 @@ import (
    "strconv"
 )
 
+func (n *Login) Widevine(m *Manifest, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://www.kanopy.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/kapi/licenses/widevine/" + m.DrmLicenseId
+   req.Header = http.Header{
+      "user-agent":    {user_agent},
+      "x-version":     {x_version},
+      "authorization": {"Bearer " + n.Jwt},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (m *Manifest) Mpd() (*http.Response, error) {
+   req, err := http.NewRequest("", m.Url, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("user-agent", "Mozilla")
+   return http.DefaultClient.Do(req)
+}
+
 const (
    user_agent = "!"
    x_version  = "!/!/!/!"
@@ -15,54 +45,6 @@ const (
 
 type Membership struct {
    DomainId int
-}
-
-func (n *Login) Plays(member *Membership, video_id int) (*Plays, error) {
-   data, err := json.Marshal(map[string]int{
-      "domainId": member.DomainId,
-      "userId":   n.UserId,
-      "videoId":  video_id,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://www.kanopy.com/kapi/plays", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header = http.Header{
-      "authorization": {"Bearer " + n.Jwt},
-      "content-type":  {"application/json"},
-      "user-agent":    {user_agent},
-      "x-version":     {x_version},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   value := &Plays{}
-   err = json.NewDecoder(resp.Body).Decode(value)
-   if err != nil {
-      return nil, err
-   }
-   return value, nil
-}
-
-type Plays struct {
-   ErrorMsgLong string `json:"error_msg_long"`
-   Manifests []Manifest
-}
-
-func (p *Plays) Dash() (*Manifest, bool) {
-   for _, value := range p.Manifests {
-      if value.ManifestType == "dash" {
-         return &value, true
-      }
-   }
-   return nil, false
 }
 
 func (n *Login) Membership() (*Membership, error) {
@@ -124,15 +106,6 @@ func (n *Login) Unmarshal(data Byte[Login]) error {
    return json.Unmarshal(data, n)
 }
 
-func (m *Manifest) Mpd() (*http.Response, error) {
-   req, err := http.NewRequest("", m.Url, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("user-agent", "Mozilla")
-   return http.DefaultClient.Do(req)
-}
-
 type Manifest struct {
    DrmLicenseId string
    ManifestType string
@@ -145,18 +118,40 @@ type Login struct {
    UserId int
 }
 
-func (n *Login) Widevine(m *Manifest, data []byte) ([]byte, error) {
+func (p *Plays) Dash() (*Manifest, bool) {
+   for _, value := range p.Manifests {
+      if value.ManifestType == "dash" {
+         return &value, true
+      }
+   }
+   return nil, false
+}
+
+type Plays struct {
+   ErrorMsgLong string `json:"error_msg_long"`
+   Manifests []Manifest
+}
+
+func (n *Login) Plays(member *Membership, video_id int) (Byte[Plays], error) {
+   data, err := json.Marshal(map[string]int{
+      "domainId": member.DomainId,
+      "userId":   n.UserId,
+      "videoId":  video_id,
+   })
+   if err != nil {
+      return nil, err
+   }
    req, err := http.NewRequest(
-      "POST", "https://www.kanopy.com", bytes.NewReader(data),
+      "POST", "https://www.kanopy.com/kapi/plays", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
    }
-   req.URL.Path = "/kapi/licenses/widevine/" + m.DrmLicenseId
    req.Header = http.Header{
+      "authorization": {"Bearer " + n.Jwt},
+      "content-type":  {"application/json"},
       "user-agent":    {user_agent},
       "x-version":     {x_version},
-      "authorization": {"Bearer " + n.Jwt},
    }
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -164,4 +159,8 @@ func (n *Login) Widevine(m *Manifest, data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+func (p *Plays) Unmarshal(data Byte[Plays]) error {
+   return json.Unmarshal(data, p)
 }
