@@ -9,6 +9,11 @@ import (
    "strings"
 )
 
+type WatchUrl struct {
+   EditId  string
+   VideoId string
+}
+
 func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
    value := map[string]any{
       "consumptionType":      "streaming",
@@ -174,11 +179,6 @@ func (w *WatchUrl) Set(data string) error {
       return errors.New("/ not found")
    }
    return nil
-}
-
-type WatchUrl struct {
-   EditId  string
-   VideoId string
 }
 
 func (s *St) New() error {

@@ -8,13 +8,13 @@ import (
 )
 
 var tests = []struct {
-   location   []string
-   url        string
-   video_type string
+   zero      string
+   one      string
+   location []string
 }{
    {
-      url:        "play.max.com/video/watch/5c762883-279e-40ed-ab84-43fdda9d88a0/560abdc4-ee5e-4f86-807e-38bb9feabe0e",
-      video_type: "MOVIE",
+      zero: "play.max.com/movie/83e518fa-7f76-47d0-a607-227b53bf3e6c",
+      one: "play.max.com/video/watch/5c762883-279e-40ed-ab84-43fdda9d88a0",
       location: []string{
          "Brazil",
          "Chile",
@@ -30,23 +30,8 @@ var tests = []struct {
       },
    },
    {
-      url:        "play.max.com/video/watch/857fc45b-5652-42ca-9192-ac1e5e456300/c6258f3b-1c15-4cef-8f1c-1848b22e3f11",
-      video_type: "MOVIE",
-      location: []string{
-         "Chile",
-         "Colombia",
-         "Indonesia",
-         "Malaysia",
-         "Mexico",
-         "Peru",
-         "Philippines",
-         "Singapore",
-         "Thailand",
-      },
-   },
-   {
-      video_type: "EPISODE",
-      url:        "play.max.com/video/watch/28ae9450-8192-4277-b661-e76eaad9b2e6/e19442fb-c7ac-4879-8d50-a301f613cb96",
+      zero: "play.max.com/show/14f9834d-bc23-41a8-ab61-5c8abdbea505",
+      one: "play.max.com/video/watch/28ae9450-8192-4277-b661-e76eaad9b2e6",
       location: []string{
          "Belgium",
          "Brazil",
@@ -75,6 +60,21 @@ var tests = []struct {
          "Sweden",
          "Thailand",
          "United States",
+      },
+   },
+   {
+      zero: "play.max.com/movie/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
+      one: "play.max.com/video/watch/857fc45b-5652-42ca-9192-ac1e5e456300",
+      location: []string{
+         "Chile",
+         "Colombia",
+         "Indonesia",
+         "Malaysia",
+         "Mexico",
+         "Peru",
+         "Philippines",
+         "Singapore",
+         "Thailand",
       },
    },
 }
