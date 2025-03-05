@@ -10,15 +10,15 @@ import (
 )
 
 func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
-   data, err := json.Marshal(map[string]any{
-      "consumptionType": "streaming",
-      "editId": watch.EditId,
-      "appBundle": "", // required
-      "applicationSessionId": "", // required
-      "firstPlay": false, // required
-      "gdpr": false, // required
-      "playbackSessionId": "", // required
-      "userPreferences": struct{}{}, // required
+   value := map[string]any{
+      "consumptionType":      "streaming",
+      "editId":               watch.EditId,
+      "appBundle":            "",         // required
+      "applicationSessionId": "",         // required
+      "firstPlay":            false,      // required
+      "gdpr":                 false,      // required
+      "playbackSessionId":    "",         // required
+      "userPreferences":      struct{}{}, // required
       "capabilities": map[string]any{
          "manifests": map[string]any{
             "formats": map[string]any{
@@ -29,20 +29,21 @@ func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
       "deviceInfo": map[string]any{
          "player": map[string]any{
             "mediaEngine": map[string]string{
-               "name": "", // required
+               "name":    "", // required
                "version": "", // required
             }, // required
             "playerView": map[string]int{
                "height": 0, // required
-               "width": 0, // required
+               "width":  0, // required
             }, // required
             "sdk": map[string]string{
-               "name": "", // required
+               "name":    "", // required
                "version": "", // required
             }, // required
          }, // required
       }, // required
-   })
+   }
+   data, err := json.MarshalIndent(value, "", " ")
    if err != nil {
       return nil, err
    }
@@ -56,10 +57,10 @@ func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
       b.WriteString("/playbackInfo")
       return b.String()
    }()
-   req.Header = http.Header{
-      "authorization": {"Bearer " + n.Data.Attributes.Token},
-      "content-type":  {"application/json"},
-   }
+   // .Set to match .Get
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   req.Header.Set("vpn", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -68,13 +69,31 @@ func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
    return io.ReadAll(resp.Body)
 }
 
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         Widevine struct {
+            LicenseUrl string
+         }
+      }
+   }
+   Errors []struct {
+      Detail string
+   }
+   Fallback struct {
+      Manifest struct {
+         Url Url // MPD
+      }
+   }
+}
+
 func (p *Playback) Unmarshal(data Byte[Playback]) error {
    err := json.Unmarshal(data, p)
    if err != nil {
       return err
    }
    if len(p.Errors) >= 1 {
-      return errors.New(p.Errors[0].Message)
+      return errors.New(p.Errors[0].Detail)
    }
    return nil
 }
@@ -235,24 +254,6 @@ func (s St) Login() (Byte[Login], error) {
 
 func (n *Login) Unmarshal(data Byte[Login]) error {
    return json.Unmarshal(data, n)
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         Widevine struct {
-            LicenseUrl string
-         }
-      }
-   }
-   Errors []struct {
-      Message string
-   }
-   Fallback struct {
-      Manifest struct {
-         Url Url // MPD
-      }
-   }
 }
 
 type Byte[T any] []byte

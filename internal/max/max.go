@@ -3,6 +3,7 @@ package main
 import (
    "41.neocities.org/media/internal"
    "41.neocities.org/media/max"
+   "41.neocities.org/platform/mullvad"
    "flag"
    "fmt"
    "log"
@@ -41,6 +42,7 @@ type flags struct {
    initiate bool
    login    bool
    media    string
+   mullvad  bool
    url      max.WatchUrl
 }
 
@@ -72,7 +74,11 @@ func main() {
    flag.BoolVar(
       &f.login, "login", false, "/authentication/linkDevice/login",
    )
+   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
    flag.Parse()
+   if f.mullvad {
+      http.DefaultClient.Transport = &mullvad.Transport{}
+   }
    switch {
    case f.initiate:
       err := f.do_initiate()
