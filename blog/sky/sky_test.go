@@ -27,35 +27,40 @@ func TestWrite(t *testing.T) {
    if !ok {
       t.Fatal(".session_id()")
    }
-   os.WriteFile("session.txt", []byte(session.String()), os.ModePerm)
-}
-
-func TestWeb(t *testing.T) {
-   data, err := os.ReadFile("session.txt")
+   file, err := os.Create("session_id")
    if err != nil {
       t.Fatal(err)
    }
-   var session Cookie
-   err = session.Set(string(data))
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err = sky_player(session.Cookie)
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(string(data))
+   defer file.Close()
+   fmt.Fprint(file, session)
 }
 
 func TestRead(t *testing.T) {
-   data, err := os.ReadFile("session.txt")
+   data, err := os.ReadFile("session_id")
    if err != nil {
       t.Fatal(err)
    }
-   var session Cookie
+   var session cookie
    err = session.Set(string(data))
    if err != nil {
       t.Fatal(err)
    }
    fmt.Println(session)
+}
+
+func TestWeb(t *testing.T) {
+   data, err := os.ReadFile("session_id")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var session cookie
+   err = session.Set(string(data))
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err = sky_player(session[0])
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(string(data))
 }

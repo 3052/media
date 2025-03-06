@@ -9,19 +9,9 @@ import (
    "strings"
 )
 
-var not_available = service{
-   "We're sorry our service is not available in your region yet.",
-}
-
-type service [1]string
-
-func (s service) Error() string {
-   s[0] = strings.TrimSuffix(s[0], ".")
-   return strings.ToLower(s[0])
-}
-
 // x-forwarded-for fail
 // mullvad.net fail
+// smartproxy.com fail
 // proxy-seller.com pass
 func sky_player(cookie *http.Cookie) ([]byte, error) {
    var req http.Request
@@ -150,10 +140,6 @@ func (n *login) login(username, password string) (cookies, error) {
    return resp.Cookies(), nil
 }
 
-func (c cookie) String() string {
-   return c[0].String()
-}
-
 func (c *cookie) Set(data string) error {
    var err error
    (*c)[0], err = http.ParseSetCookie(data)
@@ -164,6 +150,9 @@ func (c *cookie) Set(data string) error {
 }
 
 type cookie [1]*http.Cookie
+func (c cookie) String() string {
+   return c[0].String()
+}
 
 func (c cookies) session_id() (cookie, bool) {
    for _, cookie1 := range c {
@@ -172,4 +161,15 @@ func (c cookies) session_id() (cookie, bool) {
       }
    }
    return cookie{}, false
+}
+
+var not_available = service{
+   "We're sorry our service is not available in your region yet.",
+}
+
+type service [1]string
+
+func (s service) Error() string {
+   s[0] = strings.TrimSuffix(s[0], ".")
+   return strings.ToLower(s[0])
 }
