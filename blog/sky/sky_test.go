@@ -25,7 +25,7 @@ func TestWrite(t *testing.T) {
    }
    session, ok := cookies1.session_id()
    if !ok {
-      t.Fatal("session_id")
+      t.Fatal(".session_id()")
    }
    os.WriteFile("session.txt", []byte(session.String()), os.ModePerm)
 }
