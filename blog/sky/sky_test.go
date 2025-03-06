@@ -2,25 +2,11 @@ package sky
 
 import (
    "fmt"
-   "log"
    "os"
    "os/exec"
    "strings"
    "testing"
 )
-
-func TestRead(t *testing.T) {
-   data, err := os.ReadFile("session.txt")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var session Cookie
-   err = session.Set(string(data))
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(session)
-}
 
 func TestWrite(t *testing.T) {
    data, err := exec.Command("password", "sky.ch").Output()
@@ -42,4 +28,34 @@ func TestWrite(t *testing.T) {
       t.Fatal("session_id")
    }
    os.WriteFile("session.txt", []byte(session.String()), os.ModePerm)
+}
+
+func TestWeb(t *testing.T) {
+   data, err := os.ReadFile("session.txt")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var session Cookie
+   err = session.Set(string(data))
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err = sky_player(session.Cookie)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(string(data))
+}
+
+func TestRead(t *testing.T) {
+   data, err := os.ReadFile("session.txt")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var session Cookie
+   err = session.Set(string(data))
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(session)
 }

@@ -9,30 +9,46 @@ import (
    "strings"
 )
 
-type Cookie struct {
-   Cookie *http.Cookie
+var not_available = service{
+   "We're sorry our service is not available in your region yet.",
 }
 
-func (c *Cookie) Set(data string) error {
-   var err error
-   c.Cookie, err = http.ParseSetCookie(data)
+type service [1]string
+
+func (s service) Error() string {
+   s[0] = strings.TrimSuffix(s[0], ".")
+   return strings.ToLower(s[0])
+}
+
+// x-forwarded-for fail
+// mullvad.net fail
+// proxy-seller.com pass
+func sky_player(cookie *http.Cookie) ([]byte, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{}
+   req.URL.Host = "show.sky.ch"
+   req.URL.Path = "/de/SkyPlayerAjax/SkyPlayer"
+   req.URL.Scheme = "https"
+   values := url.Values{}
+   values["id"] = []string{"2035"}
+   values["contentType"] = []string{"2"}
+   req.URL.RawQuery = values.Encode()
+   req.Header["X-Requested-With"] = []string{"XMLHttpRequest"}
+   req.AddCookie(cookie)
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return err
+      return nil, err
    }
-   return nil
-}
-
-func (c Cookie) String() string {
-   return c.Cookie.String()
-}
-
-func (c cookies) session_id() (*Cookie, bool) {
-   for _, cookie1 := range c {
-      if cookie1.Name == "_ASP.NET_SessionId_" {
-         return &Cookie{cookie1}, true
-      }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
    }
-   return nil, false
+   if strings.Contains(string(data), not_available[0]) {
+      return nil, not_available
+   }
+   return data, nil
 }
 
 const (
@@ -95,6 +111,8 @@ func (n *login) input_token() (string, error) {
    return "", errors.New(verification_token)
 }
 
+type cookies []*http.Cookie
+
 // hard geo block
 func (n *login) login(username, password string) (cookies, error) {
    input_token, err := n.input_token()
@@ -132,4 +150,26 @@ func (n *login) login(username, password string) (cookies, error) {
    return resp.Cookies(), nil
 }
 
-type cookies []*http.Cookie
+func (c cookie) String() string {
+   return c[0].String()
+}
+
+func (c *cookie) Set(data string) error {
+   var err error
+   (*c)[0], err = http.ParseSetCookie(data)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+type cookie [1]*http.Cookie
+
+func (c cookies) session_id() (cookie, bool) {
+   for _, cookie1 := range c {
+      if cookie1.Name == "_ASP.NET_SessionId_" {
+         return cookie{cookie1}, true
+      }
+   }
+   return cookie{}, false
+}
