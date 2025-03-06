@@ -7,6 +7,34 @@ import (
    "time"
 )
 
+func Test(t *testing.T) {
+   data, err := exec.Command("password", "kanopy.com").Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   email, password, _ := strings.Cut(string(data), ":")
+   data, err = NewLogin(email, password)
+   if err != nil {
+      t.Fatal(err)
+   }
+   var login1 Login
+   err = login1.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   member, err := login1.Membership()
+   if err != nil {
+      t.Fatal(err)
+   }
+   for _, test1 := range tests {
+      _, err = login1.Plays(member, test1.video_id)
+      if err != nil {
+         t.Fatal(err)
+      }
+      time.Sleep(time.Second)
+   }
+}
+
 var tests = []struct {
    key_id   string
    url      string
@@ -22,32 +50,4 @@ var tests = []struct {
       url:      "kanopy.com/en/product/14881167",
       video_id: 14881167,
    },
-}
-
-func Test(t *testing.T) {
-   data, err := exec.Command("password", "kanopy.com").Output()
-   if err != nil {
-      t.Fatal(err)
-   }
-   email, password, _ := strings.Cut(string(data), ":")
-   var login1 Login
-   data, err = login1.Marshal(email, password)
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = login1.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   member, err := login1.Membership()
-   if err != nil {
-      t.Fatal(err)
-   }
-   for _, test := range tests {
-      _, err = login1.Plays(member, test.video_id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      time.Sleep(time.Second)
-   }
 }

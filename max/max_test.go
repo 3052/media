@@ -19,11 +19,16 @@ func Test(t *testing.T) {
    }
    for _, test1 := range tests {
       var watch WatchUrl
-      err = watch.Set(test1.url)
+      err = watch.Set(test1.one)
       if err != nil {
          t.Fatal(err)
       }
-      play, err := login1.Playback(&watch)
+      data, err := login1.Playback(&watch)
+      if err != nil {
+         t.Fatal(err)
+      }
+      var play Playback
+      err = play.Unmarshal(data)
       if err != nil {
          t.Fatal(err)
       }
