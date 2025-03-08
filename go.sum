@@ -2,12 +2,12 @@
 41.neocities.org/dash v1.26.7/go.mod h1:BoiwRQ49/m0Jyf98s8nO15CjAkBiKlAs27ljIMhBIJA=
 41.neocities.org/platform v1.7.2 h1:rRtzGhq+oPxZNIgVZXRsWQByZjSUB61Xmymn0uajYwY=
 41.neocities.org/platform v1.7.2/go.mod h1:w9vIvb2JngO/472XHxm9ZLxu228/PbCq5xbWptURdnM=
-41.neocities.org/protobuf v1.4.5 h1:NEzzT+amb9G4APdZqLcQnx2otB7EVp1Pq//PLWQz0m8=
-41.neocities.org/protobuf v1.4.5/go.mod h1:ZNqHwauHOrFn2S5GKDe2tw7o9TMt1mFmLWgj1q4s29w=
+41.neocities.org/protobuf v1.4.6 h1:jdbCvSpxfTVcKVhK83fvBoRqa3Pk6SCIoLJJ6oG83+g=
+41.neocities.org/protobuf v1.4.6/go.mod h1:aGWKOx1NJvD16tcFjdzqXKloJvoF/uypdipBsHrg33E=
 41.neocities.org/sofia v1.7.2 h1:aLmHcpQxSGFi7QDFYNyw4XjcviBoF4x6cVuwJG+PAlw=
 41.neocities.org/sofia v1.7.2/go.mod h1:sEkwYTmUFHqoL34OBDmyeQR7BrMNa8Z60PKYjOT5unQ=
-41.neocities.org/widevine v1.6.2 h1:O08+S4wbNcxT4dbVNk94EAATk9zh9b3BLK1sHJz+Tus=
-41.neocities.org/widevine v1.6.2/go.mod h1:CVsnGwCqkaSBqmD2xTAgWwYVF4o3Q7SBf3o9UcnqSO4=
+41.neocities.org/widevine v1.6.3 h1:RTgQ8/WCuW5IPA9WBOwznFtpv0ukvX6FRJvPwlbHGOo=
+41.neocities.org/widevine v1.6.3/go.mod h1:F6VfuFyLWYNyjJieWwVXr9HiT66fwDCXfynHUV7CTk0=
 41.neocities.org/x v1.5.8 h1:lPUmr4RWhI4MwRUUgJESGwdN9c/98IEQKISh779fM6s=
 41.neocities.org/x v1.5.8/go.mod h1:W914QR0V7rkZGunkjXoKFF97FiObrEdozhJj26qo+f0=
 github.com/chmike/cmac-go v1.1.0 h1:aF73ZAEx9N2WdQc93DOJ2fMsBDAGqUtuenjMJMb3kEI=
