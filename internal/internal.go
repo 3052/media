@@ -61,18 +61,14 @@ func (e *License) get_key(message *pssh_data) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   containers := body.Container()
-   for {
-      container, ok := containers()
-      if !ok {
-         return nil, errors.New("ResponseBody.Container")
-      }
+   for container := range body.Container() {
       if bytes.Equal(container.Id(), message.key_id) {
          key := container.Key(block)
          log.Println("key", base64.StdEncoding.EncodeToString(key))
          return key, nil
       }
    }
+   return nil, errors.New("get_key")
 }
 
 func (e *License) segment_template(represent *dash.Representation) error {
