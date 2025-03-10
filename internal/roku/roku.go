@@ -12,7 +12,7 @@ import (
 )
 
 func (f *flags) download() error {
-   if f.representation != "" {
+   if f.dash != "" {
       data, err := os.ReadFile(f.media + "/roku/Playback")
       if err != nil {
          return err
@@ -25,7 +25,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return play.Widevine(data)
       }
-      return f.e.Download(f.media + "/Mpd", f.representation)
+      return f.e.Download(f.media + "/Mpd", f.dash)
    }
    var code *roku.Code
    if f.token_read {
@@ -72,7 +72,7 @@ type flags struct {
    code_write     bool
    e              internal.License
    media          string
-   representation string
+   dash string
    roku           string
    token_read     bool
    token_write    bool
@@ -98,7 +98,7 @@ func main() {
    }
    flag.StringVar(&f.roku, "b", "", "Roku ID")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.BoolVar(&f.code_write, "code", false, "write code")
    flag.BoolVar(&f.token_write, "token", false, "write token")

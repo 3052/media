@@ -17,7 +17,7 @@ func (f *flags) write_file(name string, data []byte) error {
 }
 
 func (f *flags) download() error {
-   if f.representation != "" {
+   if f.dash != "" {
       data, err := os.ReadFile(f.media + "/plex/User")
       if err != nil {
          return err
@@ -40,7 +40,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return user.Widevine(part, data)
       }
-      return f.e.Download(f.media+"/Mpd", f.representation)
+      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    data, err := plex.NewUser()
    if err != nil {
@@ -87,7 +87,7 @@ type flags struct {
    address        plex.Address
    e              internal.License
    get_forward    bool
-   representation string
+   dash string
    media          string
 }
 
@@ -111,7 +111,7 @@ func main() {
    }
    flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.BoolVar(&f.get_forward, "g", false, "get forward")
    flag.StringVar(&plex.ForwardedFor, "e", "", "set forward")

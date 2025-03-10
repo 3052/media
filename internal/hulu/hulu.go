@@ -11,7 +11,7 @@ import (
 )
 
 func (f *flags) download() error {
-   if f.representation != "" {
+   if f.dash != "" {
       data, err := os.ReadFile(f.media + "/hulu/Playlist")
       if err != nil {
          return err
@@ -24,7 +24,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return play.Widevine(data)
       }
-      return f.e.Download(f.media + "/Mpd", f.representation)
+      return f.e.Download(f.media + "/Mpd", f.dash)
    }
    data, err := os.ReadFile(f.media + "/hulu/Authenticate")
    if err != nil {
@@ -65,7 +65,7 @@ type flags struct {
    entity         hulu.Entity
    media          string
    password       string
-   representation string
+   dash string
 }
 
 func (f *flags) New() error {
@@ -89,7 +89,7 @@ func main() {
    flag.Var(&f.entity, "a", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()

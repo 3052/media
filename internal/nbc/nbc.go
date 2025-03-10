@@ -10,9 +10,9 @@ import (
 )
 
 func (f *flags) download() error {
-   if f.representation != "" {
+   if f.dash != "" {
       f.e.Widevine = nbc.Widevine
-      return f.e.Download(f.media + "/Mpd", f.representation)
+      return f.e.Download(f.media + "/Mpd", f.dash)
    }
    var metadata nbc.Metadata
    err := metadata.New(f.nbc)
@@ -34,7 +34,7 @@ type flags struct {
    e              internal.License
    media           string
    nbc            int
-   representation string
+   dash string
 }
 
 func (f *flags) New() error {
@@ -57,7 +57,7 @@ func main() {
    }
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.IntVar(&f.nbc, "b", 0, "NBC ID")
    flag.Parse()
    if f.nbc >= 1 {

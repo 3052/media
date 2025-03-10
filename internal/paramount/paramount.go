@@ -15,7 +15,7 @@ type flags struct {
    e              internal.License
    media          string
    mullvad        bool
-   representation string
+   dash string
 }
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
    }
    flag.StringVar(&f.content_id, "b", "", "content ID")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.Parse()
@@ -42,7 +42,7 @@ func main() {
 }
 
 func (f *flags) download() error {
-   if f.representation != "" {
+   if f.dash != "" {
       // INTL does NOT allow anonymous key request, so if you are INTL you
       // will need to use US VPN until someone codes the INTL login
       at, err := paramount.ComCbsApp.At()
@@ -56,7 +56,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return session.Widevine(data)
       }
-      return f.e.Download(f.media+"/Mpd", f.representation)
+      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    var secret paramount.AppSecret
    if f.mullvad {

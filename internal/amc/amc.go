@@ -12,7 +12,7 @@ import (
 )
 
 func (f *flags) download() error {
-   if f.representation != "" {
+   if f.dash != "" {
       data, err := os.ReadFile(f.media + "/amc/Playback")
       if err != nil {
          return err
@@ -26,7 +26,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return play.Widevine(source, data)
       }
-      return f.e.Download(f.media + "/Mpd", f.representation)
+      return f.e.Download(f.media + "/Mpd", f.dash)
    }
    data, err := os.ReadFile(f.media + "/amc/Auth")
    if err != nil {
@@ -79,7 +79,7 @@ type flags struct {
    email          string
    media           string
    password       string
-   representation string
+   dash string
 }
 
 func main() {
@@ -90,7 +90,7 @@ func main() {
    }
    flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.password, "p", "", "password")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")

@@ -13,7 +13,7 @@ import (
 )
 
 func (f *flags) do_dash() error {
-   if f.representation != "" {
+   if f.dash != "" {
       if f.text {
          data, err := os.ReadFile(f.media + "/mubi/SecureUrl")
          if err != nil {
@@ -59,7 +59,7 @@ func (f *flags) do_dash() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return auth.Widevine(data)
       }
-      return f.e.Download(f.media+"/Mpd", f.representation)
+      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    data, err := os.ReadFile(f.media + "/mubi/Authenticate")
    if err != nil {
@@ -104,7 +104,7 @@ type flags struct {
    code           bool
    e              internal.License
    media          string
-   representation string
+   dash string
    text           bool
    mullvad        bool
 }
@@ -119,7 +119,7 @@ func main() {
    flag.BoolVar(&f.auth, "auth", false, "authenticate")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.BoolVar(&f.code, "code", false, "link code")
-   flag.StringVar(&f.representation, "i", "", "representation")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.BoolVar(&f.text, "text", false, "text track")
