@@ -52,29 +52,3 @@ TE: trailers
 
 {"preference":{"trackKeys":false},"assetId":"7738","application":{"name":"binge","version":"11.2.0","appId":"binge.com.au"},"device":{"id":"50e785be-4c7f-4781-87e4-a3b4c75a3634","type":"desktop"},"os":{"name":"Browser","version":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"},"player":{"name":"VideoFS","version":"38.0.5"},"ads":{"optOut":false},"browser":{"version":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"},"capabilities":{"codecs":["avc"]},"session":{"intent":"playback"}}
 ~~~
-
-from:
-
-~~~
-POST /oauth/token HTTP/2
-Host: tokenservice.streamotion.com.au
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0
-Accept: application/json
-Accept-Language: en-US,en;q=0.5
-Accept-Encoding: gzip, deflate, br, zstd
-Referer: https://binge.com.au/
-Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik56aEJPVFJHT0RjNE1FUkRSRFJEUTBVd1FrVkdNRGt4TVVVNVF6RTRRa0UzTkVVMk1rVkRRZyJ9.eyJzZWNvbmRhcnlfa2V5IjoiNzMyZjhjYWE0NTMyMjE1NWUyOTgwNDEzODNiNDI5OTc3MGM3MjVkODk5MmMyMjc1ZTdjMjcyZWM4MzY2ZTNjOCIsImlzcyI6Imh0dHBzOi8vYXV0aC5zdHJlYW1vdGlvbi5jb20uYXUvIiwic3ViIjoiYXV0aDB8NjdjZTI1ODM2NWI3NTIwODczZTJlNGYyIiwiYXVkIjpbInN0cmVhbW90aW9uLmNvbS5hdSIsImh0dHBzOi8vcHJvZC1tYXJ0aWFuLmZveHNwb3J0cy0xYi1wcm9kLmF1dGgwYXBwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDE1NzE1NDgsImV4cCI6MTc0MTU5MzE0OCwic2NvcGUiOiJvcGVuaWQgZW1haWwgZHJtOmxvdyBvZmZsaW5lX2FjY2VzcyB1c2VyOnBob25lX3ZlcmlmaWVkIiwiYXpwIjoicE04N1RVWEtRdlNTdTkzeWRSakRUcUJnZFllQ2JkaFoifQ.XcEfhjhu5Bwkm-d6Bg-Z3sTDWNr4wQFkt6ns-_lPbaoE6SUHGO8CNmLxK4m-vCdnGus4_bXlKevMnYohZhDGMiQwW-XbCg3FyCWAp-8K-3cMkZ49-AL4YxHZAwZE5HaQduqALSjQbqOE3-PKlpK7hY1Bf1W0qM0InSdV-DzdcxfDUsPBDcFca50uzSyPo-TPSDEvqlOviLTOgHlqByjV7sWArkpeXZGZZRkuAnmDB1MeHp0Z_CgV0OYitcU5zcBMnVyoEDuABlWZGcwqc1G3kiLlH6F-zO6BVRhXZLLrC_4Jz3sUJWhVe4nWPOdhQLer4wmD_Oq8isgbm9BAObPKCA
-Content-Type: application/json
-Content-Length: 79
-Origin: https://binge.com.au
-Sec-GPC: 1
-Connection: keep-alive
-Sec-Fetch-Dest: empty
-Sec-Fetch-Mode: cors
-Sec-Fetch-Site: cross-site
-Pragma: no-cache
-Cache-Control: no-cache
-TE: trailers
-
-{"client_id":"pM87TUXKQvSSu93ydRjDTqBgdYeCbdhZ","scope":"openid email drm:low"}
-~~~

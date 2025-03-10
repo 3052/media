@@ -1,0 +1,22 @@
+POST /oauth/token HTTP/2
+Host: auth.streamotion.com.au
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br, zstd
+Referer: https://binge.com.au/
+Content-Type: application/json
+Auth0-Client: eyJuYW1lIjoiYXV0aDAtc3BhLWpzIiwidmVyc2lvbiI6IjEuMjAuMSJ9
+Content-Length: 246
+Origin: https://binge.com.au
+Sec-GPC: 1
+Connection: keep-alive
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: cross-site
+Pragma: no-cache
+Cache-Control: no-cache
+TE: trailers
+
+{"client_id":"pM87TUXKQvSSu93ydRjDTqBgdYeCbdhZ","code_verifier":"DUtH435JPyfhjd8QcWSSbPx3j8IksKxNuoWcXx6t1LQ","grant_type":"authorization_code",
+"code":"bCjDmNIJKuu7Pj-xNqmjZUBDFPdUim6LY8j8Hku-iYNtq","redirect_uri":"https://binge.com.au/redirect"}
