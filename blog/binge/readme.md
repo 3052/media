@@ -1,5 +1,10 @@
 # android
 
+~~~
+url = https://binge.com.au/movies/asset-contact-1997!7738
+country = Australia
+~~~
+
 - https://play.google.com/store/apps/details?id=au.com.streamotion.ares.tv
 - https://play.google.com/store/apps/details?id=au.com.streamotion.ares
 
