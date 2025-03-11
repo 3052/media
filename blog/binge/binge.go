@@ -8,6 +8,38 @@ import (
    "net/http"
 )
 
+func (a *auth) token() (*token_service, error) {
+   data, err := json.Marshal(map[string]string{"client_id": client_id})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tokenservice.streamotion.com.au/oauth/token",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header = http.Header{
+      "content-type": {"application/json"},
+      "authorization": {"Bearer " + a.AccessToken},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   token := &token_service{}
+   err = json.NewDecoder(resp.Body).Decode(token)
+   if err != nil {
+      return nil, err
+   }
+   return token, nil
+}
+
 // android?
 //const client_id = "QQdtPlVtx1h9BkO09BDM2OrFi5vTPCty"
 
@@ -84,33 +116,4 @@ type auth struct {
 
 type token_service struct {
    AccessToken string `json:"access_token"`
-}
-
-func (a *auth) token() (*token_service, error) {
-   data, err := json.Marshal(map[string]string{"client_id": client_id})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tokenservice.streamotion.com.au/oauth/token",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header = http.Header{
-      "content-type": {"application/json"},
-      "authorization": {"Bearer " + a.AccessToken},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   token := &token_service{}
-   err = json.NewDecoder(resp.Body).Decode(token)
-   if err != nil {
-      return nil, err
-   }
-   return token, nil
 }

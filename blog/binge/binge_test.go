@@ -8,26 +8,6 @@ import (
    "testing"
 )
 
-func TestWrite(t *testing.T) {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := exec.Command("password", "binge.com.au").Output()
-   if err != nil {
-      t.Fatal(err)
-   }
-   username, password, _ := strings.Cut(string(data), ":")
-   data, err = new_auth(username, password)
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(home + "/media/binge/auth", data, os.ModePerm)
-   if err != nil {
-      t.Fatal(err)
-   }
-}
-
 func TestRefresh(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
@@ -48,6 +28,26 @@ func TestRefresh(t *testing.T) {
       t.Fatal(err)
    }
    fmt.Println(auth1.AccessToken)
+}
+
+func TestWrite(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := exec.Command("password", "binge.com.au").Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   username, password, _ := strings.Cut(string(data), ":")
+   data, err = new_auth(username, password)
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(home + "/media/binge/auth", data, os.ModePerm)
+   if err != nil {
+      t.Fatal(err)
+   }
 }
 
 func TestService(t *testing.T) {
