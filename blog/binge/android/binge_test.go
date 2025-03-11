@@ -8,6 +8,50 @@ import (
    "testing"
 )
 
+func TestService(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(home + "/media/binge/token")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var token1 token
+   err = token1.unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Print(token1.AccessToken, "\n\n")
+   err = token1.service()
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(token1.AccessToken)
+}
+
+func TestRefresh(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(home + "/media/binge/token")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var token1 token
+   err = token1.unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Print(token1.AccessToken, "\n\n")
+   err = token1.refresh()
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(token1.AccessToken)
+}
+
 func TestWrite(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
@@ -26,26 +70,4 @@ func TestWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-}
-
-func TestRead(t *testing.T) {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(home + "/media/binge/token")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var token1 token
-   err = token1.unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Printf("%+v\n", token1)
-   err = token1.refresh()
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Printf("%+v\n", token1)
 }
