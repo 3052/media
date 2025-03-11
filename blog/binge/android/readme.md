@@ -16,3 +16,20 @@ name = Binge
 size = 29.42 megabyte
 version code = 3030117
 ~~~
+
+above is wrong - you need to use Android 9 or more. install system certificate
+
+mullvad fails with all cities
+
+smart proxy works
+
+start proxy:
+
+~~~
+mitmproxy --upstream-auth USERNAME:PASSWORD `
+--mode "upstream:http://au.smartproxy.com:30001"
+~~~
+
+set proxy in android studio
+
+install certificate to device
