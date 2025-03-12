@@ -11,6 +11,13 @@ import (
    "path/filepath"
 )
 
+type flags struct {
+   address string
+   dash    string
+   e       internal.License
+   media   string
+}
+
 func main() {
    var f flags
    err := f.New()
@@ -77,13 +84,6 @@ func (f *flags) download() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
-}
-
-type flags struct {
-   address string
-   dash    string
-   e       internal.License
-   media   string
 }
 
 func (f *flags) New() error {

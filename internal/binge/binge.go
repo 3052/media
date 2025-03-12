@@ -1,7 +1,7 @@
 package main
 
 import (
-   "41.neocities.org/media/hulu"
+   "41.neocities.org/media/binge"
    "41.neocities.org/media/internal"
    "flag"
    "log"
@@ -13,7 +13,7 @@ import (
 type flags struct {
    e              internal.License
    email          string
-   entity         hulu.Entity
+   entity         binge.Entity
    media          string
    password       string
    dash string
@@ -21,11 +21,11 @@ type flags struct {
 
 func (f *flags) download() error {
    if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/hulu/Playlist")
+      data, err := os.ReadFile(f.media + "/binge/Playlist")
       if err != nil {
          return err
       }
-      var play hulu.Playlist
+      var play binge.Playlist
       err = play.Unmarshal(data)
       if err != nil {
          return err
@@ -35,11 +35,11 @@ func (f *flags) download() error {
       }
       return f.e.Download(f.media + "/Mpd", f.dash)
    }
-   data, err := os.ReadFile(f.media + "/hulu/Authenticate")
+   data, err := os.ReadFile(f.media + "/binge/Authenticate")
    if err != nil {
       return err
    }
-   var auth hulu.Authenticate
+   var auth binge.Authenticate
    err = auth.Unmarshal(data)
    if err != nil {
       return err
@@ -52,11 +52,11 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/hulu/Playlist", data)
+   err = f.write_file("/binge/Playlist", data)
    if err != nil {
       return err
    }
-   var play hulu.Playlist
+   var play binge.Playlist
    err = play.Unmarshal(data)
    if err != nil {
       return err
@@ -110,11 +110,11 @@ func main() {
 }
 
 func (f *flags) authenticate() error {
-   data, err := hulu.NewAuthenticate(f.email, f.password)
+   data, err := binge.NewAuthenticate(f.email, f.password)
    if err != nil {
       return err
    }
-   return f.write_file("/hulu/Authenticate", data)
+   return f.write_file("/binge/Authenticate", data)
 }
 
 func (f *flags) write_file(name string, data []byte) error {
