@@ -12,6 +12,26 @@ import (
 )
 
 func (f *flags) download() error {
+   if f.dash != "" {
+      data, err := os.ReadFile(f.media + "/binge/TokenService")
+      if err != nil {
+         return err
+      }
+      var token binge.TokenService
+      err = token.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      play, err := token.Play(f.binge)
+      if err != nil {
+         return err
+      }
+      stream, _ := play.Dash()
+      f.e.Widevine = func(data []byte) ([]byte, error) {
+         return token.Widevine(stream, data)
+      }
+      return f.e.Download(f.media+"/Mpd", f.dash)
+   }
    data, err := os.ReadFile(f.media + "/binge/Auth")
    if err != nil {
       return err
@@ -21,7 +41,16 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   token, err := auth.Token()
+   data, err = auth.Token()
+   if err != nil {
+      return err
+   }
+   var token binge.TokenService
+   err = token.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/binge/TokenService", data)
    if err != nil {
       return err
    }
@@ -32,12 +61,6 @@ func (f *flags) download() error {
    stream, ok := play.Dash()
    if !ok {
       return errors.New(".Dash()")
-   }
-   if f.dash != "" {
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return token.Widevine(stream, data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    resp, err := http.Get(stream.Manifest)
    if err != nil {
