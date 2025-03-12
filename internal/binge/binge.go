@@ -22,7 +22,12 @@ func (f *flags) download() error {
       if err != nil {
          return err
       }
-      play, err := token.Play(f.binge)
+      data, err = os.ReadFile(f.media + "/binge/Play")
+      if err != nil {
+         return err
+      }
+      var play binge.Play
+      err = play.Unmarshal(data)
       if err != nil {
          return err
       }
@@ -54,7 +59,16 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   play, err := token.Play(f.binge)
+   data, err = token.Play(f.binge)
+   if err != nil {
+      return err
+   }
+   var play binge.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/binge/Play", data)
    if err != nil {
       return err
    }
