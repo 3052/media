@@ -6,7 +6,31 @@ import (
    "net/http"
 )
 
-func (t token_service) play() (*http.Response, error) {
+// Akamai needs residential proxy (or Nord) and CloudFront/Fastly work with
+// just Mullvad
+func (p play) dash() (*stream, bool) {
+   for _, stream1 := range p.Streams {
+      if stream1.StreamingFormat == "dash" {
+         return &stream1, true
+      }
+   }
+   return nil, false
+}
+
+type stream struct {
+   LicenseAcquisitionUrl struct {
+      ComWidevineAlpha string `json:"com.widevine.alpha"`
+   }
+   Manifest string
+   Provider string
+   StreamingFormat string
+}
+
+type play struct {
+   Streams []stream
+}
+
+func (t token_service) play() (*play, error) {
    data, err := json.Marshal(map[string]any{
       "assetId": "7738",
       "application": map[string]string{
@@ -32,5 +56,16 @@ func (t token_service) play() (*http.Response, error) {
       "content-type": {"application/json"},
       "authorization": {"Bearer " + t.AccessToken},
    }
-   return http.DefaultClient.Do(req)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   play1 := &play{}
+   err = json.NewDecoder(resp.Body).Decode(play1)
+   if err != nil {
+      return nil, err
+   }
+   return play1, nil
 }
+

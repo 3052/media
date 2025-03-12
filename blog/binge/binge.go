@@ -8,6 +8,10 @@ import (
    "net/http"
 )
 
+type token_service struct {
+   AccessToken string `json:"access_token"`
+}
+
 func (a *auth) token() (*token_service, error) {
    data, err := json.Marshal(map[string]string{"client_id": client_id})
    if err != nil {
@@ -112,8 +116,4 @@ type auth struct {
    ErrorDescription string `json:"error_description"`
    IdToken string `json:"id_token"`
    RefreshToken string `json:"refresh_token"`
-}
-
-type token_service struct {
-   AccessToken string `json:"access_token"`
 }

@@ -8,6 +8,28 @@ import (
    "testing"
 )
 
+func TestToken(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(home + "/media/binge/auth")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var auth1 auth
+   err = auth1.unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Print(auth1.AccessToken, "\n\n")
+   token, err := auth1.token()
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(token.AccessToken)
+}
+
 func TestRefresh(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
@@ -48,25 +70,4 @@ func TestWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-}
-
-func TestService(t *testing.T) {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(home + "/media/binge/auth")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var auth1 auth
-   err = auth1.unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   token, err := auth1.token()
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Printf("%+v\n", token)
 }
