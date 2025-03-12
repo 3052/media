@@ -6,14 +6,53 @@ import (
    "errors"
    "io"
    "net/http"
+   "strconv"
 )
 
-// android?
-//const client_id = "QQdtPlVtx1h9BkO09BDM2OrFi5vTPCty"
+func (t TokenService) Play(asset_id int) (*Play, error) {
+   data, err := json.Marshal(map[string]any{
+      "application": map[string]string{
+         "name": "binge",
+      },
+      "assetId": strconv.Itoa(asset_id),
+      "device": map[string]string{
+         "id": "!",
+      },
+      "player": map[string]string{
+         "name": "VideoFS",
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://play.binge.com.au/api/v3/play", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header = http.Header{
+      "content-type":  {"application/json"},
+      "authorization": {"Bearer " + t.AccessToken},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   play1 := &Play{}
+   err = json.NewDecoder(resp.Body).Decode(play1)
+   if err != nil {
+      return nil, err
+   }
+   return play1, nil
+}
 
 // web
 const client_id = "pM87TUXKQvSSu93ydRjDTqBgdYeCbdhZ"
-
 func (a *Auth) Token() (*TokenService, error) {
    data, err := json.Marshal(map[string]string{"client_id": client_id})
    if err != nil {
@@ -27,7 +66,7 @@ func (a *Auth) Token() (*TokenService, error) {
       return nil, err
    }
    req.Header = http.Header{
-      "content-type": {"application/json"},
+      "content-type":  {"application/json"},
       "authorization": {"Bearer " + a.AccessToken},
    }
    resp, err := http.DefaultClient.Do(req)
@@ -49,8 +88,8 @@ func (a *Auth) Token() (*TokenService, error) {
 // new refresh token is not returned, so we can keep old
 func (a *Auth) refresh() error {
    data, err := json.Marshal(map[string]string{
-      "client_id": client_id,
-      "grant_type": "refresh_token",
+      "client_id":     client_id,
+      "grant_type":    "refresh_token",
       "refresh_token": a.RefreshToken,
    })
    if err != nil {
@@ -79,12 +118,12 @@ func (a *Auth) Unmarshal(data Byte[Auth]) error {
 }
 
 func NewAuth(username, password string) (Byte[Auth], error) {
-   data, err := json.Marshal( map[string]string{
-      "client_id": client_id,
+   data, err := json.Marshal(map[string]string{
+      "client_id":  client_id,
       "grant_type": "http://auth0.com/oauth/grant-type/password-realm",
-      "password": password,
-      "realm": "prod-martian-database",
-      "username": username,
+      "password":   password,
+      "realm":      "prod-martian-database",
+      "username":   username,
       // need this otherwise service request fails
       "audience": "streamotion.com.au",
    })
@@ -106,10 +145,10 @@ func NewAuth(username, password string) (Byte[Auth], error) {
 }
 
 type Auth struct {
-   AccessToken string `json:"access_token"`
+   AccessToken      string `json:"access_token"`
    ErrorDescription string `json:"error_description"`
-   IdToken string `json:"id_token"`
-   RefreshToken string `json:"refresh_token"`
+   IdToken          string `json:"id_token"`
+   RefreshToken     string `json:"refresh_token"`
 }
 
 type Byte[T any] []byte
@@ -133,8 +172,8 @@ type Stream struct {
    LicenseAcquisitionUrl struct {
       ComWidevineAlpha string `json:"com.widevine.alpha"`
    }
-   Manifest string // MPD
-   Provider string
+   Manifest        string // MPD
+   Provider        string
    StreamingFormat string
 }
 
@@ -146,52 +185,13 @@ func (t TokenService) Widevine(stream1 *Stream, data []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func (t TokenService) Play() (*Play, error) {
-   data, err := json.Marshal(map[string]any{
-      "assetId": "7738",
-      "application": map[string]string{
-         "name": "binge",
-      },
-      "device": map[string]string{
-         "id": "50e785be-4c7f-4781-87e4-a3b4c75a3634",
-      },
-      "player": map[string]string{
-         "name": "VideoFS",
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://play.binge.com.au/api/v3/play", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header = http.Header{
-      "content-type": {"application/json"},
-      "authorization": {"Bearer " + t.AccessToken},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   play1 := &Play{}
-   err = json.NewDecoder(resp.Body).Decode(play1)
-   if err != nil {
-      return nil, err
-   }
-   return play1, nil
 }
 
 type TokenService struct {

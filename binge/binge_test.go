@@ -9,31 +9,73 @@ import (
    "testing"
 )
 
+func TestRefresh(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(home + "/media/binge/Auth")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var auth1 Auth
+   err = auth1.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Print(auth1.AccessToken, "\n\n")
+   err = auth1.refresh()
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(auth1.AccessToken)
+}
+
+func TestWrite(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := exec.Command("password", "binge.com.au").Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   username, password, _ := strings.Cut(string(data), ":")
+   data, err = NewAuth(username, password)
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(home+"/media/binge/Auth", data, os.ModePerm)
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
 func TestLicense(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(home + "/media/binge/auth")
+   data, err := os.ReadFile(home + "/media/binge/Auth")
    if err != nil {
       t.Fatal(err)
    }
-   var auth1 auth
-   err = auth1.unmarshal(data)
+   var auth1 Auth
+   err = auth1.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   token, err := auth1.token()
+   token, err := auth1.Token()
    if err != nil {
       t.Fatal(err)
    }
-   play1, err := token.play()
+   play1, err := token.Play(asset_id)
    if err != nil {
       t.Fatal(err)
    }
-   stream1, ok := play1.dash()
+   stream1, ok := play1.Dash()
    if !ok {
-      t.Fatal(".dash()")
+      t.Fatal(".Dash()")
    }
    private_key, err := os.ReadFile(home + "/media/private_key.pem")
    if err != nil {
@@ -56,73 +98,38 @@ func TestLicense(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   _, err = token.widevine(stream1, data)
+   _, err = token.Widevine(stream1, data)
    if err != nil {
       t.Fatal(err)
    }
 }
 
-const key_id = "\x1e\v\xdc\xfd\x069Nٝ\x9f\xe6#\xb0<\xa6\xd2"
-func TestToken(t *testing.T) {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(home + "/media/binge/auth")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var auth1 auth
-   err = auth1.unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Print(auth1.AccessToken, "\n\n")
-   token, err := auth1.token()
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(token.AccessToken)
-}
+const (
+   asset_id = 7738
+   key_id = "\x1e\v\xdc\xfd\x069Nٝ\x9f\xe6#\xb0<\xa6\xd2"
+)
 
-func TestRefresh(t *testing.T) {
+func TestPlay(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(home + "/media/binge/auth")
+   data, err := os.ReadFile(home + "/media/binge/Auth")
    if err != nil {
       t.Fatal(err)
    }
-   var auth1 auth
-   err = auth1.unmarshal(data)
+   var auth1 Auth
+   err = auth1.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Print(auth1.AccessToken, "\n\n")
-   err = auth1.refresh()
+   token, err := auth1.Token()
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(auth1.AccessToken)
-}
-
-func TestWrite(t *testing.T) {
-   home, err := os.UserHomeDir()
+   play1, err := token.Play(asset_id)
    if err != nil {
       t.Fatal(err)
    }
-   data, err := exec.Command("password", "binge.com.au").Output()
-   if err != nil {
-      t.Fatal(err)
-   }
-   username, password, _ := strings.Cut(string(data), ":")
-   data, err = new_auth(username, password)
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(home + "/media/binge/auth", data, os.ModePerm)
-   if err != nil {
-      t.Fatal(err)
-   }
+   fmt.Printf("%+v\n", play1)
 }
