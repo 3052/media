@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/media/binge"
    "41.neocities.org/media/internal"
-   "41.neocities.org/platform/proxy"
    "errors"
    "flag"
    "log"
@@ -19,7 +18,6 @@ type flags struct {
    email    string
    media    string
    password string
-   proxy    bool
 }
 
 func main() {
@@ -34,13 +32,7 @@ func main() {
    flag.IntVar(&f.binge, "b", 0, "binge ID")
    flag.StringVar(&f.email, "email", "", "email")
    flag.StringVar(&f.password, "password", "", "password")
-   flag.BoolVar(&f.proxy, "p", false, "proxy")
    flag.Parse()
-   if f.proxy {
-      http.DefaultClient.Transport = proxy.Transport{
-         Proxy: http.ProxyFromEnvironment,
-      }
-   }
    switch {
    case f.password != "":
       err := f.authenticate()
@@ -130,7 +122,7 @@ func (f *flags) download() error {
    if !ok {
       return errors.New(".Dash()")
    }
-   resp, err := stream.Mpd()
+   resp, err := http.Get(stream.Manifest)
    if err != nil {
       return err
    }
