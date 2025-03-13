@@ -9,8 +9,23 @@ import (
    "strconv"
 )
 
-func (p *Play) Unmarshal(data Byte[Play]) error {
-   return json.Unmarshal(data, p)
+func (s *Stream) Mpd() (*http.Response, error) {
+   req, err := http.NewRequest("", s.Manifest, nil)
+   if err != nil {
+      return nil, err
+   }
+   // .Get .Set
+   req.Header.Set("proxy", "true")
+   return http.DefaultClient.Do(req)
+}
+
+type Stream struct {
+   LicenseAcquisitionUrl struct {
+      ComWidevineAlpha string `json:"com.widevine.alpha"`
+   }
+   Manifest        string // MPD
+   Provider        string
+   StreamingFormat string
 }
 
 func (t TokenService) Play(asset_id int) (Byte[Play], error) {
@@ -35,10 +50,10 @@ func (t TokenService) Play(asset_id int) (Byte[Play], error) {
    if err != nil {
       return nil, err
    }
-   req.Header = http.Header{
-      "content-type":  {"application/json"},
-      "authorization": {"Bearer " + t.AccessToken},
-   }
+   // .Get .Set
+   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -60,35 +75,9 @@ func (p Play) Dash() (*Stream, bool) {
    }
    return nil, false
 }
+
 func (t *TokenService) Unmarshal(data Byte[TokenService]) error {
    return json.Unmarshal(data, t)
-}
-
-func (a *Auth) Token() (Byte[TokenService], error) {
-   data, err := json.Marshal(map[string]string{"client_id": client_id})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tokenservice.streamotion.com.au/oauth/token",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header = http.Header{
-      "content-type":  {"application/json"},
-      "authorization": {"Bearer " + a.AccessToken},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 func (t TokenService) Widevine(stream1 *Stream, data []byte) ([]byte, error) {
@@ -105,42 +94,6 @@ func (t TokenService) Widevine(stream1 *Stream, data []byte) ([]byte, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Stream struct {
-   LicenseAcquisitionUrl struct {
-      ComWidevineAlpha string `json:"com.widevine.alpha"`
-   }
-   Manifest        string // MPD
-   Provider        string
-   StreamingFormat string
-}
-
-func NewAuth(username, password string) (Byte[Auth], error) {
-   data, err := json.Marshal(map[string]string{
-      "client_id":  client_id,
-      "grant_type": "http://auth0.com/oauth/grant-type/password-realm",
-      "password":   password,
-      "realm":      "prod-martian-database",
-      "username":   username,
-      // need this otherwise service request fails
-      "audience": "streamotion.com.au",
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://auth.streamotion.com.au/oauth/token", "application/json",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
    return io.ReadAll(resp.Body)
 }
 
@@ -194,4 +147,68 @@ func (a *Auth) refresh() error {
 
 func (a *Auth) Unmarshal(data Byte[Auth]) error {
    return json.Unmarshal(data, a)
+}
+func NewAuth(username, password string) (Byte[Auth], error) {
+   data, err := json.Marshal(map[string]string{
+      "client_id":  client_id,
+      "grant_type": "http://auth0.com/oauth/grant-type/password-realm",
+      "password":   password,
+      "realm":      "prod-martian-database",
+      "username":   username,
+      // need this otherwise service request fails
+      "audience": "streamotion.com.au",
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://auth.streamotion.com.au/oauth/token",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // .Get .Set
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (a *Auth) Token() (Byte[TokenService], error) {
+   data, err := json.Marshal(map[string]string{"client_id": client_id})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tokenservice.streamotion.com.au/oauth/token",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // .Get .Set
+   req.Header.Set("authorization", "Bearer " + a.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Play) Unmarshal(data Byte[Play]) error {
+   return json.Unmarshal(data, p)
 }

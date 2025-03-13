@@ -9,6 +9,11 @@ import (
    "testing"
 )
 
+const (
+   asset_id = 7738
+   key_id = "\x1e\v\xdc\xfd\x069Nٝ\x9f\xe6#\xb0<\xa6\xd2"
+)
+
 func TestRefresh(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
@@ -103,11 +108,6 @@ func TestLicense(t *testing.T) {
       t.Fatal(err)
    }
 }
-
-const (
-   asset_id = 7738
-   key_id = "\x1e\v\xdc\xfd\x069Nٝ\x9f\xe6#\xb0<\xa6\xd2"
-)
 
 func TestPlay(t *testing.T) {
    home, err := os.UserHomeDir()

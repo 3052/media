@@ -225,7 +225,7 @@ func (u User) Play(article1 *Article, asset1 *Asset) (Byte[Play], error) {
    // need .Set to match .Get
    req.Header.Set("authorization", "Bearer " + u.AccessToken)
    req.Header.Set("content-type", "application/json")
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

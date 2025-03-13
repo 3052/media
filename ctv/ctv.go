@@ -23,7 +23,7 @@ func (a *AxisContent) Mpd(content1 *Content) (string, error) {
       return string(b)
    }()
    req.URL.RawQuery = "action=reference"
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return "", err

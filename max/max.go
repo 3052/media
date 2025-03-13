@@ -65,7 +65,7 @@ func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
    // .Set to match .Get
    req.Header.Set("content-type", "application/json")
    req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

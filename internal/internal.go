@@ -21,6 +21,24 @@ import (
    "strings"
 )
 
+func init() {
+   log.SetFlags(log.Ltime)
+   http.DefaultClient.Transport = &transport{
+      // github.com/golang/go/issues/18639
+      Protocols: &http.Protocols{},
+      Proxy: http.ProxyFromEnvironment,
+   }
+}
+
+type transport http.Transport
+
+func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
+   if req.Header.Get("silent") == "" {
+      log.Println(req.Method, req.URL)
+   }
+   return (*http.Transport)(t).RoundTrip(req)
+}
+
 func (e *License) get_key(message *pssh_data) ([]byte, error) {
    if message.key_id == nil {
       return nil, nil
@@ -393,24 +411,6 @@ func dash_create(represent *dash.Representation) (*os.File, error) {
       return create(".m4v")
    }
    return nil, errors.New(*represent.MimeType)
-}
-
-func init() {
-   log.SetFlags(log.Ltime)
-   http.DefaultClient.Transport = &transport{
-      // github.com/golang/go/issues/18639
-      Protocols: &http.Protocols{},
-      Proxy: http.ProxyFromEnvironment,
-   }
-}
-
-type transport http.Transport
-
-func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-   if req.Header.Get("silent") == "" {
-      log.Println(req.Method, req.URL)
-   }
-   return (*http.Transport)(t).RoundTrip(req)
 }
 
 type License struct {

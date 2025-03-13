@@ -30,7 +30,7 @@ func (i *Item) Mpd() (*http.Response, error) {
       "assetTypes": {i.AssetType},
       "formats":    {"MPEG-DASH"},
    }.Encode()
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    return http.DefaultClient.Do(req)
 }
 
@@ -156,7 +156,7 @@ func (a At) Item(cid string) (*Item, error) {
       return b.String()
    }()
    req.URL.RawQuery = "at=" + string(a)
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

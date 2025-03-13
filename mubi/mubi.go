@@ -30,7 +30,7 @@ func (a *Authenticate) Widevine(data []byte) ([]byte, error) {
       return nil, err
    }
    req.Header.Set("dt-custom-data", base64.StdEncoding.EncodeToString(data))
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -121,7 +121,7 @@ func (a *Authenticate) Viewing(film1 *Film) error {
    req.Header.Set("client", client)
    req.Header.Set("client-country", ClientCountry)
    // use Header.Set for canonical spelling
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
@@ -239,7 +239,7 @@ func (a *Authenticate) SecureUrl(film1 *Film) (Byte[SecureUrl], error) {
    req.Header.Set("client", client)
    req.Header.Set("client-country", ClientCountry)
    // use Header.Set for canonical spelling
-   req.Header.Set("vpn", "true")
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
