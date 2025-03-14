@@ -103,27 +103,6 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
    return nil
 }
 
-func (s St) Initiate() (*Initiate, error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/initiate"
-   req.AddCookie(s[0])
-   req.Header.Set("x-device-info", device_info)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Attributes Initiate
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data.Attributes, nil
-}
 func (i *Initiate) String() string {
    var b strings.Builder
    b.WriteString("target URL = ")
@@ -257,3 +236,31 @@ func (n *Login) Unmarshal(data Byte[Login]) error {
 }
 
 type Byte[T any] []byte
+
+func (s St) Initiate() (*Initiate, error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/initiate"
+   req.AddCookie(s[0])
+   req.Header.Set("x-device-info", device_info)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Attributes Initiate
+      }
+      Errors []struct {
+         Detail string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Detail)
+   }
+   return &value.Data.Attributes, nil
+}

@@ -11,27 +11,18 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   binge    int
-   dash     string
-   e        internal.License
-   email    string
-   media    string
-   password string
-}
-
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
+   flag.IntVar(&f.binge, "b", 0, "binge ID")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.email, "e", "", "email")
    flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.IntVar(&f.binge, "b", 0, "binge ID")
-   flag.StringVar(&f.email, "email", "", "email")
-   flag.StringVar(&f.password, "password", "", "password")
+   flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    switch {
    case f.password != "":
@@ -144,4 +135,12 @@ func (f *flags) New() error {
 func (f *flags) write_file(name string, data []byte) error {
    log.Println("WriteFile", f.media+name)
    return os.WriteFile(f.media+name, data, os.ModePerm)
+}
+type flags struct {
+   binge    int
+   dash     string
+   e        internal.License
+   email    string
+   media    string
+   password string
 }
