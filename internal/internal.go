@@ -21,6 +21,26 @@ import (
    "strings"
 )
 
+func write_segment(data, key []byte) ([]byte, error) {
+   if key == nil {
+      return data, nil
+   }
+   var file1 file.File
+   err := file1.Read(data)
+   if err != nil {
+      return nil, err
+   }
+   if file1.Moof.Traf.Senc != nil {
+      for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
+         err = file1.Moof.Traf.Senc.Sample[i].DecryptCenc(data, key)
+         if err != nil {
+            return nil, err
+         }
+      }
+   }
+   return file1.Append(nil)
+}
+
 func init() {
    log.SetFlags(log.Ltime)
    http.DefaultClient.Transport = &transport{
@@ -373,27 +393,6 @@ var Forward = []struct {
    {"Taiwan", "120.96.0.0"},
    {"United Kingdom", "25.0.0.0"},
    {"Venezuela", "190.72.0.0"},
-}
-
-func write_segment(data, key []byte) ([]byte, error) {
-   if key == nil {
-      return data, nil
-   }
-   var file_file file.File
-   err := file_file.Read(data)
-   if err != nil {
-      return nil, err
-   }
-   track := file_file.Moof.Traf
-   if senc := track.Senc; senc != nil {
-      for i, data := range file_file.Mdat.Data(&track) {
-         err = senc.Sample[i].DecryptCenc(data, key)
-         if err != nil {
-            return nil, err
-         }
-      }
-   }
-   return file_file.Append(nil)
 }
 
 func create(name string) (*os.File, error) {
