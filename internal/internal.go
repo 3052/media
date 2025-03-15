@@ -21,7 +21,15 @@ import (
    "strings"
 )
 
-func (e *License) write_segment(data, key []byte) ([]byte, error) {
+type media_file struct {
+   key_id    []byte // tenc
+   pssh      []byte // pssh
+   timescale uint32 // mdhd
+   size      uint64 // trun
+   duration  uint64 // trun
+}
+
+func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
    if key == nil {
       return data, nil
    }
@@ -30,11 +38,14 @@ func (e *License) write_segment(data, key []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   //for _, sample := range file1.Moof.Traf.Trun.Sample {
-   //   e.size += uint64(sample.SampleSize)
-   //   e.duration += uint64(sample.SampleDuration)
-   //}
-   //log.Println("bandwidth", 1000 * e.size / e.duration)
+   for _, sample := range file1.Moof.Traf.Trun.Sample {
+      m.size += uint64(sample.Size)
+      m.duration += uint64(sample.Duration)
+   }
+   //log.Println(
+   //   "bandwidth",
+   //   float64(m.timescale) * float64(m.size) / float64(m.duration),
+   //)
    if file1.Moof.Traf.Senc != nil {
       for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
          err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
@@ -46,12 +57,49 @@ func (e *License) write_segment(data, key []byte) ([]byte, error) {
    return file1.Append(nil)
 }
 
+func (m *media_file) initialization(data []byte) ([]byte, error) {
+   var file1 file.File
+   err := file1.Read(data)
+   if err != nil {
+      return nil, err
+   }
+   // Moov
+   moov, ok := file1.GetMoov()
+   if !ok {
+      return data, nil
+   }
+   // Moov.Pssh
+   for _, pssh1 := range moov.Pssh {
+      if pssh1.SystemId.String() == widevine_system_id {
+         m.pssh = pssh1.Data
+      }
+      copy(pssh1.BoxHeader.Type[:], "free") // Firefox
+   }
+   // Moov.Trak
+   m.timescale = moov.Trak.Mdia.Mdhd.Timescale
+   // Sinf
+   sinf, ok := moov.Trak.Mdia.Minf.Stbl.Stsd.Sinf()
+   if !ok {
+      return data, nil
+   }
+   // Sinf.BoxHeader
+   copy(sinf.BoxHeader.Type[:], "free") // Firefox
+   // Sinf.Schi
+   m.key_id = sinf.Schi.Tenc.DefaultKid[:]
+   // SampleEntry
+   sample, ok := moov.Trak.Mdia.Minf.Stbl.Stsd.SampleEntry()
+   if !ok {
+      return data, nil
+   }
+   // SampleEntry.BoxHeader
+   copy(sample.BoxHeader.Type[:], sinf.Frma.DataFormat[:]) // Firefox
+   return file1.Append(nil)
+}
+
 type License struct {
-   ClientId string
+   ClientId   string
    PrivateKey string
-   Widevine func([]byte) ([]byte, error)
-   duration uint64
-   size uint64
+   Widevine   func([]byte) ([]byte, error)
 }
 
 func init() {
@@ -59,7 +107,7 @@ func init() {
    http.DefaultClient.Transport = &transport{
       // github.com/golang/go/issues/18639
       Protocols: &http.Protocols{},
-      Proxy: http.ProxyFromEnvironment,
+      Proxy:     http.ProxyFromEnvironment,
    }
 }
 
@@ -72,8 +120,8 @@ func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
    return (*http.Transport)(t).RoundTrip(req)
 }
 
-func (e *License) get_key(message *pssh_data) ([]byte, error) {
-   if message.key_id == nil {
+func (e *License) get_key(media *media_file) ([]byte, error) {
+   if media.key_id == nil {
       return nil, nil
    }
    private_key, err := os.ReadFile(e.PrivateKey)
@@ -84,14 +132,14 @@ func (e *License) get_key(message *pssh_data) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   if message.pssh == nil {
+   if media.pssh == nil {
       var pssh1 widevine.Pssh
-      pssh1.KeyIds = [][]byte{message.key_id}
-      message.pssh = pssh1.Marshal()
+      pssh1.KeyIds = [][]byte{media.key_id}
+      media.pssh = pssh1.Marshal()
    }
-   log.Println("PSSH", base64.StdEncoding.EncodeToString(message.pssh))
+   log.Println("PSSH", base64.StdEncoding.EncodeToString(media.pssh))
    var module widevine.Cdm
-   err = module.New(private_key, client_id, message.pssh)
+   err = module.New(private_key, client_id, media.pssh)
    if err != nil {
       return nil, err
    }
@@ -113,7 +161,7 @@ func (e *License) get_key(message *pssh_data) ([]byte, error) {
       return nil, err
    }
    for container := range body.Container() {
-      if bytes.Equal(container.Id(), message.key_id) {
+      if bytes.Equal(container.Id(), media.key_id) {
          key := container.Key(block)
          log.Println("key", base64.StdEncoding.EncodeToString(key))
          return key, nil
@@ -123,8 +171,8 @@ func (e *License) get_key(message *pssh_data) ([]byte, error) {
 }
 
 func (e *License) segment_template(represent *dash.Representation) error {
-   var message pssh_data
-   err := message.New(represent)
+   var media media_file
+   err := media.New(represent)
    if err != nil {
       return err
    }
@@ -142,7 +190,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
       if err != nil {
          return err
       }
-      data, err = message.initialization(data)
+      data, err = media.initialization(data)
       if err != nil {
          return err
       }
@@ -151,7 +199,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
          return err
       }
    }
-   key, err := e.get_key(&message)
+   key, err := e.get_key(&media)
    if err != nil {
       return err
    }
@@ -164,16 +212,16 @@ func (e *License) segment_template(represent *dash.Representation) error {
    head := http.Header{}
    head.Set("silent", "true")
    for _, segment := range segments {
-      media, err := represent.SegmentTemplate.Media.Url(represent, segment)
+      address, err := represent.SegmentTemplate.Media.Url(represent, segment)
       if err != nil {
          return err
       }
-      data, err := get(media, head)
+      data, err := get(address, head)
       if err != nil {
          return err
       }
       parts.Next()
-      data, err = e.write_segment(data, key)
+      data, err = media.write_segment(data, key)
       if err != nil {
          return err
       }
@@ -186,8 +234,8 @@ func (e *License) segment_template(represent *dash.Representation) error {
 }
 
 func (e *License) segment_base(represent *dash.Representation) error {
-   var message pssh_data
-   err := message.New(represent)
+   var media media_file
+   err := media.New(represent)
    if err != nil {
       return err
    }
@@ -203,7 +251,7 @@ func (e *License) segment_base(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   data, err = message.initialization(data)
+   data, err = media.initialization(data)
    if err != nil {
       return err
    }
@@ -211,7 +259,7 @@ func (e *License) segment_base(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   key, err := e.get_key(&message)
+   key, err := e.get_key(&media)
    if err != nil {
       return err
    }
@@ -233,13 +281,13 @@ func (e *License) segment_base(represent *dash.Representation) error {
    for _, reference := range file2.Sidx.Reference {
       base.IndexRange[0] = base.IndexRange[1] + 1
       base.IndexRange[1] += uint64(reference.Size())
-      head.Set("range", "bytes=" + base.IndexRange.String())
+      head.Set("range", "bytes="+base.IndexRange.String())
       data, err = get(represent.BaseUrl[0], head)
       if err != nil {
          return err
       }
       parts.Next()
-      data, err = e.write_segment(data, key)
+      data, err = media.write_segment(data, key)
       if err != nil {
          return err
       }
@@ -252,8 +300,8 @@ func (e *License) segment_base(represent *dash.Representation) error {
 }
 
 func (e *License) segment_list(represent *dash.Representation) error {
-   var message pssh_data
-   err := message.New(represent)
+   var media media_file
+   err := media.New(represent)
    if err != nil {
       return err
    }
@@ -270,7 +318,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   data, err = message.initialization(data)
+   data, err = media.initialization(data)
    if err != nil {
       return err
    }
@@ -278,7 +326,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   key, err := e.get_key(&message)
+   key, err := e.get_key(&media)
    if err != nil {
       return err
    }
@@ -287,16 +335,16 @@ func (e *License) segment_list(represent *dash.Representation) error {
    head := http.Header{}
    head.Set("silent", "true")
    for _, segment := range represent.SegmentList.SegmentUrl {
-      media, err := segment.Media.Url(represent)
+      address, err := segment.Media.Url(represent)
       if err != nil {
          return err
       }
-      data, err := get(media, head)
+      data, err := get(address, head)
       if err != nil {
          return err
       }
       parts.Next()
-      data, err = e.write_segment(data, key)
+      data, err = media.write_segment(data, key)
       if err != nil {
          return err
       }
@@ -308,12 +356,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
    return nil
 }
 
-type pssh_data struct {
-   key_id []byte
-   pssh   []byte
-}
-
-func (p *pssh_data) New(represent *dash.Representation) error {
+func (m *media_file) New(represent *dash.Representation) error {
    for _, content := range represent.ContentProtection {
       if content.SchemeIdUri == widevine_urn {
          if content.Pssh != "" {
@@ -330,39 +373,12 @@ func (p *pssh_data) New(represent *dash.Representation) error {
             if err != nil {
                return err
             }
-            p.pssh = box.Data
+            m.pssh = box.Data
             break
          }
       }
    }
    return nil
-}
-
-func (p *pssh_data) initialization(data []byte) ([]byte, error) {
-   var file1 file.File
-   err := file1.Read(data)
-   if err != nil {
-      return nil, err
-   }
-   if moov, ok := file1.GetMoov(); ok {
-      for _, pssh1 := range moov.Pssh {
-         if pssh1.SystemId.String() == widevine_system_id {
-            p.pssh = pssh1.Data
-         }
-         copy(pssh1.BoxHeader.Type[:], "free") // Firefox
-      }
-      description := moov.Trak.Mdia.Minf.Stbl.Stsd
-      if sinf, ok := description.Sinf(); ok {
-         p.key_id = sinf.Schi.Tenc.DefaultKid[:]
-         // Firefox
-         copy(sinf.BoxHeader.Type[:], "free")
-         if sample, ok := description.SampleEntry(); ok {
-            // Firefox
-            copy(sample.BoxHeader.Type[:], sinf.Frma.DataFormat[:])
-         }
-      }
-   }
-   return file1.Append(nil)
 }
 
 const (
@@ -461,18 +477,18 @@ func (e *License) Download(name, id string) error {
    if err != nil {
       return err
    }
-   var media dash.Mpd
-   err = media.Unmarshal(data)
+   var mpd1 dash.Mpd
+   err = mpd1.Unmarshal(data)
    if err != nil {
       return err
    }
-   media.Set(resp.Request.URL)
+   mpd1.Set(resp.Request.URL)
    http.DefaultClient.Jar, err = cookiejar.New(nil)
    if err != nil {
       return err
    }
    http.DefaultClient.Jar.SetCookies(resp.Request.URL, resp.Cookies())
-   for represent := range media.Representation() {
+   for represent := range mpd1.Representation() {
       if represent.Id == id {
          if represent.SegmentBase != nil {
             return e.segment_base(&represent)
@@ -505,13 +521,13 @@ func Mpd(name string, resp *http.Response) error {
    if err != nil {
       return err
    }
-   var media dash.Mpd
-   err = media.Unmarshal(data)
+   var mpd1 dash.Mpd
+   err = mpd1.Unmarshal(data)
    if err != nil {
       return err
    }
-   media.Set(resp.Request.URL)
-   represents := slices.SortedFunc(media.Representation(),
+   mpd1.Set(resp.Request.URL)
+   represents := slices.SortedFunc(mpd1.Representation(),
       func(a, b dash.Representation) int {
          return a.Bandwidth - b.Bandwidth
       },
