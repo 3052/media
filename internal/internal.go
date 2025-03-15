@@ -21,7 +21,7 @@ import (
    "strings"
 )
 
-func write_segment(data, key []byte) ([]byte, error) {
+func (e *License) write_segment(data, key []byte) ([]byte, error) {
    if key == nil {
       return data, nil
    }
@@ -30,15 +30,28 @@ func write_segment(data, key []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
+   //for _, sample := range file1.Moof.Traf.Trun.Sample {
+   //   e.size += uint64(sample.SampleSize)
+   //   e.duration += uint64(sample.SampleDuration)
+   //}
+   //log.Println("bandwidth", 1000 * e.size / e.duration)
    if file1.Moof.Traf.Senc != nil {
       for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
-         err = file1.Moof.Traf.Senc.Sample[i].DecryptCenc(data, key)
+         err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
          if err != nil {
             return nil, err
          }
       }
    }
    return file1.Append(nil)
+}
+
+type License struct {
+   ClientId string
+   PrivateKey string
+   Widevine func([]byte) ([]byte, error)
+   duration uint64
+   size uint64
 }
 
 func init() {
@@ -115,11 +128,11 @@ func (e *License) segment_template(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   os_file, err := dash_create(represent)
+   file1, err := dash_create(represent)
    if err != nil {
       return err
    }
-   defer os_file.Close()
+   defer file1.Close()
    if initial := represent.SegmentTemplate.Initialization; initial != "" {
       initial2, err := initial.Url(represent)
       if err != nil {
@@ -133,7 +146,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
       if err != nil {
          return err
       }
-      _, err = os_file.Write(data)
+      _, err = file1.Write(data)
       if err != nil {
          return err
       }
@@ -160,11 +173,11 @@ func (e *License) segment_template(represent *dash.Representation) error {
          return err
       }
       parts.Next()
-      data, err = write_segment(data, key)
+      data, err = e.write_segment(data, key)
       if err != nil {
          return err
       }
-      _, err = os_file.Write(data)
+      _, err = file1.Write(data)
       if err != nil {
          return err
       }
@@ -178,11 +191,11 @@ func (e *License) segment_base(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   os_file, err := dash_create(represent)
+   file1, err := dash_create(represent)
    if err != nil {
       return err
    }
-   defer os_file.Close()
+   defer file1.Close()
    base := represent.SegmentBase
    data, err := get(represent.BaseUrl[0], http.Header{
       "range": {"bytes=" + base.Initialization.Range.String()},
@@ -194,7 +207,7 @@ func (e *License) segment_base(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   _, err = os_file.Write(data)
+   _, err = file1.Write(data)
    if err != nil {
       return err
    }
@@ -208,16 +221,16 @@ func (e *License) segment_base(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   var file_file file.File
-   err = file_file.Read(data)
+   var file2 file.File
+   err = file2.Read(data)
    if err != nil {
       return err
    }
    var parts progress.Parts
-   parts.Set(len(file_file.Sidx.Reference))
+   parts.Set(len(file2.Sidx.Reference))
    head := http.Header{}
    head.Set("silent", "true")
-   for _, reference := range file_file.Sidx.Reference {
+   for _, reference := range file2.Sidx.Reference {
       base.IndexRange[0] = base.IndexRange[1] + 1
       base.IndexRange[1] += uint64(reference.Size())
       head.Set("range", "bytes=" + base.IndexRange.String())
@@ -226,11 +239,11 @@ func (e *License) segment_base(represent *dash.Representation) error {
          return err
       }
       parts.Next()
-      data, err = write_segment(data, key)
+      data, err = e.write_segment(data, key)
       if err != nil {
          return err
       }
-      _, err = os_file.Write(data)
+      _, err = file1.Write(data)
       if err != nil {
          return err
       }
@@ -244,11 +257,11 @@ func (e *License) segment_list(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   os_file, err := dash_create(represent)
+   file1, err := dash_create(represent)
    if err != nil {
       return err
    }
-   defer os_file.Close()
+   defer file1.Close()
    initial, err := represent.SegmentList.Initialization.SourceUrl.Url(represent)
    if err != nil {
       return err
@@ -261,7 +274,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   _, err = os_file.Write(data)
+   _, err = file1.Write(data)
    if err != nil {
       return err
    }
@@ -283,11 +296,11 @@ func (e *License) segment_list(represent *dash.Representation) error {
          return err
       }
       parts.Next()
-      data, err = write_segment(data, key)
+      data, err = e.write_segment(data, key)
       if err != nil {
          return err
       }
-      _, err = os_file.Write(data)
+      _, err = file1.Write(data)
       if err != nil {
          return err
       }
@@ -326,12 +339,12 @@ func (p *pssh_data) New(represent *dash.Representation) error {
 }
 
 func (p *pssh_data) initialization(data []byte) ([]byte, error) {
-   var file_file file.File
-   err := file_file.Read(data)
+   var file1 file.File
+   err := file1.Read(data)
    if err != nil {
       return nil, err
    }
-   if moov, ok := file_file.GetMoov(); ok {
+   if moov, ok := file1.GetMoov(); ok {
       for _, pssh1 := range moov.Pssh {
          if pssh1.SystemId.String() == widevine_system_id {
             p.pssh = pssh1.Data
@@ -349,7 +362,7 @@ func (p *pssh_data) initialization(data []byte) ([]byte, error) {
          }
       }
    }
-   return file_file.Append(nil)
+   return file1.Append(nil)
 }
 
 const (
@@ -412,12 +425,6 @@ func dash_create(represent *dash.Representation) (*os.File, error) {
    return nil, errors.New(*represent.MimeType)
 }
 
-type License struct {
-   ClientId string
-   PrivateKey string
-   Widevine func([]byte) ([]byte, error)
-}
-
 func get(u *url.URL, head http.Header) ([]byte, error) {
    req := http.Request{Method: "GET", URL: u}
    if head != nil {
@@ -439,6 +446,7 @@ func get(u *url.URL, head http.Header) ([]byte, error) {
    }
    return io.ReadAll(resp.Body)
 }
+
 func (e *License) Download(name, id string) error {
    data, err := os.ReadFile(name)
    if err != nil {

@@ -20,18 +20,6 @@ type flags struct {
    media    string
 }
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
 func main() {
    var f flags
    err := f.New()
@@ -62,8 +50,8 @@ func main() {
 }
 
 func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media + name)
-   return os.WriteFile(f.media + name, data, os.ModePerm)
+   log.Println("WriteFile", f.media+name)
+   return os.WriteFile(f.media+name, data, os.ModePerm)
 }
 
 func (f *flags) do_language() error {
@@ -109,6 +97,18 @@ func (f *flags) do_language() error {
    return nil
 }
 
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
 func (f *flags) download() error {
    class, ok := f.address.ClassificationId()
    if !ok {
@@ -150,7 +150,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return info.Widevine(data)
       }
-      return f.e.Download(f.media + "/Mpd", f.dash)
+      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    stream.Fhd()
    info, err := stream.Info(f.language, class)
@@ -161,5 +161,5 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return internal.Mpd(f.media+"/Mpd", resp)
 }
