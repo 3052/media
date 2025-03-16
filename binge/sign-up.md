@@ -34,8 +34,6 @@ tried all cities, both OVPN and WG.
 
 Please enter the code we sent to your mobile
 
-## 1
-
 If you cannot find the required service in the list, use the "Other" service
 
 https://5sim.net

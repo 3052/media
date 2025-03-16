@@ -23,7 +23,7 @@ func TestRefresh(t *testing.T) {
       t.Fatal(err)
    }
    fmt.Print(auth1.AccessToken, "\n\n")
-   err = auth1.refresh()
+   err = auth1.Refresh()
    if err != nil {
       t.Fatal(err)
    }

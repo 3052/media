@@ -4,8 +4,8 @@
 41.neocities.org/platform v1.7.4/go.mod h1:w9vIvb2JngO/472XHxm9ZLxu228/PbCq5xbWptURdnM=
 41.neocities.org/protobuf v1.4.6 h1:jdbCvSpxfTVcKVhK83fvBoRqa3Pk6SCIoLJJ6oG83+g=
 41.neocities.org/protobuf v1.4.6/go.mod h1:aGWKOx1NJvD16tcFjdzqXKloJvoF/uypdipBsHrg33E=
-41.neocities.org/sofia v1.7.7 h1:4nxPBh9/SSFWkpzsLQpwxf+lphgYYzS10lB5fwGX94Y=
-41.neocities.org/sofia v1.7.7/go.mod h1:sEkwYTmUFHqoL34OBDmyeQR7BrMNa8Z60PKYjOT5unQ=
+41.neocities.org/sofia v1.8.1 h1:gp+5m+oCbHMM1RCZMxJCq6tNgCMzROzdeDRdSCk+ITI=
+41.neocities.org/sofia v1.8.1/go.mod h1:sEkwYTmUFHqoL34OBDmyeQR7BrMNa8Z60PKYjOT5unQ=
 41.neocities.org/widevine v1.6.3 h1:RTgQ8/WCuW5IPA9WBOwznFtpv0ukvX6FRJvPwlbHGOo=
 41.neocities.org/widevine v1.6.3/go.mod h1:F6VfuFyLWYNyjJieWwVXr9HiT66fwDCXfynHUV7CTk0=
 41.neocities.org/x v1.5.8 h1:lPUmr4RWhI4MwRUUgJESGwdN9c/98IEQKISh779fM6s=

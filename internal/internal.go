@@ -24,7 +24,7 @@ import (
 type media_file struct {
    key_id    []byte // tenc
    pssh      []byte // pssh
-   timescale uint32 // mdhd
+   timescale uint64 // mdhd
    size      uint64 // trun
    duration  uint64 // trun
 }
@@ -38,20 +38,23 @@ func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   for _, sample := range file1.Moof.Traf.Trun.Sample {
-      m.size += uint64(sample.Size)
-      m.duration += uint64(sample.Duration)
-   }
-   //log.Println(
-   //   "bandwidth",
-   //   float64(m.timescale) * float64(m.size) / float64(m.duration),
-   //)
-   if file1.Moof.Traf.Senc != nil {
-      for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
-         err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
-         if err != nil {
-            return nil, err
+   if m.duration/m.timescale < 10*60 {
+      for _, sample := range file1.Moof.Traf.Trun.Sample {
+         if sample.Duration == 0 {
+            sample.Duration = file1.Moof.Traf.Tfhd.DefaultSampleDuration
          }
+         m.duration += uint64(sample.Duration)
+         m.size += uint64(sample.Size)
+      }
+      log.Println("bandwidth", m.timescale*m.size*8/m.duration)
+   }
+   if file1.Moof.Traf.Senc == nil {
+      return data, nil
+   }
+   for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
+      err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
+      if err != nil {
+         return nil, err
       }
    }
    return file1.Append(nil)
@@ -76,7 +79,7 @@ func (m *media_file) initialization(data []byte) ([]byte, error) {
       copy(pssh1.BoxHeader.Type[:], "free") // Firefox
    }
    // Moov.Trak
-   m.timescale = moov.Trak.Mdia.Mdhd.Timescale
+   m.timescale = uint64(moov.Trak.Mdia.Mdhd.Timescale)
    // Sinf
    sinf, ok := moov.Trak.Mdia.Minf.Stbl.Stsd.Sinf()
    if !ok {

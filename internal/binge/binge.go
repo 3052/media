@@ -83,6 +83,18 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
+   data, err = auth.Refresh()
+   if err != nil {
+      return err
+   }
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/binge/Auth", data)
+   if err != nil {
+      return err
+   }
    data, err = auth.Token()
    if err != nil {
       return err

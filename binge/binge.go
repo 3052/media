@@ -9,6 +9,37 @@ import (
    "strconv"
 )
 
+func (a *Auth) Refresh() (Byte[Auth], error) {
+   data, err := json.Marshal(map[string]string{
+      "client_id":     client_id,
+      "grant_type":    "refresh_token",
+      "refresh_token": a.RefreshToken,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://auth.streamotion.com.au/oauth/token", "application/json",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (a *Auth) Unmarshal(data Byte[Auth]) error {
+   err := json.Unmarshal(data, a)
+   if err != nil {
+      return err
+   }
+   if a.ErrorDescription != "" {
+      return errors.New(a.ErrorDescription)
+   }
+   return nil
+}
+
 // SEGMENTS ARE GEO BLOCK WITH ALL PROVIDER
 func (p Play) Dash() (*Stream, bool) {
    for _, stream1 := range p.Streams {
@@ -87,38 +118,6 @@ type TokenService struct {
 
 // web
 const client_id = "pM87TUXKQvSSu93ydRjDTqBgdYeCbdhZ"
-
-// new refresh token is not returned, so we can keep old
-func (a *Auth) refresh() error {
-   data, err := json.Marshal(map[string]string{
-      "client_id":     client_id,
-      "grant_type":    "refresh_token",
-      "refresh_token": a.RefreshToken,
-   })
-   if err != nil {
-      return err
-   }
-   resp, err := http.Post(
-      "https://auth.streamotion.com.au/oauth/token", "application/json",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(a)
-   if err != nil {
-      return err
-   }
-   if a.ErrorDescription != "" {
-      return errors.New(a.ErrorDescription)
-   }
-   return nil
-}
-
-func (a *Auth) Unmarshal(data Byte[Auth]) error {
-   return json.Unmarshal(data, a)
-}
 
 func (t TokenService) Play(asset_id int) (Byte[Play], error) {
    data, err := json.Marshal(map[string]any{
