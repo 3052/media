@@ -1,7 +1,6 @@
 package binge
 
 import (
-   "fmt"
    "os"
    "os/exec"
    "strings"
@@ -22,12 +21,10 @@ func TestRefresh(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Print(auth1.AccessToken, "\n\n")
-   err = auth1.Refresh()
+   _, err = auth1.Refresh()
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(auth1.AccessToken)
 }
 
 func TestWrite(t *testing.T) {

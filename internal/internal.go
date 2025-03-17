@@ -44,6 +44,9 @@ func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
             sample.Duration = file1.Moof.Traf.Tfhd.DefaultSampleDuration
          }
          m.duration += uint64(sample.Duration)
+         if sample.Size == 0 {
+            sample.Size = file1.Moof.Traf.Tfhd.DefaultSampleSize
+         }
          m.size += uint64(sample.Size)
       }
       log.Println("bandwidth", m.timescale*m.size*8/m.duration)

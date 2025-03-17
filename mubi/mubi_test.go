@@ -7,31 +7,6 @@ import (
    "time"
 )
 
-func Test(t *testing.T) {
-   data, err := os.ReadFile("authenticate.txt")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var auth Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   for _, test1 := range tests {
-      data, err := auth.SecureUrl(&Film{Id: test1.id})
-      if err != nil {
-         t.Fatal(err)
-      }
-      var secure SecureUrl
-      err = secure.Unmarshal(data)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Printf("%+v\n", secure)
-      time.Sleep(time.Second)
-   }
-}
-
 var tests = []struct {
    id        int64
    key_id    string
@@ -75,4 +50,29 @@ var tests = []struct {
          "United Kingdom",
       },
    },
+}
+
+func Test(t *testing.T) {
+   data, err := os.ReadFile("authenticate.txt")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var auth Authenticate
+   err = auth.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   for _, test1 := range tests {
+      data, err := auth.SecureUrl(&Film{Id: test1.id})
+      if err != nil {
+         t.Fatal(err)
+      }
+      var secure SecureUrl
+      err = secure.Unmarshal(data)
+      if err != nil {
+         t.Fatal(err)
+      }
+      fmt.Printf("%+v\n", secure)
+      time.Sleep(time.Second)
+   }
 }
