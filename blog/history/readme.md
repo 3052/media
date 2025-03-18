@@ -156,15 +156,9 @@
 
 <table>
    <tr>
-      <td>
-      1
-      </td>
-      <td>
-      Hulu: Stream TV shows & movies
-      </td>
-      <td>
-      2023-11-14
-      </td>
+      <td>1</td>
+      <td>Hulu: Stream TV shows & movies</td>
+      <td>2023-11-14</td>
    </tr>
 </table>
 
