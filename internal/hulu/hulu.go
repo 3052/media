@@ -10,15 +10,6 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   e              internal.License
-   email          string
-   entity         hulu.Entity
-   media          string
-   password       string
-   dash string
-}
-
 func (f *flags) download() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/hulu/Playlist")
@@ -33,7 +24,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return play.Widevine(data)
       }
-      return f.e.Download(f.media + "/Mpd", f.dash)
+      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    data, err := os.ReadFile(f.media + "/hulu/Authenticate")
    if err != nil {
@@ -41,6 +32,10 @@ func (f *flags) download() error {
    }
    var auth hulu.Authenticate
    err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = auth.Refresh()
    if err != nil {
       return err
    }
@@ -65,7 +60,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return internal.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) New() error {
@@ -118,6 +113,15 @@ func (f *flags) authenticate() error {
 }
 
 func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media + name)
-   return os.WriteFile(f.media + name, data, os.ModePerm)
+   log.Println("WriteFile", f.media+name)
+   return os.WriteFile(f.media+name, data, os.ModePerm)
+}
+
+type flags struct {
+   e        internal.License
+   email    string
+   entity   hulu.Entity
+   media    string
+   password string
+   dash     string
 }
