@@ -9,6 +9,20 @@ import (
    "net/url"
 )
 
+func NewToken(username, password string) (Byte[Token], error) {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":  {client_id},
+      "grant_type": {"password"},
+      "password":   {password},
+      "username":   {username},
+   })
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (f *File) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
@@ -101,20 +115,6 @@ func (t Token) Video(slug string) (*Video, error) {
       return nil, errors.New(video1.Message)
    }
    return &video1, nil
-}
-
-func NewToken(username, password string) (Byte[Token], error) {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":  {client_id},
-      "grant_type": {"password"},
-      "password":   {password},
-      "username":   {username},
-   })
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 func (t *Token) Unmarshal(data Byte[Token]) error {
