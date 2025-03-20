@@ -63,15 +63,9 @@
       </td>
    </tr>
    <tr>
-      <td>
-      8
-      </td>
-      <td>
-      The Criterion Channel
-      </td>
-      <td>
-      2024-05-19
-      </td>
+      <td>8</td>
+      <td>The Criterion Channel</td>
+      <td>2024-05-19</td>
    </tr>
    <tr>
       <td>

@@ -101,6 +101,18 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
+   data, err = token.Refresh()
+   if err != nil {
+      return err
+   }
+   err = token.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/criterion/Token", data)
+   if err != nil {
+      return err
+   }
    video, err := token.Video(path.Base(f.address))
    if err != nil {
       return err
