@@ -13,6 +13,41 @@ import (
    "time"
 )
 
+
+func (t *ticket) New() error {
+   data, err := json.Marshal(map[string]any{
+      "deviceInfo": map[string]string{
+         "brand": "m7cp", // sg.ui.sso.fatal.internal_error
+         "deviceModel": "Firefox",
+         "deviceOem": "Firefox",
+         "deviceSerial": device_serial,
+         "deviceType": "PC",
+         "osVersion": "Windows 10",
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   var client1 client
+   err = client1.New(req.URL, data)
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", client1.String())
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(t)
+}
+
 const (
    key = "web.NhFyz4KsZ54"
    secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
@@ -50,37 +85,4 @@ func (c *client) New(ref *url.URL, body []byte) error {
 
 type ticket struct {
    Ticket string
-}
-
-func (t *ticket) New() error {
-   data, err := json.Marshal(map[string]any{
-      "deviceInfo": map[string]string{
-         "deviceModel": "Firefox",
-         "deviceOem": "Firefox",
-         "deviceSerial": "",
-         "deviceType": "PC",
-         "osVersion": "Windows 10",
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   var client1 client
-   err = client1.New(req.URL, data)
-   if err != nil {
-      return err
-   }
-   req.Header.Set("authorization", client1.String())
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(t)
 }

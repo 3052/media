@@ -1,13 +1,13 @@
 package canal
 
 import (
-   "fmt"
+   "os"
    "os/exec"
    "strings"
    "testing"
 )
 
-func TestToken(t *testing.T) {
+func TestTwo(t *testing.T) {
    data, err := exec.Command("password", "canalplus.cz").Output()
    if err != nil {
       t.Fatal(err)
@@ -22,5 +22,12 @@ func TestToken(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\nn", token1)
+   resp, err := token1.two()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = resp.Write(os.Stdout)
+   if err != nil {
+      t.Fatal(err)
+   }
 }
