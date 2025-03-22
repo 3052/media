@@ -38,11 +38,11 @@ func (c *client) String() string {
 func (c *client) New(ref *url.URL, body []byte) error {
    c.unix = time.Now().Unix()
    data := sha256.Sum256(body)
-   data1, err := base64.RawURLEncoding.DecodeString(secret)
+   secret1, err := base64.RawURLEncoding.DecodeString(secret)
    if err != nil {
       return err
    }
-   hash := hmac.New(sha256.New, data1)
+   hash := hmac.New(sha256.New, secret1)
    fmt.Fprint(hash, ref)
    fmt.Fprint(hash, base64.RawURLEncoding.EncodeToString(data[:]))
    fmt.Fprint(hash, c.unix)
