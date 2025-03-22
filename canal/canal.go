@@ -11,9 +11,86 @@ import (
    "io"
    "net/http"
    "net/url"
-   "strconv"
    "time"
 )
+
+// us fail
+// czech republic mullvad fail
+// czech republic nord fail
+// czech republic smart proxy pass
+func (s session) play() (*play, error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/v1/assets/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi/play"
+   req.Header = http.Header{
+      "authorization": {"Bearer " + s.Token},
+      "content-type":  {"application/json"},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var play1 play
+   err = json.NewDecoder(resp.Body).Decode(&play1)
+   if err != nil {
+      return nil, err
+   }
+   if play1.Message != "" {
+      return nil, errors.New(play1.Message)
+   }
+   return &play1, nil
+}
+
+func (c *client) String() string {
+   b := []byte("Client key=")
+   b = append(b, key...)
+   b = append(b, ",time="...)
+   b = fmt.Append(b, c.time)
+   b = append(b, ",sig="...)
+   b = base64.RawURLEncoding.AppendEncode(b, c.sig)
+   return string(b)
+}
+
+const (
+   key    = "web.NhFyz4KsZ54"
+   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+type client struct {
+   sig  []byte
+   time int64
+}
+
+func (c *client) New(ref *url.URL, body []byte) error {
+   c.time = time.Now().Unix()
+   data := sha256.Sum256(body)
+   secret1, err := base64.RawURLEncoding.DecodeString(secret)
+   if err != nil {
+      return err
+   }
+   hash := hmac.New(sha256.New, secret1)
+   fmt.Fprint(hash, ref)
+   fmt.Fprint(hash, base64.RawURLEncoding.EncodeToString(data[:]))
+   fmt.Fprint(hash, c.time)
+   c.sig = hash.Sum(nil)
+   return nil
+}
 
 func (t *ticket) token(username, password string) (Byte[token], error) {
    data, err := json.Marshal(map[string]any{
@@ -117,41 +194,6 @@ func (t token) session() (*session, error) {
    return session1, nil
 }
 
-func (c *client) String() string {
-   b := []byte("Client key=")
-   b = append(b, key...)
-   b = append(b, ",time="...)
-   b = strconv.AppendInt(b, c.time, 10)
-   b = append(b, ",sig="...)
-   b = base64.RawURLEncoding.AppendEncode(b, c.sig)
-   return string(b)
-}
-
-const (
-   key    = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-type client struct {
-   sig  []byte
-   time int64
-}
-
-func (c *client) New(ref *url.URL, body []byte) error {
-   c.time = time.Now().Unix()
-   data := sha256.Sum256(body)
-   secret1, err := base64.RawURLEncoding.DecodeString(secret)
-   if err != nil {
-      return err
-   }
-   hash := hmac.New(sha256.New, secret1)
-   fmt.Fprint(hash, ref)
-   fmt.Fprint(hash, base64.RawURLEncoding.EncodeToString(data[:]))
-   fmt.Fprint(hash, c.time)
-   c.sig = hash.Sum(nil)
-   return nil
-}
-
 const device_serial = "!!!!"
 
 type session struct {
@@ -183,47 +225,4 @@ type token struct {
 
 func (t *token) unmarshal(data Byte[token]) error {
    return json.Unmarshal(data, t)
-}
-
-// us fail
-// czech republic mullvad fail
-// czech republic nord fail
-// czech republic smart proxy pass
-func (s session) play() (*play, error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/v1/assets/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi/play"
-   req.Header = http.Header{
-      "authorization": {"Bearer " + s.Token},
-      "content-type":  {"application/json"},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var play1 play
-   err = json.NewDecoder(resp.Body).Decode(&play1)
-   if err != nil {
-      return nil, err
-   }
-   if play1.Message != "" {
-      return nil, errors.New(play1.Message)
-   }
-   return &play1, nil
 }
