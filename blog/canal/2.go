@@ -6,19 +6,33 @@ import (
    "net/http"
 )
 
-const device_serial = "w1f8a8fb0-05fb-11f0-b5da-f32d1cd5ddf7"
+const device_serial = "!!!!"
 
-func (t token) two() (*http.Response, error) {
+type token struct {
+   Token string
+}
+
+func (s sso_token) token() (*token, error) {
    data, err := json.Marshal(map[string]string{
       "brand": "m7cp",
       "deviceSerial": device_serial,
       "deviceType": "PC",
-      "ssoToken": t.SsoToken,
+      "ssoToken": s.SsoToken,
    })
    if err != nil {
       return nil, err
    }
-   return http.Post(
+   resp, err := http.Post(
       "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
    )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   token1 := &token{}
+   err = json.NewDecoder(resp.Body).Decode(token1)
+   if err != nil {
+      return nil, err
+   }
+   return token1, nil
 }

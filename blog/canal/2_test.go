@@ -1,33 +1,28 @@
 package canal
 
 import (
+   "fmt"
    "os"
-   "os/exec"
-   "strings"
    "testing"
 )
 
-func TestTwo(t *testing.T) {
-   data, err := exec.Command("password", "canalplus.cz").Output()
+func TestToken(t *testing.T) {
+   home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
    }
-   username, password, _ := strings.Cut(string(data), ":")
-   var ticket1 ticket
-   err = ticket1.New()
+   data, err := os.ReadFile(home + "/media/canal/sso_token")
    if err != nil {
       t.Fatal(err)
    }
-   token1, err := ticket1.token(username, password)
+   var sso sso_token
+   err = sso.unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := token1.two()
+   token1, err := sso.token()
    if err != nil {
       t.Fatal(err)
    }
-   err = resp.Write(os.Stdout)
-   if err != nil {
-      t.Fatal(err)
-   }
+   fmt.Printf("%+v\n", token1)
 }

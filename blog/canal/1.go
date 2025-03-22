@@ -3,14 +3,21 @@ package canal
 import (
    "bytes"
    "encoding/json"
+   "io"
    "net/http"
 )
 
-type token struct {
+func (s *sso_token) unmarshal(data Byte[sso_token]) error {
+   return json.Unmarshal(data, s)
+}
+
+type sso_token struct {
    SsoToken string
 }
 
-func (t ticket) token(username, password string) (*token, error) {
+type Byte[T any] []byte
+
+func (t ticket) token(username, password string) (Byte[sso_token], error) {
    data, err := json.Marshal(map[string]any{
       "ticket": t.Ticket,
       "userInput": map[string]string{
@@ -38,10 +45,6 @@ func (t ticket) token(username, password string) (*token, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   token1 := &token{}
-   err = json.NewDecoder(resp.Body).Decode(token1)
-   if err != nil {
-      return nil, err
-   }
-   return token1, nil
+   return io.ReadAll(resp.Body)
 }
+
