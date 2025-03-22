@@ -1,21 +1,24 @@
-package main
+package canal
 
 import (
-   "crypto/hmac"
-   "crypto/sha256"
-   "encoding/base64"
    "fmt"
    "io"
    "net/http"
    "net/url"
-   "os"
    "os/exec"
-   "strconv"
    "strings"
-   "time"
 )
 
-func main() {
+func One() (*http.Response, error) {
+   const data = `
+   {
+     "ticket": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2Iiwia2V5IjoibTcifQ..lUS_rO5lGmDeoMF5UPZKcQ.hxPO2rOnHHkv6M6ildYwi-_Z-gKZeBFntOKgQ-STd-li3Iz64TK0Dl_9-E_ndF9mv0jT7BuTunjBAkSrS32hvruJQrmKERrg7QWKl0Qo8_YCpQyFJe6mrYewiaqMp3hbtCBUXpmUgNfaBm4Rf4gaWjg4Bfe_7dqFyVSCsilHPFORKDtYUtb_S6ys4CVWacdfDluNbEVmtbOa2OfNQ3vpRJs9zqcN44usInmA-jb8NHhBmXz5Q6TXqIjQ1C9MoEoK5DMkCjrWecwxl3Cclpgt91pW5XI0nBuoWWkpY163CjHlVu7vH0xMSqTRrjRG3_68IUSaZC3F2IA5WbVUEADAHPn8I3Jur3ZQSR_okjnADD4.D8Ktg0VyrzZBaxgZ4Xizow",
+     "userInput": {
+       "username": %q,
+       "password": %q
+     }
+   }
+   `
    var req http.Request
    req.Header = http.Header{}
    req.Method = "POST"
@@ -29,7 +32,6 @@ func main() {
    }
    username, password, _ := strings.Cut(string(data1), ":")
    data2 := fmt.Sprintf(data, username, password)
-   
    req.Body = io.NopCloser(strings.NewReader(data2))
    var client1 client
    err = client1.New(req.URL, []byte(data2))
@@ -37,20 +39,5 @@ func main() {
       panic(err)
    }
    req.Header.Set("authorization", client1.String())
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      panic(err)
-   }
-   defer resp.Body.Close()
-   resp.Write(os.Stdout)
+   return http.DefaultClient.Do(&req)
 }
-
-const data = `
-{
-  "ticket": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2Iiwia2V5IjoibTcifQ..lUS_rO5lGmDeoMF5UPZKcQ.hxPO2rOnHHkv6M6ildYwi-_Z-gKZeBFntOKgQ-STd-li3Iz64TK0Dl_9-E_ndF9mv0jT7BuTunjBAkSrS32hvruJQrmKERrg7QWKl0Qo8_YCpQyFJe6mrYewiaqMp3hbtCBUXpmUgNfaBm4Rf4gaWjg4Bfe_7dqFyVSCsilHPFORKDtYUtb_S6ys4CVWacdfDluNbEVmtbOa2OfNQ3vpRJs9zqcN44usInmA-jb8NHhBmXz5Q6TXqIjQ1C9MoEoK5DMkCjrWecwxl3Cclpgt91pW5XI0nBuoWWkpY163CjHlVu7vH0xMSqTRrjRG3_68IUSaZC3F2IA5WbVUEADAHPn8I3Jur3ZQSR_okjnADD4.D8Ktg0VyrzZBaxgZ4Xizow",
-  "userInput": {
-    "username": %q,
-    "password": %q
-  }
-}
-`

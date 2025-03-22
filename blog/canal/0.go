@@ -1,46 +1,53 @@
 package canal
 
 import (
+   "bytes"
    "crypto/hmac"
    "crypto/sha256"
    "encoding/base64"
+   "encoding/json"
    "fmt"
-   "io"
    "net/http"
    "net/url"
-   "os"
    "strconv"
-   "strings"
    "time"
 )
 
-func zero() (*http.Response, error) {
-   const data = `
-   {
-      "deviceInfo": {
+func (n *login) New() error {
+   data, err := json.Marshal(map[string]any{
+      "deviceInfo": map[string]string{
          "deviceModel": "Firefox",
          "deviceOem": "Firefox",
          "deviceSerial": "",
          "deviceType": "PC",
-         "osVersion": "Windows 10"
-      }
-   }
-   `
-   var req http.Request
-   req.Header = http.Header{}
-   req.Method = "POST"
-   req.URL = &url.URL{}
-   req.URL.Host = "m7cplogin.solocoo.tv"
-   req.URL.Path = "/login"
-   req.URL.Scheme = "https"
-   req.Body = io.NopCloser(strings.NewReader(data))
-   var client1 client
-   err := client1.New(req.URL, []byte(data))
+         "osVersion": "Windows 10",
+      },
+   })
    if err != nil {
-      panic(err)
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   var client1 client
+   err = client1.New(req.URL, data)
+   if err != nil {
+      return err
    }
    req.Header.Set("authorization", client1.String())
-   return http.DefaultClient.Do(&req)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(n)
+}
+
+type login struct {
+   Ticket string
 }
 
 const (
