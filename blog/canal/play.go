@@ -3,12 +3,10 @@ package canal
 import (
    "bytes"
    "encoding/json"
+   "errors"
+   "io"
    "net/http"
 )
-
-type play struct {
-   Url string
-}
 
 // us fail
 // czech republic mullvad fail
@@ -42,10 +40,30 @@ func (s session) play() (*play, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   play1 := &play{}
-   err = json.NewDecoder(resp.Body).Decode(play1)
+   var play1 play
+   err = json.NewDecoder(resp.Body).Decode(&play1)
    if err != nil {
       return nil, err
    }
-   return play1, nil
+   if play1.Message != "" {
+      return nil, errors.New(play1.Message)
+   }
+   return &play1, nil
+}
+
+type play struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url string
+}
+
+func (p *play) widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }

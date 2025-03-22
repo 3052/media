@@ -17,7 +17,7 @@ func (t *token) unmarshal(data Byte[token]) error {
    return json.Unmarshal(data, t)
 }
 
-func (t ticket) token(username, password string) (Byte[token], error) {
+func (t *ticket) token(username, password string) (Byte[token], error) {
    data, err := json.Marshal(map[string]any{
       "ticket": t.Ticket,
       "userInput": map[string]string{

@@ -6,6 +6,7 @@ import (
    "crypto/sha256"
    "encoding/base64"
    "encoding/json"
+   "errors"
    "fmt"
    "net/http"
    "net/url"
@@ -13,6 +14,10 @@ import (
    "time"
 )
 
+type ticket struct {
+   Message string
+   Ticket string
+}
 
 func (t *ticket) New() error {
    data, err := json.Marshal(map[string]any{
@@ -45,17 +50,14 @@ func (t *ticket) New() error {
       return err
    }
    defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(t)
-}
-
-const (
-   key = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-type client struct {
-   sig []byte
-   unix int64
+   err = json.NewDecoder(resp.Body).Decode(t)
+   if err != nil {
+      return err
+   }
+   if t.Message != "" {
+      return errors.New(t.Message)
+   }
+   return nil
 }
 
 func (c *client) String() string {
@@ -66,6 +68,16 @@ func (c *client) String() string {
    b = append(b, ",sig="...)
    b = base64.RawURLEncoding.AppendEncode(b, c.sig)
    return string(b)
+}
+
+const (
+   key = "web.NhFyz4KsZ54"
+   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+type client struct {
+   sig []byte
+   unix int64
 }
 
 func (c *client) New(ref *url.URL, body []byte) error {
@@ -81,8 +93,4 @@ func (c *client) New(ref *url.URL, body []byte) error {
    fmt.Fprint(hash, c.unix)
    c.sig = hash.Sum(nil)
    return nil
-}
-
-type ticket struct {
-   Ticket string
 }
