@@ -14,9 +14,11 @@ func main() {
    req.Method = "POST"
    req.URL = &url.URL{}
    req.URL.Host = "tvapi-hlm2.solocoo.tv"
-   req.URL.Path = "/v1/session"
+   req.URL.Path = "/v1/assets/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi/play"
    req.URL.Scheme = "https"
+   req.Header["Content-Type"] = []string{"application/json"}
    req.Body = io.NopCloser(body)
+   req.Header["Authorization"] = []string{"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0di5zb2xvY29vLmF1dGgiOnsicyI6IncxZjhhOGZiMC0wNWZiLTExZjAtYjVkYS1mMzJkMWNkNWRkZjciLCJ1IjoiV3ozS0JWRnAzY2xwclEzZWVNUGZZZyIsImwiOiJlbl9VUyIsImQiOiJQQyIsImRtIjoiRmlyZWZveCIsIm9tIjoiTyIsImMiOiIzR01XanAwTldZT2ZhOThVZjhhbU1oUXVSNnJ6dUxvY3FSZ0NKcEZpUjI0Iiwic3QiOiJmdWxsIiwiZyI6ImV5SmljaUk2SW0wM1kzQWlMQ0prWWlJNlptRnNjMlVzSW5CMElqcG1ZV3h6WlN3aVpHVWlPaUppY21GdVpFMWhjSEJwYm1jaUxDSjFjQ0k2SW0wM1kzQWlMQ0p2Y0NJNklqRXdNRFEySW4wIiwiZiI6NiwiYiI6Im03Y3AifSwibmJmIjoxNzQyNTIzNzA5LCJleHAiOjE3NDI1MjU1NzcsImlhdCI6MTc0MjUyMzcwOSwiYXVkIjoibTdjcCJ9.lnjPwQryinqnFccT8ryVqF6joz0c_0vguiKx-w6JoiI"}
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       panic(err)
@@ -27,9 +29,11 @@ func main() {
 
 var body = strings.NewReader(`
 {
-   "brand": "m7cp",
-   "deviceSerial": "w1f8a8fb0-05fb-11f0-b5da-f32d1cd5ddf7",
-   "deviceType": "PC",
-   "ssoToken": "eyJlbmMiOiJBMTI4Q0JDLUhTMjU2Iiwia2V5IjoibTciLCJhbGciOiJkaXIifQ..pU54fOS8W-V9GhMJHdpVyw.uxmy6DiLsvodKRl3CMRmVNEEssfNZd9opOyDcOuM_MQONhDwAnYoNwt5MZHMXwelsIZEcjVDxiBCQ1Yy1QSLkjyFDqLkKC6kuid_2WSmIYMkuPkAaXdNrL8SkpHScyb6aBvzCL2qGD3uO6ElWYfGJ3cJCCrHbguMkKhbiO3EPB2Ng16kEBxmqAGnCHb2O04M5q3JxOwzxQLW8G1chGiOdGyG3nrlc_-PKWzdU8JJI8PUvTmFh8AzM0D6siCXbCaKRRP8OT3ek0JI9G1Rlc581TgMtNWrwuAPP2Vi1sF-WlCcCGGM3R0mUNCKkCJZ_04m52C8IKn9kF3Ka6oGWloeF7IgcPqlv5lPcqg9GXJ3RtbntFYIRzB_5Pj61ADAmIGUNI84U7qu3tNQEQy4GGBKmkBYRwmkkMulbvJMv33TENy5TEVpgMsQDj-lCubi2Cex.WsfESmeAt9pKxc5ifFshBg"
+   "player": {
+      "capabilities": {
+         "mediaTypes": [ "DASH" ],
+         "drmSystems": [ "Widevine" ]
+      }
+   }
 }
 `)
