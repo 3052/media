@@ -9,12 +9,12 @@ import (
    "testing"
 )
 
-var argylle = struct{
+var argylle = struct {
    key_id string
-   url string
+   url    string
 }{
    key_id: "8jU5F7LEqEP5pesDk/SaTw==",
-   url: "play.canalplus.cz/player/d/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi",
+   url:    "play.canalplus.cz/player/d/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi",
 }
 
 func TestPlay(t *testing.T) {
@@ -86,7 +86,7 @@ func TestToken(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile(home + "/media/canal/token", data, os.ModePerm)
+   err = os.WriteFile(home+"/media/canal/token", data, os.ModePerm)
    if err != nil {
       t.Fatal(err)
    }
