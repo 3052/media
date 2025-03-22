@@ -1,0 +1,67 @@
+{
+  "url": "https://cz-bkm100-prod-live.solocoo.tv/bpk-vod/playout01/default/appletvcz_A007300100102_aa58f539915e9d73863edd75a4f2fe91_HD/appletvcz_A007300100102_aa58f539915e9d73863edd75a4f2fe91_HD/index.mpd?quotaID=Wz3KBVFp3clprQ3eeMPfYg&terminalID=!!!!&maxbitrate=4200000&sub=none&auth=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1cmkiOiIvYnBrLXZvZC9wbGF5b3V0MDEvZGVmYXVsdC9hcHBsZXR2Y3pfQTAwNzMwMDEwMDEwMl9hYTU4ZjUzOTkxNWU5ZDczODYzZWRkNzVhNGYyZmU5MV9IRC9hcHBsZXR2Y3pfQTAwNzMwMDEwMDEwMl9hYTU4ZjUzOTkxNWU5ZDczODYzZWRkNzVhNGYyZmU5MV9IRC9pbmRleC5tcGQiLCJtZXRob2QiOiJHRVQiLCJleHAiOjE3NDI2Njg3MzEsInF1ZXJpZXMiOnsicXVvdGFJRCI6Ild6M0tCVkZwM2NscHJRM2VlTVBmWWciLCJ0ZXJtaW5hbElEIjoiISEhISJ9fQ.H7WdJDdMuElhDh9EEEOvegj2Hh4AKx_v5NqvG_wqtnU",
+  "mediaType": "DASH",
+  "drm": {
+    "system": "Widevine",
+    "licenseUrl": "https://license-hlm2.solocoo.tv/wv?c=m7cp%3A2%3Aon_9UT82T4gStU7KO2tG7q7eeYAtPzj5Se8NFCHvexQ%3AMDp7bTo0MDY1MjAsZjoyMzcxMix0czoxNzQyNjY4NDMxNDk3LHU6IjA1Y2EzZDViLTY5NTEtYzlkZC02OWFkLTBkZGU3OGMzZGY2MiIsZDoiRnprMThzU3lRNmo1cGVzRGsvU2FUdz09IixkZTozLGxmOjAscjowLHM6IjQ2LjEzNS44OC4xNDQifQ",
+    "refreshAfter": 225,
+    "cert": "CsECCAMSEBcFuRfMEgSGiwYzOi93KowYgrSCkgUijgIwggEKAoIBAQCZ7Vs7Mn2rXiTvw7YqlbWYUgrVvMs3UD4GRbgU2Ha430BRBEGtjOOtsRu4jE5yWl5KngeVKR1YWEAjp-GvDjipEnk5MAhhC28VjIeMfiG_-_7qd-EBnh5XgeikX0YmPRTmDoBYqGB63OBPrIRXsTeo1nzN6zNwXZg6IftO7L1KEMpHSQykfqpdQ4IY3brxyt4zkvE9b_tkQv0x4b9AsMYE0cS6TJUgpL-X7r1gkpr87vVbuvVk4tDnbNfFXHOggrmWEguDWe3OJHBwgmgNb2fG2CxKxfMTRJCnTuw3r0svAQxZ6ChD4lgvC2ufXbD8Xm7fZPvTCLRxG88SUAGcn1oJAgMBAAE6FGxpY2Vuc2Uud2lkZXZpbmUuY29tEoADrjRzFLWoNSl_JxOI-3u4y1J30kmCPN3R2jC5MzlRHrPMveoEuUS5J8EhNG79verJ1BORfm7BdqEEOEYKUDvBlSubpOTOD8S_wgqYCKqvS_zRnB3PzfV0zKwo0bQQQWz53ogEMBy9szTK_NDUCXhCOmQuVGE98K_PlspKkknYVeQrOnA-8XZ_apvTbWv4K-drvwy6T95Z0qvMdv62Qke4XEMfvKUiZrYZ_DaXlUP8qcu9u_r6DhpV51Wjx7zmVflkb1gquc9wqgi5efhn9joLK3_bNixbxOzVVdhbyqnFk8ODyFfUnaq3fkC3hR3f0kmYgI41sljnXXjqwMoW9wRzBMINk-3k6P8cbxfmJD4_Paj8FwmHDsRfuoI6Jj8M76H3CTsZCZKDJjM3BQQ6Kb2m-bQ0LMjfVDyxoRgvfF__M_EEkPrKWyU2C3YBXpxaBquO4C8A0ujVmGEEqsxN1HX9lu6c5OMm8huDxwWFd7OHMs3avGpr7RP7DUnTikXrh6X0"
+  },
+  "subtitles": [
+    {
+      "url": "https://cz-bks400-prod04-live.solocoo.tv:8081/datacache/bpk-file/subtitles/appletvcz/A007300100102_cs.srt",
+      "type": "SRT",
+      "language": "cze",
+      "purpose": "Regular"
+    },
+    {
+      "url": "https://cz-bks400-prod04-live.solocoo.tv:8081/datacache/bpk-file/subtitles/appletvcz/A007300100102_cs.vtt",
+      "type": "WebVTT",
+      "language": "cze",
+      "purpose": "Regular"
+    },
+    {
+      "url": "https://cz-bks400-prod04-live.solocoo.tv:8081/datacache/bpk-file/subtitles/appletvcz/A007300100102_en.srt",
+      "type": "SRT",
+      "language": "eng",
+      "purpose": "Regular"
+    },
+    {
+      "url": "https://cz-bks400-prod04-live.solocoo.tv:8081/datacache/bpk-file/subtitles/appletvcz/A007300100102_en.vtt",
+      "type": "WebVTT",
+      "language": "eng",
+      "purpose": "Regular"
+    },
+    {
+      "url": "https://cz-bks400-prod04-live.solocoo.tv:8081/datacache/bpk-file/subtitles/appletvcz/A007300100102_sk.srt",
+      "type": "SRT",
+      "language": "slo",
+      "purpose": "Regular"
+    },
+    {
+      "url": "https://cz-bks400-prod04-live.solocoo.tv:8081/datacache/bpk-file/subtitles/appletvcz/A007300100102_sk.vtt",
+      "type": "WebVTT",
+      "language": "slo",
+      "purpose": "Regular"
+    }
+  ],
+  "eventTimeline": {
+    "cues": [
+      {
+        "position": 32000,
+        "duration": 16000,
+        "type": "intro",
+        "label": "sg.ui.action.skip.intro"
+      },
+      {
+        "position": 7472000,
+        "duration": 527000,
+        "type": "credits"
+      }
+    ]
+  },
+  "statsBlob": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0di5zb2xvY29vLnN0YXRzYmxvYiI6eyJhdCI6Im0iLCJhaSI6IjQwNjUyMCIsInNwIjowLCJzIjoiMjJiZjk1MDEtNzQwMC1kZThiLTljYzAtYmU5MmU1OTBiOWU5IiwicHIiOiJodHRwcyIsIm0iOjB9LCJuYmYiOjE3NDI2Njg0MzEsImV4cCI6MTc0Mjg0MTIzMSwiaWF0IjoxNzQyNjY4NDMxLCJhdWQiOiJtN2NwIn0.G0iaWeNGkAO4TMw1DY-vdegrB-Tev00ngNJHdwe7BYg",
+  "statsSessionId": "22bf9501-7400-de8b-9cc0-be92e590b9e9",
+  "statsAssetType": "m",
+  "statsOwnerName": "Apple TV+"
+}

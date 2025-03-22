@@ -7,17 +7,17 @@ import (
    "net/http"
 )
 
-func (s *sso_token) unmarshal(data Byte[sso_token]) error {
-   return json.Unmarshal(data, s)
-}
+type Byte[T any] []byte
 
-type sso_token struct {
+type token struct {
    SsoToken string
 }
 
-type Byte[T any] []byte
+func (t *token) unmarshal(data Byte[token]) error {
+   return json.Unmarshal(data, t)
+}
 
-func (t ticket) token(username, password string) (Byte[sso_token], error) {
+func (t ticket) token(username, password string) (Byte[token], error) {
    data, err := json.Marshal(map[string]any{
       "ticket": t.Ticket,
       "userInput": map[string]string{
@@ -47,4 +47,3 @@ func (t ticket) token(username, password string) (Byte[sso_token], error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
-

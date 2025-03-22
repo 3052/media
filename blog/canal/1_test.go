@@ -7,7 +7,7 @@ import (
    "testing"
 )
 
-func TestSsoToken(t *testing.T) {
+func TestToken(t *testing.T) {
    data, err := exec.Command("password", "canalplus.cz").Output()
    if err != nil {
       t.Fatal(err)
@@ -26,7 +26,7 @@ func TestSsoToken(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile(home + "/media/canal/sso_token", data, os.ModePerm)
+   err = os.WriteFile(home + "/media/canal/token", data, os.ModePerm)
    if err != nil {
       t.Fatal(err)
    }

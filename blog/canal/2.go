@@ -8,16 +8,16 @@ import (
 
 const device_serial = "!!!!"
 
-type token struct {
+type session struct {
    Token string
 }
 
-func (s sso_token) token() (*token, error) {
+func (t token) session() (*session, error) {
    data, err := json.Marshal(map[string]string{
       "brand": "m7cp",
       "deviceSerial": device_serial,
       "deviceType": "PC",
-      "ssoToken": s.SsoToken,
+      "ssoToken": t.SsoToken,
    })
    if err != nil {
       return nil, err
@@ -29,10 +29,10 @@ func (s sso_token) token() (*token, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   token1 := &token{}
-   err = json.NewDecoder(resp.Body).Decode(token1)
+   session1 := &session{}
+   err = json.NewDecoder(resp.Body).Decode(session1)
    if err != nil {
       return nil, err
    }
-   return token1, nil
+   return session1, nil
 }
