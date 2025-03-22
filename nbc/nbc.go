@@ -15,6 +15,8 @@ import (
    "time"
 )
 
+const drm_proxy_secret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
+
 func Widevine(data []byte) ([]byte, error) {
    time1 := fmt.Sprint(time.Now().UnixMilli())
    hash := func() string {
@@ -125,8 +127,6 @@ query bonanzaPage(
 func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
 }
-
-const drm_proxy_secret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
 
 func (m *Metadata) Vod() (*Vod, error) {
    req, _ := http.NewRequest("", "https://lemonade.nbc.com", nil)
