@@ -10,9 +10,62 @@ import (
    "path/filepath"
 )
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media+name)
-   return os.WriteFile(f.media+name, data, os.ModePerm)
+func (f *flags) download() error {
+   if f.dash != "" {
+      data, err := os.ReadFile(f.media + "/canal/Token")
+      if err != nil {
+         return err
+      }
+      var token canal.Token
+      err = token.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      session, err := token.Session()
+      if err != nil {
+         return err
+      }
+      var fields canal.Fields
+      err = fields.New(f.address)
+      if err != nil {
+         return err
+      }
+      play, err := session.Play(fields.ObjectIds())
+      if err != nil {
+         return err
+      }
+      f.e.Widevine = func(data []byte) ([]byte, error) {
+         return play.Widevine(data)
+      }
+      return f.e.Download(f.media+"/Mpd", f.dash)
+   }
+   data, err := os.ReadFile(f.media + "/canal/Token")
+   if err != nil {
+      return err
+   }
+   var token canal.Token
+   err = token.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   session, err := token.Session()
+   if err != nil {
+      return err
+   }
+   var fields canal.Fields
+   err = fields.New(f.address)
+   if err != nil {
+      return err
+   }
+   play, err := session.Play(fields.ObjectIds())
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Url)
+   if err != nil {
+      return err
+   }
+   return internal.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) New() error {
@@ -33,7 +86,7 @@ type flags struct {
    media    string
    password string
    dash     string
-   address string
+   address  string
 }
 
 func main() {
@@ -65,83 +118,20 @@ func main() {
    }
 }
 
-///
-
-func (f *flags) authenticate() error {
-   var ticket1 ticket
-   err = ticket1.New()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err = ticket1.token(username, password)
-   if err != nil {
-      t.Fatal(err)
-   }
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(home+"/media/canal/token", data, os.ModePerm)
-   if err != nil {
-      t.Fatal(err)
-   }
-   // OLD
-   data, err := canal.NewAuthenticate(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return f.write_file("/canal/Authenticate", data)
+func (f *flags) write_file(name string, data []byte) error {
+   log.Println("WriteFile", f.media+name)
+   return os.WriteFile(f.media+name, data, os.ModePerm)
 }
 
-func (f *flags) download() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/canal/Playlist")
-      if err != nil {
-         return err
-      }
-      var play canal.Playlist
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   data, err := os.ReadFile(f.media + "/canal/Authenticate")
+func (f *flags) authenticate() error {
+   var ticket canal.Ticket
+   err := ticket.New()
    if err != nil {
       return err
    }
-   var auth canal.Authenticate
-   err = auth.Unmarshal(data)
+   data, err := ticket.Token(f.email, f.password)
    if err != nil {
       return err
    }
-   err = auth.Refresh()
-   if err != nil {
-      return err
-   }
-   deep, err := auth.DeepLink(f.entity)
-   if err != nil {
-      return err
-   }
-   data, err = auth.Playlist(deep)
-   if err != nil {
-      return err
-   }
-   err = f.write_file("/canal/Playlist", data)
-   if err != nil {
-      return err
-   }
-   var play canal.Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.StreamUrl)
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return f.write_file("/canal/Token", data)
 }

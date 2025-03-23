@@ -15,12 +15,29 @@ import (
    "time"
 )
 
-func (f fields) object_ids() string {
+func (p *Play) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Play struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
+
+func (f Fields) ObjectIds() string {
    return f.get("objectIDs")
 }
 
 // residential proxy
-func (s session) play(object_id string) (*play, error) {
+func (s Session) Play(object_id string) (*Play, error) {
    data, err := json.Marshal(map[string]any{
       "player": map[string]any{
          "capabilities": map[string]any{
@@ -54,7 +71,7 @@ func (s session) play(object_id string) (*play, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var play1 play
+   var play1 Play
    err = json.NewDecoder(resp.Body).Decode(&play1)
    if err != nil {
       return nil, err
@@ -65,7 +82,7 @@ func (s session) play(object_id string) (*play, error) {
    return &play1, nil
 }
 
-func (f *fields) New(address string) error {
+func (f *Fields) New(address string) error {
    resp, err := http.Get(address)
    if err != nil {
       return err
@@ -81,7 +98,7 @@ func (f *fields) New(address string) error {
    return nil
 }
 
-func (f fields) get(key string) string {
+func (f Fields) get(key string) string {
    for i, field := range f {
       if field == key {
          return f[i+1]
@@ -90,7 +107,7 @@ func (f fields) get(key string) string {
    return ""
 }
 
-type fields []string
+type Fields []string
 
 func (c *client) New(ref *url.URL, body []byte) error {
    body1 := sha256.Sum256(body)
@@ -127,7 +144,7 @@ type client struct {
    time int64
 }
 
-func (t *ticket) token(username, password string) (Byte[token], error) {
+func (t *Ticket) Token(username, password string) (Byte[Token], error) {
    data, err := json.Marshal(map[string]any{
       "ticket": t.Ticket,
       "userInput": map[string]string{
@@ -158,12 +175,12 @@ func (t *ticket) token(username, password string) (Byte[token], error) {
    return io.ReadAll(resp.Body)
 }
 
-type ticket struct {
+type Ticket struct {
    Message string
    Ticket  string
 }
 
-func (t *ticket) New() error {
+func (t *Ticket) New() error {
    data, err := json.Marshal(map[string]any{
       "deviceInfo": map[string]string{
          "brand":        "m7cp", // sg.ui.sso.fatal.internal_error
@@ -204,7 +221,7 @@ func (t *ticket) New() error {
    return nil
 }
 
-func (t token) session() (*session, error) {
+func (t Token) Session() (*Session, error) {
    data, err := json.Marshal(map[string]string{
       "brand":        "m7cp",
       "deviceSerial": device_serial,
@@ -221,7 +238,7 @@ func (t token) session() (*session, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   session1 := &session{}
+   session1 := &Session{}
    err = json.NewDecoder(resp.Body).Decode(session1)
    if err != nil {
       return nil, err
@@ -231,33 +248,16 @@ func (t token) session() (*session, error) {
 
 const device_serial = "!!!!"
 
-type session struct {
+type Session struct {
    Token string
-}
-
-type play struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string
-}
-
-func (p *play) widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type Byte[T any] []byte
 
-type token struct {
+type Token struct {
    SsoToken string
 }
 
-func (t *token) unmarshal(data Byte[token]) error {
+func (t *Token) Unmarshal(data Byte[Token]) error {
    return json.Unmarshal(data, t)
 }
