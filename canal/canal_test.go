@@ -3,18 +3,31 @@ package canal
 import (
    "41.neocities.org/widevine"
    "encoding/base64"
+   "fmt"
    "os"
    "os/exec"
+   "path"
    "strings"
    "testing"
 )
 
-var argylle = struct {
+func TestFields(t *testing.T) {
+   var fields1 fields
+   err := fields1.New(film.stream)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Printf("%q\n", fields1.object_ids())
+}
+
+var film = struct {
    key_id string
-   url    string
+   player string
+   stream string
 }{
    key_id: "8jU5F7LEqEP5pesDk/SaTw==",
-   url:    "play.canalplus.cz/player/d/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi",
+   player: "https://play.canalplus.cz/player/d/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi",
+   stream: "https://www.canalplus.cz/stream/film/argylle-tajny-agent/",
 }
 
 func TestPlay(t *testing.T) {
@@ -35,7 +48,7 @@ func TestPlay(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   play1, err := session1.play()
+   play1, err := session1.play(path.Base(film.player))
    if err != nil {
       t.Fatal(err)
    }
@@ -48,7 +61,7 @@ func TestPlay(t *testing.T) {
       t.Fatal(err)
    }
    var pssh widevine.Pssh
-   key_id, err := base64.StdEncoding.DecodeString(argylle.key_id)
+   key_id, err := base64.StdEncoding.DecodeString(film.key_id)
    if err != nil {
       t.Fatal(err)
    }
