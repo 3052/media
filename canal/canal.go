@@ -11,8 +11,75 @@ import (
    "io"
    "net/http"
    "net/url"
+   "strings"
    "time"
 )
+
+func (f fields) object_ids() string {
+   return f.get("objectIDs")
+}
+
+func (f fields) get(key string) string {
+   for i, field := range f {
+      if field == key {
+         return f[i+1]
+      }
+   }
+   return ""
+}
+
+type fields []string
+
+func (f *fields) New(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   *f = strings.FieldsFunc(string(data), func(r rune) bool {
+      return strings.ContainsRune(" :'", r)
+   })
+   return nil
+}
+
+func (c *client) New(ref *url.URL, body []byte) error {
+   body1 := sha256.Sum256(body)
+   c.time = time.Now().Unix()
+   secret1, err := base64.RawURLEncoding.DecodeString(secret)
+   if err != nil {
+      return err
+   }
+   hash := hmac.New(sha256.New, secret1)
+   fmt.Fprint(hash, ref)
+   fmt.Fprint(hash, base64.RawURLEncoding.EncodeToString(body1[:]))
+   fmt.Fprint(hash, c.time)
+   c.sig = hash.Sum(nil)
+   return nil
+}
+
+func (c *client) String() string {
+   b := []byte("Client key=")
+   b = append(b, key...)
+   b = append(b, ",time="...)
+   b = fmt.Append(b, c.time)
+   b = append(b, ",sig="...)
+   b = base64.RawURLEncoding.AppendEncode(b, c.sig)
+   return string(b)
+}
+
+const (
+   key    = "web.NhFyz4KsZ54"
+   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+type client struct {
+   sig  []byte
+   time int64
+}
 
 // us fail
 // czech republic mullvad fail
@@ -55,41 +122,6 @@ func (s session) play() (*play, error) {
       return nil, errors.New(play1.Message)
    }
    return &play1, nil
-}
-
-func (c *client) String() string {
-   b := []byte("Client key=")
-   b = append(b, key...)
-   b = append(b, ",time="...)
-   b = fmt.Append(b, c.time)
-   b = append(b, ",sig="...)
-   b = base64.RawURLEncoding.AppendEncode(b, c.sig)
-   return string(b)
-}
-
-const (
-   key    = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-type client struct {
-   sig  []byte
-   time int64
-}
-
-func (c *client) New(ref *url.URL, body []byte) error {
-   c.time = time.Now().Unix()
-   data := sha256.Sum256(body)
-   secret1, err := base64.RawURLEncoding.DecodeString(secret)
-   if err != nil {
-      return err
-   }
-   hash := hmac.New(sha256.New, secret1)
-   fmt.Fprint(hash, ref)
-   fmt.Fprint(hash, base64.RawURLEncoding.EncodeToString(data[:]))
-   fmt.Fprint(hash, c.time)
-   c.sig = hash.Sum(nil)
-   return nil
 }
 
 func (t *ticket) token(username, password string) (Byte[token], error) {

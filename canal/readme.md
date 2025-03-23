@@ -66,3 +66,67 @@ curl: (28) Failed to connect to canalplus.cz port 80 after 21050 ms: Timed out
 Secure Connection Failed
 An error occurred during a connection to www.canalplus.cz. PR_END_OF_FILE_ERROR
 ~~~
+
+## android
+
+- https://play.google.com/store/apps/details?id=com.canal.android.canal
+- https://play.google.com/store/apps/details?id=com.canalplus.canalplus
+
+~~~
+> play -i com.canalplus.canalplus
+details[8] = 0 USD
+details[13][1][4] = 12.2
+details[13][1][16] = Feb 14, 2025
+details[13][1][17] = APK APK APK
+details[13][1][82][1][1] = 7.0 and up
+details[15][18] = https://www.m7group.eu/privacy-policy-canal-plus/
+downloads = 530.63 thousand
+name = CANAL+ App
+size = 41.71 megabyte
+version code = 1739555674
+~~~
+
+<https://apk.gold/download?file_id=3155967/canalplus-app>
+
+~~~
+The APK failed to install.<br/> Error: INSTALL_FAILED_MISSING_SPLIT: Missing
+split for com.canalplus.canalplus
+~~~
+
+https://apkpure.com/canal-app/com.canalplus.canalplus/download/11.3
+
+1. select your region, cesko
+2. submit
+3. english
+4. sign in
+5. email
+6. password
+   - adb shell input text PASSWORD
+7. log in
+
+~~~
+adb shell am start -a android.intent.action.VIEW `
+-d https://www.canalplus.cz/stream/film/argylle-tajny-agent
+~~~
+
+next:
+
+~~~xml
+<intent-filter android:autoVerify="true">
+   <action android:name="android.intent.action.VIEW"/>
+   <category android:name="android.intent.category.BROWSABLE"/>
+   <category android:name="android.intent.category.DEFAULT"/>
+   <data android:scheme="@string/additional_scheme"/>
+   <data android:scheme="@string/application_scheme"/>
+</intent-filter>
+~~~
+
+then:
+
+~~~
+resources\res\values\strings.xml
+<string name="additional_scheme">m7cp</string>
+<string name="application_scheme">https</string>
+~~~
+
+no deep link, so we will need to parse HTML
