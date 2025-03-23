@@ -15,71 +15,8 @@ import (
    "time"
 )
 
-func (p *Play) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Play struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-
 func (f Fields) ObjectIds() string {
    return f.get("objectIDs")
-}
-
-// residential proxy
-func (s Session) Play(object_id string) (*Play, error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(object_id)
-      b.WriteString("/play")
-      return b.String()
-   }()
-   req.Header = http.Header{
-      "authorization": {"Bearer " + s.Token},
-      "content-type":  {"application/json"},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var play1 Play
-   err = json.NewDecoder(resp.Body).Decode(&play1)
-   if err != nil {
-      return nil, err
-   }
-   if play1.Message != "" {
-      return nil, errors.New(play1.Message)
-   }
-   return &play1, nil
 }
 
 func (f *Fields) New(address string) error {
@@ -260,4 +197,70 @@ type Token struct {
 
 func (t *Token) Unmarshal(data Byte[Token]) error {
    return json.Unmarshal(data, t)
+}
+
+func (p *Play) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Play struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
+
+// residential proxy
+func (s Session) Play(object_id string) (Byte[Play], error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v1/assets/")
+      b.WriteString(object_id)
+      b.WriteString("/play")
+      return b.String()
+   }()
+   req.Header = http.Header{
+      "authorization": {"Bearer " + s.Token},
+      "content-type":  {"application/json"},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Play) Unmarshal(data Byte[Play]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if p.Message != "" {
+      return errors.New(p.Message)
+   }
+   return nil
 }
