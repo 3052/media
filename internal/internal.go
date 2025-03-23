@@ -21,6 +21,16 @@ import (
    "strings"
 )
 
+func init() {
+   log.SetFlags(log.Ltime)
+   http.DefaultClient.Transport = &transport{
+      // github.com/golang/go/issues/18639
+      // github.com/golang/go/issues/25793
+      Protocols: &http.Protocols{},
+      Proxy:     http.ProxyFromEnvironment,
+   }
+}
+
 type media_file struct {
    key_id    []byte // tenc
    pssh      []byte // pssh
@@ -106,15 +116,6 @@ type License struct {
    ClientId   string
    PrivateKey string
    Widevine   func([]byte) ([]byte, error)
-}
-
-func init() {
-   log.SetFlags(log.Ltime)
-   http.DefaultClient.Transport = &transport{
-      // github.com/golang/go/issues/18639
-      Protocols: &http.Protocols{},
-      Proxy:     http.ProxyFromEnvironment,
-   }
 }
 
 type transport http.Transport

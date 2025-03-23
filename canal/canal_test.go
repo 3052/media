@@ -11,29 +11,14 @@ import (
    "testing"
 )
 
-func TestPlay(t *testing.T) {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(home + "/media/canal/token")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var token1 Token
-   err = token1.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   session1, err := token1.Session()
-   if err != nil {
-      t.Fatal(err)
-   }
-   play1, err := session1.Play(path.Base(film.player))
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(play1.Url)
+var film = struct {
+   key_id string
+   player string
+   stream string
+}{
+   key_id: "8jU5F7LEqEP5pesDk/SaTw==",
+   player: "https://play.canalplus.cz/player/d/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi",
+   stream: "https://www.canalplus.cz/stream/film/argylle-tajny-agent/",
 }
 
 func TestWidevine(t *testing.T) {
@@ -119,14 +104,4 @@ func TestFields(t *testing.T) {
       t.Fatal(err)
    }
    fmt.Printf("%q\n", fields1.ObjectIds())
-}
-
-var film = struct {
-   key_id string
-   player string
-   stream string
-}{
-   key_id: "8jU5F7LEqEP5pesDk/SaTw==",
-   player: "https://play.canalplus.cz/player/d/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi",
-   stream: "https://www.canalplus.cz/stream/film/argylle-tajny-agent/",
 }

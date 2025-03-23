@@ -15,20 +15,8 @@ type flags struct {
    dash    string
    e       internal.License
    media   string
-   tubi    int
    mullvad bool
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
+   tubi    int
 }
 
 func main() {
@@ -56,6 +44,18 @@ func main() {
    default:
       flag.Usage()
    }
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
 }
 
 func (f *flags) download() error {
