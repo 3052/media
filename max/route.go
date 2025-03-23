@@ -1,94 +1,71 @@
 package max
 
 import (
-   "bytes"
    "encoding/json"
    "errors"
    "net/http"
    "net/url"
    "strings"
-   "time"
 )
 
-func (w *WatchUrl) MarshalText() ([]byte, error) {
-   var b bytes.Buffer
-   if w.VideoId != "" {
-      b.WriteString("/video/watch/")
-      b.WriteString(w.VideoId)
-   }
-   if w.EditId != "" {
-      b.WriteByte('/')
-      b.WriteString(w.EditId)
-   }
-   return b.Bytes(), nil
-}
-
-type DefaultRoutes struct {
-   Data struct {
-      Attributes struct {
-         Url WatchUrl
-      }
-   }
-   Included []RouteInclude
-}
-
-type RouteInclude struct {
-   Attributes struct {
-      AirDate       time.Time
-      Name          string
-      EpisodeNumber int
-      SeasonNumber  int
-   }
-   Id            string
-   Relationships *struct {
-      Show *struct {
-         Data struct {
-            Id string
+func (r *routes) edit() (*edit, bool) {
+   for _, included := range r.Included {
+      if included.Relationships != nil {
+         if included.Relationships.Edit != nil {
+            return included.Relationships.Edit, true
          }
       }
    }
+   return nil, false
 }
 
-type LinkLogin struct {
+type edit struct {
+   Data struct {
+      Id string
+   }
+}
+
+type routes struct {
    Data struct {
       Attributes struct {
-         Token string
+         Url string
+      }
+   }
+   Included []struct {
+      Relationships *struct {
+         Show *struct {
+            Data struct {
+               Id string
+            }
+         }
+         Edit *edit
       }
    }
 }
 
-func (v *LinkLogin) Routes(watch *WatchUrl) (*DefaultRoutes, error) {
-   req, err := http.NewRequest("", prd_api, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      data, _ := watch.MarshalText()
-      var b strings.Builder
-      b.WriteString("/cms/routes")
-      b.Write(data)
-      return b.String()
-   }()
+func (n Login) routes(route string) (*routes, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
    req.URL.RawQuery = url.Values{
       "include": {"default"},
       // this is not required, but results in a smaller response
       "page[items.size]": {"1"},
    }.Encode()
-   req.Header.Set("authorization", "Bearer " + v.Data.Attributes.Token)
+   req.Header.Set("authorization", "Bearer " + n.Data.Attributes.Token)
+   req.URL.Path = "/cms/routes" + route
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
    if resp.StatusCode != http.StatusOK {
-      var b strings.Builder
-      resp.Write(&b)
-      return nil, errors.New(b.String())
+      var data strings.Builder
+      resp.Write(&data)
+      return nil, errors.New(data.String())
    }
-   route := &DefaultRoutes{}
-   err = json.NewDecoder(resp.Body).Decode(route)
+   routes1 := &routes{}
+   err = json.NewDecoder(resp.Body).Decode(routes1)
    if err != nil {
       return nil, err
    }
-   return route, nil
+   return routes1, nil
 }

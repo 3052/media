@@ -7,7 +7,7 @@ import (
    "time"
 )
 
-func Test(t *testing.T) {
+func TestPlayback(t *testing.T) {
    data, err := os.ReadFile("login.txt")
    if err != nil {
       t.Fatal(err)

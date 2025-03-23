@@ -9,6 +9,12 @@ import (
    "strings"
 )
 
+const (
+   device_info  = "!/!(!/!;!/!;!/!)"
+   disco_client = "!:!:beam:!"
+   prd_api      = "https://default.prd.api.discomax.com"
+)
+
 type WatchUrl struct {
    EditId  string
    VideoId string
@@ -194,12 +200,6 @@ func (s *St) Set(data string) error {
 func (s St) String() string {
    return s[0].String()
 }
-
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
 
 type Login struct {
    Data struct {
