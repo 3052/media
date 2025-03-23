@@ -14,6 +14,8 @@
 11. postal code
 12. start free trial
 
+canceling does not extend the trial
+
 ## Android
 
 https://play.google.com/store/apps/details?id=com.amcplus.amcfullepisodes

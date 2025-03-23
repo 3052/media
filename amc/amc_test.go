@@ -9,17 +9,17 @@ func TestLicense(t *testing.T) {
    fmt.Println(key_tests)
 }
 
-var key_tests = []struct{
+var key_tests = []struct {
    key_id string
-   url string
+   url    string
 }{
    {
       key_id: "+7nUc5piRu2GY3lAiA4MvQ==",
-      url: "amcplus.com/movies/nocebo--1061554",
+      url:    "amcplus.com/movies/nocebo--1061554",
    },
    {
       key_id: "vHkdO0RPSsqD3iPzeupPeA==",
-      url: "amcplus.com/shows/orphan-black/episodes/season-1-instinct--1011152",
+      url:    "amcplus.com/shows/orphan-black/episodes/season-1-instinct--1011152",
    },
 }
 

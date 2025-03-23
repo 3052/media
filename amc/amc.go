@@ -30,7 +30,7 @@ func (a Address) String() string {
 
 type Auth struct {
    Data struct {
-      AccessToken string `json:"access_token"`
+      AccessToken  string `json:"access_token"`
       RefreshToken string `json:"refresh_token"`
    }
 }
@@ -40,10 +40,10 @@ func (a *Auth) Unauth() error {
    req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
    req.Header = http.Header{
       "x-amcn-device-id": {"-"},
-      "x-amcn-language": {"en"},
-      "x-amcn-network": {"amcplus"},
-      "x-amcn-platform": {"web"},
-      "x-amcn-tenant": {"amcn"},
+      "x-amcn-language":  {"en"},
+      "x-amcn-network":   {"amcplus"},
+      "x-amcn-platform":  {"web"},
+      "x-amcn-tenant":    {"amcn"},
    }
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -56,7 +56,7 @@ func (a *Auth) Unauth() error {
 func (a *Auth) Refresh() (Byte[Auth], error) {
    req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
    req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
-   req.Header.Set("authorization", "Bearer " + a.Data.RefreshToken)
+   req.Header.Set("authorization", "Bearer "+a.Data.RefreshToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -67,7 +67,7 @@ func (a *Auth) Refresh() (Byte[Auth], error) {
 
 func (a *Auth) Login(email, password string) (Byte[Auth], error) {
    data, err := json.Marshal(map[string]string{
-      "email": email,
+      "email":    email,
       "password": password,
    })
    if err != nil {
@@ -81,17 +81,17 @@ func (a *Auth) Login(email, password string) (Byte[Auth], error) {
    }
    req.URL.Path = "/auth-orchestration-id/api/v1/login"
    req.Header = http.Header{
-      "authorization": {"Bearer " + a.Data.AccessToken},
-      "content-type": {"application/json"},
-      "x-amcn-device-ad-id": {"-"},
-      "x-amcn-device-id": {"-"},
-      "x-amcn-language": {"en"},
-      "x-amcn-network": {"amcplus"},
-      "x-amcn-platform": {"web"},
+      "authorization":           {"Bearer " + a.Data.AccessToken},
+      "content-type":            {"application/json"},
+      "x-amcn-device-ad-id":     {"-"},
+      "x-amcn-device-id":        {"-"},
+      "x-amcn-language":         {"en"},
+      "x-amcn-network":          {"amcplus"},
+      "x-amcn-platform":         {"web"},
       "x-amcn-service-group-id": {"10"},
-      "x-amcn-service-id": {"amcplus"},
-      "x-amcn-tenant": {"amcn"},
-      "x-ccpa-do-not-sell": {"doNotPassData"},
+      "x-amcn-service-id":       {"amcplus"},
+      "x-amcn-tenant":           {"amcn"},
+      "x-ccpa-do-not-sell":      {"doNotPassData"},
    }
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -104,12 +104,12 @@ func (a *Auth) Login(email, password string) (Byte[Auth], error) {
 func (a *Auth) Playback(web Address) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
-         "lat": 0,
-         "mode": "on-demand",
+         "lat":          0,
+         "mode":         "on-demand",
          "playerHeight": 0,
-         "playerWidth": 0,
-         "ppid": 0,
-         "url": "-",
+         "playerWidth":  0,
+         "ppid":         0,
+         "url":          "-",
       },
    })
    if err != nil {
@@ -123,15 +123,15 @@ func (a *Auth) Playback(web Address) (Byte[Playback], error) {
    }
    req.URL.Path = "/playback-id/api/v1/playback/" + web[1]
    req.Header = http.Header{
-      "authorization": {"Bearer " + a.Data.AccessToken},
-      "content-type": {"application/json"},
+      "authorization":       {"Bearer " + a.Data.AccessToken},
+      "content-type":        {"application/json"},
       "x-amcn-device-ad-id": {"-"},
-      "x-amcn-language": {"en"},
-      "x-amcn-network": {"amcplus"},
-      "x-amcn-platform": {"web"},
-      "x-amcn-service-id": {"amcplus"},
-      "x-amcn-tenant": {"amcn"},
-      "x-ccpa-do-not-sell": {"doNotPassData"},
+      "x-amcn-language":     {"en"},
+      "x-amcn-network":      {"amcplus"},
+      "x-amcn-platform":     {"web"},
+      "x-amcn-service-id":   {"amcplus"},
+      "x-amcn-tenant":       {"amcn"},
+      "x-ccpa-do-not-sell":  {"doNotPassData"},
    }
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -177,7 +177,7 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
 
 type Playback struct {
    Header http.Header
-   Body struct {
+   Body   struct {
       Data struct {
          PlaybackJsonData struct {
             Sources []Source
@@ -208,6 +208,6 @@ type Source struct {
          LicenseUrl string `json:"license_url"`
       } `json:"com.widevine.alpha"`
    } `json:"key_systems"`
-   Src string // MPD
+   Src  string // MPD
    Type string
 }
