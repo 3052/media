@@ -7,7 +7,7 @@ import (
    "net/url"
 )
 
-type movie_item struct {
+type show_item struct {
    Id         string
    Attributes *struct {
       Title     string
@@ -27,7 +27,20 @@ type movie_item struct {
    }
 }
 
-func (n Login) movie(route string) ([]movie_item, error) {
+type show_items []show_item
+
+func (s show_items) season() (*show_item, bool) {
+   for _, item := range s {
+      if item.Attributes != nil {
+         if item.Attributes.Title == "Season" {
+            return &item, true
+         }
+      }
+   }
+   return nil, false
+}
+
+func (n Login) show(route string) (show_items, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.RawQuery = url.Values{
       "include":          {"default"},
@@ -44,7 +57,7 @@ func (n Login) movie(route string) ([]movie_item, error) {
       Errors []struct {
          Detail string
       }
-      Included []movie_item
+      Included show_items
    }
    err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {
