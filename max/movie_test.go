@@ -20,10 +20,7 @@ func TestItems(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   //items1, err := login1.items("/movie/12199308-9afb-460b-9d79-9d54b5d2514c")
-   
-   // season 3
-   items1, err := login1.items("/show/14f9834d-bc23-41a8-ab61-5c8abdbea505")
+   items1, err := login1.items("/movie/12199308-9afb-460b-9d79-9d54b5d2514c")
    if err != nil {
       t.Fatal(err)
    }
