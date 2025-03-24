@@ -7,26 +7,6 @@ import (
    "net/url"
 )
 
-type movie_item struct {
-   Id         string
-   Attributes *struct {
-      Title     string
-      VideoType string
-   }
-   Relationships *struct {
-      Show *struct {
-         Data struct {
-            Id string
-         }
-      }
-      Edit *struct {
-         Data struct {
-            Id string
-         }
-      }
-   }
-}
-
 func (n Login) movie(route string) ([]movie_item, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.RawQuery = url.Values{
@@ -54,4 +34,24 @@ func (n Login) movie(route string) ([]movie_item, error) {
       return nil, errors.New(value.Errors[0].Detail)
    }
    return value.Included, nil
+}
+
+type movie_item struct {
+   Id         string
+   Attributes *struct {
+      Title     string
+      VideoType string
+   }
+   Relationships *struct {
+      Show *struct {
+         Data struct {
+            Id string
+         }
+      }
+      Edit *struct {
+         Data struct {
+            Id string
+         }
+      }
+   }
 }
