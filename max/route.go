@@ -3,52 +3,16 @@ package max
 import (
    "encoding/json"
    "errors"
+   "iter"
    "net/http"
    "net/url"
-   "strings"
 )
 
-func (r *routes) edit() (*edit, bool) {
-   for _, included := range r.Included {
-      if included.Relationships != nil {
-         if included.Relationships.Edit != nil {
-            return included.Relationships.Edit, true
-         }
-      }
-   }
-   return nil, false
-}
-
-type edit struct {
-   Data struct {
-      Id string
-   }
-}
-
-type routes struct {
-   Data struct {
-      Attributes struct {
-         Url string
-      }
-   }
-   Included []struct {
-      Relationships *struct {
-         Show *struct {
-            Data struct {
-               Id string
-            }
-         }
-         Edit *edit
-      }
-   }
-}
-
-func (n Login) routes(route string) (*routes, error) {
+func (n Login) items(route string) (items, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.RawQuery = url.Values{
       "include": {"default"},
-      // this is not required, but results in a smaller response
-      "page[items.size]": {"1"},
+      "page[items.size]": {"9"},
    }.Encode()
    req.Header.Set("authorization", "Bearer " + n.Data.Attributes.Token)
    req.URL.Path = "/cms/routes" + route
@@ -57,15 +21,52 @@ func (n Login) routes(route string) (*routes, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      var data strings.Builder
-      resp.Write(&data)
-      return nil, errors.New(data.String())
+   var value struct {
+      Errors []struct {
+         Detail string
+      }
+      Included items
    }
-   routes1 := &routes{}
-   err = json.NewDecoder(resp.Body).Decode(routes1)
+   err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {
       return nil, err
    }
-   return routes1, nil
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Detail)
+   }
+   return value.Included, nil
+}
+
+func (i items) episode() iter.Seq[item] {
+   return func(yield func(item) bool) {
+      for _, item1 := range i {
+         if item1.Attributes != nil {
+            if item1.Attributes.VideoType == "EPISODE" {
+               if !yield(item1) {
+                  break
+               }
+            }
+         }
+      }
+   }
+}
+
+type items []item
+
+type item struct {
+   Attributes *struct {
+      VideoType string
+   }
+   Relationships *struct {
+      Show *struct {
+         Data struct {
+            Id string
+         }
+      }
+      Edit *struct {
+         Data struct {
+            Id string
+         }
+      }
+   }
 }
