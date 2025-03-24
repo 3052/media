@@ -9,32 +9,6 @@ import (
    "strings"
 )
 
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
-
-type WatchUrl struct {
-   EditId  string
-   VideoId string
-}
-
-func (w *WatchUrl) Set(data string) error {
-   if !strings.Contains(data, "/video/watch/") {
-      return errors.New("/video/watch/ not found")
-   }
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "play.max.com")
-   data = strings.TrimPrefix(data, "/video/watch/")
-   var found bool
-   w.VideoId, w.EditId, found = strings.Cut(data, "/")
-   if !found {
-      return errors.New("/ not found")
-   }
-   return nil
-}
-
 func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
    value := map[string]any{
       "consumptionType":      "streaming",
@@ -263,4 +237,29 @@ func (s St) Initiate() (*Initiate, error) {
       return nil, errors.New(value.Errors[0].Detail)
    }
    return &value.Data.Attributes, nil
+}
+const (
+   device_info  = "!/!(!/!;!/!;!/!)"
+   disco_client = "!:!:beam:!"
+   prd_api      = "https://default.prd.api.discomax.com"
+)
+
+type WatchUrl struct {
+   EditId  string
+   VideoId string
+}
+
+func (w *WatchUrl) Set(data string) error {
+   if !strings.Contains(data, "/video/watch/") {
+      return errors.New("/video/watch/ not found")
+   }
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "play.max.com")
+   data = strings.TrimPrefix(data, "/video/watch/")
+   var found bool
+   w.VideoId, w.EditId, found = strings.Cut(data, "/")
+   if !found {
+      return errors.New("/ not found")
+   }
+   return nil
 }

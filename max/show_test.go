@@ -24,12 +24,16 @@ func TestShow(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   items, err := login1.show("/show/14f9834d-bc23-41a8-ab61-5c8abdbea505")
+   season1, err := login1.season()
    if err != nil {
       t.Fatal(err)
    }
-   season, ok := items.season()
-   fmt.Printf("%+v %v\n", season, ok)
+   for i, episode := range season1.episode() {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&episode)
+   }
 }
 
 func (transport) RoundTrip(req *http.Request) (*http.Response, error) {
