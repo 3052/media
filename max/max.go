@@ -9,6 +9,66 @@ import (
    "strings"
 )
 
+func (n *Login) Playback(v *Video) (Byte[Playback], error) {
+   value := map[string]any{
+      "editId": v.Relationships.Edit.Data.Id,
+      "consumptionType":      "streaming",
+      "appBundle":            "",         // required
+      "applicationSessionId": "",         // required
+      "firstPlay":            false,      // required
+      "gdpr":                 false,      // required
+      "playbackSessionId":    "",         // required
+      "userPreferences":      struct{}{}, // required
+      "capabilities": map[string]any{
+         "manifests": map[string]any{
+            "formats": map[string]any{
+               "dash": struct{}{}, // required
+            }, // required
+         }, // required
+      }, // required
+      "deviceInfo": map[string]any{
+         "player": map[string]any{
+            "mediaEngine": map[string]string{
+               "name":    "", // required
+               "version": "", // required
+            }, // required
+            "playerView": map[string]int{
+               "height": 0, // required
+               "width":  0, // required
+            }, // required
+            "sdk": map[string]string{
+               "name":    "", // required
+               "version": "", // required
+            }, // required
+         }, // required
+      }, // required
+   }
+   data, err := json.MarshalIndent(value, "", " ")
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest("POST", prd_api, bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b bytes.Buffer
+      b.WriteString("/playback-orchestrator/any/playback-orchestrator/v1")
+      b.WriteString("/playbackInfo")
+      return b.String()
+   }()
+   // .Set to match .Get
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 const (
    device_info  = "!/!(!/!;!/!;!/!)"
    disco_client = "!:!:beam:!"
@@ -170,99 +230,4 @@ func (s St) Initiate() (*Initiate, error) {
       return nil, errors.New(value.Errors[0].Detail)
    }
    return &value.Data.Attributes, nil
-}
-
-///
-
-func (n *Login) Playback(watch *WatchUrl) (Byte[Playback], error) {
-   value := map[string]any{
-      "consumptionType":      "streaming",
-      "editId":               watch.EditId,
-      "appBundle":            "",         // required
-      "applicationSessionId": "",         // required
-      "firstPlay":            false,      // required
-      "gdpr":                 false,      // required
-      "playbackSessionId":    "",         // required
-      "userPreferences":      struct{}{}, // required
-      "capabilities": map[string]any{
-         "manifests": map[string]any{
-            "formats": map[string]any{
-               "dash": struct{}{}, // required
-            }, // required
-         }, // required
-      }, // required
-      "deviceInfo": map[string]any{
-         "player": map[string]any{
-            "mediaEngine": map[string]string{
-               "name":    "", // required
-               "version": "", // required
-            }, // required
-            "playerView": map[string]int{
-               "height": 0, // required
-               "width":  0, // required
-            }, // required
-            "sdk": map[string]string{
-               "name":    "", // required
-               "version": "", // required
-            }, // required
-         }, // required
-      }, // required
-   }
-   data, err := json.MarshalIndent(value, "", " ")
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest("POST", prd_api, bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b bytes.Buffer
-      b.WriteString("/playback-orchestrator/any/playback-orchestrator/v1")
-      b.WriteString("/playbackInfo")
-      return b.String()
-   }()
-   // .Set to match .Get
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (w *WatchUrl) String() string {
-   var b strings.Builder
-   if w.VideoId != "" {
-      b.WriteString("/video/watch/")
-      b.WriteString(w.VideoId)
-   }
-   if w.EditId != "" {
-      b.WriteByte('/')
-      b.WriteString(w.EditId)
-   }
-   return b.String()
-}
-
-type WatchUrl struct {
-   EditId  string
-   VideoId string
-}
-
-func (w *WatchUrl) Set(data string) error {
-   if !strings.Contains(data, "/video/watch/") {
-      return errors.New("/video/watch/ not found")
-   }
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "play.max.com")
-   data = strings.TrimPrefix(data, "/video/watch/")
-   var found bool
-   w.VideoId, w.EditId, found = strings.Cut(data, "/")
-   if !found {
-      return errors.New("/ not found")
-   }
-   return nil
 }

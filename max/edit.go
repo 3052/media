@@ -9,6 +9,22 @@ import (
    "strconv"
 )
 
+type Video struct {
+   Attributes *struct {
+      SeasonNumber  int
+      EpisodeNumber int
+      Name          string
+      VideoType     string
+   }
+   Relationships *struct {
+      Edit *struct {
+         Data struct {
+            Id string
+         }
+      }
+   }
+}
+
 func (n Login) Movie(id string) (*Videos, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.Path = "/cms/routes/movie/" + id
@@ -53,22 +69,6 @@ func (n Login) Season(show string, number int) (*Videos, error) {
       return nil, err
    }
    return season1, nil
-}
-
-type Video struct {
-   Attributes *struct {
-      SeasonNumber  int
-      EpisodeNumber int
-      Name          string
-      VideoType     string
-   }
-   Relationships *struct {
-      Edit *struct {
-         Data struct {
-            Id string
-         }
-      }
-   }
 }
 
 func (v *Video) String() string {
