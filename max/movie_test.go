@@ -20,9 +20,9 @@ func TestMovie(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   items1, err := login1.movie("/movie/12199308-9afb-460b-9d79-9d54b5d2514c")
+   movie, err := login1.movie("/movie/12199308-9afb-460b-9d79-9d54b5d2514c")
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(items1)
+   fmt.Println(movie)
 }

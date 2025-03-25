@@ -6,6 +6,7 @@ import (
    "net/http"
    "os"
    "testing"
+   "time"
 )
 
 func TestShow(t *testing.T) {
@@ -24,20 +25,25 @@ func TestShow(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   season1, err := login1.season()
-   if err != nil {
-      t.Fatal(err)
-   }
-   for i, episode := range season1.episode() {
-      if i >= 1 {
-         fmt.Println()
+   var line bool
+   for season1, err := range login1.seasons() {
+      if err != nil {
+         t.Fatal(err)
       }
-      fmt.Println(&episode)
+      for _, episode := range season1.sorted() {
+         if line {
+            fmt.Println()
+         } else {
+            line = true
+         }
+         fmt.Println(&episode)
+      }
+      time.Sleep(99*time.Millisecond)
    }
 }
 
 func (transport) RoundTrip(req *http.Request) (*http.Response, error) {
-   log.Print(req.URL)
+   log.Println(req.Method, req.URL)
    return http.DefaultTransport.RoundTrip(req)
 }
 
