@@ -3,13 +3,13 @@ package max
 import (
    "encoding/json"
    "errors"
-   "fmt"
    "iter"
    "net/http"
    "net/url"
+   "strconv"
 )
 
-func (n Login) movie(id string) (*videos, error) {
+func (n Login) Movie(id string) (*Videos, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.Path = "/cms/routes/movie/" + id
    req.URL.RawQuery = url.Values{
@@ -22,7 +22,7 @@ func (n Login) movie(id string) (*videos, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var movie videos
+   var movie Videos
    err = json.NewDecoder(resp.Body).Decode(&movie)
    if err != nil {
       return nil, err
@@ -33,21 +33,21 @@ func (n Login) movie(id string) (*videos, error) {
    return &movie, nil
 }
 
-func (n Login) season(show string, number int) (*videos, error) {
+func (n Login) Season(show string, number int) (*Videos, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
    req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
    req.URL.RawQuery = url.Values{
       "include":          {"default"},
       "pf[show.id]":      {show},
-      "pf[seasonNumber]": {fmt.Sprint(number)},
+      "pf[seasonNumber]": {strconv.Itoa(number)},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   season1 := &videos{}
+   season1 := &Videos{}
    err = json.NewDecoder(resp.Body).Decode(season1)
    if err != nil {
       return nil, err
@@ -55,7 +55,7 @@ func (n Login) season(show string, number int) (*videos, error) {
    return season1, nil
 }
 
-type video struct {
+type Video struct {
    Attributes *struct {
       SeasonNumber  int
       EpisodeNumber int
@@ -71,24 +71,45 @@ type video struct {
    }
 }
 
-func (v *video) String() string {
-   b := fmt.Appendln(nil, "season number =", v.Attributes.SeasonNumber)
-   b = fmt.Appendln(b, "episode number =", v.Attributes.EpisodeNumber)
-   b = fmt.Appendln(b, "name =", v.Attributes.Name)
-   b = fmt.Appendln(b, "video type =", v.Attributes.VideoType)
-   b = fmt.Append(b, "edit id = ", v.Relationships.Edit.Data.Id)
+func (v *Video) String() string {
+   var b []byte
+   if v.Attributes.SeasonNumber >= 1 {
+      b = append(b, "season number = "...)
+      b = strconv.AppendInt(b, int64(v.Attributes.SeasonNumber), 10)
+   }
+   if v.Attributes.EpisodeNumber >= 1 {
+      b = append(b, "\nepisode number = "...)
+      b = strconv.AppendInt(b, int64(v.Attributes.EpisodeNumber), 10)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "name = "...)
+   b = append(b, v.Attributes.Name...)
+   b = append(b, "\nvideo type = "...)
+   b = append(b, v.Attributes.VideoType...)
+   b = append(b, "\nedit id = "...)
+   b = append(b, v.Relationships.Edit.Data.Id...)
    return string(b)
 }
 
-type videos struct {
+type Videos struct {
    Errors []struct {
       Detail string
    }
-   Included []video
+   Included []Video
 }
 
-func (v *videos) seq(video_type string) iter.Seq[video] {
-   return func(yield func(video) bool) {
+func (v *Videos) Movie() iter.Seq[Video] {
+   return v.seq("MOVIE")
+}
+
+func (v *Videos) Episode() iter.Seq[Video] {
+   return v.seq("EPISODE")
+}
+
+func (v *Videos) seq(video_type string) iter.Seq[Video] {
+   return func(yield func(Video) bool) {
       for _, video1 := range v.Included {
          if video1.Attributes != nil {
             if video1.Attributes.VideoType == video_type {
@@ -99,12 +120,4 @@ func (v *videos) seq(video_type string) iter.Seq[video] {
          }
       }
    }
-}
-
-func (v *videos) movie() iter.Seq[video] {
-   return v.seq("MOVIE")
-}
-
-func (v *videos) episode() iter.Seq[video] {
-   return v.seq("EPISODE")
 }
