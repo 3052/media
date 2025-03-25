@@ -11,6 +11,28 @@ import (
    "strings"
 )
 
+func (n Login) season(number int) (*season, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "pf[show.id]":      {"14f9834d-bc23-41a8-ab61-5c8abdbea505"},
+      "pf[seasonNumber]": {fmt.Sprint(number)},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   season1 := &season{}
+   err = json.NewDecoder(resp.Body).Decode(season1)
+   if err != nil {
+      return nil, err
+   }
+   return season1, nil
+}
+
 func (v *video) String() string {
    b := fmt.Appendln(nil, "season number =", v.Attributes.SeasonNumber)
    b = fmt.Appendln(b, "episode number =", v.Attributes.EpisodeNumber)
@@ -87,27 +109,6 @@ func (s *season) sorted() []video {
    })
 }
 
-func (n Login) season(number int) (*season, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "pf[show.id]":      {"14f9834d-bc23-41a8-ab61-5c8abdbea505"},
-      "pf[seasonNumber]": {fmt.Sprint(number)},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   season1 := &season{}
-   err = json.NewDecoder(resp.Body).Decode(season1)
-   if err != nil {
-      return nil, err
-   }
-   return season1, nil
-}
 func (m *movie_item) String() string {
    var b strings.Builder
    b.WriteString("name = ")
