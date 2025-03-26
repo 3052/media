@@ -36,7 +36,8 @@ func main() {
    flag.BoolVar(&f.proxy, "p", false, "proxy")
    flag.Parse()
    if f.proxy {
-      http.DefaultClient.Transport = proxy.Transport{
+      http.DefaultClient.Transport = &proxy.Transport{
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
          Proxy: http.ProxyFromEnvironment,
       }
    }
