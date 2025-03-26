@@ -10,7 +10,55 @@ import (
    "net/http"
    "os"
    "path/filepath"
+   "slices"
 )
+
+type flags struct {
+   e        internal.License
+   initiate bool
+   login    bool
+   media    string
+   mullvad  bool
+   dash     string
+   show_id  max.ShowId
+   season   int
+   edit     string
+}
+
+func (f *flags) do_edit() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   var videos []max.Video
+   if f.season >= 1 {
+      items, err := login.Season(f.show_id, f.season)
+      if err != nil {
+         return err
+      }
+      videos = slices.SortedFunc(items.Episode(), func(a, b max.Video) int {
+         return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+      })
+   } else {
+      items, err := login.Movie(f.show_id)
+      if err != nil {
+         return err
+      }
+      videos = slices.Collect(items.Movie())
+   }
+   for i, video := range videos {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&video)
+   }
+   return nil
+}
 
 func (f *flags) do_initiate() error {
    var st max.St
@@ -18,7 +66,7 @@ func (f *flags) do_initiate() error {
    if err != nil {
       return err
    }
-   log.Println("Create", f.media + "/max/St")
+   log.Println("Create", f.media+"/max/St")
    file, err := os.Create(f.media + "/max/St")
    if err != nil {
       return err
@@ -36,16 +84,6 @@ func (f *flags) do_initiate() error {
    return nil
 }
 
-type flags struct {
-   dash     string
-   e        internal.License
-   initiate bool
-   login    bool
-   media    string
-   mullvad  bool
-   url      max.WatchUrl
-}
-
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -58,51 +96,9 @@ func (f *flags) New() error {
    return nil
 }
 
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.Var(&f.url, "a", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "DASH ID")
-   flag.BoolVar(
-      &f.initiate, "initiate", false, "/authentication/linkDevice/initiate",
-   )
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.BoolVar(
-      &f.login, "login", false, "/authentication/linkDevice/login",
-   )
-   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
-   flag.Parse()
-   if f.mullvad {
-      http.DefaultClient.Transport = &mullvad.Transport{}
-   }
-   switch {
-   case f.initiate:
-      err := f.do_initiate()
-      if err != nil {
-         panic(err)
-      }
-   case f.login:
-      err := f.do_login()
-      if err != nil {
-         panic(err)
-      }
-   case f.url.VideoId != "":
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
-}
-
 func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media + name)
-   return os.WriteFile(f.media + name, data, os.ModePerm)
+   log.Println("WriteFile", f.media+name)
+   return os.WriteFile(f.media+name, data, os.ModePerm)
 }
 
 func (f *flags) do_login() error {
@@ -122,7 +118,56 @@ func (f *flags) do_login() error {
    return f.write_file("/max/Login", data)
 }
 
-func (f *flags) download() error {
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "i", "", "DASH ID")
+   flag.BoolVar(
+      &f.initiate, "initiate", false, "/authentication/linkDevice/initiate",
+   )
+   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.BoolVar(
+      &f.login, "login", false, "/authentication/linkDevice/login",
+   )
+   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
+   flag.IntVar(&f.season, "s", 0, "season")
+   flag.StringVar(&f.edit, "e", "", "edit")
+   flag.Var(&f.show_id, "a", "address")
+   flag.Parse()
+   if f.mullvad {
+      http.DefaultClient.Transport = &mullvad.Transport{}
+   }
+   switch {
+   case f.initiate:
+      err := f.do_initiate()
+      if err != nil {
+         panic(err)
+      }
+   case f.login:
+      err := f.do_login()
+      if err != nil {
+         panic(err)
+      }
+   case f.show_id != "":
+      err := f.do_edit()
+      if err != nil {
+         panic(err)
+      }
+   case f.edit != "":
+      err := f.do_mpd()
+      if err != nil {
+         panic(err)
+      }
+   default:
+      flag.Usage()
+   }
+}
+
+func (f *flags) do_mpd() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/max/Playback")
       if err != nil {
@@ -136,7 +181,7 @@ func (f *flags) download() error {
       f.e.Widevine = func(data []byte) ([]byte, error) {
          return play.Widevine(data)
       }
-      return f.e.Download(f.media + "/Mpd", f.dash)
+      return f.e.Download(f.media+"/Mpd", f.dash)
    }
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
@@ -147,7 +192,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   data, err = login.Playback(&f.url)
+   data, err = login.Playback(f.edit)
    if err != nil {
       return err
    }
@@ -164,5 +209,5 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return internal.Mpd(f.media+"/Mpd", resp)
 }

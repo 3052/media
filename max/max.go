@@ -9,9 +9,9 @@ import (
    "strings"
 )
 
-func (n *Login) Playback(v *Video) (Byte[Playback], error) {
+func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
    value := map[string]any{
-      "editId": v.Relationships.Edit.Data.Id,
+      "editId": edit_id,
       "consumptionType":      "streaming",
       "appBundle":            "",         // required
       "applicationSessionId": "",         // required
