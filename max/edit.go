@@ -25,12 +25,12 @@ func (n Login) Season(id ShowId, number int) (*Videos, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   season1 := &Videos{}
-   err = json.NewDecoder(resp.Body).Decode(season1)
+   season := &Videos{}
+   err = json.NewDecoder(resp.Body).Decode(season)
    if err != nil {
       return nil, err
    }
-   return season1, nil
+   return season, nil
 }
 
 func (n Login) Movie(id ShowId) (*Videos, error) {
