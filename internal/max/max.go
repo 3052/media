@@ -13,18 +13,6 @@ import (
    "slices"
 )
 
-type flags struct {
-   e        internal.License
-   initiate bool
-   login    bool
-   media    string
-   mullvad  bool
-   dash     string
-   show_id  max.ShowId
-   season   int
-   edit     string
-}
-
 func (f *flags) do_edit() error {
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
@@ -35,23 +23,19 @@ func (f *flags) do_edit() error {
    if err != nil {
       return err
    }
-   var videos []max.Video
+   var videos *max.Videos
    if f.season >= 1 {
-      items, err := login.Season(f.show_id, f.season)
-      if err != nil {
-         return err
-      }
-      videos = slices.SortedFunc(items.Episode(), func(a, b max.Video) int {
-         return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-      })
+      videos, err = login.Season(f.show_id, f.season)
    } else {
-      items, err := login.Movie(f.show_id)
-      if err != nil {
-         return err
-      }
-      videos = slices.Collect(items.Movie())
+      videos, err = login.Movie(f.show_id)
    }
-   for i, video := range videos {
+   if err != nil {
+      return err
+   }
+   sorted := slices.SortedFunc(videos.Seq(), func(a, b max.Video) int {
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+   for i, video := range sorted {
       if i >= 1 {
          fmt.Println()
       }
@@ -210,4 +194,16 @@ func (f *flags) do_mpd() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
+}
+
+type flags struct {
+   dash     string
+   e        internal.License
+   edit     string
+   initiate bool
+   login    bool
+   media    string
+   mullvad  bool
+   season   int
+   show_id  max.ShowId
 }

@@ -9,6 +9,40 @@ import (
    "strings"
 )
 
+const (
+   device_info  = "!/!(!/!;!/!;!/!)"
+   disco_client = "!:!:beam:!"
+   prd_api      = "https://default.prd.api.discomax.com"
+)
+
+type Byte[T any] []byte
+
+func (i *Initiate) String() string {
+   var b strings.Builder
+   b.WriteString("target URL = ")
+   b.WriteString(i.TargetUrl)
+   b.WriteString("\nlinking code = ")
+   b.WriteString(i.LinkingCode)
+   return b.String()
+}
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
+}
+
+type Login struct {
+   Data struct {
+      Attributes struct {
+         Token string
+      }
+   }
+}
+
+func (n *Login) Unmarshal(data Byte[Login]) error {
+   return json.Unmarshal(data, n)
+}
+
 func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
    value := map[string]any{
       "editId": edit_id,
@@ -69,12 +103,6 @@ func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
    return io.ReadAll(resp.Body)
 }
 
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
-
 type Playback struct {
    Drm struct {
       Schemes struct {
@@ -93,31 +121,6 @@ type Playback struct {
    }
 }
 
-func (p *Playback) Unmarshal(data Byte[Playback]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if len(p.Errors) >= 1 {
-      return errors.New(p.Errors[0].Detail)
-   }
-   return nil
-}
-
-func (i *Initiate) String() string {
-   var b strings.Builder
-   b.WriteString("target URL = ")
-   b.WriteString(i.TargetUrl)
-   b.WriteString("\nlinking code = ")
-   b.WriteString(i.LinkingCode)
-   return b.String()
-}
-
-type Initiate struct {
-   LinkingCode string
-   TargetUrl   string
-}
-
 func (p *Playback) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
@@ -131,6 +134,17 @@ func (p *Playback) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
+}
+
+func (p *Playback) Unmarshal(data Byte[Playback]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if len(p.Errors) >= 1 {
+      return errors.New(p.Errors[0].Detail)
+   }
+   return nil
 }
 
 func (s *St) New() error {
@@ -168,21 +182,6 @@ func (s St) String() string {
    return s[0].String()
 }
 
-type Login struct {
-   Data struct {
-      Attributes struct {
-         Token string
-      }
-   }
-}
-
-type Url [1]string
-
-func (u *Url) UnmarshalText(data []byte) error {
-   (*u)[0] = strings.Replace(string(data), "_fallback", "", 1)
-   return nil
-}
-
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
@@ -197,12 +196,6 @@ func (s St) Login() (Byte[Login], error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
-
-func (n *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, n)
-}
-
-type Byte[T any] []byte
 
 func (s St) Initiate() (*Initiate, error) {
    req, _ := http.NewRequest("POST", prd_api, nil)
@@ -230,4 +223,11 @@ func (s St) Initiate() (*Initiate, error) {
       return nil, errors.New(value.Errors[0].Detail)
    }
    return &value.Data.Attributes, nil
+}
+
+type Url [1]string
+
+func (u *Url) UnmarshalText(data []byte) error {
+   (*u)[0] = strings.Replace(string(data), "_fallback", "", 1)
+   return nil
 }
