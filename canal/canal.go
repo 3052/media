@@ -15,20 +15,20 @@ import (
    "time"
 )
 
-type Token struct {
-   Label string
-   SsoToken string
-}
-
 func (t *Token) Unmarshal(data Byte[Token]) error {
    err := json.Unmarshal(data, t)
    if err != nil {
       return err
    }
-   if t.Label != "" {
+   if t.Label != "sg.ui.sso.success.login" {
       return errors.New(t.Label)
    }
    return nil
+}
+
+type Token struct {
+   Label string
+   SsoToken string
 }
 
 func (t *Ticket) Token(username, password string) (Byte[Token], error) {

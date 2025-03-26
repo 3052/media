@@ -1,17 +1,22 @@
-# history
+# blog
 
 ## 2025
 
 <table>
    <tr>
+      <td>3</td>
+      <td>CANAL+, Live and catch-up TV</td>
+      <td>March 25</td>
+   </tr>
+   <tr>
       <td>2</td>
       <td>Binge</td>
-      <td>2025-03-14</td>
+      <td>March 14</td>
    </tr>
    <tr>
       <td>1</td>
       <td>Kanopy</td>
-      <td>2025-01-23</td>
+      <td>January 23</td>
    </tr>
 </table>
 

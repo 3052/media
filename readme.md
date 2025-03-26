@@ -7,25 +7,26 @@
 
 Download media or send API requests
 
-1. Pluto TV: Free Movies & TV
+1. PlutoTV: Live TV & Free Movies
 2. Tubi: Free Movies & Live TV
 3. Max: Stream HBO, TV, & Movies
 4. Hulu: Stream TV shows & movies
 5. Plex: Stream Movies & TV
-6. Paramount+
-7. ITVX
-8. The NBC App - Stream TV Shows
-9. MUBI: Curated Cinema
-10. Rakuten TV -Movies & TV Series
-11. CTV
-12. Kanopy
-13. AMC+
-14. RTBF Auvio : direct et replay
-15. Binge
-16. The Roku Channel
-17. The Criterion Channel
-18. Draken Film
-19. CineMember
+6. CANAL+, Live and catch-up TV
+7. Paramount+
+8. ITVX
+9. The NBC App - Stream TV Shows
+10. MUBI: Curated Cinema
+11. Rakuten TV -Movies & TV Series
+12. CTV
+13. Kanopy
+14. AMC+
+15. RTBF Auvio : direct et replay
+16. Binge
+17. The Roku Channel
+18. The Criterion Channel
+19. Draken Film
+20. CineMember
 
 [1]://f002.backblazeb2.com/file/minerals/Paint.It.Black.2016.mp4
 

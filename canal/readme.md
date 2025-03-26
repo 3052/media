@@ -1,11 +1,5 @@
 # canal
 
-~~~
-url = https://www.canalplus.cz/stream/film/argylle-tajny-agent
-monetization = FLATRATE
-country = Czech Republic
-~~~
-
 - https://github.com/dut-iptv/dut-iptv/blob/master/plugin.video.canaldigitaal/resources/lib/api.py
 - https://github.com/add-ons/plugin.video.tvvlaanderen/blob/master/resources/lib/solocoo/asset.py
 
@@ -69,8 +63,21 @@ An error occurred during a connection to www.canalplus.cz. PR_END_OF_FILE_ERROR
 
 ## android
 
-- https://play.google.com/store/apps/details?id=com.canal.android.canal
-- https://play.google.com/store/apps/details?id=com.canalplus.canalplus
+~~~
+> play -i com.canal.android.canal -abi armeabi-v7a
+details[8] = 0 USD
+details[13][1][4] = 5.47.0
+details[13][1][16] = Mar 12, 2025
+details[13][1][17] = APK APK APK APK
+details[13][1][82][1][1] = 7.0 and up
+details[15][18] = https://www.canalplus.com/confidentialite
+downloads = 41.20 million
+name = CANAL+, Live and catch-up TV
+size = 54.93 megabyte
+version code = 450109264
+~~~
+
+and:
 
 ~~~
 > play -i com.canalplus.canalplus
