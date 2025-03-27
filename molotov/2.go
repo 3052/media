@@ -1,8 +1,19 @@
 package molotov
 
-import "net/http"
+import (
+   "encoding/json"
+   "net/http"
+)
 
-func (r *refresh) view() (*http.Response, error) {
+type view struct {
+   Program struct {
+      Video struct {
+         Id string
+      }
+   }
+}
+
+func (r *refresh) view() (*view, error) {
    req, err := http.NewRequest(
       "", "https://fapi.molotov.tv/v2/channels/531/programs/15082/view", nil,
    )
@@ -11,5 +22,15 @@ func (r *refresh) view() (*http.Response, error) {
    }
    req.Header.Set("x-molotov-agent", molotov_agent)
    req.URL.RawQuery = "access_token=" + r.AccessToken
-   return http.DefaultClient.Do(req)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   view1 := &view{}
+   err = json.NewDecoder(resp.Body).Decode(view1)
+   if err != nil {
+      return nil, err
+   }
+   return view1, nil
 }

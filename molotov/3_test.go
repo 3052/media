@@ -5,7 +5,7 @@ import (
    "testing"
 )
 
-func TestView(t *testing.T) {
+func TestAssets(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
@@ -19,7 +19,11 @@ func TestView(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := token.view()
+   view1, err := token.view()
+   if err != nil {
+      t.Fatal(err)
+   }
+   resp, err := token.assets(view1)
    if err != nil {
       t.Fatal(err)
    }

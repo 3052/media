@@ -1,0 +1,1154 @@
+{
+ "type": "vod",
+ "id": "16309454",
+ "drm": {
+  "provider": "drmtoday",
+  "license_url": "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
+  "asset_id": "cocf9r6hvamsucsfof00",
+  "session_id": "28184108_vod_16309454_iWgL7iOAkf9JSby44vuXhECwRUJt7EcELLi4bm32LCA=",
+  "user_id": "28184108",
+  "merchant": "molotov",
+  "token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDMwNDMxMzYsImp0aSI6ImRkNjAyZjNmOWVmMTVhMWQwMzQ5N2Q4NDNjY2YzNzg2YTY1Y2M4YmQzOGU3Mjk4OTI0ZTEwOTQxOWQyNjk0ZjkiLCJjcnQiOiJbe1wiYXNzZXRJZFwiOlwiY29jZjlyNmh2YW1zdWNzZm9mMDBcIixcInN0b3JlTGljZW5zZVwiOmZhbHNlLFwicHJvZmlsZVwiOntcInJlbnRhbFwiOntcImFic29sdXRlRXhwaXJhdGlvblwiOlwiMjAyNS0wMy0yN1QxMDozODo1NlpcIixcInBsYXlEdXJhdGlvblwiOjI4ODAwMDAwfX0sXCJtZXNzYWdlXCI6XCJMaWNlbnNlIGdyYW50ZWRcIixcIm91dHB1dFByb3RlY3Rpb25cIjp7XCJhbmFsb2d1ZVwiOnRydWUsXCJkaWdpdGFsXCI6dHJ1ZSxcImVuZm9yY2VcIjpmYWxzZX19XSIsIm9wdERhdGEiOiJ7XCJ1c2VySWRcIjpcIjI4MTg0MTA4XCIsXCJzZXNzaW9uSWRcIjpcIjI4MTg0MTA4X3ZvZF8xNjMwOTQ1NF9pV2dMN2lPQWtmOUpTYnk0NHZ1WGhFQ3dSVUp0N0VjRUxMaTRibTMyTENBPVwiLFwibWVyY2hhbnRcIjpcIm1vbG90b3ZcIn0ifQ._UJvO0pzIZ8DW21y0xw8uOEEds2KIwPLnCqODnpZyyIKeefQNFTwGm34LQRrxruAUHfazoZmw9bxLhskltXrow",
+  "expires_at": 1771843136,
+  "play_expires_at": 28740,
+  "scheme": "Widevine",
+  "type": "molotov/drmToday",
+  "playback_duration": 28800,
+  "mire_asset_id": "cocf9r6hvamsucsfof00",
+  "cut_asset_id": "cocf9r6hvamsucsfof00",
+  "mire_token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDMwNDMxMzYsImp0aSI6ImU3MTQ3ZDZiZTAyMGI2NTBiODA0YzM5ZTRjYTM2OGQwZWExYmE5NmU2NjZkYTg2MWJmNWU0YzU3MWUzMWRlNGMiLCJjcnQiOiJbe1wiYXNzZXRJZFwiOlwiY29jZjlyNmh2YW1zdWNzZm9mMDBcIixcInN0b3JlTGljZW5zZVwiOmZhbHNlLFwicHJvZmlsZVwiOntcInJlbnRhbFwiOntcImFic29sdXRlRXhwaXJhdGlvblwiOlwiMjAyNS0wMy0yN1QxMDozODo1NlpcIixcInBsYXlEdXJhdGlvblwiOjI4ODAwMDAwfX0sXCJtZXNzYWdlXCI6XCJMaWNlbnNlIGdyYW50ZWRcIixcIm91dHB1dFByb3RlY3Rpb25cIjp7XCJhbmFsb2d1ZVwiOnRydWUsXCJkaWdpdGFsXCI6dHJ1ZSxcImVuZm9yY2VcIjpmYWxzZX19XSIsIm9wdERhdGEiOiJ7XCJ1c2VySWRcIjpcIjI4MTg0MTA4XCIsXCJzZXNzaW9uSWRcIjpcIjI4MTg0MTA4X3ZvZF8xNjMwOTQ1NF9pV2dMN2lPQWtmOUpTYnk0NHZ1WGhFQ3dSVUp0N0VjRUxMaTRibTMyTENBPVwiLFwibWVyY2hhbnRcIjpcIm1vbG90b3ZcIn0ifQ.Ba4D3zrYCUS9ADmsVljeWZCj2it4i94NHPkF-cUaKni1ZVw9QHSabjKKhzaUG-Zukp_wBmDT7kxss9eijs6zZw",
+  "cut_token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDMwNDMxMzYsImp0aSI6ImY3NjM4ZTY1YjhmNzU4MTYyYmY0ZjQzNTE0YTY1YTVhYzZmZTAyNmFkMTNlNWQyOTIyZjNkMzZkMTc0YmYzMTQiLCJjcnQiOiJbe1wiYXNzZXRJZFwiOlwiY29jZjlyNmh2YW1zdWNzZm9mMDBcIixcInN0b3JlTGljZW5zZVwiOmZhbHNlLFwicHJvZmlsZVwiOntcInJlbnRhbFwiOntcImFic29sdXRlRXhwaXJhdGlvblwiOlwiMjAyNS0wMy0yN1QxMDozODo1NlpcIixcInBsYXlEdXJhdGlvblwiOjI4ODAwMDAwfX0sXCJtZXNzYWdlXCI6XCJMaWNlbnNlIGdyYW50ZWRcIixcIm91dHB1dFByb3RlY3Rpb25cIjp7XCJhbmFsb2d1ZVwiOnRydWUsXCJkaWdpdGFsXCI6dHJ1ZSxcImVuZm9yY2VcIjpmYWxzZX19XSIsIm9wdERhdGEiOiJ7XCJ1c2VySWRcIjpcIjI4MTg0MTA4XCIsXCJzZXNzaW9uSWRcIjpcIjI4MTg0MTA4X3ZvZF8xNjMwOTQ1NF9pV2dMN2lPQWtmOUpTYnk0NHZ1WGhFQ3dSVUp0N0VjRUxMaTRibTMyTENBPVwiLFwibWVyY2hhbnRcIjpcIm1vbG90b3ZcIn0ifQ.CVdmvHUfIQCtqajkf8uGMGVWJtxB9dfotmYkkf245zJ8AneYkTMCdNLhN6WlZuLykHW_RGEKHmMmEGrgBlIcNQ"
+ },
+ "stream": {
+  "cdn_decision_url": "https://decision.cloud-01.molotov.tv:443/vod/cdn?appID=browser_app&origin=S3&provider=molotov",
+  "suffix_url": "/output/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/32e3c47902de4911dca77b0ad73e9ac34965a1d8.ism/high.mpd",
+  "url": "https://vod-molotov.akamaized.net/output/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/32e3c47902de4911dca77b0ad73e9ac34965a1d8.ism/high.mpd",
+  "url_params": {},
+  "video_type": "vod",
+  "video_format": "DASH"
+ },
+ "metadata": {
+  "asset_type": "vod",
+  "channel_id": "531",
+  "channel_name": "FilmoTV",
+  "current_page": "player",
+  "duration": "6827",
+  "episode_id": "206499",
+  "episode_number": "0",
+  "episode_rating": "TP",
+  "episode_title": "",
+  "program_category": "Films",
+  "program_category_id": "1",
+  "program_id": "15082",
+  "program_kind": "Comédies dramatiques",
+  "program_kind_id": "14",
+  "program_seo_ranking": "0",
+  "program_title": "La vie aquatique",
+  "season_id": "18989",
+  "season_number": "1",
+  "season_title": "La Vie aquatique S01",
+  "source": ""
+ },
+ "overlay": {
+  "type": "episode",
+  "id": "206499",
+  "title": "La vie aquatique",
+  "title_formatter": {
+   "format": "La vie aquatique"
+  },
+  "subtitle_formatter": {
+   "format": "Comédie dramatique (Etats-Unis, 2004) • 1h54"
+  },
+  "description": "Le chef farfelu d'une équipe océanographique veut entraîner ses collaborateurs dans une mission-suicide, qui devrait le faire entrer dans l'Histoire.",
+  "description_formatter": {
+   "format": "Le chef farfelu d'une équipe océanographique veut entraîner ses collaborateurs dans une mission-suicide, qui devrait le faire entrer dans l'Histoire."
+  },
+  "on_add_bookmark": [
+   "bookmark"
+  ],
+  "on_remove_bookmark": [
+   "unbookmark"
+  ],
+  "actions": {
+   "bookmark": {
+    "type": "api_action",
+    "template": "add_record",
+    "url": "https://fapi.molotov.tv/v3/me/actions/schedule-record",
+    "method": "POST",
+    "payload": {
+     "channel_id": "531",
+     "episode_id": "206499"
+    }
+   },
+   "cast": {
+    "type": "api_action",
+    "url": "https://fapi.molotov.tv/v2/me/cast_action?id=16309454&trkCp=player&type=vod",
+    "method": "POST"
+   },
+   "cast_start_over": {
+    "type": "api_action",
+    "url": "https://fapi.molotov.tv/v2/me/cast_action?id=16309454&start_over=true&trkCp=player&type=vod",
+    "method": "POST"
+   },
+   "detail": {
+    "type": "navigation",
+    "template": "program_detail",
+    "url": "https://fapi.molotov.tv/v2/channels/531/programs/15082/view?trkCp=player"
+   },
+   "play_start_over": {
+    "type": "play_start_over",
+    "url": "https://fapi.molotov.tv/v2/me/assets?id=16309454&start_over=true&trkCp=player&type=vod"
+   },
+   "unbookmark": {
+    "type": "api_action",
+    "template": "remove_record",
+    "url": "https://fapi.molotov.tv/v4/me/record",
+    "method": "DELETE",
+    "payload": {
+     "record_type": "scheduled",
+     "channel_id": 531,
+     "program_id": 15082,
+     "episode_id": 206499
+    }
+   }
+  },
+  "interaction": null,
+  "metadata": {
+   "channel_id": "531",
+   "channel_name": "FilmoTV",
+   "episode_id": "206499",
+   "episode_number": "0",
+   "episode_rating": "TP",
+   "episode_title": "",
+   "program_category": "Films",
+   "program_category_id": "1",
+   "program_id": "15082",
+   "program_kind": "Comédies dramatiques",
+   "program_kind_id": "14",
+   "program_seo_ranking": "0",
+   "program_title": "La vie aquatique"
+  },
+  "user_state": {},
+  "image_bundle": {
+   "backdrop": {
+    "type": "backdrop",
+    "source": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgB/jpg"
+    },
+    "small": {
+     "width": 960,
+     "height": 540,
+     "url": "https://fusion.molotov.tv/arts/i/960x540/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgB/jpg"
+    },
+    "medium": {
+     "width": 1280,
+     "height": 720,
+     "url": "https://fusion.molotov.tv/arts/i/1280x720/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgB/jpg"
+    },
+    "large": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgB/jpg"
+    }
+   },
+   "backdrop_blurred": {
+    "type": "backdrop",
+    "source": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    },
+    "small": {
+     "width": 960,
+     "height": 540,
+     "url": "https://fusion.molotov.tv/arts/i/960x540/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    },
+    "medium": {
+     "width": 1280,
+     "height": 720,
+     "url": "https://fusion.molotov.tv/arts/i/1280x720/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    },
+    "large": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    }
+   },
+   "echoshow": {
+    "type": "poster",
+    "source": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/CiEIARIdChRYv8FT8cDtW0UYQc8YYj_-2Hk6-hIDanBnGAEKHwgCEhsKFLiE1nFvNYZiiYMkORnzQm2afxkrEgNwbmc/jpg"
+    },
+    "small": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/CiEIARIdChRYv8FT8cDtW0UYQc8YYj_-2Hk6-hIDanBnGAEKHwgCEhsKFLiE1nFvNYZiiYMkORnzQm2afxkrEgNwbmc/jpg"
+    },
+    "medium": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/CiEIARIdChRYv8FT8cDtW0UYQc8YYj_-2Hk6-hIDanBnGAEKHwgCEhsKFLiE1nFvNYZiiYMkORnzQm2afxkrEgNwbmc/jpg"
+    },
+    "large": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/CiEIARIdChRYv8FT8cDtW0UYQc8YYj_-2Hk6-hIDanBnGAEKHwgCEhsKFLiE1nFvNYZiiYMkORnzQm2afxkrEgNwbmc/jpg"
+    }
+   },
+   "landscape": {
+    "type": "landscape",
+    "source": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAg/jpg"
+    },
+    "small": {
+     "width": 320,
+     "height": 180,
+     "url": "https://fusion.molotov.tv/arts/i/320x180/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAg/jpg"
+    },
+    "medium": {
+     "width": 480,
+     "height": 270,
+     "url": "https://fusion.molotov.tv/arts/i/480x270/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAg/jpg"
+    },
+    "large": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAg/jpg"
+    }
+   },
+   "landscape_with_channel": {
+    "type": "landscape",
+    "source": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAgofCAMSGwoUuITWcW81hmKJgyQ5GfNCbZp_GSsSA3BuZw/jpg"
+    },
+    "small": {
+     "width": 320,
+     "height": 180,
+     "url": "https://fusion.molotov.tv/arts/i/320x180/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAgofCAMSGwoUuITWcW81hmKJgyQ5GfNCbZp_GSsSA3BuZw/jpg"
+    },
+    "medium": {
+     "width": 480,
+     "height": 270,
+     "url": "https://fusion.molotov.tv/arts/i/480x270/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAgofCAMSGwoUuITWcW81hmKJgyQ5GfNCbZp_GSsSA3BuZw/jpg"
+    },
+    "large": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFMTSRNBoGDbrH7d51HQY2Y5WcwwjEgNqcGcYAgofCAMSGwoUuITWcW81hmKJgyQ5GfNCbZp_GSsSA3BuZw/jpg"
+    }
+   },
+   "poster": {
+    "type": "poster",
+    "source": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    },
+    "small": {
+     "width": 155,
+     "height": 204,
+     "url": "https://fusion.molotov.tv/arts/i/155x204/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    },
+    "medium": {
+     "width": 224,
+     "height": 294,
+     "url": "https://fusion.molotov.tv/arts/i/224x294/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    },
+    "large": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    }
+   },
+   "poster_grayscale": {
+    "type": "poster",
+    "source": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgQIZHIA/jpg"
+    },
+    "small": {
+     "width": 155,
+     "height": 204,
+     "url": "https://fusion.molotov.tv/arts/i/155x204/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgQIZHIA/jpg"
+    },
+    "medium": {
+     "width": 224,
+     "height": 294,
+     "url": "https://fusion.molotov.tv/arts/i/224x294/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgQIZHIA/jpg"
+    },
+    "large": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCgQIZHIA/jpg"
+    }
+   },
+   "poster_tv": {
+    "type": "poster",
+    "source": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    },
+    "small": {
+     "width": 155,
+     "height": 204,
+     "url": "https://fusion.molotov.tv/arts/i/155x204/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    },
+    "medium": {
+     "width": 224,
+     "height": 294,
+     "url": "https://fusion.molotov.tv/arts/i/224x294/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    },
+    "large": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgBCgkIASIFCgMglwEKIQgCEh0KFIV6nRkyd4PZ-5DC9P2Wlmj9_2X9EgNqcGcYAg/jpg"
+    }
+   },
+   "poster_tv_blurred": {
+    "type": "backdrop",
+    "source": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    },
+    "small": {
+     "width": 960,
+     "height": 540,
+     "url": "https://fusion.molotov.tv/arts/i/960x540/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    },
+    "medium": {
+     "width": 1280,
+     "height": 720,
+     "url": "https://fusion.molotov.tv/arts/i/1280x720/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    },
+    "large": {
+     "width": 1920,
+     "height": 1080,
+     "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch8SHQoUWL_BU_HA7VtFGEHPGGI__th5OvoSA2pwZxgBCgYIZEICCFA/jpg"
+    }
+   },
+   "poster_tv_with_opacity": {
+    "type": "poster",
+    "source": {
+     "width": 462,
+     "height": 608,
+     "url": "https://fusion.molotov.tv/arts/i/462x608/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChTKEh0_6F6Pj-fOMNqHgMRgFL2eXRIDcG5nCgcIZLIBAgge/jpg"
+    },
+    "medium": {
+     "width": 250,
+     "height": 330,
+     "url": "https://fusion.molotov.tv/arts/i/250x330/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChTKEh0_6F6Pj-fOMNqHgMRgFL2eXRIDcG5nCgcIZLIBAgge/jpg"
+    },
+    "large": {
+     "width": 462,
+     "height": 608,
+     "url": "https://fusion.molotov.tv/arts/i/462x608/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChTKEh0_6F6Pj-fOMNqHgMRgFL2eXRIDcG5nCgcIZLIBAgge/jpg"
+    }
+   },
+   "poster_with_channel": {
+    "type": "poster",
+    "source": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5n/jpg"
+    },
+    "small": {
+     "width": 155,
+     "height": 204,
+     "url": "https://fusion.molotov.tv/arts/i/155x204/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5n/jpg"
+    },
+    "medium": {
+     "width": 224,
+     "height": 294,
+     "url": "https://fusion.molotov.tv/arts/i/224x294/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5n/jpg"
+    },
+    "large": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5n/jpg"
+    }
+   },
+   "poster_with_opacity": {
+    "type": "poster",
+    "source": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5nCgcIZLIBAgge/jpg"
+    },
+    "small": {
+     "width": 155,
+     "height": 204,
+     "url": "https://fusion.molotov.tv/arts/i/155x204/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5nCgcIZLIBAgge/jpg"
+    },
+    "medium": {
+     "width": 224,
+     "height": 294,
+     "url": "https://fusion.molotov.tv/arts/i/224x294/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5nCgcIZLIBAgge/jpg"
+    },
+    "large": {
+     "width": 446,
+     "height": 588,
+     "url": "https://fusion.molotov.tv/arts/i/446x588/Ch8SHQoUxNJE0GgYNusft3nUdBjZjlZzDCMSA2pwZxgBCh8IARIbChQvscvjJhNB6BshHlJvponIT4OYZBIDcG5nCgcIZLIBAgge/jpg"
+    }
+   },
+   "snapshot": {
+    "source": {
+     "width": 504,
+     "height": 320,
+     "url": "https://fusion.molotov.tv/arts/i/504x320/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgB/jpg"
+    },
+    "small": {
+     "width": 76,
+     "height": 80,
+     "url": "https://fusion.molotov.tv/arts/i/76x80/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgB/jpg"
+    },
+    "medium": {
+     "width": 252,
+     "height": 160,
+     "url": "https://fusion.molotov.tv/arts/i/252x160/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgB/jpg"
+    },
+    "large": {
+     "width": 504,
+     "height": 320,
+     "url": "https://fusion.molotov.tv/arts/i/504x320/Ch8SHQoUhXqdGTJ3g9n7kML0_ZaWaP3_Zf0SA2pwZxgB/jpg"
+    }
+   }
+  },
+  "is_available": false,
+  "is_unique": false,
+  "is_new": false,
+  "video": {
+   "type": "vod",
+   "id": "16309454",
+   "duration": 6827,
+   "available_from": 1714507201,
+   "available_until": 1754078398,
+   "channel_id": "531",
+   "rating_id": "1",
+   "episode_id": "206499",
+   "program_id": "15082",
+   "asset_rights": {
+    "cast": true,
+    "seek": true,
+    "start_over": true,
+    "record_episode": false,
+    "record_program": false,
+    "recommend": false,
+    "disable_pause": false,
+    "disable_pip": false,
+    "favorite": true
+   },
+   "vod_format": 1
+  },
+  "ref_csa_id": "1",
+  "program_slug": "la-vie-aquatique",
+  "max_rating_id": 1,
+  "track_filters": [
+   {
+    "track_audio": "fr",
+    "track_text": "",
+    "short_label": "VF",
+    "label": "Version française"
+   },
+   {
+    "track_audio": "en",
+    "track_text": "fr",
+    "short_label": "VOST",
+    "label": "Version originale sous titrée"
+   },
+   {
+    "track_audio": "en",
+    "track_text": "",
+    "short_label": "VO",
+    "label": "Version originale"
+   }
+  ],
+  "casting": {
+   "title": "Suivez le casting de ce film",
+   "group_index": 0,
+   "items": [
+    {
+     "type": "person",
+     "id": "61198",
+     "title": "Wes Anderson",
+     "title_formatter": {
+      "format": "Wes Anderson"
+     },
+     "subtitle": "Réalisateur",
+     "subtitle_formatter": {
+      "format": "Réalisateur"
+     },
+     "description": "Wes Anderson est un réalisateur américain. Son plus gros succès est The Grand Budapest Hotel sorti en 2014. ",
+     "description_formatter": {
+      "format": "Wes Anderson est un réalisateur américain. Son plus gros succès est The Grand Budapest Hotel sorti en 2014. "
+     },
+     "interaction": null,
+     "metadata": {
+      "person_id": "61198",
+      "person_name": "Wes Anderson"
+     },
+     "image_bundle": {
+      "profile": {
+       "source": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoU96t01LR9GOC8LbYTCbR1jpOnqJUSA2pwZxgB/jpg"
+       },
+       "small": {
+        "width": 150,
+        "height": 150,
+        "url": "https://fusion.molotov.tv/arts/i/150x150/Ch8SHQoU96t01LR9GOC8LbYTCbR1jpOnqJUSA2pwZxgB/jpg"
+       },
+       "medium": {
+        "width": 250,
+        "height": 250,
+        "url": "https://fusion.molotov.tv/arts/i/250x250/Ch8SHQoU96t01LR9GOC8LbYTCbR1jpOnqJUSA2pwZxgB/jpg"
+       },
+       "large": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoU96t01LR9GOC8LbYTCbR1jpOnqJUSA2pwZxgB/jpg"
+       }
+      }
+     },
+     "is_available": false,
+     "first_name": "Wes",
+     "last_name": "Anderson",
+     "gender": 0,
+     "placeholder_text": "WA",
+     "description_source": {
+      "label": "wikipedia",
+      "url": "https://fr.wikipedia.org/wiki/Wes%20Anderson"
+     },
+     "in_epg_broadcasts_count": 1
+    },
+    {
+     "type": "person",
+     "id": "42740",
+     "title": "Cate Blanchett",
+     "title_formatter": {
+      "format": "Cate Blanchett"
+     },
+     "subtitle": "Actrice",
+     "subtitle_formatter": {
+      "format": "Actrice"
+     },
+     "description": "Catherine Blanchett, dite Cate Blanchett est une actrice australienne, née le 14 mai 1969 à Melbourne.",
+     "description_formatter": {
+      "format": "Catherine Blanchett, dite Cate Blanchett est une actrice australienne, née le 14 mai 1969 à Melbourne."
+     },
+     "interaction": null,
+     "metadata": {
+      "person_id": "42740",
+      "person_name": "Cate Blanchett"
+     },
+     "image_bundle": {
+      "profile": {
+       "source": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUylmV_xCN6XVS6znujU_udWe1J5sSA2pwZxgB/jpg"
+       },
+       "small": {
+        "width": 150,
+        "height": 150,
+        "url": "https://fusion.molotov.tv/arts/i/150x150/Ch8SHQoUylmV_xCN6XVS6znujU_udWe1J5sSA2pwZxgB/jpg"
+       },
+       "medium": {
+        "width": 250,
+        "height": 250,
+        "url": "https://fusion.molotov.tv/arts/i/250x250/Ch8SHQoUylmV_xCN6XVS6znujU_udWe1J5sSA2pwZxgB/jpg"
+       },
+       "large": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUylmV_xCN6XVS6znujU_udWe1J5sSA2pwZxgB/jpg"
+       }
+      }
+     },
+     "is_available": false,
+     "first_name": "Cate",
+     "last_name": "Blanchett",
+     "gender": 1,
+     "placeholder_text": "CB",
+     "description_source": {
+      "label": "wikipedia",
+      "url": "https://fr.wikipedia.org/wiki/Cate%20Blanchett"
+     },
+     "in_epg_broadcasts_count": 1
+    },
+    {
+     "type": "person",
+     "id": "55561",
+     "title": "Owen Wilson",
+     "title_formatter": {
+      "format": "Owen Wilson"
+     },
+     "subtitle": "Acteur",
+     "subtitle_formatter": {
+      "format": "Acteur"
+     },
+     "description": "Owen Wilson est un acteur, producteur et scénariste américain, né le 18 novembre 1968 à Dallas (Texas).",
+     "description_formatter": {
+      "format": "Owen Wilson est un acteur, producteur et scénariste américain, né le 18 novembre 1968 à Dallas (Texas)."
+     },
+     "interaction": null,
+     "metadata": {
+      "person_id": "55561",
+      "person_name": "Owen Wilson"
+     },
+     "image_bundle": {
+      "profile": {
+       "source": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUhJSvHqjJS8pZVpwXtKthmv5e3AASA2pwZxgB/jpg"
+       },
+       "small": {
+        "width": 150,
+        "height": 150,
+        "url": "https://fusion.molotov.tv/arts/i/150x150/Ch8SHQoUhJSvHqjJS8pZVpwXtKthmv5e3AASA2pwZxgB/jpg"
+       },
+       "medium": {
+        "width": 250,
+        "height": 250,
+        "url": "https://fusion.molotov.tv/arts/i/250x250/Ch8SHQoUhJSvHqjJS8pZVpwXtKthmv5e3AASA2pwZxgB/jpg"
+       },
+       "large": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUhJSvHqjJS8pZVpwXtKthmv5e3AASA2pwZxgB/jpg"
+       }
+      }
+     },
+     "is_available": false,
+     "first_name": "Owen",
+     "last_name": "Wilson",
+     "gender": 0,
+     "placeholder_text": "OW",
+     "description_source": {
+      "label": "wikipedia",
+      "url": "https://fr.wikipedia.org/wiki/Owen%20Wilson"
+     },
+     "in_epg_broadcasts_count": 1
+    },
+    {
+     "type": "person",
+     "id": "41134",
+     "title": "Anjelica Huston",
+     "title_formatter": {
+      "format": "Anjelica Huston"
+     },
+     "subtitle": "Actrice",
+     "subtitle_formatter": {
+      "format": "Actrice"
+     },
+     "description": "Anjelica Huston, née le 8 juillet 1951 à Santa Monica, est une actrice et réalisatrice américaine de cinéma et de télévision.",
+     "description_formatter": {
+      "format": "Anjelica Huston, née le 8 juillet 1951 à Santa Monica, est une actrice et réalisatrice américaine de cinéma et de télévision."
+     },
+     "interaction": null,
+     "metadata": {
+      "person_id": "41134",
+      "person_name": "Anjelica Huston"
+     },
+     "image_bundle": {
+      "profile": {
+       "source": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUo7vhpEmLcdIxrrb-MlzE-jo0KaUSA2pwZxgB/jpg"
+       },
+       "small": {
+        "width": 150,
+        "height": 150,
+        "url": "https://fusion.molotov.tv/arts/i/150x150/Ch8SHQoUo7vhpEmLcdIxrrb-MlzE-jo0KaUSA2pwZxgB/jpg"
+       },
+       "medium": {
+        "width": 250,
+        "height": 250,
+        "url": "https://fusion.molotov.tv/arts/i/250x250/Ch8SHQoUo7vhpEmLcdIxrrb-MlzE-jo0KaUSA2pwZxgB/jpg"
+       },
+       "large": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUo7vhpEmLcdIxrrb-MlzE-jo0KaUSA2pwZxgB/jpg"
+       }
+      }
+     },
+     "is_available": false,
+     "first_name": "Anjelica",
+     "last_name": "Huston",
+     "gender": 1,
+     "placeholder_text": "AH",
+     "description_source": {
+      "label": "wikipedia",
+      "url": "https://fr.wikipedia.org/wiki/Anjelica_Huston"
+     },
+     "in_epg_broadcasts_count": 1
+    },
+    {
+     "type": "person",
+     "id": "40559",
+     "title": "Bill Murray",
+     "title_formatter": {
+      "format": "Bill Murray"
+     },
+     "subtitle": "Acteur",
+     "subtitle_formatter": {
+      "format": "Acteur"
+     },
+     "description": "William James Murray, dit Bill Murray, est un acteur, humoriste et réalisateur américain né le 21 septembre 1950 à Wilmette (Illinois).",
+     "description_formatter": {
+      "format": "William James Murray, dit Bill Murray, est un acteur, humoriste et réalisateur américain né le 21 septembre 1950 à Wilmette (Illinois)."
+     },
+     "interaction": null,
+     "metadata": {
+      "person_id": "40559",
+      "person_name": "Bill Murray"
+     },
+     "image_bundle": {
+      "profile": {
+       "source": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUdmvkOJpueK45_DRCZwmHgt2zSekSA2pwZxgB/jpg"
+       },
+       "small": {
+        "width": 150,
+        "height": 150,
+        "url": "https://fusion.molotov.tv/arts/i/150x150/Ch8SHQoUdmvkOJpueK45_DRCZwmHgt2zSekSA2pwZxgB/jpg"
+       },
+       "medium": {
+        "width": 250,
+        "height": 250,
+        "url": "https://fusion.molotov.tv/arts/i/250x250/Ch8SHQoUdmvkOJpueK45_DRCZwmHgt2zSekSA2pwZxgB/jpg"
+       },
+       "large": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUdmvkOJpueK45_DRCZwmHgt2zSekSA2pwZxgB/jpg"
+       }
+      }
+     },
+     "is_available": false,
+     "first_name": "Bill",
+     "last_name": "Murray",
+     "gender": 0,
+     "placeholder_text": "BM",
+     "description_source": {},
+     "in_epg_broadcasts_count": 1
+    },
+    {
+     "type": "person",
+     "id": "39648",
+     "title": "Willem Dafoe",
+     "title_formatter": {
+      "format": "Willem Dafoe"
+     },
+     "subtitle": "Acteur",
+     "subtitle_formatter": {
+      "format": "Acteur"
+     },
+     "description": "Willem Dafoe est un acteur, scénariste et producteur américain, né le 22 juillet 1955 à Appleton (USA).",
+     "description_formatter": {
+      "format": "Willem Dafoe est un acteur, scénariste et producteur américain, né le 22 juillet 1955 à Appleton (USA)."
+     },
+     "interaction": null,
+     "metadata": {
+      "person_id": "39648",
+      "person_name": "Willem Dafoe"
+     },
+     "image_bundle": {
+      "profile": {
+       "source": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUQoykr0-8MiZcxTFjiCjTwYl5mzASA2pwZxgB/jpg"
+       },
+       "small": {
+        "width": 150,
+        "height": 150,
+        "url": "https://fusion.molotov.tv/arts/i/150x150/Ch8SHQoUQoykr0-8MiZcxTFjiCjTwYl5mzASA2pwZxgB/jpg"
+       },
+       "medium": {
+        "width": 250,
+        "height": 250,
+        "url": "https://fusion.molotov.tv/arts/i/250x250/Ch8SHQoUQoykr0-8MiZcxTFjiCjTwYl5mzASA2pwZxgB/jpg"
+       },
+       "large": {
+        "width": 350,
+        "height": 350,
+        "url": "https://fusion.molotov.tv/arts/i/350x350/Ch8SHQoUQoykr0-8MiZcxTFjiCjTwYl5mzASA2pwZxgB/jpg"
+       }
+      }
+     },
+     "is_available": false,
+     "first_name": "Willem",
+     "last_name": "Dafoe",
+     "gender": 0,
+     "placeholder_text": "WD",
+     "description_source": {},
+     "in_epg_broadcasts_count": 1
+    }
+   ]
+  },
+  "thumbnails": {
+   "interval": 34.16,
+   "start_index": 0,
+   "end_index": 199,
+   "sprite_sheets": [
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/e163ba1c025518ff4ed2f7b16adafaae3dd5e3f7.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    },
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/7019425a31deb97a349d1efd4065f9d3a34880b2.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    },
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/34b862b1eaad7be2f7bbc4ccf79470211b42cfd2.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    },
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/5b7496b1ea378d16bdb3e8301a70f9a723891072.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    },
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/31486029bf0235e961a1201087ec225de6e8a344.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    },
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/e384a13e6f2502e185eb3585b34591029c0976fb.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    },
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/bfef5996067308bec7acc9de26a4688799e9b9f1.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    },
+    {
+     "url": "https://thumb-vod.cloud-01.molotov.tv/v2/d8/a1/65/32e3c47902de4911dca77b0ad73e9ac34965a1d8/f961106013cd6c367570b52f96e848e5e9773618.jpg",
+     "column_count": 25,
+     "row_count": 1,
+     "width": 10650,
+     "height": 240
+    }
+   ]
+  },
+  "hide_player_controls": false,
+  "channel": {
+   "type": "channel",
+   "id": "531",
+   "title": "FilmoTV",
+   "title_formatter": {
+    "format": "FilmoTV"
+   },
+   "subtitle_formatter": {
+    "format": ""
+   },
+   "slug_seo": "filmotv",
+   "interaction": null,
+   "metadata": {
+    "channel_id": "531",
+    "channel_name": "FilmoTV"
+   },
+   "image_bundle": {
+    "channel_header": {
+     "source": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "small": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "medium": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "large": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     }
+    },
+    "channel_header_desktop": {
+     "source": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "small": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "medium": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "large": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     }
+    },
+    "header_channel": {
+     "source": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "small": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "medium": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     },
+     "large": {
+      "width": 1440,
+      "height": 480,
+      "url": "https://fusion.molotov.tv/arts/i/1440x480/Ch8SHQoUAcc2ttmcAprEoG-TMa3RFjR5AvgSA3BuZxgB/png"
+     }
+    },
+    "logo_dark": {
+     "source": {
+      "width": 300,
+      "height": 300,
+      "url": "https://fusion.molotov.tv/arts/i/300x300/Ch0SGwoU5r_jjGun9B_0FDeuF1Vp4pJiPkUSA3BuZw/png"
+     },
+     "small": {
+      "width": 80,
+      "height": 80,
+      "url": "https://fusion.molotov.tv/arts/i/80x80/Ch0SGwoU5r_jjGun9B_0FDeuF1Vp4pJiPkUSA3BuZw/png"
+     },
+     "medium": {
+      "width": 150,
+      "height": 150,
+      "url": "https://fusion.molotov.tv/arts/i/150x150/Ch0SGwoU5r_jjGun9B_0FDeuF1Vp4pJiPkUSA3BuZw/png"
+     },
+     "large": {
+      "width": 300,
+      "height": 300,
+      "url": "https://fusion.molotov.tv/arts/i/300x300/Ch0SGwoU5r_jjGun9B_0FDeuF1Vp4pJiPkUSA3BuZw/png"
+     }
+    },
+    "logo_dark_cropped": {
+     "source": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoURdyC8uABXQWyBpkQVjMq_JWVTgwSA3BuZw/png"
+     },
+     "small": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoURdyC8uABXQWyBpkQVjMq_JWVTgwSA3BuZw/png"
+     },
+     "medium": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoURdyC8uABXQWyBpkQVjMq_JWVTgwSA3BuZw/png"
+     },
+     "large": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoURdyC8uABXQWyBpkQVjMq_JWVTgwSA3BuZw/png"
+     }
+    },
+    "logo_light": {
+     "source": {
+      "width": 300,
+      "height": 300,
+      "url": "https://fusion.molotov.tv/arts/i/300x300/Ch0SGwoU0QDqgfCw1HHzvypFlAJgI6kX8kESA3BuZw/png"
+     },
+     "small": {
+      "width": 80,
+      "height": 80,
+      "url": "https://fusion.molotov.tv/arts/i/80x80/Ch0SGwoU0QDqgfCw1HHzvypFlAJgI6kX8kESA3BuZw/png"
+     },
+     "medium": {
+      "width": 150,
+      "height": 150,
+      "url": "https://fusion.molotov.tv/arts/i/150x150/Ch0SGwoU0QDqgfCw1HHzvypFlAJgI6kX8kESA3BuZw/png"
+     },
+     "large": {
+      "width": 300,
+      "height": 300,
+      "url": "https://fusion.molotov.tv/arts/i/300x300/Ch0SGwoU0QDqgfCw1HHzvypFlAJgI6kX8kESA3BuZw/png"
+     }
+    },
+    "logo_light_cropped": {
+     "source": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoUOTDsQtb1a6Ir_7i_XtUnLUZcj4ESA3BuZw/png"
+     },
+     "small": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoUOTDsQtb1a6Ir_7i_XtUnLUZcj4ESA3BuZw/png"
+     },
+     "medium": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoUOTDsQtb1a6Ir_7i_XtUnLUZcj4ESA3BuZw/png"
+     },
+     "large": {
+      "width": 790,
+      "height": 222,
+      "url": "https://fusion.molotov.tv/arts/i/790x222/Ch0SGwoUOTDsQtb1a6Ir_7i_XtUnLUZcj4ESA3BuZw/png"
+     }
+    },
+    "logo_player": {
+     "source": {
+      "width": 130,
+      "height": 70,
+      "url": "https://fusion.molotov.tv/arts/i/130x70/Ch0SGwoU4fm7O1UPS-2Zd4mrR5-V4HDRrtcSA3BuZw/png"
+     },
+     "small": {
+      "width": 130,
+      "height": 70,
+      "url": "https://fusion.molotov.tv/arts/i/130x70/Ch0SGwoU4fm7O1UPS-2Zd4mrR5-V4HDRrtcSA3BuZw/png"
+     },
+     "medium": {
+      "width": 130,
+      "height": 70,
+      "url": "https://fusion.molotov.tv/arts/i/130x70/Ch0SGwoU4fm7O1UPS-2Zd4mrR5-V4HDRrtcSA3BuZw/png"
+     },
+     "large": {
+      "width": 130,
+      "height": 70,
+      "url": "https://fusion.molotov.tv/arts/i/130x70/Ch0SGwoU4fm7O1UPS-2Zd4mrR5-V4HDRrtcSA3BuZw/png"
+     }
+    },
+    "logo_player_loading": {
+     "source": {
+      "width": 1920,
+      "height": 1080,
+      "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch0SGwoUaOmmLNbED5MJckh1uWAyzmoocIcSA3BuZw/png"
+     },
+     "small": {
+      "width": 1920,
+      "height": 1080,
+      "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch0SGwoUaOmmLNbED5MJckh1uWAyzmoocIcSA3BuZw/png"
+     },
+     "medium": {
+      "width": 1920,
+      "height": 1080,
+      "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch0SGwoUaOmmLNbED5MJckh1uWAyzmoocIcSA3BuZw/png"
+     },
+     "large": {
+      "width": 1920,
+      "height": 1080,
+      "url": "https://fusion.molotov.tv/arts/i/1920x1080/Ch0SGwoUaOmmLNbED5MJckh1uWAyzmoocIcSA3BuZw/png"
+     }
+    }
+   },
+   "is_available": false
+  }
+ },
+ "screen_limiter": {
+  "interval": 40,
+  "max_interval": 40,
+  "ttl": 40,
+  "url": "https://multi-screen.cloud-01.molotov.tv:443/v4/ping?token=CkIyODE4NDEwOF92b2RfMTYzMDk0NTRfaVdnTDdpT0FrZjlKU2J5NDR2dVhoRUN3UlVKdDdFY0VMTGk0Ym0zMkxDQT0SCgisnLgNEOyztQ0aFAgCEggxNjMwOTQ1NBi3q6oIKKs1KhMIkwQQ6nUYrZQBIKPNDCjOueMHahYKDGN1cnJlbnRfcGFnZRIGcGxheWVyagsKBXRyYWNrEgJWRnAoiAHA9JK_Bg%3D%3D&trkCp=player"
+ },
+ "video_session_tracker": {
+  "interval": 40,
+  "max_interval": 40,
+  "ttl": 40,
+  "url": "https://multi-screen.cloud-01.molotov.tv:443/v4/ping?token=CkIyODE4NDEwOF92b2RfMTYzMDk0NTRfaVdnTDdpT0FrZjlKU2J5NDR2dVhoRUN3UlVKdDdFY0VMTGk0Ym0zMkxDQT0SCgisnLgNEOyztQ0aFAgCEggxNjMwOTQ1NBi3q6oIKKs1KhMIkwQQ6nUYrZQBIKPNDCjOueMHahYKDGN1cnJlbnRfcGFnZRIGcGxheWVyagsKBXRyYWNrEgJWRnAoiAHA9JK_Bg%3D%3D&trkCp=player"
+ },
+ "tracking": {
+  "youbora": {
+   "account_code": "molotov",
+   "extra_param_1": "",
+   "extra_param_10": "false",
+   "extra_param_11": "h264",
+   "extra_param_12": "B2C_Molotov",
+   "extra_param_2": "FilmoTV",
+   "extra_param_4": "",
+   "extra_param_5": "true",
+   "extra_param_6": "",
+   "extra_param_7": "0",
+   "extra_param_8": "",
+   "extra_param_9": ""
+  },
+  "molotov": {
+   "type": "api_action",
+   "url": "https://multi-screen.cloud-01.molotov.tv:443/v1/track?token=CKycuA0Q7LO1DRpCMjgxODQxMDhfdm9kXzE2MzA5NDU0X2lXZ0w3aU9Ba2Y5SlNieTQ0dnVYaEVDd1JVSnQ3RWNFTExpNGJtMzJMQ0E9",
+   "method": "POST",
+   "payload": {
+    "event": ""
+   }
+  }
+ },
+ "config": {
+  "max_bitrate": 3000000,
+  "selected_track": {
+   "track_audio": "fr",
+   "track_text": "",
+   "short_label": "VF",
+   "label": "Version française"
+  },
+  "max_play_duration": 28200,
+  "position": 4,
+  "start_at": 4
+ },
+ "player_settings": {
+  "player": "dashjs_3"
+ },
+ "self_url": "https://fapi.molotov.tv/v2/me/assets?id=16309454&trkCp=player&type=vod&country=FR&id=16309454&max_rating=4&remove_erotic=true&type=vod",
+ "up_drm": {
+  "license": {
+   "url": "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
+   "query_params": {
+    "specConform": "true"
+   },
+   "http_headers": {
+    "Content-Type": "application/octet-stream",
+    "x-dt-auth-token": "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJjcnQiOiJbe1wiYXNzZXRJZFwiOlwiY29jZjlyNmh2YW1zdWNzZm9mMDBcIixcInByb2ZpbGVcIjp7XCJyZW50YWxcIjp7XCJhYnNvbHV0ZUV4cGlyYXRpb25cIjpcIjIwMjUtMDMtMjdUMDY6Mzg6NTZaXCIsXCJwbGF5RHVyYXRpb25cIjoxNDQwMDAwMH19LFwibWVzc2FnZVwiOlwiTGljZW5zZSBHcmFudGVkIVwiLFwib3V0cHV0UHJvdGVjdGlvblwiOntcImRpZ2l0YWxcIjp0cnVlLFwiYW5hbG9ndWVcIjp0cnVlLFwiZW5mb3JjZVwiOmZhbHNlfSxcInN0b3JlTGljZW5zZVwiOmZhbHNlfV0iLCJpYXQiOjE3NDMwNDMxMzYsImp0aSI6ImFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhIiwib3B0RGF0YSI6IntcInVzZXJJZFwiOlwiMjgxODQxMDhcIixcInNlc3Npb25JZFwiOlwiT0VfTkZncXpzekYwNmllYTBtQlM3dUdSVUlvPVwiLFwibWVyY2hhbnRcIjpcIm1vbG90b3ZcIn0ifQ.67kkCv9xd8BMTRAfbcZPMna4D1v-spfy6zUGy4VZppgde9HSIN4e37d2lpl86Q3_Pk11rGQLqSJW4Mmwnc7VBQ"
+   }
+  },
+  "scheme": "Widevine"
+ }
+}
