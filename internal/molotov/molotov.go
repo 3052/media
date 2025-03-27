@@ -65,27 +65,22 @@ func main() {
    }
 }
 
-///
-
 func (f *flags) authenticate() error {
-   var login1 login
-   err = login1.New(email, password)
+   var login molotov.Login
+   err := login.New(f.email, f.password)
    if err != nil {
-      t.Fatal(err)
+      return err
    }
-   data, err = login1.Auth.refresh()
+   data, err := login.Auth.Refresh()
    if err != nil {
-      t.Fatal(err)
+      return err
    }
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   return os.WriteFile(home + "/media/molotov/refresh", data, os.ModePerm)
+   return f.write_file("/molotov/Refresh", data)
 }
 
 func (f *flags) download() error {
    if f.dash != "" {
+      
       data, err := os.ReadFile(f.media + "/molotov/Playlist")
       if err != nil {
          return err
@@ -100,37 +95,32 @@ func (f *flags) download() error {
       }
       return f.e.Download(f.media+"/Mpd", f.dash)
    }
-   data, err := os.ReadFile(f.media + "/molotov/Authenticate")
+   data, err := os.ReadFile(f.media + "/molotov/Refresh")
    if err != nil {
       return err
    }
-   var auth molotov.Authenticate
-   err = auth.Unmarshal(data)
+   var refresh molotov.Refresh
+   err = refresh.Unmarshal(data)
    if err != nil {
       return err
    }
-   err = auth.Refresh()
+   data, err = refresh.Refresh()
    if err != nil {
       return err
    }
-   deep, err := auth.DeepLink(f.entity)
+   err = f.write_file("/molotov/Refresh", data)
    if err != nil {
       return err
    }
-   data, err = auth.Playlist(deep)
+   view, err := refresh.View(&f.address)
    if err != nil {
       return err
    }
-   err = f.write_file("/molotov/Playlist", data)
+   asset, err := refresh.Asset(view)
    if err != nil {
       return err
    }
-   var play molotov.Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.StreamUrl)
+   resp, err := http.Get(asset.FhdReady())
    if err != nil {
       return err
    }
