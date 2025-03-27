@@ -11,6 +11,25 @@ import (
    "strings"
 )
 
+// https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
+type Address struct {
+   Channel int64
+   Program int64
+}
+
+func (a *Address) String() string {
+   var b []byte
+   if a.Program >= 1 {
+      b = append(b, "/fr_fr/p/"...)
+      b = strconv.AppendInt(b, a.Program, 10)
+   }
+   if a.Channel >= 1 {
+      b = append(b, '-')
+      b = strconv.AppendInt(b, a.Channel, 10)
+   }
+   return string(b)
+}
+
 func (r *refresh) view(web *Address) (*view, error) {
    req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
    req.URL.Path = func() string {
@@ -34,12 +53,6 @@ func (r *refresh) view(web *Address) (*view, error) {
       return nil, err
    }
    return view1, nil
-}
-
-// https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-type Address struct {
-   Channel int64
-   Program int64
 }
 
 const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
@@ -66,14 +79,6 @@ func (a *Address) Set(data string) error {
       return err
    }
    return nil
-}
-
-func (a *Address) String() string {
-   b := []byte("/fr_fr/p/")
-   b = strconv.AppendInt(b, a.Program, 10)
-   b = append(b, '-')
-   b = strconv.AppendInt(b, a.Channel, 10)
-   return string(b)
 }
 
 type Byte[T any] []byte
