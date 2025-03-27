@@ -11,6 +11,37 @@ import (
    "strings"
 )
 
+func (r *refresh) view(web *Address) (*view, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = func() string {
+      b := []byte("/v2/channels/")
+      b = strconv.AppendInt(b, web.Channel, 10)
+      b = append(b, "/programs/"...)
+      b = strconv.AppendInt(b, web.Program, 10)
+      b = append(b, "/view"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "access_token=" + r.AccessToken
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   view1 := &view{}
+   err = json.NewDecoder(resp.Body).Decode(view1)
+   if err != nil {
+      return nil, err
+   }
+   return view1, nil
+}
+
+// https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
+type Address struct {
+   Channel int64
+   Program int64
+}
+
 const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
 
 func (a *Address) Set(data string) error {
@@ -35,12 +66,6 @@ func (a *Address) Set(data string) error {
       return err
    }
    return nil
-}
-
-// https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-type Address struct {
-   Channel int64
-   Program int64
 }
 
 func (a *Address) String() string {
@@ -140,28 +165,6 @@ func (r *refresh) refresh() (Byte[refresh], error) {
 
 func (r *refresh) unmarshal(data Byte[refresh]) error {
    return json.Unmarshal(data, r)
-}
-
-func (r *refresh) view() (*view, error) {
-   req, err := http.NewRequest(
-      "", "https://fapi.molotov.tv/v2/channels/531/programs/15082/view", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   req.URL.RawQuery = "access_token=" + r.AccessToken
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   view1 := &view{}
-   err = json.NewDecoder(resp.Body).Decode(view1)
-   if err != nil {
-      return nil, err
-   }
-   return view1, nil
 }
 
 type refresh struct {
