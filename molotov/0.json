@@ -1,0 +1,328 @@
+{
+  "metrics": {
+    "max_recordable_duration": 0,
+    "recorded_disk_usage": 0,
+    "recorded_duration": 0,
+    "scheduled_duration": 0,
+    "recorded_count": 0,
+    "recorded_episode_count": 0,
+    "recorded_program_count": 0,
+    "bookmarked_episode_count": 0,
+    "bookmarked_program_count": 0
+  },
+  "profile_id": "28137964",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjoiMjgxODQxMDgiLCJleHBpcmVzIjoxNzQ4MjIwMzgxLCJwcm9maWxlX2lkIjoiMjgxMzc5NjQiLCJ0b2tlbiI6IkJtdXJlN2RDRVR4amZuNmlZMHRWODcvZXFHaXdGVDZzMGdQczhGREhycW1ZRGIyUlRvak82K2x6b2YxeEFiQ0ZYVllhZ3JzWWNUa1I4TERHYy9wbEJRPT0iLCJ1c2VyX2lkIjoiMjgxODQxMDgiLCJ2IjoxfQ.X9fx8Fv_sTBDN9cvYrKs5z6Pw-YAU7dvOdf_72y5TF4",
+  "account": {
+    "id": "28184108",
+    "type": "user",
+    "search_id": "39IQ50",
+    "email": "2025-03-26@mailsac.com",
+    "hashed_email": "g5hCzba-dS20HupdDHfKCA3Y65MzngEGI9tdr8_2SJw=",
+    "first_name": "",
+    "last_name": "",
+    "display_name": "2025-03-26@mailsac.com",
+    "gender": "M",
+    "birthday": 409795200,
+    "has_password": true,
+    "is_prospect": false,
+    "is_parental_code_set": false,
+    "drm_user_id": "FsAn8F/wGBhls+rFSKQIqGBBFMQ=",
+    "rights": {
+      "tv_bundles_subscribed": [
+        "25",
+        "127",
+        "142",
+        "146",
+        "153",
+        "160",
+        "161"
+      ],
+      "tv_bundles_teasing": [
+        "26",
+        "31"
+      ],
+      "video_simultaneous_streams": 2,
+      "video_max_continue_watching": 5,
+      "quota_in_seconds_max": 0,
+      "max_devices": 5,
+      "can_smart_bookmark": false,
+      "can_smart_record": false,
+      "has_paid_channels": true,
+      "has_download_feature": true,
+      "can_download": false,
+      "is_amazon_echo_show_earlybird": false,
+      "has_user_channel_feature": false,
+      "subscribed_radio_bundles": [],
+      "can_bookmark": true
+    },
+    "profiles": [
+      {
+        "id": "28137964",
+        "type": "profile",
+        "account_id": "28184108",
+        "first_name": "",
+        "last_name": "",
+        "display_name": "2025-03-26@mailsac.com",
+        "public_display_name": "2025-03-26@mailsac.com",
+        "search_id": "39IQ50",
+        "validated_public_profile": false,
+        "image_bundle": {
+          "avatar": {
+            "type": "avatar",
+            "small": {
+              "width": 64,
+              "height": 64,
+              "url": "https://fusion.molotov.tv/arts/avatar/v2/default"
+            },
+            "medium": {
+              "width": 96,
+              "height": 96,
+              "url": "https://fusion.molotov.tv/arts/avatar/v2/default"
+            },
+            "large": {
+              "width": 128,
+              "height": 128,
+              "url": "https://fusion.molotov.tv/arts/avatar/v2/default"
+            }
+          }
+        },
+        "setting": {
+          "video_max_rating": 4,
+          "tv_bundles_visible": [
+            "25",
+            "127",
+            "142",
+            "146",
+            "153",
+            "160",
+            "161"
+          ],
+          "display_cat_v_bookmarks": false,
+          "blur_adult_covers": true,
+          "hide_adult_contents": true,
+          "security_type": ""
+        },
+        "settings": {
+          "video_max_rating": 4,
+          "tv_bundles_visible": [
+            "25",
+            "127",
+            "142",
+            "146",
+            "153",
+            "160",
+            "161"
+          ],
+          "display_cat_v_bookmarks": false,
+          "blur_adult_covers": true,
+          "hide_adult_contents": true,
+          "security_type": ""
+        },
+        "count_recommendations": 0,
+        "recommendation_formatter": {
+          "format": "Pas de recommandation"
+        }
+      }
+    ],
+    "ab_testing": {
+      "conversion_loyal_tv_or_desktop_card": "a",
+      "eligible_winback": "true",
+      "gpdr_notice_show_existing_users": "no",
+      "inactive_watcher_card": "control",
+      "options_europe": "new",
+      "paywall_banner_cta_text": "a",
+      "post_churn_molotov_plus_with_bookmark_card": "a",
+      "post_churn_molotov_plus_without_bookmark_card": "a",
+      "promote_tv_card": "control",
+      "recommendations_title": "control_group",
+      "recos_ocs_algorithm": "no-reco",
+      "registered_since_7d": "no",
+      "should_send_tracking_offline": "yes",
+      "show_dialoag_after_freecontent": "every_episode",
+      "show_the_spy_alternate": "v1",
+      "social": "enabled",
+      "watch_live_trademarketing": "yes",
+      "watch_live_trademarketing_algorithm": "best_performing_demographics",
+      "z_ab_test_siri_suggest": "yes"
+    },
+    "special_ops": {},
+    "is_premium": true,
+    "dsp": "",
+    "subscribed_products": {
+      "short_formatter": {
+        "format": ""
+      },
+      "long_formatter": {
+        "format": ""
+      }
+    },
+    "badge": {
+      "type": "premium",
+      "label": {
+        "short_formatter": {
+          "format": "%s",
+          "parts": [
+            {
+              "title": "Filmo",
+              "color": "#7B7F8D"
+            }
+          ]
+        },
+        "long_formatter": {
+          "format": "%s",
+          "parts": [
+            {
+              "title": "Filmo",
+              "color": "#7B7F8D"
+            }
+          ]
+        }
+      }
+    },
+    "user_type": "premium",
+    "login": "",
+    "registration_country_code": "",
+    "display_cmp": true,
+    "created_at": 1743026170
+  },
+  "profiles": [
+    {
+      "id": "28137964",
+      "type": "profile",
+      "account_id": "28184108",
+      "first_name": "",
+      "last_name": "",
+      "display_name": "2025-03-26@mailsac.com",
+      "public_display_name": "2025-03-26@mailsac.com",
+      "search_id": "39IQ50",
+      "validated_public_profile": false,
+      "image_bundle": {
+        "avatar": {
+          "type": "avatar",
+          "small": {
+            "width": 64,
+            "height": 64,
+            "url": "https://fusion.molotov.tv/arts/avatar/v2/default"
+          },
+          "medium": {
+            "width": 96,
+            "height": 96,
+            "url": "https://fusion.molotov.tv/arts/avatar/v2/default"
+          },
+          "large": {
+            "width": 128,
+            "height": 128,
+            "url": "https://fusion.molotov.tv/arts/avatar/v2/default"
+          }
+        }
+      },
+      "setting": {
+        "video_max_rating": 4,
+        "tv_bundles_visible": [
+          "25",
+          "127",
+          "142",
+          "146",
+          "153",
+          "160",
+          "161"
+        ],
+        "display_cat_v_bookmarks": false,
+        "blur_adult_covers": true,
+        "hide_adult_contents": true,
+        "security_type": ""
+      },
+      "settings": {
+        "video_max_rating": 4,
+        "tv_bundles_visible": [
+          "25",
+          "127",
+          "142",
+          "146",
+          "153",
+          "160",
+          "161"
+        ],
+        "display_cat_v_bookmarks": false,
+        "blur_adult_covers": true,
+        "hide_adult_contents": true,
+        "security_type": ""
+      },
+      "count_recommendations": 0,
+      "recommendation_formatter": {
+        "format": "Pas de recommandation"
+      }
+    }
+  ],
+  "tv_bundle_ids": [
+    "25",
+    "127",
+    "142",
+    "146",
+    "153",
+    "160",
+    "161"
+  ],
+  "visible_tv_bundle_ids": [
+    "25",
+    "127",
+    "142",
+    "146",
+    "153",
+    "160",
+    "161"
+  ],
+  "devices": [
+    {
+      "type": "",
+      "hash": "da39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "manufacturer": "",
+      "brand": "",
+      "model": "",
+      "serial": "",
+      "created_at": 1743031546,
+      "last_connected_at": 1743036381,
+      "push_token": "",
+      "display_name": "",
+      "local_seconds_from_utc": 0,
+      "push_token_platform": ""
+    },
+    {
+      "type": "desktop",
+      "hash": "6a891e258cad2489e319303ea0ab23ba358b530b",
+      "manufacturer": "",
+      "brand": "Windows NT 10.0; Win64; x64; rv:128.0",
+      "model": "Firefox - Windows",
+      "serial": "c9f8605d-0121-4830-96d9-fa297ed6cd9a",
+      "created_at": 1743028880,
+      "last_connected_at": 1743031521,
+      "push_token": "",
+      "display_name": "Firefox - Windows",
+      "local_seconds_from_utc": 0,
+      "push_token_platform": ""
+    },
+    {
+      "type": "desktop",
+      "hash": "2431cfa1eeae686d930990668cd03973e3dcf70b",
+      "manufacturer": "",
+      "brand": "Windows NT 10.0; Win64; x64; rv:128.0",
+      "model": "Firefox - Windows",
+      "serial": "08ddebec-056b-4074-b5a7-25053e7981e0",
+      "created_at": 1743026753,
+      "last_connected_at": 1743026753,
+      "push_token": "",
+      "display_name": "Firefox - Windows",
+      "local_seconds_from_utc": 0,
+      "push_token_platform": ""
+    }
+  ],
+  "devices_over_limit": false,
+  "auth": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjoiMjgxODQxMDgiLCJhbGxvd2VkX2NpZHJzIjpbIjAuMC4wLjAvMCJdLCJleHBpcmVzIjoxNzQzMDQzNTgxLCJwcm9maWxlX2lkIjoiMjgxMzc5NjQiLCJzY29wZXMiOltdLCJ1c2VyX2lkIjoiMjgxODQxMDgiLCJ2IjoxfQ.HbzHniDoJFxs8liu_287w7xjPDjl1-acPQXD_M3YSTg",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjoiMjgxODQxMDgiLCJleHBpcmVzIjoxNzQ4MjIwMzgxLCJwcm9maWxlX2lkIjoiMjgxMzc5NjQiLCJ0b2tlbiI6IkJtdXJlN2RDRVR4amZuNmlZMHRWODcvZXFHaXdGVDZzMGdQczhGREhycW1ZRGIyUlRvak82K2x6b2YxeEFiQ0ZYVllhZ3JzWWNUa1I4TERHYy9wbEJRPT0iLCJ1c2VyX2lkIjoiMjgxODQxMDgiLCJ2IjoxfQ.X9fx8Fv_sTBDN9cvYrKs5z6Pw-YAU7dvOdf_72y5TF4",
+    "access_token_expires_at": 1743043581
+  },
+  "interstitial": null,
+  "show_open_europe": false,
+  "radio_bundle_ids": []
+}
