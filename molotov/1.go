@@ -1,23 +1,11 @@
 package molotov
 
-import (
-   "net/http"
-   "net/url"
-   "os"
-)
+import "net/http"
 
-func One() {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{}
-   req.URL.Host = "fapi.molotov.tv"
-   req.URL.Scheme = "https"
+// new refresh token is returned
+func (n login) refresh() (*http.Response, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = "/v3/auth/refresh/" + n.RefreshToken
    req.Header.Set("x-molotov-agent", molotov_agent)
-   req.URL.Path = "/v3/auth/refresh/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjoiMjgxODQxMDgiLCJleHBpcmVzIjoxNzQ4MjEyODc1LCJwcm9maWxlX2lkIjoiMjgxMzc5NjQiLCJ0b2tlbiI6IkJtdXJlN2RDRVR4amZuNmlZMHRWODcvZXFHaXdGVDZzMGdQczhGREhycW1ZRGIyUlRvak82K2x6b2YxeEFiQ0ZYVllhZ3JzWWNUa1I4TERHYy9wbEJRPT0iLCJ1c2VyX2lkIjoiMjgxODQxMDgiLCJ2IjoxfQ.P4f8QDTjjVd0yvtLI5mT50TByDXHJr-bxB9ETA1HhJI"
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      panic(err)
-   }
-   defer resp.Body.Close()
-   resp.Write(os.Stdout)
+   return http.DefaultClient.Do(req)
 }

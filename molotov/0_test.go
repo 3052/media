@@ -7,17 +7,21 @@ import (
    "testing"
 )
 
-func Test(t *testing.T) {
+func TestLogin(t *testing.T) {
    data, err := exec.Command("password", "molotov.tv").Output()
    if err != nil {
       panic(err)
    }
    email, password, _ := strings.Cut(string(data), ":")
-   resp, err := zero(email, password)
+   data, err = new_login(email, password)
    if err != nil {
       t.Fatal(err)
    }
-   err = resp.Write(os.Stdout)
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(home + "/media/molotov/login", data, os.ModePerm)
    if err != nil {
       t.Fatal(err)
    }

@@ -3,12 +3,23 @@ package molotov
 import (
    "bytes"
    "encoding/json"
+   "io"
    "net/http"
 )
 
+func (n *login) unmarshal(data Byte[login]) error {
+   return json.Unmarshal(data, n)
+}
+
+type login struct {
+   RefreshToken string `json:"refresh_token"`
+}
+
 const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
 
-func zero(email, password string) (*http.Response, error) {
+type Byte[T any] []byte
+
+func new_login(email, password string) (Byte[login], error) {
    data, err := json.Marshal(map[string]string{
       "grant_type": "password",
       "email": email,
@@ -25,5 +36,10 @@ func zero(email, password string) (*http.Response, error) {
       return nil, err
    }
    req.Header.Set("x-molotov-agent", molotov_agent)
-   return http.DefaultClient.Do(req)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
