@@ -1,6 +1,7 @@
 package molotov
 
 import (
+   "fmt"
    "os"
    "testing"
 )
@@ -23,12 +24,9 @@ func TestAssets(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := token.assets(view1)
+   assets1, err := token.assets(view1)
    if err != nil {
       t.Fatal(err)
    }
-   err = resp.Write(os.Stdout)
-   if err != nil {
-      t.Fatal(err)
-   }
+   fmt.Printf("%+v\n", assets1)
 }
