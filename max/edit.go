@@ -37,15 +37,21 @@ func (n Login) Movie(id ShowId) (*Videos, error) {
    if err != nil {
       return nil, err
    }
-   if len(movie.Errors) >= 1 {
-      err := movie.Errors[0]
-      if err.Detail != "" {
-         return nil, errors.New(err.Detail)
-      } else {
-         return nil, errors.New(err.Message)
-      }
+   if movie.Error() != "" {
+      return nil, &movie
    }
    return &movie, nil
+}
+
+func (v *Videos) Error() string {
+   if len(v.Errors) >= 1 {
+      err := v.Errors[0]
+      if err.Detail != "" {
+         return err.Detail
+      }
+      return err.Message
+   }
+   return ""
 }
 
 func (n Login) Season(id ShowId, number int) (*Videos, error) {
