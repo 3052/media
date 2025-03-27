@@ -11,26 +11,12 @@ import (
    "strings"
 )
 
-func (n Login) Season(id ShowId, number int) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
-   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "pf[seasonNumber]": {strconv.Itoa(number)},
-      "pf[show.id]":      {string(id)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
+type Videos struct {
+   Errors []struct {
+      Detail string // show was filtered by validator
+      Message string // Token is missing or not valid
    }
-   defer resp.Body.Close()
-   season := &Videos{}
-   err = json.NewDecoder(resp.Body).Decode(season)
-   if err != nil {
-      return nil, err
-   }
-   return season, nil
+   Included []Video
 }
 
 func (n Login) Movie(id ShowId) (*Videos, error) {
@@ -52,9 +38,36 @@ func (n Login) Movie(id ShowId) (*Videos, error) {
       return nil, err
    }
    if len(movie.Errors) >= 1 {
-      return nil, errors.New(movie.Errors[0].Detail)
+      err := movie.Errors[0]
+      if err.Detail != "" {
+         return nil, errors.New(err.Detail)
+      } else {
+         return nil, errors.New(err.Message)
+      }
    }
    return &movie, nil
+}
+
+func (n Login) Season(id ShowId, number int) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "pf[seasonNumber]": {strconv.Itoa(number)},
+      "pf[show.id]":      {string(id)},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   season := &Videos{}
+   err = json.NewDecoder(resp.Body).Decode(season)
+   if err != nil {
+      return nil, err
+   }
+   return season, nil
 }
 
 func (s ShowId) String() string {
@@ -114,13 +127,6 @@ func (v *Video) String() string {
    b = append(b, "\nedit id = "...)
    b = append(b, v.Relationships.Edit.Data.Id...)
    return string(b)
-}
-
-type Videos struct {
-   Errors []struct {
-      Detail string
-   }
-   Included []Video
 }
 
 func (v *Videos) Seq() iter.Seq[Video] {
