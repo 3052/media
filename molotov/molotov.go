@@ -10,62 +10,6 @@ import (
    "strings"
 )
 
-const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
-
-// https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-type Address struct {
-   Channel int64
-   Program int64
-}
-
-func (a *Address) String() string {
-   var b []byte
-   if a.Program >= 1 {
-      b = append(b, "/fr_fr/p/"...)
-      b = strconv.AppendInt(b, a.Program, 10)
-   }
-   if a.Channel >= 1 {
-      b = append(b, '-')
-      b = strconv.AppendInt(b, a.Channel, 10)
-   }
-   return string(b)
-}
-
-func (a *Address) Set(data string) error {
-   var found bool
-   _, data, found = strings.Cut(data, "/p/")
-   if !found {
-      return errors.New("/p/ not found")
-   }
-   var data1 string
-   data1, data, found = strings.Cut(data, "-")
-   if !found {
-      return errors.New(`"-" not found`)
-   }
-   var err error
-   a.Program, err = strconv.ParseInt(data1, 10, 64)
-   if err != nil {
-      return err
-   }
-   data, _, _ = strings.Cut(data, "/")
-   a.Channel, err = strconv.ParseInt(data, 10, 64)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-type Asset struct {
-   Stream struct {
-      Url string // MPD
-   }
-   UpDrm struct {
-      License struct {
-         HttpHeaders map[string]string `json:"http_headers"`
-      }
-   } `json:"up_drm"`
-}
-
 func (a *Asset) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
@@ -82,6 +26,9 @@ func (a *Asset) Widevine(data []byte) ([]byte, error) {
       return nil, err
    }
    defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
    var value struct {
       License []byte
    }
@@ -208,4 +155,59 @@ type View struct {
          }
       }
    }
+}
+const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
+
+// https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
+type Address struct {
+   Channel int64
+   Program int64
+}
+
+func (a *Address) String() string {
+   var b []byte
+   if a.Program >= 1 {
+      b = append(b, "/fr_fr/p/"...)
+      b = strconv.AppendInt(b, a.Program, 10)
+   }
+   if a.Channel >= 1 {
+      b = append(b, '-')
+      b = strconv.AppendInt(b, a.Channel, 10)
+   }
+   return string(b)
+}
+
+func (a *Address) Set(data string) error {
+   var found bool
+   _, data, found = strings.Cut(data, "/p/")
+   if !found {
+      return errors.New("/p/ not found")
+   }
+   var data1 string
+   data1, data, found = strings.Cut(data, "-")
+   if !found {
+      return errors.New(`"-" not found`)
+   }
+   var err error
+   a.Program, err = strconv.ParseInt(data1, 10, 64)
+   if err != nil {
+      return err
+   }
+   data, _, _ = strings.Cut(data, "/")
+   a.Channel, err = strconv.ParseInt(data, 10, 64)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+type Asset struct {
+   Stream struct {
+      Url string // MPD
+   }
+   UpDrm struct {
+      License struct {
+         HttpHeaders map[string]string `json:"http_headers"`
+      }
+   } `json:"up_drm"`
 }
