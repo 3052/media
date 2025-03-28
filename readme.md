@@ -16,17 +16,18 @@ Download media or send API requests
 7. Paramount+
 8. ITVX
 9. The NBC App - Stream TV Shows
-10. MUBI: Curated Cinema
-11. Rakuten TV -Movies & TV Series
-12. CTV
-13. Kanopy
-14. AMC+
-15. RTBF Auvio : direct et replay
-16. Binge
-17. The Roku Channel
-18. The Criterion Channel
-19. Draken Film
-20. CineMember
+10. Molotov - TV en direct, replay
+11. MUBI: Curated Cinema
+12. Rakuten TV -Movies & TV Series
+13. CTV
+14. Kanopy
+15. AMC+
+16. RTBF Auvio : direct et replay
+17. Binge
+18. The Roku Channel
+19. The Criterion Channel
+20. Draken Film
+21. CineMember
 
 [1]://f002.backblazeb2.com/file/minerals/Paint.It.Black.2016.mp4
 

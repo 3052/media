@@ -80,18 +80,17 @@ func (f *flags) authenticate() error {
 
 func (f *flags) download() error {
    if f.dash != "" {
-      
-      data, err := os.ReadFile(f.media + "/molotov/Playlist")
+      data, err := os.ReadFile(f.media + "/molotov/Asset")
       if err != nil {
          return err
       }
-      var play molotov.Playlist
-      err = play.Unmarshal(data)
+      var asset molotov.Asset
+      err = asset.Unmarshal(data)
       if err != nil {
          return err
       }
       f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
+         return asset.Widevine(data)
       }
       return f.e.Download(f.media+"/Mpd", f.dash)
    }
@@ -116,7 +115,16 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   asset, err := refresh.Asset(view)
+   data, err = refresh.Asset(view)
+   if err != nil {
+      return err
+   }
+   var asset molotov.Asset
+   err = asset.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/molotov/Asset", data)
    if err != nil {
       return err
    }
