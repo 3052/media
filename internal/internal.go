@@ -21,6 +21,8 @@ import (
    "strings"
 )
 
+var ThreadCount = 1
+
 func (e *License) segment_template(represent *dash.Representation) error {
    var media media_file
    err := media.New(represent)
@@ -54,31 +56,45 @@ func (e *License) segment_template(represent *dash.Representation) error {
    if err != nil {
       return err
    }
+   head := http.Header{}
+   head.Set("silent", "true")
    var segments []int
-   for represent1 := range represent.Representation() {
-      segments = slices.AppendSeq(segments, represent1.Segment())
+   for r := range represent.Representation() {
+      segments = slices.AppendSeq(segments, r.Segment())
    }
    var parts progress.Parts
    parts.Set(len(segments))
-   head := http.Header{}
-   head.Set("silent", "true")
-   for _, segment := range segments {
-      address, err := represent.SegmentTemplate.Media.Url(represent, segment)
-      if err != nil {
-         return err
+   for chunk := range slices.Chunk(segments, ThreadCount) {
+      var (
+         segments = make([][]byte, len(chunk))
+         errs = make(chan error)
+      )
+      for i, segment := range chunk {
+         address, err := represent.SegmentTemplate.Media.Url(represent, segment)
+         if err != nil {
+            return err
+         }
+         go func() {
+            segments[i], err = get(address, head)
+            parts.Next()
+            errs <- err
+         }()
       }
-      data, err := get(address, head)
-      if err != nil {
-         return err
+      for range chunk {
+         err := <-errs
+         if err != nil {
+            return err
+         }
       }
-      parts.Next()
-      data, err = media.write_segment(data, key)
-      if err != nil {
-         return err
-      }
-      _, err = file1.Write(data)
-      if err != nil {
-         return err
+      for _, data := range segments {
+         data, err = media.write_segment(data, key)
+         if err != nil {
+            return err
+         }
+         _, err = file1.Write(data)
+         if err != nil {
+            return err
+         }
       }
    }
    return nil
