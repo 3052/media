@@ -21,162 +21,6 @@ import (
    "strings"
 )
 
-func init() {
-   log.SetFlags(log.Ltime)
-   http.DefaultClient.Transport = &transport{
-      // github.com/golang/go/issues/18639
-      // github.com/golang/go/issues/25793
-      Protocols: &http.Protocols{},
-      Proxy:     http.ProxyFromEnvironment,
-   }
-}
-
-type media_file struct {
-   key_id    []byte // tenc
-   pssh      []byte // pssh
-   timescale uint64 // mdhd
-   size      uint64 // trun
-   duration  uint64 // trun
-}
-
-func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
-   if key == nil {
-      return data, nil
-   }
-   var file1 file.File
-   err := file1.Read(data)
-   if err != nil {
-      return nil, err
-   }
-   if m.duration/m.timescale < 10*60 {
-      for _, sample := range file1.Moof.Traf.Trun.Sample {
-         if sample.Duration == 0 {
-            sample.Duration = file1.Moof.Traf.Tfhd.DefaultSampleDuration
-         }
-         m.duration += uint64(sample.Duration)
-         if sample.Size == 0 {
-            sample.Size = file1.Moof.Traf.Tfhd.DefaultSampleSize
-         }
-         m.size += uint64(sample.Size)
-      }
-      log.Println("bandwidth", m.timescale*m.size*8/m.duration)
-   }
-   if file1.Moof.Traf.Senc == nil {
-      return data, nil
-   }
-   for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
-      err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
-      if err != nil {
-         return nil, err
-      }
-   }
-   return file1.Append(nil)
-}
-
-func (m *media_file) initialization(data []byte) ([]byte, error) {
-   var file1 file.File
-   err := file1.Read(data)
-   if err != nil {
-      return nil, err
-   }
-   // Moov
-   moov, ok := file1.GetMoov()
-   if !ok {
-      return data, nil
-   }
-   // Moov.Pssh
-   for _, pssh1 := range moov.Pssh {
-      if pssh1.SystemId.String() == widevine_system_id {
-         m.pssh = pssh1.Data
-      }
-      copy(pssh1.BoxHeader.Type[:], "free") // Firefox
-   }
-   // Moov.Trak
-   m.timescale = uint64(moov.Trak.Mdia.Mdhd.Timescale)
-   // Sinf
-   sinf, ok := moov.Trak.Mdia.Minf.Stbl.Stsd.Sinf()
-   if !ok {
-      return data, nil
-   }
-   // Sinf.BoxHeader
-   copy(sinf.BoxHeader.Type[:], "free") // Firefox
-   // Sinf.Schi
-   m.key_id = sinf.Schi.Tenc.DefaultKid[:]
-   // SampleEntry
-   sample, ok := moov.Trak.Mdia.Minf.Stbl.Stsd.SampleEntry()
-   if !ok {
-      return data, nil
-   }
-   // SampleEntry.BoxHeader
-   copy(sample.BoxHeader.Type[:], sinf.Frma.DataFormat[:]) // Firefox
-   return file1.Append(nil)
-}
-
-type License struct {
-   ClientId   string
-   PrivateKey string
-   Widevine   func([]byte) ([]byte, error)
-}
-
-type transport http.Transport
-
-func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
-   if req.Header.Get("silent") == "" {
-      log.Println(req.Method, req.URL)
-   }
-   return (*http.Transport)(t).RoundTrip(req)
-}
-
-func (e *License) get_key(media *media_file) ([]byte, error) {
-   if media.key_id == nil {
-      return nil, nil
-   }
-   private_key, err := os.ReadFile(e.PrivateKey)
-   if err != nil {
-      return nil, err
-   }
-   client_id, err := os.ReadFile(e.ClientId)
-   if err != nil {
-      return nil, err
-   }
-   if media.pssh == nil {
-      var pssh1 widevine.Pssh
-      pssh1.KeyIds = [][]byte{media.key_id}
-      media.pssh = pssh1.Marshal()
-   }
-   log.Println("PSSH", base64.StdEncoding.EncodeToString(media.pssh))
-   var module widevine.Cdm
-   err = module.New(private_key, client_id, media.pssh)
-   if err != nil {
-      return nil, err
-   }
-   data, err := module.RequestBody()
-   if err != nil {
-      return nil, err
-   }
-   data, err = e.Widevine(data)
-   if err != nil {
-      return nil, err
-   }
-   var body widevine.ResponseBody
-   err = body.Unmarshal(data)
-   if err != nil {
-      return nil, err
-   }
-   block, err := module.Block(body)
-   if err != nil {
-      return nil, err
-   }
-   for container := range body.Container() {
-      if bytes.Equal(container.Id(), media.key_id) {
-         key := container.Key(block)
-         log.Println("key", base64.StdEncoding.EncodeToString(key))
-         return key, nil
-      }
-   }
-   return nil, errors.New("get_key")
-}
-
 func (e *License) segment_template(represent *dash.Representation) error {
    var media media_file
    err := media.New(represent)
@@ -571,4 +415,159 @@ func unmarshal(data []byte) (*http.Response, error) {
    return http.ReadResponse(
       bufio.NewReader(bytes.NewReader(data)), &http.Request{URL: &base},
    )
+}
+func init() {
+   log.SetFlags(log.Ltime)
+   http.DefaultClient.Transport = &transport{
+      // github.com/golang/go/issues/18639
+      // github.com/golang/go/issues/25793
+      Protocols: &http.Protocols{},
+      Proxy:     http.ProxyFromEnvironment,
+   }
+}
+
+type media_file struct {
+   key_id    []byte // tenc
+   pssh      []byte // pssh
+   timescale uint64 // mdhd
+   size      uint64 // trun
+   duration  uint64 // trun
+}
+
+func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
+   if key == nil {
+      return data, nil
+   }
+   var file1 file.File
+   err := file1.Read(data)
+   if err != nil {
+      return nil, err
+   }
+   if m.duration/m.timescale < 10*60 {
+      for _, sample := range file1.Moof.Traf.Trun.Sample {
+         if sample.Duration == 0 {
+            sample.Duration = file1.Moof.Traf.Tfhd.DefaultSampleDuration
+         }
+         m.duration += uint64(sample.Duration)
+         if sample.Size == 0 {
+            sample.Size = file1.Moof.Traf.Tfhd.DefaultSampleSize
+         }
+         m.size += uint64(sample.Size)
+      }
+      log.Println("bandwidth", m.timescale*m.size*8/m.duration)
+   }
+   if file1.Moof.Traf.Senc == nil {
+      return data, nil
+   }
+   for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
+      err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
+      if err != nil {
+         return nil, err
+      }
+   }
+   return file1.Append(nil)
+}
+
+func (m *media_file) initialization(data []byte) ([]byte, error) {
+   var file1 file.File
+   err := file1.Read(data)
+   if err != nil {
+      return nil, err
+   }
+   // Moov
+   moov, ok := file1.GetMoov()
+   if !ok {
+      return data, nil
+   }
+   // Moov.Pssh
+   for _, pssh1 := range moov.Pssh {
+      if pssh1.SystemId.String() == widevine_system_id {
+         m.pssh = pssh1.Data
+      }
+      copy(pssh1.BoxHeader.Type[:], "free") // Firefox
+   }
+   // Moov.Trak
+   m.timescale = uint64(moov.Trak.Mdia.Mdhd.Timescale)
+   // Sinf
+   sinf, ok := moov.Trak.Mdia.Minf.Stbl.Stsd.Sinf()
+   if !ok {
+      return data, nil
+   }
+   // Sinf.BoxHeader
+   copy(sinf.BoxHeader.Type[:], "free") // Firefox
+   // Sinf.Schi
+   m.key_id = sinf.Schi.Tenc.DefaultKid[:]
+   // SampleEntry
+   sample, ok := moov.Trak.Mdia.Minf.Stbl.Stsd.SampleEntry()
+   if !ok {
+      return data, nil
+   }
+   // SampleEntry.BoxHeader
+   copy(sample.BoxHeader.Type[:], sinf.Frma.DataFormat[:]) // Firefox
+   return file1.Append(nil)
+}
+
+type License struct {
+   ClientId   string
+   PrivateKey string
+   Widevine   func([]byte) ([]byte, error)
+}
+
+type transport http.Transport
+
+func (t *transport) RoundTrip(req *http.Request) (*http.Response, error) {
+   if req.Header.Get("silent") == "" {
+      log.Println(req.Method, req.URL)
+   }
+   return (*http.Transport)(t).RoundTrip(req)
+}
+
+func (e *License) get_key(media *media_file) ([]byte, error) {
+   if media.key_id == nil {
+      return nil, nil
+   }
+   private_key, err := os.ReadFile(e.PrivateKey)
+   if err != nil {
+      return nil, err
+   }
+   client_id, err := os.ReadFile(e.ClientId)
+   if err != nil {
+      return nil, err
+   }
+   if media.pssh == nil {
+      var pssh1 widevine.Pssh
+      pssh1.KeyIds = [][]byte{media.key_id}
+      media.pssh = pssh1.Marshal()
+   }
+   log.Println("PSSH", base64.StdEncoding.EncodeToString(media.pssh))
+   var module widevine.Cdm
+   err = module.New(private_key, client_id, media.pssh)
+   if err != nil {
+      return nil, err
+   }
+   data, err := module.RequestBody()
+   if err != nil {
+      return nil, err
+   }
+   data, err = e.Widevine(data)
+   if err != nil {
+      return nil, err
+   }
+   var body widevine.ResponseBody
+   err = body.Unmarshal(data)
+   if err != nil {
+      return nil, err
+   }
+   block, err := module.Block(body)
+   if err != nil {
+      return nil, err
+   }
+   for container := range body.Container() {
+      if bytes.Equal(container.Id(), media.key_id) {
+         key := container.Key(block)
+         log.Println("key", base64.StdEncoding.EncodeToString(key))
+         return key, nil
+      }
+   }
+   return nil, errors.New("get_key")
 }
