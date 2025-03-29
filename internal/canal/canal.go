@@ -91,8 +91,6 @@ func (f *flags) authenticate() error {
    return f.write_file("/canal/Session", data)
 }
 
-///
-
 func (f *flags) download() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/canal/Play")
@@ -113,12 +111,20 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   var token canal.Token
-   err = token.Unmarshal(data)
+   var session canal.Session
+   err = session.Unmarshal(data)
    if err != nil {
       return err
    }
-   session, err := token.Session()
+   data, err = canal.NewSession(session.SsoToken)
+   if err != nil {
+      return err
+   }
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/canal/Session", data)
    if err != nil {
       return err
    }

@@ -21,85 +21,6 @@ import (
    "strings"
 )
 
-var ThreadCount = 1
-
-func (e *License) segment_template(represent *dash.Representation) error {
-   var media media_file
-   err := media.New(represent)
-   if err != nil {
-      return err
-   }
-   file1, err := dash_create(represent)
-   if err != nil {
-      return err
-   }
-   defer file1.Close()
-   if data := represent.SegmentTemplate.Initialization; data != "" {
-      initial, err := data.Url(represent)
-      if err != nil {
-         return err
-      }
-      data1, err := get(initial, nil)
-      if err != nil {
-         return err
-      }
-      data1, err = media.initialization(data1)
-      if err != nil {
-         return err
-      }
-      _, err = file1.Write(data1)
-      if err != nil {
-         return err
-      }
-   }
-   key, err := e.get_key(&media)
-   if err != nil {
-      return err
-   }
-   head := http.Header{}
-   head.Set("silent", "true")
-   var segments []int
-   for r := range represent.Representation() {
-      segments = slices.AppendSeq(segments, r.Segment())
-   }
-   var parts progress.Parts
-   parts.Set(len(segments))
-   for chunk := range slices.Chunk(segments, ThreadCount) {
-      var (
-         segments = make([][]byte, len(chunk))
-         errs = make(chan error)
-      )
-      for i, segment := range chunk {
-         address, err := represent.SegmentTemplate.Media.Url(represent, segment)
-         if err != nil {
-            return err
-         }
-         go func() {
-            segments[i], err = get(address, head)
-            errs <- err
-            parts.Next()
-         }()
-      }
-      for range chunk {
-         err := <-errs
-         if err != nil {
-            return err
-         }
-      }
-      for _, data := range segments {
-         data, err = media.write_segment(data, key)
-         if err != nil {
-            return err
-         }
-         _, err = file1.Write(data)
-         if err != nil {
-            return err
-         }
-      }
-   }
-   return nil
-}
-
 func (e *License) segment_base(represent *dash.Representation) error {
    var media media_file
    err := media.New(represent)
@@ -177,11 +98,13 @@ func (e *License) segment_list(represent *dash.Representation) error {
       return err
    }
    defer file1.Close()
-   initial, err := represent.SegmentList.Initialization.SourceUrl.Url(represent)
+   address, err := represent.Initialization(
+      represent.SegmentList.Initialization.SourceUrl,
+   )
    if err != nil {
       return err
    }
-   data, err := get(initial, nil)
+   data, err := get(address, nil)
    if err != nil {
       return err
    }
@@ -202,7 +125,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
    head := http.Header{}
    head.Set("silent", "true")
    for _, segment := range represent.SegmentList.SegmentUrl {
-      address, err := segment.Media.Url(represent)
+      address, err := represent.List(segment.Media)
       if err != nil {
          return err
       }
@@ -586,4 +509,84 @@ func (e *License) get_key(media *media_file) ([]byte, error) {
       }
    }
    return nil, errors.New("get_key")
+}
+var ThreadCount = 1
+
+func (e *License) segment_template(represent *dash.Representation) error {
+   var media media_file
+   err := media.New(represent)
+   if err != nil {
+      return err
+   }
+   file1, err := dash_create(represent)
+   if err != nil {
+      return err
+   }
+   defer file1.Close()
+   if data := represent.SegmentTemplate.Initialization; data != "" {
+      address, err := represent.Initialization(data)
+      if err != nil {
+         return err
+      }
+      data1, err := get(address, nil)
+      if err != nil {
+         return err
+      }
+      data1, err = media.initialization(data1)
+      if err != nil {
+         return err
+      }
+      _, err = file1.Write(data1)
+      if err != nil {
+         return err
+      }
+   }
+   key, err := e.get_key(&media)
+   if err != nil {
+      return err
+   }
+   head := http.Header{}
+   head.Set("silent", "true")
+   var segments []int
+   for r := range represent.Representation() {
+      segments = slices.AppendSeq(segments, r.Segment())
+   }
+   var parts progress.Parts
+   parts.Set(len(segments))
+   for chunk := range slices.Chunk(segments, ThreadCount) {
+      var (
+         segments = make([][]byte, len(chunk))
+         errs = make(chan error)
+      )
+      for i, segment := range chunk {
+         address, err := represent.Media(
+            represent.SegmentTemplate.Media, segment,
+         )
+         if err != nil {
+            return err
+         }
+         go func() {
+            segments[i], err = get(address, head)
+            errs <- err
+            parts.Next()
+         }()
+      }
+      for range chunk {
+         err := <-errs
+         if err != nil {
+            return err
+         }
+      }
+      for _, data := range segments {
+         data, err = media.write_segment(data, key)
+         if err != nil {
+            return err
+         }
+         _, err = file1.Write(data)
+         if err != nil {
+            return err
+         }
+      }
+   }
+   return nil
 }
