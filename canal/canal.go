@@ -15,6 +15,35 @@ import (
    "time"
 )
 
+func (t Token) Session() (*Session, error) {
+   value := map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     t.SsoToken,
+   }
+   data, err := json.MarshalIndent(value, "", " ")
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var session1 Session
+   err = json.NewDecoder(resp.Body).Decode(&session1)
+   if err != nil {
+      return nil, err
+   }
+   if session1.Message != "" {
+      return nil, errors.New(session1.Message)
+   }
+   return &session1, nil
+}
+
 func (t *Token) Unmarshal(data Byte[Token]) error {
    err := json.Unmarshal(data, t)
    if err != nil {
@@ -107,35 +136,6 @@ func (t *Ticket) New() error {
       return errors.New(t.Message)
    }
    return nil
-}
-
-func (t Token) Session() (*Session, error) {
-   value := map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     t.SsoToken,
-   }
-   data, err := json.MarshalIndent(value, "", " ")
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var session1 Session
-   err = json.NewDecoder(resp.Body).Decode(&session1)
-   if err != nil {
-      return nil, err
-   }
-   if session1.Message != "" {
-      return nil, errors.New(session1.Message)
-   }
-   return &session1, nil
 }
 
 type Session struct {

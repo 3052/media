@@ -148,6 +148,7 @@ func (f *flags) write_file(name string, data []byte) error {
    log.Println("WriteFile", f.media+name)
    return os.WriteFile(f.media+name, data, os.ModePerm)
 }
+
 type flags struct {
    binge    int
    dash     string

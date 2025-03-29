@@ -34,20 +34,20 @@ func (e *License) segment_template(represent *dash.Representation) error {
       return err
    }
    defer file1.Close()
-   if initial := represent.SegmentTemplate.Initialization; initial != "" {
-      initial2, err := initial.Url(represent)
+   if data := represent.SegmentTemplate.Initialization; data != "" {
+      initial, err := data.Url(represent)
       if err != nil {
          return err
       }
-      data, err := get(initial2, nil)
+      data1, err := get(initial, nil)
       if err != nil {
          return err
       }
-      data, err = media.initialization(data)
+      data1, err = media.initialization(data1)
       if err != nil {
          return err
       }
-      _, err = file1.Write(data)
+      _, err = file1.Write(data1)
       if err != nil {
          return err
       }
