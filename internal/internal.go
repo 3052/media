@@ -76,8 +76,8 @@ func (e *License) segment_template(represent *dash.Representation) error {
          }
          go func() {
             segments[i], err = get(address, head)
-            parts.Next()
             errs <- err
+            parts.Next()
          }()
       }
       for range chunk {

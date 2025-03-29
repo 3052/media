@@ -11,6 +11,18 @@ import (
    "path/filepath"
 )
 
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
 type flags struct {
    address  string
    dash     string
@@ -68,12 +80,19 @@ func (f *flags) authenticate() error {
    if err != nil {
       return err
    }
-   data, err := ticket.Token(f.email, f.password)
+   token, err := ticket.Token(f.email, f.password)
    if err != nil {
       return err
    }
-   return f.write_file("/canal/Token", data)
+   data, err := canal.NewSession(token.SsoToken)
+   if err != nil {
+      return err
+   }
+   return f.write_file("/canal/Session", data)
 }
+
+///
+
 func (f *flags) download() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/canal/Play")
@@ -90,7 +109,7 @@ func (f *flags) download() error {
       }
       return f.e.Download(f.media+"/Mpd", f.dash)
    }
-   data, err := os.ReadFile(f.media + "/canal/Token")
+   data, err := os.ReadFile(f.media + "/canal/Session")
    if err != nil {
       return err
    }
@@ -126,16 +145,4 @@ func (f *flags) download() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
 }

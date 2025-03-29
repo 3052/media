@@ -15,83 +15,6 @@ import (
    "time"
 )
 
-func (t Token) Session() (*Session, error) {
-   value := map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     t.SsoToken,
-   }
-   data, err := json.MarshalIndent(value, "", " ")
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var session1 Session
-   err = json.NewDecoder(resp.Body).Decode(&session1)
-   if err != nil {
-      return nil, err
-   }
-   if session1.Message != "" {
-      return nil, errors.New(session1.Message)
-   }
-   return &session1, nil
-}
-
-func (t *Token) Unmarshal(data Byte[Token]) error {
-   err := json.Unmarshal(data, t)
-   if err != nil {
-      return err
-   }
-   if t.Label != "sg.ui.sso.success.login" {
-      return errors.New(t.Label)
-   }
-   return nil
-}
-
-type Token struct {
-   Label string
-   SsoToken string
-}
-
-func (t *Ticket) Token(username, password string) (Byte[Token], error) {
-   value := map[string]any{
-      "ticket": t.Ticket,
-      "userInput": map[string]string{
-         "username": username,
-         "password": password,
-      },
-   }
-   data, err := json.MarshalIndent(value, "", " ")
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   var client1 client
-   err = client1.New(req.URL, data)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", client1.String())
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 type Ticket struct {
    Message string
    Ticket  string
@@ -136,11 +59,6 @@ func (t *Ticket) New() error {
       return errors.New(t.Message)
    }
    return nil
-}
-
-type Session struct {
-   Message string
-   Token   string
 }
 
 func (s *Session) Play(object_id string) (Byte[Play], error) {
@@ -211,6 +129,7 @@ func (p *Play) Unmarshal(data Byte[Play]) error {
    }
    return nil
 }
+
 func (f Fields) ObjectIds() string {
    return f.get("objectIDs")
 }
@@ -275,4 +194,85 @@ const (
 type client struct {
    sig  []byte
    time int64
+}
+
+func (t *Ticket) Token(username, password string) (*Token, error) {
+   data, err := json.Marshal(map[string]any{
+      "ticket": t.Ticket,
+      "userInput": map[string]string{
+         "username": username,
+         "password": password,
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   var client1 client
+   err = client1.New(req.URL, data)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", client1.String())
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var token1 Token
+   err = json.NewDecoder(resp.Body).Decode(&token1)
+   if err != nil {
+      return nil, err
+   }
+   if token1.Label != "sg.ui.sso.success.login" {
+      return nil, errors.New(token1.Label)
+   }
+   return &token1, nil
+}
+
+func (s *Session) Unmarshal(data Byte[Session]) error {
+   err := json.Unmarshal(data, s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
+
+type Token struct {
+   Label    string
+   SsoToken string // this last one day
+}
+
+func NewSession(sso_token string) (Byte[Session], error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
