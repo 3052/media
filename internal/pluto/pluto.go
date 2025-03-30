@@ -5,7 +5,6 @@ import (
    "41.neocities.org/media/pluto"
    "errors"
    "flag"
-   "fmt"
    "os"
    "path/filepath"
 )
@@ -14,7 +13,6 @@ type flags struct {
    address pluto.Address
    dash    string
    e       internal.License
-   forward bool
    media   string
 }
 
@@ -40,14 +38,9 @@ func main() {
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.BoolVar(&f.forward, "g", false, "get forward")
    flag.StringVar(&pluto.ForwardedFor, "s", "", "set forward")
    flag.Parse()
    switch {
-   case f.forward:
-      for _, forward := range internal.Forward {
-         fmt.Println(forward.Country, forward.Ip)
-      }
    case f.address[0] != "":
       err := f.download()
       if err != nil {

@@ -9,6 +9,19 @@ import (
    "strings"
 )
 
+func (a *Address) Set(data string) error {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "watch.plex.tv")
+   a[0] = strings.TrimPrefix(data, "/watch")
+   return nil
+}
+
+type Address [1]string
+
+func (a Address) String() string {
+   return a[0]
+}
+
 func (u User) Metadata(match1 *Match) (Byte[Metadata], error) {
    req, _ := http.NewRequest("", "https://vod.provider.plex.tv", nil)
    req.URL.Path = "/library/metadata/" + match1.RatingKey
@@ -112,19 +125,6 @@ func (m *Metadata) Dash() (*Part, bool) {
 }
 
 var ForwardedFor string
-
-type Address [1]string
-
-func (a Address) String() string {
-   return a[0]
-}
-
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "watch.plex.tv")
-   (*a)[0] = strings.TrimPrefix(data, "/watch")
-   return nil
-}
 
 func (u User) Match(web Address) (*Match, error) {
    req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)

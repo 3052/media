@@ -12,6 +12,21 @@ import (
    "strings"
 )
 
+func (a *Address) Set(data string) error {
+   var found bool
+   _, a[0], found = strings.Cut(data, "/films/")
+   if !found {
+      return errors.New("/films/ not found")
+   }
+   return nil
+}
+
+func (a Address) String() string {
+   return a[0]
+}
+
+type Address [1]string
+
 func (a *Authenticate) Widevine(data []byte) ([]byte, error) {
    // final slash is needed
    req, err := http.NewRequest(
@@ -73,19 +88,6 @@ var ClientCountry = "US"
 // client-device-identifier
 // client-version
 const client = "web"
-
-func (a Address) String() string {
-   return a[0]
-}
-
-func (a *Address) Set(data string) error {
-   var found bool
-   _, (*a)[0], found = strings.Cut(data, "/films/")
-   if !found {
-      return errors.New("/films/ not found")
-   }
-   return nil
-}
 
 func (a Address) Film() (*Film, error) {
    req, _ := http.NewRequest("", "https://api.mubi.com", nil)
@@ -210,7 +212,6 @@ func (c *LinkCode) Unmarshal(data Byte[LinkCode]) error {
    return json.Unmarshal(data, c)
 }
 
-type Address [1]string
 type SecureUrl struct {
    TextTrackUrls []TextTrack `json:"text_track_urls"`
    Url           string      // MPD

@@ -9,6 +9,41 @@ import (
    "strings"
 )
 
+func (s *St) New() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header = http.Header{
+      "x-device-info":  {device_info},
+      "x-disco-client": {disco_client},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s[0] = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
+type St [1]*http.Cookie
+
+func (s *St) Set(data string) error {
+   var err error
+   s[0], err = http.ParseSetCookie(data)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (s St) String() string {
+   return s[0].String()
+}
+
 const (
    device_info  = "!/!(!/!;!/!;!/!)"
    disco_client = "!:!:beam:!"
@@ -147,41 +182,6 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
    return nil
 }
 
-func (s *St) New() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header = http.Header{
-      "x-device-info":  {device_info},
-      "x-disco-client": {disco_client},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         (*s)[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
-
-type St [1]*http.Cookie
-
-func (s *St) Set(data string) error {
-   var err error
-   (*s)[0], err = http.ParseSetCookie(data)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (s St) String() string {
-   return s[0].String()
-}
-
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
@@ -228,6 +228,6 @@ func (s St) Initiate() (*Initiate, error) {
 type Url [1]string
 
 func (u *Url) UnmarshalText(data []byte) error {
-   (*u)[0] = strings.Replace(string(data), "_fallback", "", 1)
+   u[0] = strings.Replace(string(data), "_fallback", "", 1)
    return nil
 }

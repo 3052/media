@@ -65,11 +65,15 @@ func (e *License) segment_base(represent *dash.Representation) error {
    parts.Set(len(file2.Sidx.Reference))
    head := http.Header{}
    head.Set("silent", "true")
-   base := represent.SegmentBase
+   var index dash.Range
+   err = index.Set(represent.SegmentBase.IndexRange)
+   if err != nil {
+      return err
+   }
    for _, reference := range file2.Sidx.Reference {
-      base.IndexRange[0] = base.IndexRange[1] + 1
-      base.IndexRange[1] += uint64(reference.Size())
-      head.Set("range", "bytes="+base.IndexRange)
+      index[0] = index[1] + 1
+      index[1] += uint64(reference.Size())
+      head.Set("range", "bytes="+ index.String())
       data, err = get(represent.BaseUrl[0], head)
       if err != nil {
          return err
@@ -86,6 +90,7 @@ func (e *License) segment_base(represent *dash.Representation) error {
    }
    return nil
 }
+
 func (e *License) segment_list(represent *dash.Representation) error {
    var media media_file
    err := media.New(represent)

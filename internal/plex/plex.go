@@ -5,7 +5,6 @@ import (
    "41.neocities.org/media/plex"
    "errors"
    "flag"
-   "fmt"
    "log"
    "os"
    "path/filepath"
@@ -19,16 +18,11 @@ func main() {
    }
    flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.BoolVar(&f.get_forward, "g", false, "get forward")
    flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.StringVar(&plex.ForwardedFor, "s", "", "set forward")
    flag.Parse()
    switch {
-   case f.get_forward:
-      for _, forward := range internal.Forward {
-         fmt.Println(forward.Country, forward.Ip)
-      }
    case f.address[0] != "":
       err := f.download()
       if err != nil {
@@ -40,8 +34,8 @@ func main() {
 }
 
 func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media + name)
-   return os.WriteFile(f.media + name, data, os.ModePerm)
+   log.Println("WriteFile", f.media+name)
+   return os.WriteFile(f.media+name, data, os.ModePerm)
 }
 
 func (f *flags) download() error {
@@ -112,11 +106,10 @@ func (f *flags) download() error {
 }
 
 type flags struct {
-   address        plex.Address
-   e              internal.License
-   get_forward    bool
-   dash string
-   media          string
+   address plex.Address
+   e       internal.License
+   dash    string
+   media   string
 }
 
 func (f *flags) New() error {
