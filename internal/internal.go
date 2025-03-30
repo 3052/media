@@ -66,7 +66,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
    parts.Set(len(segments))
    for chunk := range slices.Chunk(segments, ThreadCount) {
       var (
-         segments = make([][]byte, len(chunk))
+         datas = make([][]byte, len(chunk))
          errs = make(chan error)
       )
       for i, segment := range chunk {
@@ -75,7 +75,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
             return err
          }
          go func() {
-            segments[i], err = get(address, head)
+            datas[i], err = get(address, head)
             errs <- err
             parts.Next()
          }()
@@ -86,7 +86,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
             return err
          }
       }
-      for _, data := range segments {
+      for _, data := range datas {
          data, err = media.write_segment(data, key)
          if err != nil {
             return err
@@ -99,6 +99,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
    }
    return nil
 }
+
 func (e *License) segment_base(represent *dash.Representation) error {
    var media media_file
    err := media.New(represent)

@@ -218,14 +218,8 @@
 
 <table>
    <tr>
-      <td>
-      1
-      </td>
-      <td>
-      The NBC App - Stream TV Shows
-      </td>
-      <td>
-      2021-12-04
-      </td>
+      <td>1</td>
+      <td>The NBC App - Stream TV Shows</td>
+      <td>2021-12-04</td>
    </tr>
 </table>

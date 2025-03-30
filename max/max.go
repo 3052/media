@@ -9,75 +9,6 @@ import (
    "strings"
 )
 
-func (s *St) New() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header = http.Header{
-      "x-device-info":  {device_info},
-      "x-disco-client": {disco_client},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
-
-type St [1]*http.Cookie
-
-func (s *St) Set(data string) error {
-   var err error
-   s[0], err = http.ParseSetCookie(data)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (s St) String() string {
-   return s[0].String()
-}
-
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
-
-type Byte[T any] []byte
-
-func (i *Initiate) String() string {
-   var b strings.Builder
-   b.WriteString("target URL = ")
-   b.WriteString(i.TargetUrl)
-   b.WriteString("\nlinking code = ")
-   b.WriteString(i.LinkingCode)
-   return b.String()
-}
-
-type Initiate struct {
-   LinkingCode string
-   TargetUrl   string
-}
-
-type Login struct {
-   Data struct {
-      Attributes struct {
-         Token string
-      }
-   }
-}
-
-func (n *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, n)
-}
-
 func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
    value := map[string]any{
       "editId": edit_id,
@@ -230,4 +161,72 @@ type Url [1]string
 func (u *Url) UnmarshalText(data []byte) error {
    u[0] = strings.Replace(string(data), "_fallback", "", 1)
    return nil
+}
+func (s *St) New() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header = http.Header{
+      "x-device-info":  {device_info},
+      "x-disco-client": {disco_client},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s[0] = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
+type St [1]*http.Cookie
+
+func (s *St) Set(data string) error {
+   var err error
+   s[0], err = http.ParseSetCookie(data)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (s St) String() string {
+   return s[0].String()
+}
+
+const (
+   device_info  = "!/!(!/!;!/!;!/!)"
+   disco_client = "!:!:beam:!"
+   prd_api      = "https://default.prd.api.discomax.com"
+)
+
+type Byte[T any] []byte
+
+func (i *Initiate) String() string {
+   var b strings.Builder
+   b.WriteString("target URL = ")
+   b.WriteString(i.TargetUrl)
+   b.WriteString("\nlinking code = ")
+   b.WriteString(i.LinkingCode)
+   return b.String()
+}
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
+}
+
+type Login struct {
+   Data struct {
+      Attributes struct {
+         Token string
+      }
+   }
+}
+
+func (n *Login) Unmarshal(data Byte[Login]) error {
+   return json.Unmarshal(data, n)
 }
