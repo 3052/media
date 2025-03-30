@@ -10,6 +10,18 @@ import (
    "strings"
 )
 
+type Address [1]string
+
+func (a *Address) Set(data string) error {
+   data = strings.TrimPrefix(data, "https://")
+   a[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
+   return nil
+}
+
+func (a Address) String() string {
+   return a[0]
+}
+
 func (a Address) Content() (*Content, error) {
    resp, err := http.Get(
       "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
@@ -54,8 +66,6 @@ func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-type Address [1]string
-
 type Format struct {
    Format       string
    MediaLocator string // MPD
@@ -79,16 +89,6 @@ type Login struct {
 
 // hard coded in JavaScript
 const api_key = "4_Ml_fJ47GnBAW6FrPzMxh0w"
-
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   (*a)[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
-   return nil
-}
-
-func (a Address) String() string {
-   return a[0]
-}
 
 type Content struct {
    AssetId string

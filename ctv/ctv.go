@@ -10,6 +10,20 @@ import (
    "strings"
 )
 
+// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func (a *Address) Set(data string) error {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   a[0] = strings.TrimPrefix(data, "ctv.ca")
+   return nil
+}
+
+func (a Address) String() string {
+   return a[0]
+}
+
+type Address [1]string
+
 func (a *AxisContent) Mpd(content1 *Content) (string, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
    req.URL.Path = func() string {
@@ -52,18 +66,6 @@ func Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (a Address) String() string {
-   return a[0]
-}
-
-// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   (*a)[0] = strings.TrimPrefix(data, "ctv.ca")
-   return nil
-}
-
 const query_axis = `
 query axisContent($id: ID!) {
    axisContent(id: $id) {
@@ -81,8 +83,6 @@ query axisContent($id: ID!) {
 func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
 }
-
-type Address [1]string
 
 type Content struct {
    ContentPackages []struct {

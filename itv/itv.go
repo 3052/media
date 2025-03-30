@@ -10,6 +10,27 @@ import (
    "strings"
 )
 
+// https://www.itv.com/watch/gone-girl/10a5503a0001B
+func (e *EpisodeId) Set(data string) error {
+   data = strings.TrimSuffix(data, "B")
+   var found bool
+   e[0], data, found = strings.Cut(data, "a")
+   if !found {
+      return errors.New(`"a" not found`)
+   }
+   e[1], e[2], found = strings.Cut(data, "a")
+   if !found {
+      e[2] = "0001"
+   }
+   return nil
+}
+
+type EpisodeId [3]string
+
+func (e EpisodeId) String() string {
+   return strings.Join(e[:], "a")
+}
+
 func (m *MediaFile) Mpd() (*http.Response, error) {
    var err error
    http.DefaultClient.Jar, err = cookiejar.New(nil)
@@ -93,27 +114,6 @@ type Playlist struct {
          MediaFiles []MediaFile
       }
    }
-}
-
-type EpisodeId [3]string
-
-// https://www.itv.com/watch/gone-girl/10a5503a0001B
-func (e *EpisodeId) Set(data string) error {
-   data = strings.TrimSuffix(data, "B")
-   var found bool
-   (*e)[0], data, found = strings.Cut(data, "a")
-   if !found {
-      return errors.New(`"a" not found`)
-   }
-   (*e)[1], (*e)[2], found = strings.Cut(data, "a")
-   if !found {
-      (*e)[2] = "0001"
-   }
-   return nil
-}
-
-func (e EpisodeId) String() string {
-   return strings.Join(e[:], "a")
 }
 
 type MediaFile struct {

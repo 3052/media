@@ -11,6 +11,18 @@ import (
    "strings"
 )
 
+// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
+func (e *Entity) Set(data string) error {
+   e[0] = path.Base(data)
+   return nil
+}
+
+type Entity [1]string
+
+func (e Entity) String() string {
+   return e[0]
+}
+
 func (p *Playlist) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.WvServer, "application/x-protobuf", bytes.NewReader(data),
@@ -27,18 +39,6 @@ func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
 }
 
 type Byte[T any] []byte
-
-type Entity [1]string
-
-func (e Entity) String() string {
-   return e[0]
-}
-
-// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
-func (e *Entity) Set(data string) error {
-   (*e)[0] = path.Base(data)
-   return nil
-}
 
 type Playlist struct {
    StreamUrl string `json:"stream_url"` // MPD
