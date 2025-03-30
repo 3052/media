@@ -1,8 +1,8 @@
 package main
 
 import (
-   "41.neocities.org/media/molotov"
    "41.neocities.org/media/internal"
+   "41.neocities.org/media/molotov"
    "flag"
    "log"
    "net/http"
@@ -25,44 +25,6 @@ func (f *flags) New() error {
 func (f *flags) write_file(name string, data []byte) error {
    log.Println("WriteFile", f.media+name)
    return os.WriteFile(f.media+name, data, os.ModePerm)
-}
-
-type flags struct {
-   e        internal.License
-   email    string
-   password string
-   media    string
-   dash     string
-   address molotov.Address
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Var(&f.address, "a", "address")
-   flag.Parse()
-   switch {
-   case f.password != "":
-      err := f.authenticate()
-      if err != nil {
-         panic(err)
-      }
-   case f.address.String() != "":
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
 }
 
 func (f *flags) authenticate() error {
@@ -133,4 +95,43 @@ func (f *flags) download() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
+}
+
+type flags struct {
+   address  molotov.Address
+   dash     string
+   e        internal.License
+   email    string
+   media    string
+   password string
+}
+
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.Var(&f.address, "a", "address")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
+   flag.Parse()
+   switch {
+   case f.password != "":
+      err := f.authenticate()
+      if err != nil {
+         panic(err)
+      }
+   case f.address.String() != "":
+      err := f.download()
+      if err != nil {
+         panic(err)
+      }
+   default:
+      flag.Usage()
+   }
 }
