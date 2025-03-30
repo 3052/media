@@ -9,6 +9,24 @@ import (
    "strings"
 )
 
+func (a *Address) Set(data string) error {
+   if !strings.HasPrefix(data, "https://") {
+      return errors.New("must start with https://")
+   }
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   data = strings.TrimPrefix(data, "cinemember.nl")
+   data = strings.TrimPrefix(data, "/nl")
+   a[0] = strings.TrimPrefix(data, "/")
+   return nil
+}
+
+type Address [1]string
+
+func (a Address) String() string {
+   return a[0]
+}
+
 const query_user = `
 mutation UserAuthenticate($email: String, $password: String) {
    UserAuthenticate(email: $email, password: $password) {
@@ -47,8 +65,6 @@ query Article($articleUrlSlug: String) {
 }
 ` // do not use `query(`
 
-type Address [1]string
-
 func (a Address) Article() (*Article, error) {
    data, err := json.Marshal(map[string]any{
       "query": query_article,
@@ -77,22 +93,6 @@ func (a Address) Article() (*Article, error) {
       return nil, err
    }
    return &value.Data.Article, nil
-}
-
-func (a Address) String() string {
-   return a[0]
-}
-
-func (a *Address) Set(data string) error {
-   if !strings.HasPrefix(data, "https://") {
-      return errors.New("must start with https://")
-   }
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "cinemember.nl")
-   data = strings.TrimPrefix(data, "/nl")
-   (*a)[0] = strings.TrimPrefix(data, "/")
-   return nil
 }
 
 func (a *Article) Film() (*Asset, bool) {

@@ -10,19 +10,19 @@ import (
    "strings"
 )
 
-type Address [2]string
-
 func (a *Address) Set(data string) error {
    data = strings.TrimPrefix(data, "https://")
    data = strings.TrimPrefix(data, "www.")
    data = strings.TrimPrefix(data, "amcplus.com")
    var found bool
-   (*a)[0], (*a)[1], found = strings.Cut(data, "--")
+   a[0], a[1], found = strings.Cut(data, "--")
    if !found {
       return errors.New("--")
    }
    return nil
 }
+
+type Address [2]string
 
 func (a Address) String() string {
    return strings.Join(a[:], "--")
