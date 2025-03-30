@@ -21,74 +21,6 @@ import (
    "strings"
 )
 
-func (e *License) segment_base(represent *dash.Representation) error {
-   var media media_file
-   err := media.New(represent)
-   if err != nil {
-      return err
-   }
-   file1, err := dash_create(represent)
-   if err != nil {
-      return err
-   }
-   defer file1.Close()
-   data, err := get(represent.BaseUrl[0], http.Header{
-      "range": {"bytes=" + represent.SegmentBase.Initialization.Range},
-   })
-   if err != nil {
-      return err
-   }
-   data, err = media.initialization(data)
-   if err != nil {
-      return err
-   }
-   _, err = file1.Write(data)
-   if err != nil {
-      return err
-   }
-   key, err := e.get_key(&media)
-   if err != nil {
-      return err
-   }
-   data, err = get(represent.BaseUrl[0], http.Header{
-      "range": {"bytes=" + represent.SegmentBase.IndexRange},
-   })
-   if err != nil {
-      return err
-   }
-   var file2 file.File
-   err = file2.Read(data)
-   if err != nil {
-      return err
-   }
-   var parts progress.Parts
-   parts.Set(len(file2.Sidx.Reference))
-   head := http.Header{}
-   head.Set("silent", "true")
-   //base := represent.SegmentBase
-   for _, reference := range file2.Sidx.Reference {
-      ///////////////////////////////////////////////////////////////////////////
-      base.IndexRange[0] = base.IndexRange[1] + 1
-      base.IndexRange[1] += uint64(reference.Size())
-      head.Set("range", "bytes="+base.IndexRange)
-      ///////////////////////////////////////////////////////////////////////////
-      data, err = get(represent.BaseUrl[0], head)
-      if err != nil {
-         return err
-      }
-      parts.Next()
-      data, err = media.write_segment(data, key)
-      if err != nil {
-         return err
-      }
-      _, err = file1.Write(data)
-      if err != nil {
-         return err
-      }
-   }
-   return nil
-}
-
 func (e *License) segment_list(represent *dash.Representation) error {
    var media media_file
    err := media.New(represent)
@@ -100,13 +32,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
       return err
    }
    defer file1.Close()
-   address, err := represent.Initialization(
-      represent.SegmentList.Initialization.SourceUrl,
-   )
-   if err != nil {
-      return err
-   }
-   data, err := get(address, nil)
+   data, err := get(represent.SegmentList.Initialization.SourceUrl[0], nil)
    if err != nil {
       return err
    }
@@ -127,11 +53,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
    head := http.Header{}
    head.Set("silent", "true")
    for _, segment := range represent.SegmentList.SegmentUrl {
-      address, err := represent.List(segment.Media)
-      if err != nil {
-         return err
-      }
-      data, err := get(address, head)
+      data, err := get(segment.Media[0], head)
       if err != nil {
          return err
       }
@@ -177,44 +99,6 @@ const (
    widevine_system_id = "edef8ba979d64acea3c827dcd51d21ed"
    widevine_urn       = "urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"
 )
-
-var Forward = []struct {
-   Country string
-   Ip      string
-}{
-   {"Argentina", "186.128.0.0"},
-   {"Australia", "1.128.0.0"},
-   {"Bolivia", "179.58.0.0"},
-   {"Brazil", "179.192.0.0"},
-   {"Canada", "99.224.0.0"},
-   {"Chile", "191.112.0.0"},
-   {"Colombia", "181.128.0.0"},
-   {"Costa Rica", "201.192.0.0"},
-   {"Denmark", "2.104.0.0"},
-   {"Ecuador", "186.68.0.0"},
-   {"Egypt", "197.32.0.0"},
-   {"Germany", "53.0.0.0"},
-   {"Guatemala", "190.56.0.0"},
-   {"India", "106.192.0.0"},
-   {"Indonesia", "39.192.0.0"},
-   {"Ireland", "87.32.0.0"},
-   {"Italy", "79.0.0.0"},
-   {"Latvia", "78.84.0.0"},
-   {"Malaysia", "175.136.0.0"},
-   {"Mexico", "189.128.0.0"},
-   {"Netherlands", "145.160.0.0"},
-   {"New Zealand", "49.224.0.0"},
-   {"Norway", "88.88.0.0"},
-   {"Peru", "190.232.0.0"},
-   {"Russia", "95.24.0.0"},
-   {"South Africa", "105.0.0.0"},
-   {"South Korea", "175.192.0.0"},
-   {"Spain", "88.0.0.0"},
-   {"Sweden", "78.64.0.0"},
-   {"Taiwan", "120.96.0.0"},
-   {"United Kingdom", "25.0.0.0"},
-   {"Venezuela", "190.72.0.0"},
-}
 
 func create(name string) (*os.File, error) {
    log.Println("Create", name)
@@ -588,6 +472,71 @@ func (e *License) segment_template(represent *dash.Representation) error {
          if err != nil {
             return err
          }
+      }
+   }
+   return nil
+}
+func (e *License) segment_base(represent *dash.Representation) error {
+   var media media_file
+   err := media.New(represent)
+   if err != nil {
+      return err
+   }
+   file1, err := dash_create(represent)
+   if err != nil {
+      return err
+   }
+   defer file1.Close()
+   data, err := get(represent.BaseUrl[0], http.Header{
+      "range": {"bytes=" + represent.SegmentBase.Initialization.Range},
+   })
+   if err != nil {
+      return err
+   }
+   data, err = media.initialization(data)
+   if err != nil {
+      return err
+   }
+   _, err = file1.Write(data)
+   if err != nil {
+      return err
+   }
+   key, err := e.get_key(&media)
+   if err != nil {
+      return err
+   }
+   data, err = get(represent.BaseUrl[0], http.Header{
+      "range": {"bytes=" + represent.SegmentBase.IndexRange},
+   })
+   if err != nil {
+      return err
+   }
+   var file2 file.File
+   err = file2.Read(data)
+   if err != nil {
+      return err
+   }
+   var parts progress.Parts
+   parts.Set(len(file2.Sidx.Reference))
+   head := http.Header{}
+   head.Set("silent", "true")
+   base := represent.SegmentBase
+   for _, reference := range file2.Sidx.Reference {
+      base.IndexRange[0] = base.IndexRange[1] + 1
+      base.IndexRange[1] += uint64(reference.Size())
+      head.Set("range", "bytes="+base.IndexRange)
+      data, err = get(represent.BaseUrl[0], head)
+      if err != nil {
+         return err
+      }
+      parts.Next()
+      data, err = media.write_segment(data, key)
+      if err != nil {
+         return err
+      }
+      _, err = file1.Write(data)
+      if err != nil {
+         return err
       }
    }
    return nil
