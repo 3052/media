@@ -32,9 +32,8 @@ func (e *License) segment_base(represent *dash.Representation) error {
       return err
    }
    defer file1.Close()
-   base := represent.SegmentBase
    data, err := get(represent.BaseUrl[0], http.Header{
-      "range": {"bytes=" + base.Initialization.Range.String()},
+      "range": {"bytes=" + represent.SegmentBase.Initialization.Range},
    })
    if err != nil {
       return err
@@ -52,7 +51,7 @@ func (e *License) segment_base(represent *dash.Representation) error {
       return err
    }
    data, err = get(represent.BaseUrl[0], http.Header{
-      "range": {"bytes=" + base.IndexRange.String()},
+      "range": {"bytes=" + represent.SegmentBase.IndexRange},
    })
    if err != nil {
       return err
@@ -66,10 +65,13 @@ func (e *License) segment_base(represent *dash.Representation) error {
    parts.Set(len(file2.Sidx.Reference))
    head := http.Header{}
    head.Set("silent", "true")
+   //base := represent.SegmentBase
    for _, reference := range file2.Sidx.Reference {
+      ///////////////////////////////////////////////////////////////////////////
       base.IndexRange[0] = base.IndexRange[1] + 1
       base.IndexRange[1] += uint64(reference.Size())
-      head.Set("range", "bytes="+base.IndexRange.String())
+      head.Set("range", "bytes="+base.IndexRange)
+      ///////////////////////////////////////////////////////////////////////////
       data, err = get(represent.BaseUrl[0], head)
       if err != nil {
          return err
