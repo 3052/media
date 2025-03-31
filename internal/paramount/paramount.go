@@ -11,11 +11,11 @@ import (
 )
 
 type flags struct {
-   content_id     string
-   e              internal.License
-   media          string
-   mullvad        bool
-   dash string
+   content_id string
+   dash       string
+   e          internal.License
+   media      string
+   mullvad    bool
 }
 
 func main() {
