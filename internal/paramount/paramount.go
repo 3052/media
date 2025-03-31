@@ -30,13 +30,12 @@ func main() {
    flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.Parse()
-   switch {
-   case f.content_id != "":
+   if f.content_id != "" {
       err := f.download()
       if err != nil {
          panic(err)
       }
-   default:
+   } else {
       flag.Usage()
    }
 }

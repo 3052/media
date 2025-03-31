@@ -15,6 +15,111 @@ import (
    "time"
 )
 
+const (
+   key    = "web.NhFyz4KsZ54"
+   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+const device_serial = "!!!!"
+
+func NewSession(sso_token string) (Byte[Session], error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Byte[T any] []byte
+
+func (f Fields) ObjectIds() string {
+   return f.get("objectIDs")
+}
+
+func (f *Fields) New(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   *f = strings.FieldsFunc(string(data), func(r rune) bool {
+      return strings.ContainsRune(" ':[]", r)
+   })
+   return nil
+}
+
+func (f Fields) get(key string) string {
+   for i, field := range f {
+      if field == key {
+         return f[i+1]
+      }
+   }
+   return ""
+}
+
+type Fields []string
+
+func (p *Play) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Play) Unmarshal(data Byte[Play]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if p.Message != "" {
+      return errors.New(p.Message)
+   }
+   return nil
+}
+
+type Play struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
+
+func (s *Session) Unmarshal(data Byte[Session]) error {
+   err := json.Unmarshal(data, s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
+
 func (s *Session) Play(object_id string) (Byte[Play], error) {
    data, err := json.Marshal(map[string]any{
       "player": map[string]any{
@@ -50,6 +155,45 @@ func (s *Session) Play(object_id string) (Byte[Play], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+func (t *Ticket) Token(username, password string) (*Token, error) {
+   data, err := json.Marshal(map[string]any{
+      "ticket": t.Ticket,
+      "userInput": map[string]string{
+         "username": username,
+         "password": password,
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   var client1 client
+   err = client1.New(req.URL, data)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", client1.String())
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var token1 Token
+   err = json.NewDecoder(resp.Body).Decode(&token1)
+   if err != nil {
+      return nil, err
+   }
+   if token1.Label != "sg.ui.sso.success.login" {
+      return nil, errors.New(token1.Label)
+   }
+   return &token1, nil
 }
 
 type Ticket struct {
@@ -98,70 +242,15 @@ func (t *Ticket) New() error {
    return nil
 }
 
-///
-
-type Byte[T any] []byte
-
-func (p *Play) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+type Token struct {
+   Label    string
+   SsoToken string // this last one day
 }
 
-type Play struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
+type client struct {
+   sig  []byte
+   time int64
 }
-
-const device_serial = "!!!!"
-
-func (p *Play) Unmarshal(data Byte[Play]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
-}
-
-func (f Fields) ObjectIds() string {
-   return f.get("objectIDs")
-}
-
-func (f *Fields) New(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   *f = strings.FieldsFunc(string(data), func(r rune) bool {
-      return strings.ContainsRune(" ':[]", r)
-   })
-   return nil
-}
-
-func (f Fields) get(key string) string {
-   for i, field := range f {
-      if field == key {
-         return f[i+1]
-      }
-   }
-   return ""
-}
-
-type Fields []string
 
 func (c *client) New(ref *url.URL, body []byte) error {
    body1 := sha256.Sum256(body)
@@ -186,95 +275,4 @@ func (c *client) String() string {
    b = append(b, ",sig="...)
    b = base64.RawURLEncoding.AppendEncode(b, c.sig)
    return string(b)
-}
-
-const (
-   key    = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-type client struct {
-   sig  []byte
-   time int64
-}
-
-func (t *Ticket) Token(username, password string) (*Token, error) {
-   data, err := json.Marshal(map[string]any{
-      "ticket": t.Ticket,
-      "userInput": map[string]string{
-         "username": username,
-         "password": password,
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   var client1 client
-   err = client1.New(req.URL, data)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", client1.String())
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var token1 Token
-   err = json.NewDecoder(resp.Body).Decode(&token1)
-   if err != nil {
-      return nil, err
-   }
-   if token1.Label != "sg.ui.sso.success.login" {
-      return nil, errors.New(token1.Label)
-   }
-   return &token1, nil
-}
-
-func (s *Session) Unmarshal(data Byte[Session]) error {
-   err := json.Unmarshal(data, s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
-}
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
-
-type Token struct {
-   Label    string
-   SsoToken string // this last one day
-}
-
-func NewSession(sso_token string) (Byte[Session], error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     sso_token,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
