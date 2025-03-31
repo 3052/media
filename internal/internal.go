@@ -21,6 +21,204 @@ import (
    "strings"
 )
 
+func (e *License) segment_template(represent *dash.Representation) error {
+   log.Print("SegmentTemplate")
+   var media media_file
+   err := media.New(represent)
+   if err != nil {
+      return err
+   }
+   file1, err := dash_create(represent)
+   if err != nil {
+      return err
+   }
+   defer file1.Close()
+   if initial := represent.SegmentTemplate.Initialization; initial != "" {
+      address, err := initial.Url(represent)
+      if err != nil {
+         return err
+      }
+      data1, err := get(address, nil)
+      if err != nil {
+         return err
+      }
+      data1, err = media.initialization(data1)
+      if err != nil {
+         return err
+      }
+      _, err = file1.Write(data1)
+      if err != nil {
+         return err
+      }
+   }
+   key, err := e.get_key(&media)
+   if err != nil {
+      return err
+   }
+   head := http.Header{}
+   head.Set("silent", "true")
+   var segments []int
+   for r := range represent.Representation() {
+      segments = slices.AppendSeq(segments, r.Segment())
+   }
+   var parts progress.Parts
+   parts.Set(len(segments))
+   for chunk := range slices.Chunk(segments, ThreadCount) {
+      var (
+         datas = make([][]byte, len(chunk))
+         errs = make(chan error)
+      )
+      for i, segment := range chunk {
+         address, err := represent.SegmentTemplate.Media.Url(represent, segment)
+         if err != nil {
+            return err
+         }
+         go func() {
+            datas[i], err = get(address, head)
+            errs <- err
+            parts.Next()
+         }()
+      }
+      for range chunk {
+         err := <-errs
+         if err != nil {
+            return err
+         }
+      }
+      for _, data := range datas {
+         data, err = media.write_segment(data, key)
+         if err != nil {
+            return err
+         }
+         _, err = file1.Write(data)
+         if err != nil {
+            return err
+         }
+      }
+   }
+   return nil
+}
+
+func (e *License) segment_base(represent *dash.Representation) error {
+   log.Print("SegmentBase")
+   var media media_file
+   err := media.New(represent)
+   if err != nil {
+      return err
+   }
+   file1, err := dash_create(represent)
+   if err != nil {
+      return err
+   }
+   defer file1.Close()
+   data, err := get(represent.BaseUrl[0], http.Header{
+      "range": {"bytes=" + represent.SegmentBase.Initialization.Range},
+   })
+   if err != nil {
+      return err
+   }
+   data, err = media.initialization(data)
+   if err != nil {
+      return err
+   }
+   _, err = file1.Write(data)
+   if err != nil {
+      return err
+   }
+   key, err := e.get_key(&media)
+   if err != nil {
+      return err
+   }
+   data, err = get(represent.BaseUrl[0], http.Header{
+      "range": {"bytes=" + represent.SegmentBase.IndexRange},
+   })
+   if err != nil {
+      return err
+   }
+   var file2 file.File
+   err = file2.Read(data)
+   if err != nil {
+      return err
+   }
+   var parts progress.Parts
+   parts.Set(len(file2.Sidx.Reference))
+   head := http.Header{}
+   head.Set("silent", "true")
+   var index dash.Range
+   err = index.Set(represent.SegmentBase.IndexRange)
+   if err != nil {
+      return err
+   }
+   for _, reference := range file2.Sidx.Reference {
+      index[0] = index[1] + 1
+      index[1] += uint64(reference.Size())
+      head.Set("range", "bytes="+ index.String())
+      data, err = get(represent.BaseUrl[0], head)
+      if err != nil {
+         return err
+      }
+      parts.Next()
+      data, err = media.write_segment(data, key)
+      if err != nil {
+         return err
+      }
+      _, err = file1.Write(data)
+      if err != nil {
+         return err
+      }
+   }
+   return nil
+}
+
+func (e *License) segment_list(represent *dash.Representation) error {
+   log.Print("SegmentList")
+   var media media_file
+   err := media.New(represent)
+   if err != nil {
+      return err
+   }
+   file1, err := dash_create(represent)
+   if err != nil {
+      return err
+   }
+   defer file1.Close()
+   data, err := get(represent.SegmentList.Initialization.SourceUrl[0], nil)
+   if err != nil {
+      return err
+   }
+   data, err = media.initialization(data)
+   if err != nil {
+      return err
+   }
+   _, err = file1.Write(data)
+   if err != nil {
+      return err
+   }
+   key, err := e.get_key(&media)
+   if err != nil {
+      return err
+   }
+   var parts progress.Parts
+   parts.Set(len(represent.SegmentList.SegmentUrl))
+   head := http.Header{}
+   head.Set("silent", "true")
+   for _, segment := range represent.SegmentList.SegmentUrl {
+      data, err := get(segment.Media[0], head)
+      if err != nil {
+         return err
+      }
+      parts.Next()
+      data, err = media.write_segment(data, key)
+      if err != nil {
+         return err
+      }
+      _, err = file1.Write(data)
+      if err != nil {
+         return err
+      }
+   }
+   return nil
+}
 func (m *media_file) New(represent *dash.Representation) error {
    for _, content := range represent.ContentProtection {
       if content.SchemeIdUri == widevine_urn {
@@ -346,202 +544,3 @@ func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
 }
 
 var ThreadCount = 1
-
-func (e *License) segment_template(represent *dash.Representation) error {
-   log.Print("SegmentTemplate")
-   var media media_file
-   err := media.New(represent)
-   if err != nil {
-      return err
-   }
-   file1, err := dash_create(represent)
-   if err != nil {
-      return err
-   }
-   defer file1.Close()
-   if initial := represent.SegmentTemplate.Initialization; initial != "" {
-      address, err := initial.Url(represent)
-      if err != nil {
-         return err
-      }
-      data1, err := get(address, nil)
-      if err != nil {
-         return err
-      }
-      data1, err = media.initialization(data1)
-      if err != nil {
-         return err
-      }
-      _, err = file1.Write(data1)
-      if err != nil {
-         return err
-      }
-   }
-   key, err := e.get_key(&media)
-   if err != nil {
-      return err
-   }
-   head := http.Header{}
-   head.Set("silent", "true")
-   var segments []int
-   for r := range represent.Representation() {
-      segments = slices.AppendSeq(segments, r.Segment())
-   }
-   var parts progress.Parts
-   parts.Set(len(segments))
-   for chunk := range slices.Chunk(segments, ThreadCount) {
-      var (
-         datas = make([][]byte, len(chunk))
-         errs = make(chan error)
-      )
-      for i, segment := range chunk {
-         address, err := represent.SegmentTemplate.Media.Url(represent, segment)
-         if err != nil {
-            return err
-         }
-         go func() {
-            datas[i], err = get(address, head)
-            errs <- err
-            parts.Next()
-         }()
-      }
-      for range chunk {
-         err := <-errs
-         if err != nil {
-            return err
-         }
-      }
-      for _, data := range datas {
-         data, err = media.write_segment(data, key)
-         if err != nil {
-            return err
-         }
-         _, err = file1.Write(data)
-         if err != nil {
-            return err
-         }
-      }
-   }
-   return nil
-}
-
-func (e *License) segment_base(represent *dash.Representation) error {
-   log.Print("SegmentBase")
-   var media media_file
-   err := media.New(represent)
-   if err != nil {
-      return err
-   }
-   file1, err := dash_create(represent)
-   if err != nil {
-      return err
-   }
-   defer file1.Close()
-   data, err := get(represent.BaseUrl[0], http.Header{
-      "range": {"bytes=" + represent.SegmentBase.Initialization.Range},
-   })
-   if err != nil {
-      return err
-   }
-   data, err = media.initialization(data)
-   if err != nil {
-      return err
-   }
-   _, err = file1.Write(data)
-   if err != nil {
-      return err
-   }
-   key, err := e.get_key(&media)
-   if err != nil {
-      return err
-   }
-   data, err = get(represent.BaseUrl[0], http.Header{
-      "range": {"bytes=" + represent.SegmentBase.IndexRange},
-   })
-   if err != nil {
-      return err
-   }
-   var file2 file.File
-   err = file2.Read(data)
-   if err != nil {
-      return err
-   }
-   var parts progress.Parts
-   parts.Set(len(file2.Sidx.Reference))
-   head := http.Header{}
-   head.Set("silent", "true")
-   var index dash.Range
-   err = index.Set(represent.SegmentBase.IndexRange)
-   if err != nil {
-      return err
-   }
-   for _, reference := range file2.Sidx.Reference {
-      index[0] = index[1] + 1
-      index[1] += uint64(reference.Size())
-      head.Set("range", "bytes="+ index.String())
-      data, err = get(represent.BaseUrl[0], head)
-      if err != nil {
-         return err
-      }
-      parts.Next()
-      data, err = media.write_segment(data, key)
-      if err != nil {
-         return err
-      }
-      _, err = file1.Write(data)
-      if err != nil {
-         return err
-      }
-   }
-   return nil
-}
-
-func (e *License) segment_list(represent *dash.Representation) error {
-   log.Print("SegmentList")
-   var media media_file
-   err := media.New(represent)
-   if err != nil {
-      return err
-   }
-   file1, err := dash_create(represent)
-   if err != nil {
-      return err
-   }
-   defer file1.Close()
-   data, err := get(represent.SegmentList.Initialization.SourceUrl[0], nil)
-   if err != nil {
-      return err
-   }
-   data, err = media.initialization(data)
-   if err != nil {
-      return err
-   }
-   _, err = file1.Write(data)
-   if err != nil {
-      return err
-   }
-   key, err := e.get_key(&media)
-   if err != nil {
-      return err
-   }
-   var parts progress.Parts
-   parts.Set(len(represent.SegmentList.SegmentUrl))
-   head := http.Header{}
-   head.Set("silent", "true")
-   for _, segment := range represent.SegmentList.SegmentUrl {
-      data, err := get(segment.Media[0], head)
-      if err != nil {
-         return err
-      }
-      parts.Next()
-      data, err = media.write_segment(data, key)
-      if err != nil {
-         return err
-      }
-      _, err = file1.Write(data)
-      if err != nil {
-         return err
-      }
-   }
-   return nil
-}
