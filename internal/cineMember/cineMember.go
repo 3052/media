@@ -12,16 +12,6 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   address  cineMember.Address
-   dash     string
-   e        internal.License
-   email    string
-   media    string
-   mullvad  bool
-   password string
-}
-
 func main() {
    var f flags
    err := f.New()
@@ -33,8 +23,9 @@ func main() {
    flag.StringVar(&f.email, "e", "", "email")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.password, "p", "", "password")
    flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.Parse()
    if f.mullvad {
       http.DefaultClient.Transport = &mullvad.Transport{}
@@ -136,4 +127,14 @@ func (f *flags) New() error {
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
    return nil
+}
+
+type flags struct {
+   address  cineMember.Address
+   dash     string
+   e        internal.License
+   email    string
+   media    string
+   mullvad  bool
+   password string
 }

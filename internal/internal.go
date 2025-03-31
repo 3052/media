@@ -14,7 +14,6 @@ import (
    "io"
    "log"
    "net/http"
-   "net/http/cookiejar"
    "net/url"
    "os"
    "slices"
@@ -308,11 +307,6 @@ func (e *License) Download(name, id string) error {
       return err
    }
    mpd1.Set(resp.Request.URL)
-   http.DefaultClient.Jar, err = cookiejar.New(nil)
-   if err != nil {
-      return err
-   }
-   http.DefaultClient.Jar.SetCookies(resp.Request.URL, resp.Cookies())
    for represent := range mpd1.Representation() {
       if represent.Id == id {
          if represent.SegmentBase != nil {
