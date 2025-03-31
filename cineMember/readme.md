@@ -19,6 +19,8 @@
 14. CVV
 15. Betaal (pay)
 
+no trial extension on cancel request
+
 ## android
 
 https://apkcombo.com/cinemember/nl.peoplesplayground.audienceplayer.cinemember
