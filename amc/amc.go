@@ -22,12 +22,6 @@ func (a *Address) Set(data string) error {
    return nil
 }
 
-type Address [2]string
-
-func (a Address) String() string {
-   return strings.Join(a[:], "--")
-}
-
 type Auth struct {
    Data struct {
       AccessToken  string `json:"access_token"`
@@ -210,4 +204,10 @@ type Source struct {
    } `json:"key_systems"`
    Src  string // MPD
    Type string
+}
+
+type Address [2]string
+
+func (a *Address) String() string {
+   return strings.Join(a[:], "--")
 }
