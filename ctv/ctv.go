@@ -10,6 +10,18 @@ import (
    "strings"
 )
 
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://license.9c9media.ca/widevine", "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 // https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
 func (a *Address) Set(data string) error {
    data = strings.TrimPrefix(data, "https://")
@@ -54,17 +66,7 @@ func (a *AxisContent) Mpd(content1 *Content) (string, error) {
    return strings.Replace(data1, "/best/", "/ultimate/", 1), nil
 }
 
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://license.9c9media.ca/widevine", "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
+///
 
 const query_axis = `
 query axisContent($id: ID!) {
