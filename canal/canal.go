@@ -16,58 +16,6 @@ import (
    "time"
 )
 
-type ObjectId [1]string
-
-const player = "play.canalplus.cz/player/d/"
-
-func (o *ObjectId) Set(data string) error {
-   if !strings.Contains(data, player) {
-      return fmt.Errorf("%q not found", player)
-   }
-   o[0] = path.Base(data)
-   return nil
-}
-
-func (o ObjectId) String() string {
-   return player + o[0]
-}
-
-func (s *Session) Play(id ObjectId) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(id[0])
-      b.WriteString("/play")
-      return b.String()
-   }()
-   // .Get .Set
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
 const (
    key    = "web.NhFyz4KsZ54"
    secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
@@ -260,4 +208,65 @@ func (c *client) String() string {
    b = append(b, ",sig="...)
    b = base64.RawURLEncoding.AppendEncode(b, c.sig)
    return string(b)
+}
+
+func (s *Session) Play(id ObjectId) (Byte[Play], error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v1/assets/")
+      b.WriteString(id[0])
+      b.WriteString("/play")
+      return b.String()
+   }()
+   // .Get .Set
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type ObjectId [1]string
+
+func (ObjectId) prefix() string {
+   return "https://play.canalplus.cz/player/d/"
+}
+
+func (o ObjectId) String() string {
+   return o.prefix() + o[0]
+}
+
+// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
+// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
+func (o *ObjectId) Set(data string) error {
+   if !strings.HasPrefix(data, o.prefix()) {
+      return fmt.Errorf("%q not found", o.prefix())
+   }
+   u, err := url.Parse(data)
+   if err != nil {
+      return err
+   }
+   o[0] = path.Base(u.Path)
+   return nil
 }
