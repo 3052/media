@@ -23,52 +23,6 @@ func (f *flags) New() error {
    return nil
 }
 
-type flags struct {
-   address  string
-   dash     string
-   e        internal.License
-   email    string
-   media    string
-   password string
-   proxy    bool
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.password, "password", "", "password")
-   flag.StringVar(&f.email, "email", "", "email")
-   flag.BoolVar(&f.proxy, "p", false, "proxy")
-   flag.Parse()
-   if f.proxy {
-      http.DefaultClient.Transport = &proxy.Transport{
-         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-         Proxy: http.ProxyFromEnvironment,
-      }
-   }
-   switch {
-   case f.password != "":
-      err := f.authenticate()
-      if err != nil {
-         panic(err)
-      }
-   case f.address != "":
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
-}
-
 func (f *flags) write_file(name string, data []byte) error {
    log.Println("WriteFile", f.media+name)
    return os.WriteFile(f.media+name, data, os.ModePerm)
@@ -89,6 +43,52 @@ func (f *flags) authenticate() error {
       return err
    }
    return f.write_file("/canal/Session", data)
+}
+
+type flags struct {
+   dash      string
+   e         internal.License
+   email     string
+   media     string
+   password  string
+   proxy     bool
+   object_id canal.ObjectId
+}
+
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.Var(&f.object_id, "a", "address")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.password, "password", "", "password")
+   flag.StringVar(&f.email, "email", "", "email")
+   flag.BoolVar(&f.proxy, "p", false, "proxy")
+   flag.Parse()
+   if f.proxy {
+      http.DefaultClient.Transport = &proxy.Transport{
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+         Proxy:     http.ProxyFromEnvironment,
+      }
+   }
+   switch {
+   case f.password != "":
+      err := f.authenticate()
+      if err != nil {
+         panic(err)
+      }
+   case f.object_id[0] != "":
+      err := f.download()
+      if err != nil {
+         panic(err)
+      }
+   default:
+      flag.Usage()
+   }
 }
 
 func (f *flags) download() error {
@@ -128,12 +128,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   var fields canal.Fields
-   err = fields.New(f.address)
-   if err != nil {
-      return err
-   }
-   data, err = session.Play(fields.ObjectIds())
+   data, err = session.Play(f.object_id)
    if err != nil {
       return err
    }
