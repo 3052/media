@@ -14,11 +14,11 @@
 9. year
 10. gender
 11. I agree to the terms
-12. I'm not a robot
-13. continue
-14. see plans
-15. confirm selection
-16. add a payment method
+12. continue
+13. see plans
+14. confirm selection
+15. add a payment method
+16. credit or debit card
 17. card number
 18. month
 19. year
@@ -28,8 +28,7 @@
 23. state
 24. zip
 25. save
-26. see plans
-27. start free trial
+26. start free trial
 
 ## Android
 
