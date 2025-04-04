@@ -9,6 +9,44 @@ import (
    "strings"
 )
 
+func (a *AccountToken) Code(act *Activation) (Byte[Code], error) {
+   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
+   req.URL.Path = "/api/v1/account/activation/" + act.Code
+   // .Get .Set
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-roku-content-token", a.AuthToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (a *AccountToken) Activation() (Byte[Activation], error) {
+   data, err := json.Marshal(map[string]string{"platform": "googletv"})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://googletv.web.roku.com/api/v1/account/activation",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // .Get .Set
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-roku-content-token", a.AuthToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (a *AccountToken) Playback(roku_id string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]string{
       "mediaFormat": "DASH",
@@ -49,46 +87,6 @@ func (c *Code) AccountToken() (Byte[AccountToken], error) {
    req.Header.Set("user-agent", user_agent)
    if c != nil {
       req.Header.Set("x-roku-content-token", c.Token)
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (a *AccountToken) Code(act *Activation) (Byte[Code], error) {
-   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
-   req.URL.Path = "/api/v1/account/activation/" + act.Code
-   req.Header = http.Header{
-      "user-agent":           {user_agent},
-      "x-roku-content-token": {a.AuthToken},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (a *AccountToken) Activation() (Byte[Activation], error) {
-   data, err := json.Marshal(map[string]string{"platform": "googletv"})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://googletv.web.roku.com/api/v1/account/activation",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header = http.Header{
-      "content-type":         {"application/json"},
-      "user-agent":           {user_agent},
-      "x-roku-content-token": {a.AuthToken},
    }
    resp, err := http.DefaultClient.Do(req)
    if err != nil {

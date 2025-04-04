@@ -153,7 +153,7 @@ func (f *flags) write_code() error {
    if err != nil {
       return err
    }
-   fmt.Println(activation)
+   fmt.Println(&activation)
    return f.write_file("/roku/Activation", data1)
 }
 
