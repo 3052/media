@@ -1,36 +1,5 @@
 # max.com
 
-1. auth.max.com/product
-2. monthly
-3. basic with ads
-4. continue
-5. email
-   - mailsac.com
-6. confirm email
-7. password
-8. first name
-9. last name
-10. create account
-11. debit card
-12. name on card
-13. card number
-14. expiration date
-15. security code
-16. zip code
-17. state
-18. pay now
-
-~~~json
-{
-  "errors" : [ {
-    "status" : "400",
-    "code" : "payment.refused",
-    "id" : "a04af317b64acbf60c853a3c3d2fc6c1",
-    "detail" : ""
-  } ]
-}
-~~~
-
 ## android
 
 https://play.google.com/store/apps/details?id=com.wbd.stream
