@@ -20,6 +20,44 @@ import (
    "strings"
 )
 
+func Mpd(name string, resp *http.Response) error {
+   data, err := marshal(resp)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   err = os.WriteFile(name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   resp, err = unmarshal(data)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   var mpd1 dash.Mpd
+   err = mpd1.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   represents := slices.SortedFunc(mpd1.Representation(),
+      func(a, b dash.Representation) int {
+         return a.Bandwidth - b.Bandwidth
+      },
+   )
+   for i, represent := range represents {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&represent)
+   }
+   return nil
+}
+
 func (e *License) segment_template(represent *dash.Representation) error {
    log.Print("SegmentTemplate")
    var media media_file
@@ -218,6 +256,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
    }
    return nil
 }
+
 func (m *media_file) New(represent *dash.Representation) error {
    for _, content := range represent.ContentProtection {
       if content.SchemeIdUri == widevine_urn {
@@ -317,45 +356,6 @@ func (e *License) Download(name, id string) error {
          }
          return e.segment_template(&represent)
       }
-   }
-   return nil
-}
-
-func Mpd(name string, resp *http.Response) error {
-   data, err := marshal(resp)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   err = os.WriteFile(name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   resp, err = unmarshal(data)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   var mpd1 dash.Mpd
-   err = mpd1.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   mpd1.Set(resp.Request.URL)
-   represents := slices.SortedFunc(mpd1.Representation(),
-      func(a, b dash.Representation) int {
-         return a.Bandwidth - b.Bandwidth
-      },
-   )
-   for i, represent := range represents {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&represent)
    }
    return nil
 }

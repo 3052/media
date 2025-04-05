@@ -10,6 +10,21 @@ import (
    "strings"
 )
 
+// these return a valid response body, but response status is "403 OK":
+// http://siloh-fs.plutotv.net
+// http://siloh-ns1.plutotv.net
+// https://siloh-fs.plutotv.net
+// https://siloh-ns1.plutotv.net
+func (f *File) UnmarshalText(data []byte) error {
+   err := f[0].UnmarshalBinary(data)
+   if err != nil {
+      return err
+   }
+   f[0].Scheme = "http"
+   f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
+   return nil
+}
+
 var ForwardedFor string
 
 func Widevine(data []byte) ([]byte, error) {
@@ -126,24 +141,10 @@ func (c *Clips) Dash() (*File, bool) {
    return nil, false
 }
 
-// these return a valid response body, but response status is "403 OK":
-// http://siloh-fs.plutotv.net
-// http://siloh-ns1.plutotv.net
-// https://siloh-fs.plutotv.net
-// https://siloh-ns1.plutotv.net
-func (f *File) UnmarshalText(data []byte) error {
-   err := f[0].UnmarshalBinary(data)
-   if err != nil {
-      return err
-   }
-   f[0].Scheme = "http"
-   f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
-   return nil
-}
-
 // The Request's URL and Header fields must be initialized
 func (f *File) Mpd() (*http.Response, error) {
    var req http.Request
+   req.Method = "GET"
    req.URL = &f[0]
    req.Header = http.Header{}
    return http.DefaultClient.Do(&req)

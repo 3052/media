@@ -12,14 +12,12 @@ var tests = []struct {
    url        string
 }{
    {
-      url:        "ctv.ca/movies/fools-rush-in-57470",
-      key_id:     "A98dtspZsb9/z++3IHp0Dw==",
-      content_id: "ZmYtOGYyNjEzYWUtNTIxNTAx",
-      path:       "/movies/fools-rush-in-57470",
-   },
-   {
       url:  "ctv.ca/shows/friends/the-one-with-the-chicken-pox-s2e23",
       path: "/shows/friends/the-one-with-the-chicken-pox-s2e23",
+   },
+   {
+      url:        "ctv.ca/movies/the-transporter",
+      path:       "/movies/the-transporter",
    },
 }
 

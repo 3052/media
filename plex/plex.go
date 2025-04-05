@@ -3,23 +3,25 @@ package plex
 import (
    "bytes"
    "encoding/json"
+   "errors"
    "io"
    "net/http"
    "net/url"
    "strings"
 )
 
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "watch.plex.tv")
-   a[0] = strings.TrimPrefix(data, "/watch")
+func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
+   var value struct {
+      MediaContainer struct {
+         Metadata []Metadata
+      }
+   }
+   err := json.Unmarshal(data, &value)
+   if err != nil {
+      return err
+   }
+   *m = value.MediaContainer.Metadata[0]
    return nil
-}
-
-type Address [1]string
-
-func (a Address) String() string {
-   return a[0]
 }
 
 func (u User) Metadata(match1 *Match) (Byte[Metadata], error) {
@@ -35,21 +37,23 @@ func (u User) Metadata(match1 *Match) (Byte[Metadata], error) {
       return nil, err
    }
    defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
    return io.ReadAll(resp.Body)
 }
 
-func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
-   var value struct {
-      MediaContainer struct {
-         Metadata []Metadata
-      }
-   }
-   err := json.Unmarshal(data, &value)
-   if err != nil {
-      return err
-   }
-   *m = value.MediaContainer.Metadata[0]
+func (a *Address) Set(data string) error {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "watch.plex.tv")
+   a[0] = strings.TrimPrefix(data, "/watch")
    return nil
+}
+
+type Address [1]string
+
+func (a Address) String() string {
+   return a[0]
 }
 
 type Metadata struct {
