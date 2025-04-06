@@ -99,14 +99,14 @@ func (f *flags) do_dash() error {
 }
 
 type flags struct {
-   address        mubi.Address
-   auth           bool
-   code           bool
-   e              internal.License
-   media          string
-   dash string
-   text           bool
-   mullvad        bool
+   address mubi.Address
+   auth    bool
+   code    bool
+   e       internal.License
+   media   string
+   dash    string
+   text    bool
+   mullvad bool
 }
 
 func main() {
@@ -127,7 +127,7 @@ func main() {
    if f.mullvad {
       http.DefaultClient.Transport = &mullvad.Transport{
          Protocols: &http.Protocols{},
-         Proxy: http.ProxyFromEnvironment,
+         Proxy:     http.ProxyFromEnvironment,
       }
       defer mullvad.Disconnect()
    }
