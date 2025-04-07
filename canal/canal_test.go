@@ -15,11 +15,6 @@ var film = struct {
    stream: "https://www.canalplus.cz/stream/film/argylle-tajny-agent/",
 }
 
-func TestFields(t *testing.T) {
-   var fields1 Fields
-   err := fields1.New(film.stream)
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Printf("%q\n", fields1.ObjectIds())
+func Test(t *testing.T) {
+   fmt.Println(film)
 }

@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	41.neocities.org/protobuf v1.4.6 // indirect
+	41.neocities.org/protobuf v1.4.7 // indirect
 	github.com/chmike/cmac-go v1.1.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )

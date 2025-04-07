@@ -126,7 +126,7 @@ func main() {
    flag.Parse()
    if f.mullvad {
       http.DefaultClient.Transport = &mullvad.Transport{
-         Protocols: &http.Protocols{},
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/18639
          Proxy:     http.ProxyFromEnvironment,
       }
       defer mullvad.Disconnect()
