@@ -11,25 +11,8 @@ import (
    "strings"
 )
 
-type Playlist struct {
-   Message   string
-   StreamUrl string `json:"stream_url"` // MPD
-   WvServer  string `json:"wv_server"`
-}
-
-func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
-}
-
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
-   data, err := json.Marshal(map[string]any{
+   value := map[string]any{
       "content_eab_id":   deep.EabId,
       "deejay_device_id": 166,
       "unencrypted":      true,
@@ -93,7 +76,8 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
             },
          },
       },
-   })
+   }
+   data, err := json.MarshalIndent(value, "", " ")
    if err != nil {
       return nil, err
    }
@@ -220,4 +204,20 @@ func (a Authenticate) DeepLink(id Entity) (*DeepLink, error) {
 type Authenticate struct {
    DeviceToken string `json:"device_token"`
    UserToken   string `json:"user_token"`
+}
+type Playlist struct {
+   Message   string
+   StreamUrl string `json:"stream_url"` // MPD
+   WvServer  string `json:"wv_server"`
+}
+
+func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if p.Message != "" {
+      return errors.New(p.Message)
+   }
+   return nil
 }
