@@ -13,58 +13,6 @@ import (
    "slices"
 )
 
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.Var(&f.show_id, "a", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.edit, "e", "", "edit")
-   flag.StringVar(&f.dash, "i", "", "DASH ID")
-   flag.BoolVar(
-      &f.initiate, "initiate", false, "/authentication/linkDevice/initiate",
-   )
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.BoolVar(
-      &f.login, "login", false, "/authentication/linkDevice/login",
-   )
-   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
-   flag.IntVar(&f.season, "s", 0, "season")
-   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
-   flag.Parse()
-   if f.mullvad {
-      http.DefaultClient.Transport = &mullvad.Transport{
-         Proxy: http.ProxyFromEnvironment,
-      }
-   }
-   switch {
-   case f.initiate:
-      err := f.do_initiate()
-      if err != nil {
-         panic(err)
-      }
-   case f.login:
-      err := f.do_login()
-      if err != nil {
-         panic(err)
-      }
-   case f.show_id != "":
-      err := f.do_edit()
-      if err != nil {
-         panic(err)
-      }
-   case f.edit != "":
-      err := f.do_mpd()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
-}
-
 func (f *flags) do_mpd() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/max/Playback")
@@ -103,7 +51,7 @@ func (f *flags) do_mpd() error {
    if err != nil {
       return err
    }
-   resp, err := http.Get(play.Fallback.Manifest.Url[0])
+   resp, err := http.Get(play.Fallback.Manifest.Url)
    if err != nil {
       return err
    }
@@ -121,6 +69,7 @@ type flags struct {
    season   int
    show_id  max.ShowId
 }
+
 func (f *flags) do_edit() error {
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
@@ -208,4 +157,55 @@ func (f *flags) do_login() error {
       return err
    }
    return f.write_file("/max/Login", data)
+}
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.Var(&f.show_id, "a", "address")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.edit, "e", "", "edit")
+   flag.StringVar(&f.dash, "i", "", "DASH ID")
+   flag.BoolVar(
+      &f.initiate, "initiate", false, "/authentication/linkDevice/initiate",
+   )
+   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.BoolVar(
+      &f.login, "login", false, "/authentication/linkDevice/login",
+   )
+   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
+   flag.IntVar(&f.season, "s", 0, "season")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
+   flag.Parse()
+   if f.mullvad {
+      http.DefaultClient.Transport = &mullvad.Transport{
+         Proxy: http.ProxyFromEnvironment,
+      }
+   }
+   switch {
+   case f.initiate:
+      err := f.do_initiate()
+      if err != nil {
+         panic(err)
+      }
+   case f.login:
+      err := f.do_login()
+      if err != nil {
+         panic(err)
+      }
+   case f.show_id != "":
+      err := f.do_edit()
+      if err != nil {
+         panic(err)
+      }
+   case f.edit != "":
+      err := f.do_mpd()
+      if err != nil {
+         panic(err)
+      }
+   default:
+      flag.Usage()
+   }
 }

@@ -134,12 +134,6 @@ func (s St) Initiate() (*Initiate, error) {
    return &value.Data.Attributes, nil
 }
 
-type Url [1]string
-
-func (u *Url) UnmarshalText(data []byte) error {
-   u[0] = strings.Replace(string(data), "_fallback", "", 1)
-   return nil
-}
 func (s *St) New() error {
    req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
    req.Header = http.Header{
@@ -208,6 +202,7 @@ type Login struct {
 func (n *Login) Unmarshal(data Byte[Login]) error {
    return json.Unmarshal(data, n)
 }
+
 func (p *Playback) Unmarshal(data Byte[Playback]) error {
    err := json.Unmarshal(data, p)
    if err != nil {
@@ -217,24 +212,6 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
       return errors.New(p.Errors[0].Detail)
    }
    return nil
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         Widevine struct {
-            LicenseUrl string
-         }
-      }
-   }
-   Errors []struct {
-      Detail string
-   }
-   Fallback struct {
-      Manifest struct {
-         Url Url // MPD
-      }
-   }
 }
 
 type Videos struct {
@@ -376,3 +353,24 @@ func (v *Videos) Error() string {
    return ""
 }
 
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         Widevine struct {
+            LicenseUrl string
+         }
+      }
+   }
+   Errors []struct {
+      Detail string
+   }
+   Fallback struct {
+      Manifest struct {
+         Url string
+      }
+   }
+   // MPD shows higher bandwidth but its exact same, and extremely throttled
+   Manifest struct {
+      Url string
+   }
+}
