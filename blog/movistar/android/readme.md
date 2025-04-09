@@ -10,6 +10,8 @@ country = Spain
 
 smart proxy blocks login - proxy seller works
 
+## phone
+
 ~~~
 > play -i es.plus.yomvi
 details[8] = 0 USD
@@ -24,7 +26,11 @@ size = 21.03 megabyte
 version code = 502
 ~~~
 
-https://play.google.com/store/apps/details?id=com.movistarplus.androidtv
+https://apkmirror.com/apk/movistar-espana/movistar-2
+
+create Android 7 device. install system certificate
+
+## tv
 
 ~~~
 > play -i com.movistarplus.androidtv -leanback
@@ -39,3 +45,5 @@ name = Movistar Plus+
 size = 20.50 megabyte
 version code = 100
 ~~~
+
+https://apkmirror.com/apk/movistar-espana/movistar-android-tv

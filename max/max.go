@@ -14,7 +14,7 @@ import (
 )
 
 func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
-   data, err := json.Marshal(map[string]any{
+   value := map[string]any{
       "editId": edit_id,
       "consumptionType":      "streaming",
       "appBundle":            "",         // required
@@ -46,7 +46,8 @@ func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
             }, // required
          }, // required
       }, // required
-   })
+   }
+   data, err := json.MarshalIndent(value, "", " ")
    if err != nil {
       return nil, err
    }
