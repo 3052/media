@@ -15,6 +15,43 @@ import (
    "strings"
 )
 
+func (a At) Item(cid string) (*Item, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v2.0/androidphone/video/cid/")
+      b.WriteString(cid)
+      b.WriteString(".json")
+      return b.String()
+   }()
+   req.URL.RawQuery = "at=" + string(a)
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   var value struct {
+      Error string
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Error != "" {
+      return nil, errors.New(value.Error)
+   }
+   if len(value.ItemList) == 0 {
+      return nil, errors.New(string(data))
+   }
+   return &value.ItemList[0], nil
+}
+
 func (i *Item) Mpd() (*http.Response, error) {
    req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
    req.URL.Path = func() string {
@@ -146,38 +183,3 @@ func (a AppSecret) At() (At, error) {
    return At(base64.StdEncoding.EncodeToString(data1)), nil
 }
 
-func (a At) Item(cid string) (*Item, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v2.0/androidphone/video/cid/")
-      b.WriteString(cid)
-      b.WriteString(".json")
-      return b.String()
-   }()
-   req.URL.RawQuery = "at=" + string(a)
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   var value struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.ItemList) == 0 {
-      return nil, errors.New(string(data))
-   }
-   return &value.ItemList[0], nil
-}
