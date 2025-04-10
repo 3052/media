@@ -51,7 +51,7 @@ func (f *flags) do_mpd() error {
    if err != nil {
       return err
    }
-   resp, err := http.Get(play.Fallback.Manifest.Url)
+   resp, err := http.Get(play.Mpd())
    if err != nil {
       return err
    }

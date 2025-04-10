@@ -13,6 +13,31 @@ import (
    "strings"
 )
 
+func (p *Playback) Mpd() string {
+   return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         Widevine struct {
+            LicenseUrl string
+         }
+      }
+   }
+   Errors []struct {
+      Detail string
+   }
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
 func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
    value := map[string]any{
       "editId": edit_id,
@@ -354,24 +379,3 @@ func (v *Videos) Error() string {
    return ""
 }
 
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         Widevine struct {
-            LicenseUrl string
-         }
-      }
-   }
-   Errors []struct {
-      Detail string
-   }
-   Fallback struct {
-      Manifest struct {
-         Url string
-      }
-   }
-   // MPD shows higher bandwidth but its exact same, and extremely throttled
-   Manifest struct {
-      Url string
-   }
-}

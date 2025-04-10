@@ -28,7 +28,15 @@ version code = 502
 
 https://apkmirror.com/apk/movistar-espana/movistar-2
 
-create Android 7 device. install system certificate
+not having luck with older android, so trying with SDK version 34:
+
+mullvad fail
+
+nord fail
+
+smart proxy fail
+
+proxy seller fail
 
 ## tv
 
