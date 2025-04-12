@@ -1,7 +1,7 @@
 package movistar
 
 import (
-   "os"
+   "fmt"
    "testing"
 )
 
@@ -14,15 +14,10 @@ var test = struct {
 }
 
 func Test(t *testing.T) {
-   resp, err := details(test.id)
+   var details1 details
+   err := details1.New(test.id)
    if err != nil {
       t.Fatal(err)
    }
-   defer resp.Body.Close()
-   file, err := os.Create(".json")
-   if err != nil {
-      t.Fatal(err)
-   }
-   defer file.Close()
-   file.ReadFrom(resp.Body)
+   fmt.Printf("%+v\n", details1)
 }
