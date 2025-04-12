@@ -13,7 +13,7 @@ var test = struct {
    url: "movistarplus.es/cine/ficha?id=3427440",
 }
 
-func Test(t *testing.T) {
+func TestDetails(t *testing.T) {
    var details1 details
    err := details1.New(test.id)
    if err != nil {
