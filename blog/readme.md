@@ -4,19 +4,14 @@
 
 <table>
    <tr>
-      <td>4</td>
+      <td>3</td>
       <td>Molotov - TV en direct, replay</td>
       <td>March 27</td>
    </tr>
    <tr>
-      <td>3</td>
+      <td>2</td>
       <td>CANAL+, Live and catch-up TV</td>
       <td>March 25</td>
-   </tr>
-   <tr>
-      <td>2</td>
-      <td>Binge</td>
-      <td>March 14</td>
    </tr>
    <tr>
       <td>1</td>

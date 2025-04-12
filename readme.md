@@ -23,11 +23,10 @@ Download media or send API requests
 14. Kanopy
 15. AMC+
 16. RTBF Auvio : direct et replay
-17. Binge
-18. The Roku Channel
-19. The Criterion Channel
-20. Draken Film
-21. CineMember
+17. The Roku Channel
+18. The Criterion Channel
+19. Draken Film
+20. CineMember
 
 [1]://f002.backblazeb2.com/file/minerals/Paint.It.Black.2016.mp4
 
