@@ -8,7 +8,7 @@ import (
 
 type details struct {
    VodItems []struct {
-      // mullvad fail
+      // mullvad pass
       // nord pass
       UrlVideo string
    }

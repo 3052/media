@@ -9,6 +9,16 @@ import (
    "strconv"
 )
 
+// SEGMENTS ARE GEO BLOCK WITH ALL PROVIDER
+func (p Play) Dash() (*Stream, bool) {
+   for _, stream1 := range p.Streams {
+      if stream1.StreamingFormat == "dash" {
+         return &stream1, true
+      }
+   }
+   return nil, false
+}
+
 // web
 const client_id = "pM87TUXKQvSSu93ydRjDTqBgdYeCbdhZ"
 
@@ -114,16 +124,6 @@ func NewAuth(username, password string) (Byte[Auth], error) {
 
 func (p *Play) Unmarshal(data Byte[Play]) error {
    return json.Unmarshal(data, p)
-}
-
-// SEGMENTS ARE GEO BLOCK WITH ALL PROVIDER
-func (p Play) Dash() (*Stream, bool) {
-   for _, stream1 := range p.Streams {
-      if stream1.StreamingFormat == "dash" {
-         return &stream1, true
-      }
-   }
-   return nil, false
 }
 
 type Play struct {
