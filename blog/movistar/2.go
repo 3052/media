@@ -4,21 +4,27 @@ import (
    "encoding/json"
    "errors"
    "net/http"
+   "strings"
 )
 
 type device string
 
-// XFF fail
 // mullvad pass
-func (t *token) device() (device, error) {
+func (t *token) device(oferta1 *oferta) (device, error) {
    req, err := http.NewRequest(
       "POST", "https://auth.dof6.com?qspVersion=ssp", nil,
    )
    if err != nil {
       return "", err
    }
-   req.URL.Path = "/movistarplus/amazon.tv/accounts/00QSp000009M9gzMAC-L/devices/"
    req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/movistarplus/amazon.tv/accounts/")
+      b.WriteString(oferta1.AccountNumber)
+      b.WriteString("/devices/")
+      return b.String()
+   }()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return "", err

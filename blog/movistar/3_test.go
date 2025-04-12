@@ -1,12 +1,11 @@
 package movistar
 
 import (
-   "fmt"
    "os"
    "testing"
 )
 
-func TestDevices(t *testing.T) {
+func TestInitData(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
@@ -20,9 +19,17 @@ func TestDevices(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   device1, err := token1.device()
+   oferta1, err := token1.oferta()
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%q\n", device1)
+   device1, err := token1.device(oferta1)
+   if err != nil {
+      t.Fatal(err)
+   }
+   resp, err := oferta1.init_data(device1)
+   if err != nil {
+      t.Fatal(err)
+   }
+   resp.Write(os.Stdout)
 }

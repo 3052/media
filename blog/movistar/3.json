@@ -1,0 +1,56 @@
+{
+  "pid": "00QSp000009M9gzMAC-L",
+  "securePid": "6X0ET+GVq5dlzYyT3hMqqO+lyjiZCsp79DJ33jRtOFo=",
+  "locality": "SUSCRI2",
+  "rentingDisabled": false,
+  "accountUID": 0,
+  "accountNumber": "00QSp000009M9gzMAC-L",
+  "administrativo": "00QSp000009M9gzMAC-L",
+  "cod_usuario_cifrado": "7U7e7v8B8S8h8o9A",
+  "hashedUserId": "V8oRMqwd5ESfFpZ/nbgkLq4jMXu1OeKNnP/hAwIllFsPGxEvpDOMdbBJi9SAh5Nwd0ek+02t+3aDHB7nZtEgAA==",
+  "id_perfil": "SUSCRI2",
+  "segmentacion": null,
+  "uiSegment": "MPLUS",
+  "promoSegment": "PRMPLU",
+  "origen": "YOMVI",
+  "network": "movistarplus",
+  "deviceFriendlyName": "Amazon TV",
+  "demarcation": 0,
+  "ef": "A",
+  "token": "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI2N2Y1Y2NlN2FkMDg3YjI1YzBmNjRhZGIiLCJpYXQiOjE3NDQ0NzU1MjQsImlzcyI6IjdhMjg0MDYzZDBjNjRkMDY5ZmJkYjI3NzEyM2FhMTdhIiwiZXhwIjoxNzQ0NTE4NzI0fQ.pGE2JJvUTM6VQP_g0PpbTEQuxLHgNVskIS-2M5hNJkk",
+  "accessToken": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkZXZpY2VJZCI6IjdhMjg0MDYzZDBjNjRkMDY5ZmJkYjI3NzEyM2FhMTdhIiwiYWNjb3VudE51bWJlciI6IjAwUVNwMDAwMDA5TTlnek1BQy1MIiwiY2xpZW50U2VnbWVudCI6MTgsInN1YiI6IjdVN2U3djhCOFM4aDhvOUEiLCJpc3MiOiJodHRwOi8vd3d3Lm1vdmlzdGFycGx1cy5lcyIsImF1ZCI6IjQxNGUxOTI3YTM4ODRmNjhhYmM3OWY3MjgzODM3ZmQxIiwiZXhwIjoxNzQ1MzM5NTE2LCJuYmYiOjE3NDQ0NzU1MTZ9.s2bjPQ6gGI29sZQftU8goZRLcsHBf-Ep-yvkRojW8KY",
+  "sspToken": "eyJraWQiOiI1MDA1MSIsImFsZyI6IkhTMjU2IiwidHlwIjoiSldUIn0.eyJ0eXAiOiJEZXZBdXRoTiIsInZlciI6IjEuMCIsImV4cCI6MTc0NDU2MTkyNCwiZml4ZWRfZXhwIjoxNzQ3MDY3NTI0LCJ0ZW5hbnRJZCI6IlRGQUVTUCIsImFjY291bnRJZCI6IjAwUVNwMDAwMDA5TTlnek1BQy1MIiwiZGV2aWNlSWQiOiI3YTI4NDA2M2QwYzY0ZDA2OWZiZGIyNzcxMjNhYTE3YSIsImdlb0Jsb2NrRXhlbXB0IjpmYWxzZSwic2Vzc2lvbkNvbnRyb2wiOnsic2Vzc2lvbkNvbnRyb2xFbmFibGVkIjpmYWxzZSwibWF4U2Vzc2lvbnMiOjN9LCJhY2NvdW50UHJvZmlsZUlkIjoiREVGQVVMVCIsImJpbGxpbmdDb3VudHJ5Q29kZSI6IkVtcHR5Q291bnRyeSIsIm9uTmV0d29yayI6dHJ1ZSwiZmlsdGVyaW5nSW5mb3JtYXRpb24iOnt9LCJibG9ja2luZ0luZm9ybWF0aW9uIjp7fSwid2F0ZXJtYXJraW5nIjp0cnVlfQ.TxZys2yAWgdFj2_EBGANgsnTCCe5FXgdizmBPAAU3ug",
+  "accessToken4P": null,
+  "secondHome": false,
+  "multiHogar": false,
+  "activePurchases": [
+    {
+      "purchasedItemUID": 323064,
+      "productType": "FREE",
+      "name": "CVODPCFREE"
+    },
+    {
+      "purchasedItemUID": 0,
+      "productType": "PRS",
+      "name": "TVRECS"
+    }
+  ],
+  "canDownload": false,
+  "suscripcion": "PS-CVODPCFREE,PS-TVRECS",
+  "linearSubscription": "TVRECS",
+  "vodSubscription": "CVODPCFREE,TVRECS",
+  "activePackages": [
+    {
+      "packageUID": 0,
+      "packageType": "PKS",
+      "name": "TVRECS"
+    }
+  ],
+  "taquilla": null,
+  "partners": [],
+  "tvRights": [],
+  "distilledTvRights": [],
+  "vodDistilledTvRights": [],
+  "linearDistilledTvRights": [],
+  "purchaseList": []
+}

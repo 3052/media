@@ -1,35 +1,42 @@
 package movistar
 
 import (
-   "io"
+   "bytes"
+   "encoding/json"
+   "errors"
    "net/http"
-   "net/url"
-   "os"
    "strings"
 )
 
-func Two() {
-   const data = `
-   {
-      "accountNumber": "00QSp000009M9gzMAC-L"
-   }
-   `
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{}
-   req.URL.Host = "clientservices.dof6.com"
-   req.URL.Path = "/movistarplus/amazon.tv/sdp/mediaPlayers/ea3585a776ed444d8677ad8be6ef0db3/initData"
-   req.Method = "POST"
-   req.Header["Content-Type"] = []string{"application/json"}
-   value := url.Values{}
-   value["qspVersion"] = []string{"ssp"}
-   req.URL.RawQuery = value.Encode()
-   req.Body = io.NopCloser(strings.NewReader(data))
-   req.URL.Scheme = "https"
-   resp, err := http.DefaultClient.Do(&req)
+// mullvad pass
+func (o oferta) init_data(device1 device) (*http.Response, error) {
+   data, err := json.Marshal(map[string]string{
+      "accountNumber": o.AccountNumber,
+   })
    if err != nil {
-      panic(err)
+      return nil, err
    }
-   defer resp.Body.Close()
-   resp.Write(os.Stdout)
+   req, err := http.NewRequest(
+      "POST", "https://clientservices.dof6.com?qspVersion=ssp",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/json")
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/movistarplus/amazon.tv/sdp/mediaPlayers/")
+      b.WriteString(string(device1))
+      b.WriteString("/initData")
+      return b.String()
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return resp, nil
 }

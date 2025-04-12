@@ -1,23 +1,34 @@
-package main
+package movistar
 
 import (
+   "encoding/json"
+   "errors"
    "net/http"
-   "net/url"
-   "os"
 )
 
-func main() {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{}
-   req.URL.Host = "auth.dof6.com"
+type oferta struct {
+   AccountNumber string
+}
+
+// mullvad pass
+func (t *token) oferta() (*oferta, error) {
+   req, _ := http.NewRequest("", "https://auth.dof6.com", nil)
    req.URL.Path = "/movistarplus/api/devices/amazon.tv/users/authenticate"
-   req.URL.Scheme = "https"
-   req.Header["Authorization"] = []string{"Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3VTdlN3Y4QjhTOGg4bzlBIiwiYWNjb3VudE51bWJlciI6IjAwUVNwMDAwMDA5TTlnek1BQy1MIiwicm9sZSI6InVzZXIiLCJhcHIiOiJ3ZWJkYiIsImlzcyI6Imh0dHA6Ly93d3cubW92aXN0YXJwbHVzLmVzIiwiYXVkIjoiNDE0ZTE5MjdhMzg4NGY2OGFiYzc5ZjcyODM4MzdmZDEiLCJleHAiOjE3NDUyNzYwMzQsIm5iZiI6MTc0NDQxMjAzNH0.HdHCbmJaU-a5ASyrrygJRQF9RHj9cdN9eyx9A341H3s"}
-   resp, err := http.DefaultClient.Do(&req)
+   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      panic(err)
+      return nil, err
    }
    defer resp.Body.Close()
-   resp.Write(os.Stdout)
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      Ofertas []oferta
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Ofertas[0], nil
 }
