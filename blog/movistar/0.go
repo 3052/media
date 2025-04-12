@@ -2,15 +2,16 @@ package movistar
 
 import (
    "encoding/json"
+   "errors"
+   "io"
    "net/http"
    "net/url"
-   "time"
 )
 
 // XFF fail
 // mullvad pass
 // nord pass
-func (t *token) New(username, password string) error {
+func new_token(username, password string) (Byte[token], error) {
    resp, err := http.PostForm(
       "https://auth.dof6.com/auth/oauth2/token?deviceClass=amazon.tv",
       url.Values{
@@ -20,10 +21,13 @@ func (t *token) New(username, password string) error {
       },
    )
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(t)
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
 }
 
 // 10 days
@@ -32,6 +36,8 @@ type token struct {
    ExpiresIn int64 `json:"expires_in"`
 }
 
-func (t *token) duration() time.Duration {
-   return time.Duration(t.ExpiresIn) * time.Second
+type Byte[T any] []byte
+
+func (t *token) unmarshal(data Byte[token]) error {
+   return json.Unmarshal(data, t)
 }

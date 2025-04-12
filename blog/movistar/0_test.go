@@ -1,12 +1,11 @@
 package movistar
 
 import (
-   "fmt"
+   "os"
    "os/exec"
    "strings"
    "testing"
 )
-
 
 func TestToken(t *testing.T) {
    data, err := exec.Command("password", "movistarplus.es").Output()
@@ -14,10 +13,16 @@ func TestToken(t *testing.T) {
       t.Fatal(err)
    }
    username, password, _ := strings.Cut(string(data), ":")
-   var token1 token
-   err = token1.New(username, password)
+   data, err = new_token(username, password)
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Print(token1.AccessToken, "\n", token1.duration(), "\n")
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(home + "/media/movistar/token", data, os.ModePerm)
+   if err != nil {
+      t.Fatal(err)
+   }
 }
