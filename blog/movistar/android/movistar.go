@@ -13,5 +13,6 @@ func details(id int64) (*http.Response, error) {
       b = append(b, "/details"...)
       return string(b)
    }()
+   req.URL.RawQuery = "mdrm=true"
    return http.DefaultClient.Do(req)
 }

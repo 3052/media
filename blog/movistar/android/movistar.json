@@ -1,75 +1,29 @@
 {
  "DatosAccesoAnonimo": {
   "TipoEmision": "Vod",
-  "TipoComercial": "Subscripcion",
+  "TipoComercial": "Impulsivo",
   "TipoComercial2": {
-   "Tipo": "Subscripcion",
-   "Descripcion": "INT"
+   "Tipo": "Impulsivo",
+   "Descripcion": "INT_TAQ"
   },
   "Freemium": false,
   "TiposComerciales": [
+   {
+    "Tipo": "Impulsivo",
+    "Descripcion": null
+   },
    {
     "Tipo": "Subscripcion",
     "Descripcion": null
    }
   ],
-  "Logos": [
-   {
-    "id": "default",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-DPBLAN/sammos/MPLUS"
-   },
-   {
-    "id": "default",
-    "state": "over",
-    "uri": "https://estatico.emisiondof6.com/recorte/m-DP/sammos/MPLUS"
-   },
-   {
-    "id": "bg_dark",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-DP/samepg/MPLUS"
-   },
-   {
-    "id": "bg_light",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-DPBLAN/samepg/MPLUS"
-   },
-   {
-    "id": "mux",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-DP/mux/MPLUS.png"
-   },
-   {
-    "id": "mux-details",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-NEONEGR/mux_ficha/MPLUS.png"
-   },
-   {
-    "id": "shadowed",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recortesombr1/m-NEONEGR/nki_sombra/MPLUS.png"
-   },
-   {
-    "id": "mux4",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-DP/mux4_logo1/MPLUS.png"
-   },
-   {
-    "id": "mux4-details",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-DP/mux4_logo/MPLUS.png"
-   },
-   {
-    "id": "shadowed4",
-    "state": null,
-    "uri": "https://estatico.emisiondof6.com/recorte/m-NEONEGR/mux4_logoshd/MPLUS.png?od[]=ZMUX1:SHAD"
-   }
-  ],
-  "Precio": null,
+  "Logos": [],
+  "Precio": 4.99,
   "HoraInicio": null,
   "FechaFinPublicacion": "1746050399000",
+  "PeriodoConsumo": 172800,
   "FormatoVideo": "HD",
-  "FormatoAudio": "1",
+  "FormatoAudio": "3",
   "VersionIdioma": "7",
   "HoraInicioSaltoCanal": null,
   "HoraFinSaltoCanal": null,
@@ -77,22 +31,22 @@
    {
     "TipoSubtitulo": "TXT",
     "EtiquetaSubtitulo": "Español",
-    "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03txt.srt"
+    "uri": null
    },
    {
     "TipoSubtitulo": "SID",
     "EtiquetaSubtitulo": "V.O.",
-    "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03sid.srt"
+    "uri": null
    },
    {
     "TipoSubtitulo": "CAT",
     "EtiquetaSubtitulo": "Catalán",
-    "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03cat.srt"
+    "uri": null
    },
    {
     "TipoSubtitulo": "EUS",
     "EtiquetaSubtitulo": "Euskera",
-    "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03eus.srt"
+    "uri": null
    }
   ],
   "Subtitulos2012": [],
@@ -103,14 +57,18 @@
  "TipoContenido": "Individual",
  "CodSubTipoContenido": "P",
  "SubTipoContenido": "programa",
- "TipoComercial": "Subscripcion",
+ "TipoComercial": "Todos",
  "Titulo": "Longlegs",
  "catalogItemType": "Movie",
  "TipoComercial2": {
-  "Tipo": "Subscripcion",
-  "Descripcion": "INT"
+  "Tipo": "Todos",
+  "Descripcion": "INT_TAQ"
  },
  "TiposComerciales": [
+  {
+   "Tipo": "Impulsivo",
+   "Descripcion": null
+  },
   {
    "Tipo": "Subscripcion",
    "Descripcion": null
@@ -132,15 +90,15 @@
   "CRID": "3504824",
   "Etiqueta": "3504824",
   "title": "Longlegs",
-  "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/freemd-3504824-md-01_freemd-3504824-pry_hd9ruaclrkqdin7/index.ism/Manifest?tcdn-bitrate-filter=mplusvod",
+  "uri": "http://vod-dash-movistarplus.emisiondof6.com/prod/dash/freemd-3504824-md-01_freemd-3504824-mdrm_vz0eyezuetah02y/manifestgen.mpd",
   "FormatoVideo": null,
   "Imagenes": [],
   "VodItems": [
    {
     "catalogItemType": null,
     "AssetType": "VOD",
-    "AssetUid": 1478915,
-    "CasId": "1173074",
+    "AssetUid": 1478914,
+    "CasId": "1173076",
     "Duracion": null,
     "DuracionEnSegundos": null,
     "FechaInicioPublicacion": null,
@@ -158,7 +116,7 @@
     "FormatoVideo": null,
     "Precio": null,
     "IndicadorSubtitulosSordos": null,
-    "UrlVideo": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/freemd-3504824-md-01_freemd-3504824-pry_hd9ruaclrkqdin7/index.ism/Manifest?tcdn-bitrate-filter=mplusvod",
+    "UrlVideo": "http://vod-dash-movistarplus.emisiondof6.com/prod/dash/freemd-3504824-md-01_freemd-3504824-mdrm_vz0eyezuetah02y/manifestgen.mpd",
     "HDR": false,
     "Subtitulos": [],
     "Subtitulos2012": [],
@@ -174,7 +132,7 @@
    "Tipo": "trailer",
    "CRID": null,
    "Etiqueta": null,
-   "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/freemd-3511428-md-01_freemd-3511428-pry_bikoastykykw6xn/index.ism/Manifest?tcdn-bitrate-filter=mplusvod",
+   "uri": "http://vod-dash-movistarplus.emisiondof6.com/prod/dash/freemd-3511428-md-01_freemd-3511428-mdrm_z7wrqsrxujj5whk/manifestgen.mpd",
    "FormatoVideo": null,
    "Imagenes": [
     {
@@ -289,7 +247,7 @@
   {
    "TipoTrailer": "trailer",
    "EtiquetaTrailer": null,
-   "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/freemd-3511428-md-01_freemd-3511428-pry_bikoastykykw6xn/index.ism/Manifest?tcdn-bitrate-filter=mplusvod"
+   "uri": "http://vod-dash-movistarplus.emisiondof6.com/prod/dash/freemd-3511428-md-01_freemd-3511428-mdrm_z7wrqsrxujj5whk/manifestgen.mpd"
   }
  ],
  "Eventos": [],
@@ -299,8 +257,8 @@
   {
    "catalogItemType": "Movie",
    "AssetType": "VOD",
-   "AssetUid": 1483347,
-   "CasId": "1176566",
+   "AssetUid": 1483346,
+   "CasId": "1176568",
    "Duracion": 97,
    "DuracionEnSegundos": 5826,
    "FechaInicioPublicacion": "1738364460000",
@@ -365,26 +323,78 @@
       "id": "shadowed4",
       "state": null,
       "uri": "https://estatico.emisiondof6.com/recorte/m-NEONEGR/mux4_logoshd/MPLUS.png?od[]=ZMUX1:SHAD"
+     },
+     {
+      "id": "boxOffice",
+      "state": null,
+      "uri": "https://estatico.emisiondof6.com/recorte/m-DPBLAN/sammos/671804"
+     },
+     {
+      "id": "boxOffice",
+      "state": "over",
+      "uri": "https://voddelivery.dof6.com/images/logos/logos_mosaico/TAQUILLA_over.png"
      }
     ],
     "HomeZone": false,
     "FormatoAudio": null,
     "FormatoVideo": null,
-    "LogoTaquilla": null,
+    "LogoTaquilla": "https://estatico.emisiondof6.com/recorte/m-DPBLAN/sammos/671804",
     "CDN": "tcdn",
     "links": [
      {
       "rel": "watermarks",
-      "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/channels/0/watermarks?profile=anonimo"
+      "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/channels/0/watermarks?profile=anonimo&mdrm=true"
      }
     ]
    },
    "Productos": [
     {
+     "Uid": 4136,
+     "TipoProducto": "PRS",
+     "D2G": true,
+     "Nombre": "SELEPPC",
+     "PeriodoConsumo": 2592000
+    },
+    {
+     "Uid": 29188,
+     "TipoProducto": "PRS",
+     "D2G": true,
+     "Nombre": "NDDEM2",
+     "PeriodoConsumo": 2592000
+    },
+    {
+     "Uid": 194411,
+     "TipoProducto": "PRS",
+     "D2G": true,
+     "Nombre": "FAM14PC",
+     "PeriodoConsumo": 2592000
+    },
+    {
+     "Uid": 206898,
+     "TipoProducto": "PRS",
+     "D2G": true,
+     "Nombre": "NDDEMO",
+     "PeriodoConsumo": 2592000
+    },
+    {
+     "Uid": 266589,
+     "TipoProducto": "PRS",
+     "D2G": true,
+     "Nombre": "DIFUSIONPC",
+     "PeriodoConsumo": 2592000
+    },
+    {
      "Uid": 178642,
      "TipoProducto": "PRS",
      "D2G": true,
      "Nombre": "MSERIEPC",
+     "PeriodoConsumo": 2592000
+    },
+    {
+     "Uid": 178646,
+     "TipoProducto": "PRS",
+     "D2G": true,
+     "Nombre": "OESTREPC",
      "PeriodoConsumo": 2592000
     },
     {
@@ -406,13 +416,6 @@
      "TipoProducto": "PRS",
      "D2G": true,
      "Nombre": "PREMEXPC",
-     "PeriodoConsumo": 2592000
-    },
-    {
-     "Uid": 178646,
-     "TipoProducto": "PRS",
-     "D2G": true,
-     "Nombre": "OESTREPC",
      "PeriodoConsumo": 2592000
     },
     {
@@ -486,52 +489,170 @@
      "PeriodoConsumo": 2592000
     },
     {
-     "Uid": 4136,
-     "TipoProducto": "PRS",
-     "D2G": true,
-     "Nombre": "SELEPPC",
-     "PeriodoConsumo": 2592000
+     "Uid": 483432,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
+     "D2G": false,
+     "Nombre": "SGC033795792-SUSCRI",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "SUSCRI",
+      "Precio": 4.99
+     }
     },
     {
-     "Uid": 29188,
-     "TipoProducto": "PRS",
-     "D2G": true,
-     "Nombre": "NDDEM2",
-     "PeriodoConsumo": 2592000
+     "Uid": 483429,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
+     "D2G": false,
+     "Nombre": "SGC033795792-NORMAL",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "NORMAL",
+      "Precio": 4.99
+     }
     },
     {
-     "Uid": 194411,
-     "TipoProducto": "PRS",
-     "D2G": true,
-     "Nombre": "FAM14PC",
-     "PeriodoConsumo": 2592000
+     "Uid": 483430,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
+     "D2G": false,
+     "Nombre": "SGC033795792-OCASIO",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "OCASIO",
+      "Precio": 4.99
+     }
     },
     {
-     "Uid": 206898,
-     "TipoProducto": "PRS",
-     "D2G": true,
-     "Nombre": "NDDEMO",
-     "PeriodoConsumo": 2592000
+     "Uid": 483431,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
+     "D2G": false,
+     "Nombre": "SGC033795792-OTT",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "OTT",
+      "Precio": 4.99
+     }
     },
     {
-     "Uid": 266589,
-     "TipoProducto": "PRS",
+     "Uid": 483433,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
      "D2G": true,
-     "Nombre": "DIFUSIONPC",
-     "PeriodoConsumo": 2592000
+     "Nombre": "SGC033795881-NORMAL",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "NORMAL",
+      "Precio": 4.99
+     }
+    },
+    {
+     "Uid": 483434,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
+     "D2G": true,
+     "Nombre": "SGC033795881-OCASIO",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "OCASIO",
+      "Precio": 4.99
+     }
+    },
+    {
+     "Uid": 483435,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
+     "D2G": true,
+     "Nombre": "SGC033795881-OTT",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "OTT",
+      "Precio": 4.99
+     }
+    },
+    {
+     "Uid": 483436,
+     "TipoProducto": "PRI",
+     "TipoPLG": "SD",
+     "D2G": true,
+     "Nombre": "SGC033795881-SUSCRI",
+     "PeriodoConsumo": 172800,
+     "Perfil": {
+      "Id": "SUSCRI",
+      "Precio": 4.99
+     }
     }
    ],
-   "transactionalProducts": [],
+   "transactionalProducts": [
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "SUSCRI",
+     "Name": "SGC033795792-SUSCRI",
+     "ConsumptionPeriod": 172800
+    },
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "NORMAL",
+     "Name": "SGC033795792-NORMAL",
+     "ConsumptionPeriod": 172800
+    },
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "OCASIO",
+     "Name": "SGC033795792-OCASIO",
+     "ConsumptionPeriod": 172800
+    },
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "OTT",
+     "Name": "SGC033795792-OTT",
+     "ConsumptionPeriod": 172800
+    },
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "NORMAL",
+     "Name": "SGC033795881-NORMAL",
+     "ConsumptionPeriod": 172800
+    },
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "OCASIO",
+     "Name": "SGC033795881-OCASIO",
+     "ConsumptionPeriod": 172800
+    },
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "OTT",
+     "Name": "SGC033795881-OTT",
+     "ConsumptionPeriod": 172800
+    },
+    {
+     "ProductType": "PRI",
+     "Price": 4.99,
+     "Profile": "SUSCRI",
+     "Name": "SGC033795881-SUSCRI",
+     "ConsumptionPeriod": 172800
+    }
+   ],
    "externalProducts": [
     "Y_3427440_VOD_H"
    ],
    "Packages": [],
    "VersionIdioma": "7",
-   "FormatoAudio": "1",
+   "FormatoAudio": "3",
    "FormatoVideo": "HD",
-   "Precio": null,
+   "Precio": 4.99,
    "IndicadorSubtitulosSordos": "1",
-   "UrlVideo": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/index.ism/Manifest?tcdn-bitrate-filter=mplusvod",
+   "UrlVideo": "http://vod-dash-movistarplus.emisiondof6.com/prod/dash/cplus-3427440-md-03_cplus-3427440-mdrm_s4my8zabfhof8ns/manifestgen.mpd",
    "Thumbnails": "https://vod-hlsv3-movistarplus.emisiondof6.com/prod/hls/cplus-3427440-md-03_cplus-3427440-hls_0pa4txwba3buhj4",
    "HDR": false,
    "duracionMillis": 5826000,
@@ -539,22 +660,22 @@
     {
      "TipoSubtitulo": "TXT",
      "EtiquetaSubtitulo": "Español",
-     "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03txt.srt"
+     "uri": null
     },
     {
      "TipoSubtitulo": "SID",
      "EtiquetaSubtitulo": "V.O.",
-     "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03sid.srt"
+     "uri": null
     },
     {
      "TipoSubtitulo": "CAT",
      "EtiquetaSubtitulo": "Catalán",
-     "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03cat.srt"
+     "uri": null
     },
     {
      "TipoSubtitulo": "EUS",
      "EtiquetaSubtitulo": "Euskera",
-     "uri": "https://vod-ss-movistarplus.emisiondof6.com/prod/mss/cplus-3427440-md-03_cplus-3427440-pry_0zfvtt9mzlupepu/cplus-3427440-md-03eus.srt"
+     "uri": null
     }
    ],
    "Subtitulos2012": [],
@@ -622,7 +743,7 @@
   },
   {
    "rel": "self",
-   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/details",
+   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/details?mdrm=true",
    "id": 3427440
   },
   {
@@ -635,19 +756,19 @@
   },
   {
    "rel": "performers2",
-   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/cast?profile=anonimo&linearSubscription=APERTURALI,FAKENU,FUSX0LI,FUSXPLI,SELEPLI&vodSubscription=CVODPCFREE,FUSX0PC,FUSXPPC,SELEPPC,YOPLAYPC&filterQuality=HD&scope={enabledExternalPartners}"
+   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/cast?profile=anonimo&linearSubscription=APERTURALI,FAKENU,FUSX0LI,FUSXPLI,SELEPLI&vodSubscription=CVODPCFREE,FUSX0PC,FUSXPPC,SELEPPC,YOPLAYPC&filterQuality=HD&scope={enabledExternalPartners}&mdrm=true"
   },
   {
    "rel": "tags2",
-   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/tags2?profile=anonimo&linearSubscription=APERTURALI,FAKENU,FUSX0LI,FUSXPLI,SELEPLI&vodSubscription=CVODPCFREE,FUSX0PC,FUSXPPC,SELEPPC,YOPLAYPC&filterQuality=HD&scope={enabledExternalPartners}"
+   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/tags2?profile=anonimo&linearSubscription=APERTURALI,FAKENU,FUSX0LI,FUSXPLI,SELEPLI&vodSubscription=CVODPCFREE,FUSX0PC,FUSXPPC,SELEPPC,YOPLAYPC&filterQuality=HD&scope={enabledExternalPartners}&mdrm=true"
   },
   {
    "rel": "similars",
-   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/users/smarttv/recommendations?contentId=3427440&profile=anonimo&mediaType=FOTOV&parentalRating=&showNonRated=&showseries=series&mdrm=&tlsStream=&maxItems=6&version=&filterQuality=HD&scope={enabledExternalPartners}&notScope="
+   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/users/smarttv/recommendations?contentId=3427440&profile=anonimo&mediaType=FOTOV&parentalRating=&showNonRated=&showseries=series&mdrm=true&tlsStream=&maxItems=6&version=&filterQuality=HD&scope={enabledExternalPartners}&notScope="
   },
   {
    "rel": "extras",
-   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/specialFeatures"
+   "href": "https://ottcache.dof6.com/movistarplus/amazon.tv/contents/3427440/specialFeatures?mdrm=true"
   }
  ]
 }
