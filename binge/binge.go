@@ -9,44 +9,6 @@ import (
    "strconv"
 )
 
-// SEGMENTS ARE GEO BLOCK WITH ALL PROVIDER
-func (p Play) Dash() (*Stream, bool) {
-   for _, stream1 := range p.Streams {
-      if stream1.StreamingFormat == "dash" {
-         return &stream1, true
-      }
-   }
-   return nil, false
-}
-
-// web
-const client_id = "pM87TUXKQvSSu93ydRjDTqBgdYeCbdhZ"
-
-func (a *Auth) Token() (Byte[TokenService], error) {
-   data, err := json.Marshal(map[string]string{"client_id": client_id})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tokenservice.streamotion.com.au/oauth/token",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer " + a.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
 func (a *Auth) Unmarshal(data Byte[Auth]) error {
    err := json.Unmarshal(data, a)
    if err != nil {
@@ -57,38 +19,6 @@ func (a *Auth) Unmarshal(data Byte[Auth]) error {
    }
    return nil
 }
-
-func (a *Auth) Refresh() (Byte[Auth], error) {
-   data, err := json.Marshal(map[string]string{
-      "client_id":     client_id,
-      "grant_type":    "refresh_token",
-      "refresh_token": a.RefreshToken,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://auth.streamotion.com.au/oauth/token", "application/json",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-type Auth struct {
-   AccessToken      string `json:"access_token"`
-   ErrorDescription string `json:"error_description"`
-   IdToken          string `json:"id_token"`
-   RefreshToken     string `json:"refresh_token"`
-}
-
-type Byte[T any] []byte
 
 func NewAuth(username, password string) (Byte[Auth], error) {
    data, err := json.Marshal(map[string]string{
@@ -116,9 +46,6 @@ func NewAuth(username, password string) (Byte[Auth], error) {
       return nil, err
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
    return io.ReadAll(resp.Body)
 }
 
@@ -201,3 +128,72 @@ func (t *TokenService) Unmarshal(data Byte[TokenService]) error {
 type TokenService struct {
    AccessToken string `json:"access_token"`
 }
+// SEGMENTS ARE GEO BLOCK WITH ALL PROVIDER
+func (p Play) Dash() (*Stream, bool) {
+   for _, stream1 := range p.Streams {
+      if stream1.StreamingFormat == "dash" {
+         return &stream1, true
+      }
+   }
+   return nil, false
+}
+
+// web
+const client_id = "pM87TUXKQvSSu93ydRjDTqBgdYeCbdhZ"
+
+func (a *Auth) Token() (Byte[TokenService], error) {
+   data, err := json.Marshal(map[string]string{"client_id": client_id})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tokenservice.streamotion.com.au/oauth/token",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + a.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (a *Auth) Refresh() (Byte[Auth], error) {
+   data, err := json.Marshal(map[string]string{
+      "client_id":     client_id,
+      "grant_type":    "refresh_token",
+      "refresh_token": a.RefreshToken,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://auth.streamotion.com.au/oauth/token", "application/json",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+type Auth struct {
+   AccessToken      string `json:"access_token"`
+   ErrorDescription string `json:"error_description"`
+   IdToken          string `json:"id_token"`
+   RefreshToken     string `json:"refresh_token"`
+}
+
+type Byte[T any] []byte
