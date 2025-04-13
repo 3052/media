@@ -3,9 +3,7 @@ package main
 import (
    "41.neocities.org/media/internal"
    "41.neocities.org/media/paramount"
-   "41.neocities.org/platform/mullvad"
    "flag"
-   "net/http"
    "os"
    "path/filepath"
 )
@@ -15,7 +13,7 @@ type flags struct {
    dash       string
    e          internal.License
    media      string
-   mullvad    bool
+   intl       bool
 }
 
 func main() {
@@ -27,7 +25,7 @@ func main() {
    flag.StringVar(&f.content_id, "b", "", "content ID")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
+   flag.BoolVar(&f.intl, "intl", false, "P+ instance: INTL")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.Parse()
    if f.content_id != "" {
@@ -58,12 +56,8 @@ func (f *flags) download() error {
       return f.e.Download(f.media+"/Mpd", f.dash)
    }
    var secret paramount.AppSecret
-   if f.mullvad {
+   if f.intl {
       secret = paramount.ComCbsCa
-      http.DefaultClient.Transport = &mullvad.Transport{
-         Proxy: http.ProxyFromEnvironment,
-      }
-      defer mullvad.Disconnect()
    } else {
       secret = paramount.ComCbsApp
    }

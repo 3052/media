@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/media/internal"
    "41.neocities.org/media/max"
-   "41.neocities.org/platform/mullvad"
+   "41.neocities.org/platform/proxy"
    "flag"
    "fmt"
    "log"
@@ -65,7 +65,7 @@ type flags struct {
    initiate bool
    login    bool
    media    string
-   mullvad  bool
+   proxy    bool
    season   int
    show_id  max.ShowId
 }
@@ -175,12 +175,12 @@ func main() {
    flag.BoolVar(
       &f.login, "login", false, "/authentication/linkDevice/login",
    )
-   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
+   flag.BoolVar(&f.proxy, "p", false, "proxy")
    flag.IntVar(&f.season, "s", 0, "season")
    flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.Parse()
-   if f.mullvad {
-      http.DefaultClient.Transport = &mullvad.Transport{
+   if f.proxy {
+      http.DefaultClient.Transport = &proxy.Transport{
          Proxy: http.ProxyFromEnvironment,
       }
    }

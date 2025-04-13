@@ -31,21 +31,27 @@ func (a At) Item(cid string) (*Item, error) {
       return nil, err
    }
    defer resp.Body.Close()
+   // error 406
+   if resp.StatusCode == http.StatusNotAcceptable {
+      return nil, errors.New(resp.Status)
+   }
    data, err := io.ReadAll(resp.Body)
    if err != nil {
       return nil, err
    }
    var value struct {
-      Error string
+      Error    string
       ItemList []Item
    }
    err = json.Unmarshal(data, &value)
    if err != nil {
       return nil, err
    }
+   // error 403
    if value.Error != "" {
       return nil, errors.New(value.Error)
    }
+   // error 200
    if len(value.ItemList) == 0 {
       return nil, errors.New(string(data))
    }
@@ -182,4 +188,3 @@ func (a AppSecret) At() (At, error) {
    data1 = append(data1, data...)
    return At(base64.StdEncoding.EncodeToString(data1)), nil
 }
-

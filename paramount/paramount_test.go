@@ -6,21 +6,6 @@ import (
    "time"
 )
 
-func Test(t *testing.T) {
-   for _, test1 := range tests {
-      at1, err := ComCbsApp.At()
-      if err != nil {
-         t.Fatal(err)
-      }
-      session1, err := at1.Session(test1.content_id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Println(session1)
-      time.Sleep(time.Second)
-   }
-}
-
 var tests = []struct {
    content_id string
    key_id     string
@@ -28,10 +13,11 @@ var tests = []struct {
    url        string
 }{
    {
-      content_id: "WNujiS5PHkY5wN9doNY6MSo_7G8uBUcX",
-      key_id:     "bsT01+Q1Ta+39TayayKhBg==",
-      url:        "paramountplus.com/shows/video/WNujiS5PHkY5wN9doNY6MSo_7G8uBUcX",
-      location:   []string{"Australia"},
+      content_id: "3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
+      url:        "paramountplus.com/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
+      location: []string{
+         "Brazil", "Canada", "Chile", "Colombia", "Mexico", "Peru",
+      },
    },
    {
       content_id: "Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ",
@@ -40,11 +26,10 @@ var tests = []struct {
       location:   []string{"Australia", "United Kingdom"},
    },
    {
-      content_id: "3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
-      url: "paramountplus.com/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
-      location: []string{
-         "Brazil", "Canada", "Chile", "Colombia", "Mexico", "Peru",
-      },
+      content_id: "WNujiS5PHkY5wN9doNY6MSo_7G8uBUcX",
+      key_id:     "bsT01+Q1Ta+39TayayKhBg==",
+      url:        "paramountplus.com/shows/video/WNujiS5PHkY5wN9doNY6MSo_7G8uBUcX",
+      location:   []string{"Australia"},
    },
    {
       content_id: "tOeI0WHG3icuPhCk5nkLXNmi5c4Jfx41",
@@ -63,4 +48,19 @@ var tests = []struct {
       location:   []string{"USA"},
       url:        "cbs.com/shows/video/rZ59lcp4i2fU4dAaZJ_iEgKqVg_ogrIf",
    },
+}
+
+func Test(t *testing.T) {
+   for _, test1 := range tests {
+      at1, err := ComCbsApp.At()
+      if err != nil {
+         t.Fatal(err)
+      }
+      session1, err := at1.Session(test1.content_id)
+      if err != nil {
+         t.Fatal(err)
+      }
+      fmt.Println(session1)
+      time.Sleep(time.Second)
+   }
 }
