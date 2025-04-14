@@ -31,6 +31,7 @@ func main() {
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.Parse()
    if f.address.MarketCode != "" {
       if f.language != "" {
