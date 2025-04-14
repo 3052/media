@@ -1,11 +1,5 @@
 # molotov.tv
 
-~~~
-url = https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-monetization = FLATRATE
-country = France
-~~~
-
 https://justwatch.com/fr/plateforme/molotov-tv
 
 ~~~
@@ -51,3 +45,11 @@ https://vod-molotov.akamaized.net/output/v2/d8/a1/65/32e3c47902de4911dca77b0ad73
 12. year
 13. security code
 14. Essayer gratuitement (try it for free)
+
+If you do not cancel before the monthly due date, your subscription will be
+renewed for successive one-month periods.
+
+The transaction has been declined. Please use another card or contact your
+bank.
+
+it says try it for free but it charged me

@@ -10,6 +10,44 @@ import (
    "strings"
 )
 
+func (r *Refresh) View(web *Address) (*View, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = func() string {
+      b := []byte("/v2/channels/")
+      b = strconv.AppendInt(b, web.Channel, 10)
+      b = append(b, "/programs/"...)
+      b = strconv.AppendInt(b, web.Program, 10)
+      b = append(b, "/view"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "access_token=" + r.AccessToken
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var view1 View
+   err = json.NewDecoder(resp.Body).Decode(&view1)
+   if err != nil {
+      return nil, err
+   }
+   if view1.Program.Actions.Play == nil {
+      return nil, errors.New("Play == nil")
+   }
+   return &view1, nil
+}
+
+type View struct {
+   Program struct {
+      Actions struct {
+         Play *struct {
+            Url string
+         }
+      }
+   }
+}
+
 func (a *Asset) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
@@ -98,31 +136,6 @@ func (r *Refresh) Asset(view1 *View) (Byte[Asset], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (r *Refresh) View(web *Address) (*View, error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = func() string {
-      b := []byte("/v2/channels/")
-      b = strconv.AppendInt(b, web.Channel, 10)
-      b = append(b, "/programs/"...)
-      b = strconv.AppendInt(b, web.Program, 10)
-      b = append(b, "/view"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "access_token=" + r.AccessToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   view1 := &View{}
-   err = json.NewDecoder(resp.Body).Decode(view1)
-   if err != nil {
-      return nil, err
-   }
-   return view1, nil
-}
-
 // authorization server issues a new refresh token, in which case the
 // client MUST discard the old refresh token and replace it with the new
 // refresh token
@@ -147,15 +160,6 @@ type Refresh struct {
    RefreshToken string `json:"refresh_token"`
 }
 
-type View struct {
-   Program struct {
-      Actions struct {
-         Play struct {
-            Url string
-         }
-      }
-   }
-}
 const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
 
 // https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
