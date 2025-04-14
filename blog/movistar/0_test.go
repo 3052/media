@@ -21,7 +21,7 @@ func TestToken(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile(home + "/media/movistar/token", data, os.ModePerm)
+   err = os.WriteFile(home+"/media/movistar/token", data, os.ModePerm)
    if err != nil {
       t.Fatal(err)
    }

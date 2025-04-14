@@ -8,6 +8,11 @@ import (
    "strings"
 )
 
+type init_data struct {
+   AccountNumber string
+   Token         string
+}
+
 // mullvad pass
 func (o oferta) init_data(device1 device) (*init_data, error) {
    data, err := json.Marshal(map[string]string{
@@ -45,8 +50,4 @@ func (o oferta) init_data(device1 device) (*init_data, error) {
       return nil, err
    }
    return init1, nil
-}
-
-type init_data struct {
-   Token string
 }

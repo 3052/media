@@ -16,8 +16,8 @@ func new_token(username, password string) (Byte[token], error) {
       "https://auth.dof6.com/auth/oauth2/token?deviceClass=amazon.tv",
       url.Values{
          "grant_type": {"password"},
-         "password": {password},
-         "username": {username},
+         "password":   {password},
+         "username":   {username},
       },
    )
    if err != nil {
@@ -33,7 +33,7 @@ func new_token(username, password string) (Byte[token], error) {
 // 10 days
 type token struct {
    AccessToken string `json:"access_token"`
-   ExpiresIn int64 `json:"expires_in"`
+   ExpiresIn   int64  `json:"expires_in"`
 }
 
 type Byte[T any] []byte

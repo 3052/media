@@ -14,7 +14,7 @@ type oferta struct {
 func (t *token) oferta() (*oferta, error) {
    req, _ := http.NewRequest("", "https://auth.dof6.com", nil)
    req.URL.Path = "/movistarplus/api/devices/amazon.tv/users/authenticate"
-   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
