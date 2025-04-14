@@ -4,11 +4,10 @@ import (
    "io"
    "net/http"
    "net/url"
-   "os"
    "strings"
 )
 
-func Three() {
+func session() (*http.Response, error) {
    const data = `{"contentID":3427440,"drmMediaID":"1176568", "streamType":"AST"}`
    var req http.Request
    req.Header = http.Header{}
@@ -21,10 +20,5 @@ func Three() {
    req.ContentLength = int64(len(data))
    req.Header["Content-Type"] = []string{"application/json"}
    req.Header["X-Hzid"] = []string{"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI2N2Y1Y2NlN2FkMDg3YjI1YzBmNjRhZGIiLCJpYXQiOjE3NDQ0MTIwNDQsImlzcyI6ImVhMzU4NWE3NzZlZDQ0NGQ4Njc3YWQ4YmU2ZWYwZGIzIiwiZXhwIjoxNzQ0NDU1MjQ0fQ.cYc7fzZFKT1CU5KWxuTZtEhy6CgP0rqFDBFdyjWwyJw"}
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      panic(err)
-   }
-   defer resp.Body.Close()
-   resp.Write(os.Stdout)
+   return http.DefaultClient.Do(&req)
 }

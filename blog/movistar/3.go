@@ -9,7 +9,7 @@ import (
 )
 
 // mullvad pass
-func (o oferta) init_data(device1 device) (*http.Response, error) {
+func (o oferta) init_data(device1 device) (*init_data, error) {
    data, err := json.Marshal(map[string]string{
       "accountNumber": o.AccountNumber,
    })
@@ -35,8 +35,18 @@ func (o oferta) init_data(device1 device) (*http.Response, error) {
    if err != nil {
       return nil, err
    }
+   defer resp.Body.Close()
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   return resp, nil
+   init1 := &init_data{}
+   err = json.NewDecoder(resp.Body).Decode(init1)
+   if err != nil {
+      return nil, err
+   }
+   return init1, nil
+}
+
+type init_data struct {
+   Token string
 }

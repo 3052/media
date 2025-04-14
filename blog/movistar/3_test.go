@@ -1,6 +1,7 @@
 package movistar
 
 import (
+   "fmt"
    "os"
    "testing"
 )
@@ -27,9 +28,9 @@ func TestInitData(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := oferta1.init_data(device1)
+   init1, err := oferta1.init_data(device1)
    if err != nil {
       t.Fatal(err)
    }
-   resp.Write(os.Stdout)
+   fmt.Printf("%+v\n", init1)
 }

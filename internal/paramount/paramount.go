@@ -3,18 +3,12 @@ package main
 import (
    "41.neocities.org/media/internal"
    "41.neocities.org/media/paramount"
+   "41.neocities.org/platform/proxy"
    "flag"
+   "net/http"
    "os"
    "path/filepath"
 )
-
-type flags struct {
-   content_id string
-   dash       string
-   e          internal.License
-   media      string
-   intl       bool
-}
 
 func main() {
    var f flags
@@ -22,13 +16,20 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.content_id, "b", "", "content ID")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.paramount, "b", "", "paramount ID")
+   flag.StringVar(&f.e.ClientId, "client", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.BoolVar(&f.intl, "intl", false, "P+ instance: INTL")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.e.PrivateKey, "key", f.e.PrivateKey, "private key")
+   flag.BoolVar(&f.proxy, "p", false, "proxy")
    flag.Parse()
-   if f.content_id != "" {
+   if f.proxy {
+      http.DefaultClient.Transport = &proxy.Transport{
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+         Proxy:     http.ProxyFromEnvironment,
+      }
+   }
+   if f.paramount != "" {
       err := f.download()
       if err != nil {
          panic(err)
@@ -46,7 +47,7 @@ func (f *flags) download() error {
       if err != nil {
          return err
       }
-      session, err := at.Session(f.content_id)
+      session, err := at.Session(f.paramount)
       if err != nil {
          return err
       }
@@ -65,7 +66,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   item, err := at.Item(f.content_id)
+   item, err := at.Item(f.paramount)
    if err != nil {
       return err
    }
@@ -86,4 +87,13 @@ func (f *flags) New() error {
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
    return nil
+}
+
+type flags struct {
+   dash      string
+   e         internal.License
+   intl      bool
+   media     string
+   paramount string
+   proxy     bool
 }

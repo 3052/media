@@ -9,6 +9,28 @@ import (
    "path/filepath"
 )
 
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.IntVar(&f.nbc, "b", 0, "NBC ID")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
+   flag.Parse()
+   if f.nbc >= 1 {
+      err := f.download()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
+
 func (f *flags) download() error {
    if f.dash != "" {
       f.e.Widevine = nbc.Widevine
@@ -47,25 +69,4 @@ func (f *flags) New() error {
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
    return nil
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.IntVar(&f.nbc, "b", 0, "NBC ID")
-   flag.Parse()
-   if f.nbc >= 1 {
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }
