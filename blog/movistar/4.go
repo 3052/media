@@ -3,21 +3,11 @@ package movistar
 import (
    "bytes"
    "encoding/json"
+   "log"
    "net/http"
    "strings"
 )
 
-/*
-css comes from
-  - init_data
-  - oferta
-
-SMARTTV_OTT comes from
-  - device
-
-x-hzid comes from
-  - init_data
-*/
 func (d device) session(init1 *init_data) (*http.Response, error) {
    data, err := json.Marshal(map[string]any{
       "contentID":  3427440,
@@ -47,5 +37,6 @@ func (d device) session(init1 *init_data) (*http.Response, error) {
       "content-type": {"application/json"},
       "x-hzid":       {init1.Token},
    }
+   log.Print(req.Header)
    return http.DefaultClient.Do(req)
 }
