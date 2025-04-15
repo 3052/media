@@ -6,7 +6,7 @@ import (
    "testing"
 )
 
-func TestInitData(t *testing.T) {
+func TestSession(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
@@ -32,5 +32,9 @@ func TestInitData(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n", init1)
+   session1, err := device1.session(init1)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Printf("%+v\n", session1)
 }

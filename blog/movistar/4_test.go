@@ -1,39 +1,23 @@
 package movistar
 
 import (
-   "os"
+   "fmt"
    "testing"
 )
 
-func TestSession(t *testing.T) {
-   home, err := os.UserHomeDir()
+var test = struct {
+   id  int64
+   url string
+}{
+   id:  3427440,
+   url: "movistarplus.es/cine/ficha?id=3427440",
+}
+
+func TestDetails(t *testing.T) {
+   var details1 details
+   err := details1.New(test.id)
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(home + "/media/movistar/token")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var token1 token
-   err = token1.unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   oferta1, err := token1.oferta()
-   if err != nil {
-      t.Fatal(err)
-   }
-   device1, err := token1.device(oferta1)
-   if err != nil {
-      t.Fatal(err)
-   }
-   init1, err := oferta1.init_data(device1)
-   if err != nil {
-      t.Fatal(err)
-   }
-   resp, err := device1.session(init1)
-   if err != nil {
-      t.Fatal(err)
-   }
-   resp.Write(os.Stdout)
+   fmt.Printf("%+v\n", details1)
 }

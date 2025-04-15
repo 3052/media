@@ -1,42 +1,36 @@
 package movistar
 
 import (
-   "bytes"
    "encoding/json"
-   "log"
    "net/http"
-   "strings"
+   "strconv"
 )
 
-func (d device) session(init1 *init_data) (*http.Response, error) {
-   data, err := json.Marshal(map[string]any{
-      "contentID":  3427440,
-      "drmMediaID": "1176568",
-      "streamType": "AST",
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://alkasvaspub.imagenio.telefonica.net",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
+type vod_item struct {
+   CasId string
+   UrlVideo string // MPD mullvad
+}
+
+func new_vod_item(id int64) (*vod_item, error) {
+   req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
    req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/asvas/ccs/")
-      b.WriteString(init1.AccountNumber)
-      b.WriteString("/SMARTTV_OTT/")
-      b.WriteString(string(d))
-      b.WriteString("/Session")
-      return b.String()
+      b := []byte("/movistarplus/amazon.tv/contents/")
+      b = strconv.AppendInt(b, id, 10)
+      b = append(b, "/details"...)
+      return string(b)
    }()
-   req.Header = http.Header{
-      "content-type": {"application/json"},
-      "x-hzid":       {init1.Token},
+   req.URL.RawQuery = "mdrm=true"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
    }
-   log.Print(req.Header)
-   return http.DefaultClient.Do(req)
+   defer resp.Body.Close()
+   var value struct {
+      VodItems []vod_item
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.VodItems[0], nil
 }

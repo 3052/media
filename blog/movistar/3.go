@@ -17,6 +17,7 @@ type init_data struct {
 func (o oferta) init_data(device1 device) (*init_data, error) {
    data, err := json.Marshal(map[string]string{
       "accountNumber": o.AccountNumber,
+      "deviceType":    device_type, // NEEDED FOR /Session
    })
    if err != nil {
       return nil, err
@@ -51,3 +52,5 @@ func (o oferta) init_data(device1 device) (*init_data, error) {
    }
    return init1, nil
 }
+
+const device_type = "SMARTTV_OTT"
