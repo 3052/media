@@ -9,28 +9,7 @@ import (
    "strings"
 )
 
-func (s session) widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/TFAESP/wvls/contentlicenseservice/v1/licenses"
-   req.Header.Set("nv-authorizations", s.ResultData.Ctoken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-func (d device) session(init1 *init_data, details1 *details) (*session, error) {
+func (d device) session(init1 *init_data, details1 *Details) (*session, error) {
    data, err := json.Marshal(map[string]any{
       "contentID":  details1.Id,
       "drmMediaID": details1.VodItems[0].CasId,
@@ -82,4 +61,24 @@ type session struct {
       Ctoken string
    }
    ResultText string
+}
+func (s session) widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/TFAESP/wvls/contentlicenseservice/v1/licenses"
+   req.Header.Set("nv-authorizations", s.ResultData.Ctoken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
 }
