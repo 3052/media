@@ -3,6 +3,8 @@ package movistar
 import (
    "bytes"
    "encoding/json"
+   "errors"
+   "io"
    "net/http"
    "strings"
 )
@@ -43,16 +45,38 @@ func (d device) session(init1 *init_data, details1 *details) (*session, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   session1 := &session{}
-   err = json.NewDecoder(resp.Body).Decode(session1)
+   var value session
+   err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {
       return nil, err
    }
-   return session1, nil
+   if resp.StatusCode != http.StatusCreated {
+      return nil, errors.New(value.ResultText)
+   }
+   return &value, nil
 }
 
 type session struct {
    ResultData struct {
       Ctoken string
    }
+   ResultText string
+}
+
+func (s session) widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/TFAESP/wvls/contentlicenseservice/v1/licenses"
+   req.Header.Set("nv-authorizations", s.ResultData.Ctoken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }

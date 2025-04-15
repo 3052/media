@@ -1,27 +1,13 @@
 package movistar
 
 import (
-   "fmt"
+   "41.neocities.org/widevine"
+   "encoding/base64"
    "log"
    "net/http"
    "os"
    "testing"
 )
-
-var test = struct {
-   id  int64
-   url string
-}{
-   id:  3427440,
-   url: "movistarplus.es/cine/ficha?id=3427440",
-}
-
-func (transport) RoundTrip(req *http.Request) (*http.Response, error) {
-   log.Println(req.Method, req.URL)
-   return http.DefaultTransport.RoundTrip(req)
-}
-
-type transport struct{}
 
 func TestSession(t *testing.T) {
    log.SetFlags(log.Ltime)
@@ -39,11 +25,16 @@ func TestSession(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   oferta1, err := token1.oferta()
+   data, err = os.ReadFile(home + "/media/movistar/device")
    if err != nil {
       t.Fatal(err)
    }
-   device1, err := token1.device(oferta1)
+   var device1 device
+   err = device1.unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   oferta1, err := token1.oferta()
    if err != nil {
       t.Fatal(err)
    }
@@ -60,5 +51,54 @@ func TestSession(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n", session1)
+   private_key, err := os.ReadFile(home + "/media/private_key.pem")
+   if err != nil {
+      t.Fatal(err)
+   }
+   client_id, err := os.ReadFile(home + "/media/client_id.bin")
+   if err != nil {
+      t.Fatal(err)
+   }
+   key_id, err := base64.StdEncoding.DecodeString(test.key_id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   var pssh widevine.Pssh
+   pssh.KeyIds = [][]byte{key_id}
+   pssh.ContentId, err = base64.StdEncoding.DecodeString(test.content_id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   var cdm widevine.Cdm
+   err = cdm.New(private_key, client_id, pssh.Marshal())
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err = cdm.RequestBody()
+   if err != nil {
+      t.Fatal(err)
+   }
+   _, err = session1.widevine(data)
+   if err != nil {
+      t.Fatal(err)
+   }
 }
+
+var test = struct {
+   content_id string
+   id         int64
+   key_id     string
+   url        string
+}{
+   content_id: "MTE3NjU2OA==",
+   id:         3427440,
+   key_id:     "Yc2mUFQwSrKc25rgupRzRQ==",
+   url:        "movistarplus.es/cine/ficha?id=3427440",
+}
+
+func (transport) RoundTrip(req *http.Request) (*http.Response, error) {
+   log.Println(req.Method, req.URL)
+   return http.DefaultTransport.RoundTrip(req)
+}
+
+type transport struct{}
