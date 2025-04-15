@@ -9,6 +9,18 @@ import (
    "testing"
 )
 
+var test = struct {
+   content_id string
+   id         int64
+   key_id     string
+   url        string
+}{
+   content_id: "MTE3NjU2OA==",
+   id:         3427440,
+   key_id:     "Yc2mUFQwSrKc25rgupRzRQ==",
+   url:        "movistarplus.es/cine/ficha?id=3427440",
+}
+
 func TestSession(t *testing.T) {
    log.SetFlags(log.Ltime)
    http.DefaultClient.Transport = transport{}
@@ -82,18 +94,6 @@ func TestSession(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-}
-
-var test = struct {
-   content_id string
-   id         int64
-   key_id     string
-   url        string
-}{
-   content_id: "MTE3NjU2OA==",
-   id:         3427440,
-   key_id:     "Yc2mUFQwSrKc25rgupRzRQ==",
-   url:        "movistarplus.es/cine/ficha?id=3427440",
 }
 
 func (transport) RoundTrip(req *http.Request) (*http.Response, error) {

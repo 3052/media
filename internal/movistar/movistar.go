@@ -10,6 +10,74 @@ import (
    "path/filepath"
 )
 
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
+type flags struct {
+   e        internal.License
+   email    string
+   media    string
+   password string
+   dash     string
+   movistar int64
+}
+
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.Int64Var(&f.movistar, "b", 0, "movistar ID")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   switch {
+   case f.password != "":
+      err := f.authenticate()
+      if err != nil {
+         panic(err)
+      }
+   case f.movistar >= 1:
+      err := f.download()
+      if err != nil {
+         panic(err)
+      }
+   default:
+      flag.Usage()
+   }
+}
+
+///
+
+func (f *flags) write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flags) authenticate() error {
+   data, err := movistar.NewToken(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   err = f.write_file("/movistar/Token", data)
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
 func (f *flags) download() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/movistar/Playlist")
@@ -39,7 +107,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   deep, err := auth.DeepLink(f.entity)
+   deep, err := auth.DeepLink(f.movistar)
    if err != nil {
       return err
    }
@@ -63,65 +131,3 @@ func (f *flags) download() error {
    return internal.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.Var(&f.entity, "a", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   switch {
-   case f.password != "":
-      err := f.authenticate()
-      if err != nil {
-         panic(err)
-      }
-   case f.entity[0] != "":
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
-}
-
-func (f *flags) authenticate() error {
-   data, err := movistar.NewAuthenticate(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return f.write_file("/movistar/Authenticate", data)
-}
-
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media+name)
-   return os.WriteFile(f.media+name, data, os.ModePerm)
-}
-
-type flags struct {
-   e        internal.License
-   email    string
-   entity   movistar.Entity
-   media    string
-   password string
-   dash     string
-}

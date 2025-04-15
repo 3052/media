@@ -11,18 +11,6 @@ import (
    "strings"
 )
 
-const device_type = "SMARTTV_OTT"
-
-type Byte[T any] []byte
-
-type Details struct {
-   Id       int // contentID
-   VodItems []struct {
-      CasId    string // drmMediaID
-      UrlVideo string // MPD mullvad
-   }
-}
-
 func (d *Details) New(id int64) error {
    req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
    req.URL.Path = func() string {
@@ -38,6 +26,18 @@ func (d *Details) New(id int64) error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(d)
+}
+
+const device_type = "SMARTTV_OTT"
+
+type Byte[T any] []byte
+
+type Details struct {
+   Id       int // contentID
+   VodItems []struct {
+      CasId    string // drmMediaID
+      UrlVideo string // MPD mullvad
+   }
 }
 
 type Device string

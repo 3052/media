@@ -52,7 +52,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/roku/Playback", data1)
+   err = write_file(f.media + "/roku/Playback", data1)
    if err != nil {
       return err
    }
@@ -125,9 +125,9 @@ func main() {
    }
 }
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media + name)
-   return os.WriteFile(f.media + name, data, os.ModePerm)
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) write_code() error {
@@ -140,7 +140,7 @@ func (f *flags) write_code() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/roku/AccountToken", data)
+   err = write_file(f.media + "/roku/AccountToken", data)
    if err != nil {
       return err
    }
@@ -154,7 +154,7 @@ func (f *flags) write_code() error {
       return err
    }
    fmt.Println(&activation)
-   return f.write_file("/roku/Activation", data1)
+   return write_file(f.media + "/roku/Activation", data1)
 }
 
 func (f *flags) write_token() error {
@@ -180,5 +180,5 @@ func (f *flags) write_token() error {
    if err != nil {
       return err
    }
-   return f.write_file("/roku/Code", data)
+   return write_file(f.media + "/roku/Code", data)
 }
