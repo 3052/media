@@ -1,43 +1,54 @@
-package main
+package movistar
 
 import (
-   "io"
+   "encoding/json"
+   "errors"
    "net/http"
-   "net/url"
-   "os"
    "strings"
 )
 
-func main() {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header["Accept"] = []string{"application/json, text/javascript, */*; q=0.01"}
-   req.Header["Accept-Language"] = []string{"es-ES,es;q=0.9"}
-   req.Header["Connection"] = []string{"keep-alive"}
-   req.Header["Content-Length"] = []string{"64"}
-   req.ContentLength = 64
-   req.Header["Content-Type"] = []string{"application/json"}
-   req.Header["Host"] = []string{"alkasvaspub.imagenio.telefonica.net"}
-   req.Header["Origin"] = []string{"https://ver.movistarplus.es"}
-   req.Header["Referer"] = []string{"https://ver.movistarplus.es/"}
-   req.Header["User-Agent"] = []string{"Dalvik/2.1.0 (Linux; U; Android 12; 22126RN91Y Build/SP1A.210812.016)"}
-   req.Method = "POST"
-   req.ProtoMajor = 1
-   req.ProtoMinor = 1
-   req.URL = &url.URL{}
-   req.URL.Host = "alkasvaspub.imagenio.telefonica.net"
-   req.URL.Scheme = "https"
-   req.Body = io.NopCloser(body)
-   
-   req.Header["X-Hzid"] = []string{"eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI2N2Y1Y2NlN2FkMDg3YjI1YzBmNjRhZGIiLCJpYXQiOjE3NDQ0MTIwNDQsImlzcyI6ImVhMzU4NWE3NzZlZDQ0NGQ4Njc3YWQ4YmU2ZWYwZGIzIiwiZXhwIjoxNzQ0NDU1MjQ0fQ.cYc7fzZFKT1CU5KWxuTZtEhy6CgP0rqFDBFdyjWwyJw"}
-   req.URL.Path = "/asvas/ccs/00QSp000009M9gzMAC-L/SMARTTV_OTT/ea3585a776ed444d8677ad8be6ef0db3/Session"
-   
-   resp, err := http.DefaultClient.Do(&req)
+/*
+request
+GET https://auth.dof6.com/movistarplus/accounts/00QSp000009M9gzMAC-L/devices/fd242959339c49cf8c0a5054f653e49a?qspVersion=ssp HTTP/2.0
+authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3VTdlN3Y4QjhTOGg4bzlBIiwiYWNjb3VudE51bWJlciI6IjAwUVNwMDAwMDA5TTlnek1BQy1MIiwicm9sZSI6InVzZXIiLCJhcHIiOiJ3ZWJkYiIsImlzcyI6Imh0dHA6Ly93d3cubW92aXN0YXJwbHVzLmVzIiwiYXVkIjoiNDE0ZTE5MjdhMzg4NGY2OGFiYzc5ZjcyODM4MzdmZDEiLCJleHAiOjE3NDUzMzUyNDQsIm5iZiI6MTc0NDQ3MTI0NH0.6oraT4XCc5hXZpP4xkT0hCn3mtppQVwduo9NcRf01qw
+
+response
+{"Id":"fd242959339c49cf8c0a5054f653e49a","Name":"Amazon TV",
+"DeviceTypeCode":"AMZTV","DeviceType":"Amazon TV",
+"RegistrationDate":"2025-04-14T02:53:19.04Z","IsEnabled":true,
+"IsInHomeZone":false,"IsInSsp":true,"IsPlaying":false,"ContentPlaying":null}
+*/
+
+type device string
+
+// mullvad pass
+func (t *token) device(oferta1 *oferta) (device, error) {
+   req, err := http.NewRequest(
+      "POST", "https://auth.dof6.com?qspVersion=ssp", nil,
+   )
    if err != nil {
-      panic(err)
+      return "", err
+   }
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/movistarplus/amazon.tv/accounts/")
+      b.WriteString(oferta1.AccountNumber)
+      b.WriteString("/devices/")
+      return b.String()
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return "", err
    }
    defer resp.Body.Close()
-   resp.Write(os.Stdout)
+   if resp.StatusCode != http.StatusCreated {
+      return "", errors.New(resp.Status)
+   }
+   var device1 device
+   err = json.NewDecoder(resp.Body).Decode(&device1)
+   if err != nil {
+      return "", err
+   }
+   return device1, nil
 }
-
-var body = strings.NewReader(`{"contentID":3427440,"drmMediaID":"1176568", "streamType":"AST"}`)
