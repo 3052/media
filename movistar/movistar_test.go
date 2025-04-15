@@ -29,7 +29,7 @@ func TestDevice(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile(home + "/media/movistar/device", data, os.ModePerm)
+   err = os.WriteFile(home+"/media/movistar/device", data, os.ModePerm)
    if err != nil {
       t.Fatal(err)
    }

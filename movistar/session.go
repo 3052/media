@@ -62,6 +62,7 @@ type session struct {
    }
    ResultText string
 }
+
 func (s session) widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",

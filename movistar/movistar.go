@@ -149,6 +149,7 @@ func (t *Token) device(oferta1 *oferta) (Byte[device], error) {
    }
    return io.ReadAll(resp.Body)
 }
+
 type oferta struct {
    AccountNumber string
 }
