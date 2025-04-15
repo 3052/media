@@ -16,16 +16,16 @@ func TestDevice(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var token1 token
-   err = token1.unmarshal(data)
+   var token1 Token
+   err = token1.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   oferta1, err := token1.oferta()
+   oferta1, err := token1.Oferta()
    if err != nil {
       t.Fatal(err)
    }
-   data, err = token1.device(oferta1)
+   data, err = token1.Device(oferta1)
    if err != nil {
       t.Fatal(err)
    }
@@ -41,7 +41,7 @@ func TestToken(t *testing.T) {
       t.Fatal(err)
    }
    username, password, _ := strings.Cut(string(data), ":")
-   data, err = new_token(username, password)
+   data, err = NewToken(username, password)
    if err != nil {
       t.Fatal(err)
    }

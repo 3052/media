@@ -11,19 +11,9 @@ import (
    "strings"
 )
 
-func (t *Token) Unmarshal(data Byte[Token]) error {
-   return json.Unmarshal(data, t)
-}
-
-// 10 days
-type Token struct {
-   AccessToken string `json:"access_token"`
-   ExpiresIn   int64  `json:"expires_in"`
-}
+const device_type = "SMARTTV_OTT"
 
 type Byte[T any] []byte
-
-const device_type = "SMARTTV_OTT"
 
 type Details struct {
    Id       int // contentID
@@ -50,35 +40,23 @@ func (d *Details) New(id int64) error {
    return json.NewDecoder(resp.Body).Decode(d)
 }
 
-// mullvad pass
-func NewToken(username, password string) (Byte[Token], error) {
-   resp, err := http.PostForm(
-      "https://auth.dof6.com/auth/oauth2/token?deviceClass=amazon.tv",
-      url.Values{
-         "grant_type": {"password"},
-         "password":   {password},
-         "username":   {username},
-      },
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
+type Device string
+
+func (d *Device) Unmarshal(data Byte[Device]) error {
+   return json.Unmarshal(data, d)
 }
 
-///
-
-type init_data struct {
+type InitData struct {
    AccountNumber string
    Token         string
 }
 
+type Oferta struct {
+   AccountNumber string
+}
+
 // mullvad pass
-func (o oferta) init_data(device1 device) (*init_data, error) {
+func (o Oferta) InitData(device1 Device) (*InitData, error) {
    data, err := json.Marshal(map[string]string{
       "accountNumber": o.AccountNumber,
       "deviceType":    device_type, // NEEDED FOR /Session
@@ -109,7 +87,7 @@ func (o oferta) init_data(device1 device) (*init_data, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   init1 := &init_data{}
+   init1 := &InitData{}
    err = json.NewDecoder(resp.Body).Decode(init1)
    if err != nil {
       return nil, err
@@ -117,14 +95,38 @@ func (o oferta) init_data(device1 device) (*init_data, error) {
    return init1, nil
 }
 
-func (d *device) unmarshal(data Byte[device]) error {
-   return json.Unmarshal(data, d)
+func (t *Token) Unmarshal(data Byte[Token]) error {
+   return json.Unmarshal(data, t)
 }
 
-type device string
+// 10 days
+type Token struct {
+   AccessToken string `json:"access_token"`
+   ExpiresIn   int64  `json:"expires_in"`
+}
 
 // mullvad pass
-func (t *Token) device(oferta1 *oferta) (Byte[device], error) {
+func NewToken(username, password string) (Byte[Token], error) {
+   resp, err := http.PostForm(
+      "https://auth.dof6.com/auth/oauth2/token?deviceClass=amazon.tv",
+      url.Values{
+         "grant_type": {"password"},
+         "password":   {password},
+         "username":   {username},
+      },
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+// mullvad pass
+func (t *Token) Device(oferta1 *Oferta) (Byte[Device], error) {
    req, err := http.NewRequest(
       "POST", "https://auth.dof6.com?qspVersion=ssp", nil,
    )
@@ -150,12 +152,8 @@ func (t *Token) device(oferta1 *oferta) (Byte[device], error) {
    return io.ReadAll(resp.Body)
 }
 
-type oferta struct {
-   AccountNumber string
-}
-
 // mullvad pass
-func (t *Token) oferta() (*oferta, error) {
+func (t *Token) Oferta() (*Oferta, error) {
    req, _ := http.NewRequest("", "https://auth.dof6.com", nil)
    req.URL.Path = "/movistarplus/api/devices/amazon.tv/users/authenticate"
    req.Header.Set("authorization", "Bearer "+t.AccessToken)
@@ -168,7 +166,7 @@ func (t *Token) oferta() (*oferta, error) {
       return nil, errors.New(resp.Status)
    }
    var value struct {
-      Ofertas []oferta
+      Ofertas []Oferta
    }
    err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {

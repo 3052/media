@@ -9,7 +9,7 @@ import (
    "strings"
 )
 
-func (d device) session(init1 *init_data, details1 *Details) (*session, error) {
+func (d Device) Session(init1 *InitData, details1 *Details) (*Session, error) {
    data, err := json.Marshal(map[string]any{
       "contentID":  details1.Id,
       "drmMediaID": details1.VodItems[0].CasId,
@@ -45,7 +45,7 @@ func (d device) session(init1 *init_data, details1 *Details) (*session, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var value session
+   var value Session
    err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {
       return nil, err
@@ -56,14 +56,14 @@ func (d device) session(init1 *init_data, details1 *Details) (*session, error) {
    return &value, nil
 }
 
-type session struct {
+type Session struct {
    ResultData struct {
       Ctoken string
    }
    ResultText string
 }
 
-func (s session) widevine(data []byte) ([]byte, error) {
+func (s Session) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",
       bytes.NewReader(data),

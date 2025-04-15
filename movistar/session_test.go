@@ -20,8 +20,8 @@ func TestSession(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var token1 token
-   err = token1.unmarshal(data)
+   var token1 Token
+   err = token1.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
@@ -29,25 +29,25 @@ func TestSession(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var device1 device
-   err = device1.unmarshal(data)
+   var device1 Device
+   err = device1.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   oferta1, err := token1.oferta()
+   oferta1, err := token1.Oferta()
    if err != nil {
       t.Fatal(err)
    }
-   init1, err := oferta1.init_data(device1)
+   init1, err := oferta1.InitData(device1)
    if err != nil {
       t.Fatal(err)
    }
-   var details1 details
+   var details1 Details
    err = details1.New(test.id)
    if err != nil {
       t.Fatal(err)
    }
-   session1, err := device1.session(init1, &details1)
+   session1, err := device1.Session(init1, &details1)
    if err != nil {
       t.Fatal(err)
    }
@@ -78,7 +78,7 @@ func TestSession(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   _, err = session1.widevine(data)
+   _, err = session1.Widevine(data)
    if err != nil {
       t.Fatal(err)
    }
