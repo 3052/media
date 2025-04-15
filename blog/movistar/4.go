@@ -6,12 +6,15 @@ import (
    "strconv"
 )
 
-type vod_item struct {
-   CasId string
-   UrlVideo string // MPD mullvad
+type details struct {
+   Id       int // contentID
+   VodItems []struct {
+      CasId    string // drmMediaID
+      UrlVideo string // MPD mullvad
+   }
 }
 
-func new_vod_item(id int64) (*vod_item, error) {
+func (d *details) New(id int64) error {
    req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
    req.URL.Path = func() string {
       b := []byte("/movistarplus/amazon.tv/contents/")
@@ -22,15 +25,8 @@ func new_vod_item(id int64) (*vod_item, error) {
    req.URL.RawQuery = "mdrm=true"
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   var value struct {
-      VodItems []vod_item
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.VodItems[0], nil
+   return json.NewDecoder(resp.Body).Decode(d)
 }

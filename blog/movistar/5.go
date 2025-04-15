@@ -7,16 +7,10 @@ import (
    "strings"
 )
 
-type session struct {
-   ResultData struct {
-      Ctoken string
-   }
-}
-
-func (d device) session(init1 *init_data) (*session, error) {
+func (d device) session(init1 *init_data, details1 *details) (*session, error) {
    data, err := json.Marshal(map[string]any{
-      "contentID":  3427440,
-      "drmMediaID": "1176568",
+      "contentID":  details1.Id,
+      "drmMediaID": details1.VodItems[0].CasId,
       "streamType": "AST",
    })
    if err != nil {
@@ -55,4 +49,10 @@ func (d device) session(init1 *init_data) (*session, error) {
       return nil, err
    }
    return session1, nil
+}
+
+type session struct {
+   ResultData struct {
+      Ctoken string
+   }
 }

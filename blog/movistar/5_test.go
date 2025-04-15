@@ -2,11 +2,30 @@ package movistar
 
 import (
    "fmt"
+   "log"
+   "net/http"
    "os"
    "testing"
 )
 
+var test = struct {
+   id  int64
+   url string
+}{
+   id:  3427440,
+   url: "movistarplus.es/cine/ficha?id=3427440",
+}
+
+func (transport) RoundTrip(req *http.Request) (*http.Response, error) {
+   log.Println(req.Method, req.URL)
+   return http.DefaultTransport.RoundTrip(req)
+}
+
+type transport struct{}
+
 func TestSession(t *testing.T) {
+   log.SetFlags(log.Ltime)
+   http.DefaultClient.Transport = transport{}
    home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
@@ -32,7 +51,12 @@ func TestSession(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   session1, err := device1.session(init1)
+   var details1 details
+   err = details1.New(test.id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   session1, err := device1.session(init1, &details1)
    if err != nil {
       t.Fatal(err)
    }
