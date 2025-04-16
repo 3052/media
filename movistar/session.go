@@ -9,6 +9,13 @@ import (
    "strings"
 )
 
+type Session struct {
+   ResultData struct {
+      Ctoken string // ONE TIME USE
+   }
+   ResultText string
+}
+
 func (d Device) Session(init1 *InitData, details1 *Details) (*Session, error) {
    data, err := json.Marshal(map[string]any{
       "contentID":  details1.Id,
@@ -54,13 +61,6 @@ func (d Device) Session(init1 *InitData, details1 *Details) (*Session, error) {
       return nil, errors.New(value.ResultText)
    }
    return &value, nil
-}
-
-type Session struct {
-   ResultData struct {
-      Ctoken string
-   }
-   ResultText string
 }
 
 func (s Session) Widevine(data []byte) ([]byte, error) {

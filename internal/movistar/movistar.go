@@ -5,7 +5,6 @@ import (
    "41.neocities.org/media/internal"
    "flag"
    "log"
-   "net/http"
    "os"
    "path/filepath"
 )
@@ -43,6 +42,7 @@ func main() {
    flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.Parse()
    switch {
    case f.password != "":
@@ -71,7 +71,7 @@ func (f *flags) authenticate() error {
       return err
    }
    var token movistar.Token
-   err = token1.Unmarshal(data)
+   err = token.Unmarshal(data)
    if err != nil {
       return err
    }
@@ -83,60 +83,73 @@ func (f *flags) authenticate() error {
    if err != nil {
       return err
    }
-   data, err = token.Device(oferta)
+   data1, err := token.Device(oferta)
    if err != nil {
       return err
    }
-   return write_file(f.media + "/movistar/device", data)
+   return write_file(f.media + "/movistar/Device", data1)
 }
 
 func (f *flags) download() error {
    if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/movistar/Playlist")
+      data, err := os.ReadFile(f.media + "/movistar/Token")
       if err != nil {
          return err
       }
-      var play movistar.Playlist
-      err = play.Unmarshal(data)
+      var token movistar.Token
+      err = token.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      data, err = os.ReadFile(f.media + "/movistar/Device")
+      if err != nil {
+         return err
+      }
+      var device movistar.Device
+      err = device.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      oferta, err := token.Oferta()
+      if err != nil {
+         return err
+      }
+      init1, err := oferta.InitData(device)
+      if err != nil {
+         return err
+      }
+      data, err = os.ReadFile(f.media + "/movistar/Details")
+      if err != nil {
+         return err
+      }
+      var details movistar.Details
+      err = details.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      session, err := device.Session(init1, &details)
       if err != nil {
          return err
       }
       f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
+         return session.Widevine(data)
       }
       return f.e.Download(f.media+"/Mpd", f.dash)
    }
-   data, err := os.ReadFile(f.media + "/movistar/Authenticate")
+   data, err := movistar.NewDetails(f.movistar)
    if err != nil {
       return err
    }
-   var auth movistar.Authenticate
-   err = auth.Unmarshal(data)
+   var details movistar.Details
+   err = details.Unmarshal(data)
    if err != nil {
       return err
    }
-   err = auth.Refresh()
+   err = write_file(f.media + "/movistar/Details", data)
    if err != nil {
       return err
    }
-   deep, err := auth.DeepLink(f.movistar)
-   if err != nil {
-      return err
-   }
-   data, err = auth.Playlist(deep)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media + "/movistar/Playlist", data)
-   if err != nil {
-      return err
-   }
-   var play movistar.Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.StreamUrl)
+   resp, err := details.Mpd()
    if err != nil {
       return err
    }

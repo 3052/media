@@ -11,38 +11,20 @@ import (
    "strings"
 )
 
-// mullvad
+// EVEN THE CONTENT IS GEO BLOCKED
 func (d *Details) Mpd() (*http.Response, error) {
    req, err := http.NewRequest("", d.VodItems[0].UrlVideo, nil)
    if err != nil {
       return nil, err
    }
-   return http.DefaultClient.Do(req)
-}
-
-type Details struct {
-   Id       int // contentID
-   VodItems []struct {
-      CasId    string // drmMediaID
-      UrlVideo string
-   }
-}
-
-func (d *Details) New(id int64) error {
-   req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/movistarplus/amazon.tv/contents/")
-      b = strconv.AppendInt(b, id, 10)
-      b = append(b, "/details"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "mdrm=true"
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return err
+      return nil, err
    }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(d)
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return resp, nil
 }
 
 const device_type = "SMARTTV_OTT"
@@ -64,7 +46,6 @@ type Oferta struct {
    AccountNumber string
 }
 
-// mullvad pass
 func (o Oferta) InitData(device1 Device) (*InitData, error) {
    data, err := json.Marshal(map[string]string{
       "accountNumber": o.AccountNumber,
@@ -114,7 +95,6 @@ type Token struct {
    ExpiresIn   int64  `json:"expires_in"`
 }
 
-// mullvad pass
 func NewToken(username, password string) (Byte[Token], error) {
    resp, err := http.PostForm(
       "https://auth.dof6.com/auth/oauth2/token?deviceClass=amazon.tv",
@@ -134,7 +114,6 @@ func NewToken(username, password string) (Byte[Token], error) {
    return io.ReadAll(resp.Body)
 }
 
-// mullvad pass
 func (t *Token) Device(oferta1 *Oferta) (Byte[Device], error) {
    req, err := http.NewRequest(
       "POST", "https://auth.dof6.com?qspVersion=ssp", nil,
@@ -161,7 +140,6 @@ func (t *Token) Device(oferta1 *Oferta) (Byte[Device], error) {
    return io.ReadAll(resp.Body)
 }
 
-// mullvad pass
 func (t *Token) Oferta() (*Oferta, error) {
    req, _ := http.NewRequest("", "https://auth.dof6.com", nil)
    req.URL.Path = "/movistarplus/api/devices/amazon.tv/users/authenticate"
@@ -182,4 +160,33 @@ func (t *Token) Oferta() (*Oferta, error) {
       return nil, err
    }
    return &value.Ofertas[0], nil
+}
+
+type Details struct {
+   Id       int // contentID
+   VodItems []struct {
+      CasId    string // drmMediaID
+      UrlVideo string
+   }
+}
+
+func (d *Details) Unmarshal(data Byte[Details]) error {
+   return json.Unmarshal(data, d)
+}
+
+func NewDetails(id int64) (Byte[Details], error) {
+   req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/movistarplus/amazon.tv/contents/")
+      b = strconv.AppendInt(b, id, 10)
+      b = append(b, "/details"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "mdrm=true"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }

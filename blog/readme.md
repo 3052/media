@@ -157,7 +157,7 @@
    <tr>
       <td>1</td>
       <td>Hulu: Stream TV shows & movies</td>
-      <td>2023-11-14</td>
+      <td>November 14</td>
    </tr>
 </table>
 
@@ -165,47 +165,19 @@
 
 <table>
    <tr>
-      <td>
-      3
-      </td>
-      <td>
-      AMC+
-      </td>
-      <td>
-      2022-05-27
-      </td>
+      <td>1</td>
+      <td>Paramount+</td>
+      <td>March 9</td>
    </tr>
    <tr>
-      <td>
-      </td>
-      <td>
-      first Widevine commit
-      </td>
-      <td>
-      2022-05-21
-      </td>
+      <td>2</td>
+      <td>The Roku Channel</td>
+      <td>May 5</td>
    </tr>
    <tr>
-      <td>
-      2
-      </td>
-      <td>
-      The Roku Channel
-      </td>
-      <td>
-      2022-05-05
-      </td>
-   </tr>
-   <tr>
-      <td>
-      1
-      </td>
-      <td>
-      Paramount+
-      </td>
-      <td>
-      2022-03-09
-      </td>
+      <td>3</td>
+      <td>AMC+</td>
+      <td>May 27</td>
    </tr>
 </table>
 
@@ -215,6 +187,6 @@
    <tr>
       <td>1</td>
       <td>The NBC App - Stream TV Shows</td>
-      <td>2021-12-04</td>
+      <td>December 4</td>
    </tr>
 </table>
