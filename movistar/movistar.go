@@ -11,6 +11,23 @@ import (
    "strings"
 )
 
+// mullvad
+func (d *Details) Mpd() (*http.Response, error) {
+   req, err := http.NewRequest("", d.VodItems[0].UrlVideo, nil)
+   if err != nil {
+      return nil, err
+   }
+   return http.DefaultClient.Do(req)
+}
+
+type Details struct {
+   Id       int // contentID
+   VodItems []struct {
+      CasId    string // drmMediaID
+      UrlVideo string
+   }
+}
+
 func (d *Details) New(id int64) error {
    req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
    req.URL.Path = func() string {
@@ -31,14 +48,6 @@ func (d *Details) New(id int64) error {
 const device_type = "SMARTTV_OTT"
 
 type Byte[T any] []byte
-
-type Details struct {
-   Id       int // contentID
-   VodItems []struct {
-      CasId    string // drmMediaID
-      UrlVideo string // MPD mullvad
-   }
-}
 
 type Device string
 

@@ -47,7 +47,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/hulu/Playlist", data)
+   err = write_file(f.media + "/hulu/Playlist", data)
    if err != nil {
       return err
    }
@@ -109,12 +109,12 @@ func (f *flags) authenticate() error {
    if err != nil {
       return err
    }
-   return f.write_file("/hulu/Authenticate", data)
+   return write_file(f.media + "/hulu/Authenticate", data)
 }
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media+name)
-   return os.WriteFile(f.media+name, data, os.ModePerm)
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 type flags struct {

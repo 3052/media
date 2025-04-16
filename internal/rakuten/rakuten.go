@@ -50,9 +50,9 @@ func main() {
    }
 }
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media+name)
-   return os.WriteFile(f.media+name, data, os.ModePerm)
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) do_language() error {
@@ -71,7 +71,7 @@ func (f *flags) do_language() error {
       if err != nil {
          return err
       }
-      err = f.write_file("/rakuten/Season", data)
+      err = write_file(f.media + "/rakuten/Season", data)
       if err != nil {
          return err
       }
@@ -89,7 +89,7 @@ func (f *flags) do_language() error {
       if err != nil {
          return err
       }
-      err = f.write_file("/rakuten/Content", data)
+      err = write_file(f.media + "/rakuten/Content", data)
       if err != nil {
          return err
       }

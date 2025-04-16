@@ -82,7 +82,7 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/mubi/SecureUrl", data)
+   err = write_file(f.media + "/mubi/SecureUrl", data)
    if err != nil {
       return err
    }
@@ -164,9 +164,9 @@ func (f *flags) New() error {
    return nil
 }
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media+name)
-   return os.WriteFile(f.media+name, data, os.ModePerm)
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) do_code() error {
@@ -180,7 +180,7 @@ func (f *flags) do_code() error {
       return err
    }
    fmt.Println(&code)
-   return f.write_file("/mubi/LinkCode", data)
+   return write_file(f.media + "/mubi/LinkCode", data)
 }
 
 func (f *flags) do_auth() error {
@@ -197,5 +197,5 @@ func (f *flags) do_auth() error {
    if err != nil {
       return err
    }
-   return f.write_file("/mubi/Authenticate", data)
+   return write_file(f.media + "/mubi/Authenticate", data)
 }

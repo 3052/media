@@ -60,9 +60,7 @@ func main() {
    }
 }
 
-///
-
-func (f *flags) write_file(name string, data []byte) error {
+func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
@@ -72,10 +70,24 @@ func (f *flags) authenticate() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/movistar/Token", data)
+   var token movistar.Token
+   err = token1.Unmarshal(data)
    if err != nil {
-      t.Fatal(err)
+      return err
    }
+   err = write_file(f.media + "/movistar/Token", data)
+   if err != nil {
+      return err
+   }
+   oferta, err := token.Oferta()
+   if err != nil {
+      return err
+   }
+   data, err = token.Device(oferta)
+   if err != nil {
+      return err
+   }
+   return write_file(f.media + "/movistar/device", data)
 }
 
 func (f *flags) download() error {
@@ -115,7 +127,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/movistar/Playlist", data)
+   err = write_file(f.media + "/movistar/Playlist", data)
    if err != nil {
       return err
    }
@@ -130,4 +142,3 @@ func (f *flags) download() error {
    }
    return internal.Mpd(f.media+"/Mpd", resp)
 }
-

@@ -33,9 +33,9 @@ func main() {
    }
 }
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media+name)
-   return os.WriteFile(f.media+name, data, os.ModePerm)
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) download() error {
@@ -68,7 +68,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/plex/User", data)
+   err = write_file(f.media + "/plex/User", data)
    if err != nil {
       return err
    }
@@ -85,7 +85,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/plex/Metadata", data1)
+   err = write_file(f.media + "/plex/Metadata", data1)
    if err != nil {
       return err
    }

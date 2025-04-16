@@ -41,7 +41,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/amc/Auth", data)
+   err = write_file(f.media + "/amc/Auth", data)
    if err != nil {
       return err
    }
@@ -53,7 +53,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/amc/Playback", data)
+   err = write_file(f.media + "/amc/Playback", data)
    if err != nil {
       return err
    }
@@ -123,9 +123,9 @@ func (f *flags) New() error {
    return nil
 }
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media + name)
-   return os.WriteFile(f.media + name, data, os.ModePerm)
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) login() error {
@@ -138,5 +138,5 @@ func (f *flags) login() error {
    if err != nil {
       return err
    }
-   return f.write_file("/amc/Auth", data)
+   return write_file(f.media + "/amc/Auth", data)
 }

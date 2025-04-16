@@ -69,9 +69,9 @@ func (f *flags) New() error {
    return nil
 }
 
-func (f *flags) write_file(name string, data []byte) error {
-   log.Println("WriteFile", f.media+name)
-   return os.WriteFile(f.media+name, data, os.ModePerm)
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) authenticate() error {
@@ -88,7 +88,7 @@ func (f *flags) authenticate() error {
    if err != nil {
       return err
    }
-   return f.write_file("/canal/Session", data)
+   return write_file(f.media + "/canal/Session", data)
 }
 
 func (f *flags) download() error {
@@ -124,7 +124,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/canal/Session", data)
+   err = write_file(f.media + "/canal/Session", data)
    if err != nil {
       return err
    }
@@ -137,7 +137,7 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = f.write_file("/canal/Play", data)
+   err = write_file(f.media + "/canal/Play", data)
    if err != nil {
       return err
    }
