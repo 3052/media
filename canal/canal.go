@@ -23,27 +23,31 @@ const (
 
 const device_serial = "!!!!"
 
-func NewSession(sso_token string) (Byte[Session], error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     sso_token,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+type Byte[T any] []byte
+
+type ObjectId [1]string
+
+func (ObjectId) prefix() string {
+   return "https://play.canalplus.cz/player/d/"
 }
 
-type Byte[T any] []byte
+func (o ObjectId) String() string {
+   return o.prefix() + o[0]
+}
+
+// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
+// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
+func (o *ObjectId) Set(data string) error {
+   if !strings.HasPrefix(data, o.prefix()) {
+      return fmt.Errorf("%q not found", o.prefix())
+   }
+   u, err := url.Parse(data)
+   if err != nil {
+      return err
+   }
+   o[0] = path.Base(u.Path)
+   return nil
+}
 
 func (p *Play) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
@@ -73,6 +77,26 @@ type Play struct {
    Url     string // MPD
 }
 
+func NewSession(sso_token string) (Byte[Session], error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (s *Session) Unmarshal(data Byte[Session]) error {
    err := json.Unmarshal(data, s)
    if err != nil {
@@ -88,6 +112,43 @@ type Session struct {
    Message  string
    SsoToken string
    Token    string // this last one hour
+}
+
+func (s *Session) Play(id ObjectId) (Byte[Play], error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v1/assets/")
+      b.WriteString(id[0])
+      b.WriteString("/play")
+      return b.String()
+   }()
+   // .Get .Set
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
 
 func (t *Ticket) Token(username, password string) (*Token, error) {
@@ -208,65 +269,4 @@ func (c *client) String() string {
    b = append(b, ",sig="...)
    b = base64.RawURLEncoding.AppendEncode(b, c.sig)
    return string(b)
-}
-
-func (s *Session) Play(id ObjectId) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(id[0])
-      b.WriteString("/play")
-      return b.String()
-   }()
-   // .Get .Set
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type ObjectId [1]string
-
-func (ObjectId) prefix() string {
-   return "https://play.canalplus.cz/player/d/"
-}
-
-func (o ObjectId) String() string {
-   return o.prefix() + o[0]
-}
-
-// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
-// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
-func (o *ObjectId) Set(data string) error {
-   if !strings.HasPrefix(data, o.prefix()) {
-      return fmt.Errorf("%q not found", o.prefix())
-   }
-   u, err := url.Parse(data)
-   if err != nil {
-      return err
-   }
-   o[0] = path.Base(u.Path)
-   return nil
 }

@@ -10,6 +10,12 @@ import (
    "strings"
 )
 
+type Address [2]string
+
+func (a *Address) String() string {
+   return strings.Join(a[:], "--")
+}
+
 func (a *Address) Set(data string) error {
    data = strings.TrimPrefix(data, "https://")
    data = strings.TrimPrefix(data, "www.")
@@ -204,10 +210,4 @@ type Source struct {
    } `json:"key_systems"`
    Src  string // MPD
    Type string
-}
-
-type Address [2]string
-
-func (a *Address) String() string {
-   return strings.Join(a[:], "--")
 }

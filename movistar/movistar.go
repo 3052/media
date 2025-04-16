@@ -11,6 +11,39 @@ import (
    "strings"
 )
 
+const device_type = "SMARTTV_OTT"
+
+type Byte[T any] []byte
+
+type Details struct {
+   Id       int // contentID
+   VodItems []struct {
+      CasId    string // drmMediaID
+      UrlVideo string
+   }
+}
+
+func (d *Details) Unmarshal(data Byte[Details]) error {
+   return json.Unmarshal(data, d)
+}
+
+func NewDetails(id int64) (Byte[Details], error) {
+   req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/movistarplus/amazon.tv/contents/")
+      b = strconv.AppendInt(b, id, 10)
+      b = append(b, "/details"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "mdrm=true"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 // EVEN THE CONTENT IS GEO BLOCKED
 func (d *Details) Mpd() (*http.Response, error) {
    req, err := http.NewRequest("", d.VodItems[0].UrlVideo, nil)
@@ -26,10 +59,6 @@ func (d *Details) Mpd() (*http.Response, error) {
    }
    return resp, nil
 }
-
-const device_type = "SMARTTV_OTT"
-
-type Byte[T any] []byte
 
 type Device string
 
@@ -160,33 +189,4 @@ func (t *Token) Oferta() (*Oferta, error) {
       return nil, err
    }
    return &value.Ofertas[0], nil
-}
-
-type Details struct {
-   Id       int // contentID
-   VodItems []struct {
-      CasId    string // drmMediaID
-      UrlVideo string
-   }
-}
-
-func (d *Details) Unmarshal(data Byte[Details]) error {
-   return json.Unmarshal(data, d)
-}
-
-func NewDetails(id int64) (Byte[Details], error) {
-   req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/movistarplus/amazon.tv/contents/")
-      b = strconv.AppendInt(b, id, 10)
-      b = append(b, "/details"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "mdrm=true"
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
