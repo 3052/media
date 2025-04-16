@@ -4,9 +4,9 @@
 
 <table>
    <tr>
-      <td>3</td>
-      <td>Molotov - TV en direct, replay</td>
-      <td>March 27</td>
+      <td>1</td>
+      <td>Kanopy</td>
+      <td>January 23</td>
    </tr>
    <tr>
       <td>2</td>
@@ -14,9 +14,14 @@
       <td>March 25</td>
    </tr>
    <tr>
-      <td>1</td>
-      <td>Kanopy</td>
-      <td>January 23</td>
+      <td>3</td>
+      <td>Molotov - TV en direct, replay</td>
+      <td>March 27</td>
+   </tr>
+   <tr>
+      <td>4</td>
+      <td>Movistar Plus+</td>
+      <td>April 15</td>
    </tr>
 </table>
 
@@ -81,7 +86,7 @@
    <tr>
       <td>12</td>
       <td>ITVX</td>
-      <td>2024-10-24</td>
+      <td>October 24</td>
    </tr>
 </table>
 
