@@ -24,130 +24,64 @@
 
 <table>
    <tr>
-      <td>
-      12
-      </td>
-      <td>
-      ITVX
-      </td>
-      <td>
-      2024-10-24
-      </td>
+      <td>1</td>
+      <td>MUBI: Curated Cinema</td>
+      <td>February 20</td>
    </tr>
    <tr>
-      <td>
-      11
-      </td>
-      <td>
-      Max: Stream HBO, TV, & Movies
-      </td>
-      <td>
-      2024-06-16
-      </td>
+      <td>2</td>
+      <td>Plex: Stream Movies & TV</td>
+      <td>April 6</td>
    </tr>
    <tr>
-      <td>
-      10
-      </td>
-      <td>
-      RTBF Auvio : direct et replay
-      </td>
-      <td>
-      2024-06-07
-      </td>
+      <td>3</td>
+      <td>Tubi: Free Movies & Live TV</td>
+      <td>April 13</td>
    </tr>
    <tr>
-      <td>
-      9
-      </td>
-      <td>
-      Rakuten TV -Movies & TV Series
-      </td>
-      <td>
-      2024-05-23
-      </td>
+      <td>4</td>
+      <td>Pluto TV: Watch Free Movies/TV</td>
+      <td>April 20</td>
+   </tr>
+   <tr>
+      <td>5</td>
+      <td>CTV</td>
+      <td>April 29</td>
+   </tr>
+   <tr>
+      <td>6</td>
+      <td>Draken Film</td>
+      <td>May 5</td>
+   </tr>
+   <tr>
+      <td>7</td>
+      <td>CineMember</td>
+      <td>May 12</td>
    </tr>
    <tr>
       <td>8</td>
       <td>The Criterion Channel</td>
-      <td>2024-05-19</td>
+      <td>May 19</td>
    </tr>
    <tr>
-      <td>
-      7
-      </td>
-      <td>
-      CineMember
-      </td>
-      <td>
-      2024-05-12
-      </td>
+      <td>9</td>
+      <td>Rakuten TV -Movies & TV Series</td>
+      <td>May 23</td>
    </tr>
    <tr>
-      <td>
-      6
-      </td>
-      <td>
-      Draken Film
-      </td>
-      <td>
-      2024-05-05
-      </td>
+      <td>10</td>
+      <td>RTBF Auvio : direct et replay</td>
+      <td>June 7</td>
    </tr>
    <tr>
-      <td>
-      5
-      </td>
-      <td>
-      CTV
-      </td>
-      <td>
-      2024-04-29
-      </td>
+      <td>11</td>
+      <td>Max: Stream HBO, TV, & Movies</td>
+      <td>June 16</td>
    </tr>
    <tr>
-      <td>
-      4
-      </td>
-      <td>
-      Pluto TV: Watch Free Movies/TV
-      </td>
-      <td>
-      2024-04-20
-      </td>
-   </tr>
-   <tr>
-      <td>
-      3
-      </td>
-      <td>
-      Tubi: Free Movies & Live TV
-      </td>
-      <td>
-      2024-04-13
-      </td>
-   </tr>
-   <tr>
-      <td>
-      2
-      </td>
-      <td>
-      Plex: Stream Movies & TV
-      </td>
-      <td>
-      2024-04-06
-      </td>
-   </tr>
-   <tr>
-      <td>
-      1
-      </td>
-      <td>
-      MUBI: Curated Cinema
-      </td>
-      <td>
-      2024-02-20
-      </td>
+      <td>12</td>
+      <td>ITVX</td>
+      <td>2024-10-24</td>
    </tr>
 </table>
 
