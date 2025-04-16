@@ -13,6 +13,27 @@ import (
    "strings"
 )
 
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         Widevine struct {
+            LicenseUrl string
+         }
+      }
+   }
+   Errors []struct {
+      Detail string
+   }
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
 func (n Login) Movie(id ShowId) (*Videos, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.Path = "/cms/routes/movie/" + string(id)
@@ -40,27 +61,6 @@ func (n Login) Movie(id ShowId) (*Videos, error) {
 
 func (p *Playback) Mpd() string {
    return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         Widevine struct {
-            LicenseUrl string
-         }
-      }
-   }
-   Errors []struct {
-      Detail string
-   }
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
 }
 
 func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
