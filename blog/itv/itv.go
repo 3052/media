@@ -49,57 +49,6 @@ query ProgrammePage(
   $brandLegacyId: BrandLegacyId
   $features: [Feature!]
 ) {
-  brands(
-    filter: {
-      ccid: $brandCcid
-      legacyId: $brandLegacyId
-      tiers: ["FREE", "PAID"]
-    }
-  ) {
-    title
-    ccid
-    legacyId
-    tier
-    imageUrl(imageType: ITVX)
-    categories
-    synopses {
-      ninety
-      epg
-    }
-    earliestAvailableTitle {
-      ccid
-    }
-    latestAvailableTitle {
-      ccid
-    }
-    latestAvailableEpisode {
-      ccid
-      title
-    }
-    series(sortBy: SEQUENCE_ASC) {
-      seriesNumber
-    }
-    genres(filter: { hubCategory: true }) {
-      name
-    }
-    channel {
-      name
-    }
-    earliestAvailableSeries {
-      seriesNumber
-    }
-    latestAvailableSeries {
-      seriesNumber
-      longRunning
-      fullSeries
-      latestAvailableEpisode {
-        broadcastDateTime
-        episodeNumber
-      }
-    }
-    numberOfAvailableSeries
-    visuallySigned
-  }
   titles(
     filter: {
       brandLegacyId: $brandLegacyId
@@ -116,11 +65,7 @@ query ProgrammePage(
     ...TitleFields
   }
 }
-fragment VariantsFields on Version {
-  variants(filter: { features: $features }) {
-    features
-  }
-}
+
 fragment TitleAttributionFragment on Title {
   attribution {
     partnership {
@@ -151,39 +96,7 @@ fragment EpisodeInfo on Episode {
   episodeNumber
   tier
 }
-fragment FilmInfo on Title {
-  __typename
-  ... on Film {
-    title
-    tier
-    imageUrl(imageType: ITVX)
-    synopses {
-      ninety
-      epg
-    }
-    categories
-    genres {
-      id
-      name
-      hubCategory
-    }
-  }
-}
-fragment SpecialInfo on Special {
-  title
-  tier
-  imageUrl(imageType: ITVX)
-  synopses {
-    ninety
-    epg
-  }
-  categories
-  genres {
-    id
-    name
-    hubCategory
-  }
-}
+
 fragment TitleFields on Title {
   __typename
   titleType
@@ -229,26 +142,12 @@ fragment TitleFields on Title {
       maxResolution
       adRule
     }
-    ...VariantsFields
     linearContent
     visuallySigned
     duration
     bsl {
       playlistUrl
     }
-  }
-  ...TitleAttributionFragment
-  ... on Episode {
-    __typename
-    ...EpisodeInfo
-  }
-  ... on Film {
-    __typename
-    ...FilmInfo
-  }
-  ... on Special {
-    __typename
-    ...SpecialInfo
   }
 }
 `
