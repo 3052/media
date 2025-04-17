@@ -11,22 +11,6 @@ import (
    "strings"
 )
 
-const device_type = "SMARTTV_OTT"
-
-type Byte[T any] []byte
-
-type Details struct {
-   Id       int // contentID
-   VodItems []struct {
-      CasId    string // drmMediaID
-      UrlVideo string
-   }
-}
-
-func (d *Details) Unmarshal(data Byte[Details]) error {
-   return json.Unmarshal(data, d)
-}
-
 func NewDetails(id int64) (Byte[Details], error) {
    req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
    req.URL.Path = func() string {
@@ -41,7 +25,26 @@ func NewDetails(id int64) (Byte[Details], error) {
       return nil, err
    }
    defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
    return io.ReadAll(resp.Body)
+}
+
+const device_type = "SMARTTV_OTT"
+
+type Byte[T any] []byte
+
+type Details struct {
+   Id       int // contentID
+   VodItems []struct {
+      CasId    string // drmMediaID
+      UrlVideo string
+   }
+}
+
+func (d *Details) Unmarshal(data Byte[Details]) error {
+   return json.Unmarshal(data, d)
 }
 
 // EVEN THE CONTENT IS GEO BLOCKED

@@ -10,6 +10,55 @@ import (
    "strings"
 )
 
+// hard geo block
+func (e EpisodeId) Playlist() (Byte[Playlist], error) {
+   value := map[string]any{
+      "client": map[string]string{
+         "id": "browser",
+      },
+      "variantAvailability": map[string]any{
+         "drm": map[string]string{
+            "maxSupported": "L3",
+            "system":       "widevine",
+         },
+         "featureset": []string{ // need all these to get 720p
+            "hd",
+            "mpeg-dash",
+            "single-track",
+            "widevine",
+         },
+         "platformTag": "ctv", // 1080p
+      },
+   }
+   data, err := json.MarshalIndent(value, "", " ")
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://magni.itv.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/playlist/itvonline/ITV/")
+      b.WriteString(strings.Join(e[:], "_"))
+      b.WriteString(".001")
+      return b.String()
+   }()
+   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 // https://www.itv.com/watch/gone-girl/10a5503a0001B
 func (e *EpisodeId) Set(data string) error {
    data = strings.TrimSuffix(data, "B")
@@ -38,54 +87,6 @@ func (m *MediaFile) Mpd() (*http.Response, error) {
       return nil, err
    }
    return http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
-}
-
-// hard geo block
-func (e EpisodeId) Playlist() (Byte[Playlist], error) {
-   data, err := json.Marshal(map[string]any{
-      "client": map[string]string{
-         "id": "browser",
-      },
-      "variantAvailability": map[string]any{
-         "drm": map[string]string{
-            "maxSupported": "L3",
-            "system":       "widevine",
-         },
-         "featureset": []string{ // need all these to get 720p
-            "hd",
-            "mpeg-dash",
-            "single-track",
-            "widevine",
-         },
-         "platformTag": "ctv", // 1080p
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://magni.itv.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/playlist/itvonline/ITV/")
-      b.WriteString(strings.Join(e[:], "_"))
-      b.WriteString(".001")
-      return b.String()
-   }()
-   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 func (m *MediaFile) Widevine(data []byte) ([]byte, error) {

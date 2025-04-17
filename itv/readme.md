@@ -1,23 +1,34 @@
 # Itv
 
+your postcode
+SW1A 1AA
+
 even the media content is hard geo blocked
 
 ## ITVX
 
-Android 7:
+https://apkmirror.com/apk/itv-plc/itv-hub
 
 ~~~
-sdkVersion:'24'
+> play -i air.ITVMobilePlayer
+details[8] = 0 USD
+details[13][1][4] = 16.5.0
+details[13][1][16] = Mar 24, 2025
+details[13][1][17] = APK APK APK APK
+details[13][1][82][1][1] = 7.0 and up
+details[15][18] = http://www.itv.com/privacy/
+downloads = 23.70 million
+name = ITVX
+size = 37.35 megabyte
+version code = 1301605000
 ~~~
 
-result:
+create Android 7 device. install system certificate
 
 ~~~
-filter=((type=="video"&&DisplayHeight<=720)||(type!="video"))
+adb shell am start -a android.intent.action.VIEW `
+-d https://www.itv.com/watch/goldeneye/18910
 ~~~
-
-- https://apkmirror.com/apk/itv-plc/itv-hub
-- https://play.google.com/store/apps/details?id=air.ITVMobilePlayer
 
 ## ITVX (Android TV)
 
