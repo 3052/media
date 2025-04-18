@@ -6,9 +6,10 @@ import (
    "time"
 )
 
+
 var tests = []struct {
-   id  string
    url string
+   id  string
 }{
    {
       id:  "18910",
@@ -19,16 +20,8 @@ var tests = []struct {
       url: "itv.com/watch/gone-girl/10a5503a0001B",
    },
    {
-      id:  "10_5503_0001B",
-      url: "itv.com/watch/gone-girl/10_5503_0001B",
-   },
-   {
-      url:        "itv.com/watch/community/10a3915/10a3915a0002",
-      id: "10a3915a0002",
-   },
-   {
-      url:        "itv.com/watch/joan/10a3918/10a3918a0001",
-      id: "10a3918a0001",
+      id:  "10a3918a0001",
+      url: "itv.com/watch/joan/10a3918/10a3918a0001",
    },
 }
 

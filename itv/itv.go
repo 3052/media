@@ -17,10 +17,9 @@ func (v legacy_id) String() string {
    return v[0]
 }
 
-// itv.com/watch/gone-girl/10a5503a0001B
-// itv.com/watch/gone-girl/10_5503_0001B
+// itv.com/watch/joan/10a3918/10a3918a0001
+// itv.com/watch/joan/10_3918/10a3918a0001
 func (v *legacy_id) Set(data string) error {
-   data = strings.ReplaceAll(data, "_", "/")
    v[0] = strings.ReplaceAll(data, "a", "/")
    return nil
 }
