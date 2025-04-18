@@ -23,7 +23,8 @@ func main() {
    value["operationName"] = []string{"ProgrammePage"}
    value["query"] = []string{query1}
    req.URL.Scheme = "https"
-   value["variables"] = []string{`{"hello":"10/3918/0001","broadcaster":"UNKNOWN","features":["HD","SINGLE_TRACK","MPEG_DASH","WIDEVINE","WIDEVINE_DOWNLOAD","INBAND_TTML","OUTBAND_WEBVTT","INBAND_AUDIO_DESCRIPTION"]}`}
+   //value["variables"] = []string{`{"hello":"10/3918/0001","broadcaster":"UNKNOWN","features":["HD","SINGLE_TRACK","MPEG_DASH","WIDEVINE","WIDEVINE_DOWNLOAD","INBAND_TTML","OUTBAND_WEBVTT","INBAND_AUDIO_DESCRIPTION"]}`}
+   value["variables"] = []string{`{"hello":"18910","broadcaster":"UNKNOWN","features":["HD","SINGLE_TRACK","MPEG_DASH","WIDEVINE","WIDEVINE_DOWNLOAD","INBAND_TTML","OUTBAND_WEBVTT","INBAND_AUDIO_DESCRIPTION"]}`}
    req.URL.RawQuery = value.Encode()
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -34,24 +35,23 @@ func main() {
 }
 
 /*
-brands titles
-BrandLegacyId TitleLegacyId
-legacyId brandLegacyId titleLegacyId
+episodes need
+legacyId 
 
-100 pass
-110 pass
+movies need
+brandLegacyId
 */
 
 const query1 = `
 query ProgrammePage(
-  $hello: TitleLegacyId
+  $hello: BrandLegacyId
   $broadcaster: Broadcaster
   $brandCcid: CCId
   $features: [Feature!]
 ) {
   titles(
     filter: {
-      titleLegacyId: $hello
+      brandLegacyId: $hello
       brandCCId: $brandCcid
       broadcaster: $broadcaster
       available: "NOW"
