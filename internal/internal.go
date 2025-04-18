@@ -243,6 +243,9 @@ func (e *License) segment_template(represent *dash.Representation) error {
 }
 
 func (e *License) segment_base(represent *dash.Representation) error {
+   if ThreadCount != 1 {
+      return errors.New("ThreadCount")
+   }
    var media media_file
    err := media.New(represent)
    if err != nil {
@@ -313,6 +316,9 @@ func (e *License) segment_base(represent *dash.Representation) error {
 }
 
 func (e *License) segment_list(represent *dash.Representation) error {
+   if ThreadCount != 1 {
+      return errors.New("ThreadCount")
+   }
    var media media_file
    err := media.New(represent)
    if err != nil {
