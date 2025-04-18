@@ -10,6 +10,37 @@ import (
    "strings"
 )
 
+func (u User) Match(web Address) (*Match, error) {
+   req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
+   req.URL.Path = "/library/metadata/matches"
+   req.URL.RawQuery = url.Values{
+      "url":          {web[0]},
+      "x-plex-token": {u.AuthToken},
+   }.Encode()
+   req.Header.Set("accept", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Error struct {
+         Message string
+      }
+      MediaContainer struct {
+         Metadata []Match
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Error.Message != "" {
+      return nil, errors.New(value.Error.Message)
+   }
+   return &value.MediaContainer.Metadata[0], nil
+}
+
 func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
    var value struct {
       MediaContainer struct {
@@ -129,31 +160,6 @@ func (m *Metadata) Dash() (*Part, bool) {
 }
 
 var ForwardedFor string
-
-func (u User) Match(web Address) (*Match, error) {
-   req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
-   req.URL.Path = "/library/metadata/matches"
-   req.URL.RawQuery = url.Values{
-      "url":          {web[0]},
-      "x-plex-token": {u.AuthToken},
-   }.Encode()
-   req.Header.Set("accept", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      MediaContainer struct {
-         Metadata []Match
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.MediaContainer.Metadata[0], nil
-}
 
 type Match struct {
    RatingKey string
