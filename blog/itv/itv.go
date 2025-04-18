@@ -21,7 +21,7 @@ func main() {
    req.URL.Path = "/discovery"
    value := url.Values{}
    value["operationName"] = []string{"ProgrammePage"}
-   value["variables"] = []string{"{\"broadcaster\":\"UNKNOWN\",\"brandLegacyId\":\"10/3918\",\"features\":[\"HD\",\"SINGLE_TRACK\",\"MPEG_DASH\",\"WIDEVINE\",\"WIDEVINE_DOWNLOAD\",\"INBAND_TTML\",\"OUTBAND_WEBVTT\",\"INBAND_AUDIO_DESCRIPTION\"]}"}
+   value["variables"] = []string{variables}
    value["query"] = []string{query}
    req.URL.RawQuery = value.Encode()
    req.URL.Scheme = "https"
@@ -33,6 +33,28 @@ func main() {
    resp.Write(os.Stdout)
 }
 
+/*
+itv.com/watch/joan/10a3918
+itv.com/watch/goldeneye/18910
+itv.com/watch/gone-girl/10a5503a0001B
+*/
+const variables = `
+{
+  "broadcaster": "UNKNOWN",
+  "brandLegacyId": "10/5503/0001B",
+  "features": [
+    "HD",
+    "SINGLE_TRACK",
+    "MPEG_DASH",
+    "WIDEVINE",
+    "WIDEVINE_DOWNLOAD",
+    "INBAND_TTML",
+    "OUTBAND_WEBVTT",
+    "INBAND_AUDIO_DESCRIPTION"
+  ]
+}
+`
+
 const query = `
 query ProgrammePage(
   $broadcaster: Broadcaster
@@ -40,57 +62,6 @@ query ProgrammePage(
   $brandLegacyId: BrandLegacyId
   $features: [Feature!]
 ) {
-  brands(
-    filter: {
-      ccid: $brandCcid
-      legacyId: $brandLegacyId
-      tiers: ["FREE", "PAID"]
-    }
-  ) {
-    title
-    ccid
-    legacyId
-    tier
-    imageUrl(imageType: ITVX)
-    categories
-    synopses {
-      ninety
-      epg
-    }
-    earliestAvailableTitle {
-      ccid
-    }
-    latestAvailableTitle {
-      ccid
-    }
-    latestAvailableEpisode {
-      ccid
-      title
-    }
-    series(sortBy: SEQUENCE_ASC) {
-      seriesNumber
-    }
-    genres(filter: { hubCategory: true }) {
-      name
-    }
-    channel {
-      name
-    }
-    earliestAvailableSeries {
-      seriesNumber
-    }
-    latestAvailableSeries {
-      seriesNumber
-      longRunning
-      fullSeries
-      latestAvailableEpisode {
-        broadcastDateTime
-        episodeNumber
-      }
-    }
-    numberOfAvailableSeries
-    visuallySigned
-  }
   titles(
     filter: {
       brandLegacyId: $brandLegacyId
@@ -107,11 +78,7 @@ query ProgrammePage(
     ...TitleFields
   }
 }
-fragment VariantsFields on Version {
-  variants(filter: { features: $features }) {
-    features
-  }
-}
+
 fragment TitleAttributionFragment on Title {
   attribution {
     partnership {
@@ -134,47 +101,7 @@ fragment SeriesInfo on Series {
   seriesNumber
   numberOfAvailableEpisodes
 }
-fragment EpisodeInfo on Episode {
-  series {
-    __typename
-    ...SeriesInfo
-  }
-  episodeNumber
-  tier
-}
-fragment FilmInfo on Title {
-  __typename
-  ... on Film {
-    title
-    tier
-    imageUrl(imageType: ITVX)
-    synopses {
-      ninety
-      epg
-    }
-    categories
-    genres {
-      id
-      name
-      hubCategory
-    }
-  }
-}
-fragment SpecialInfo on Special {
-  title
-  tier
-  imageUrl(imageType: ITVX)
-  synopses {
-    ninety
-    epg
-  }
-  categories
-  genres {
-    id
-    name
-    hubCategory
-  }
-}
+
 fragment TitleFields on Title {
   __typename
   titleType
@@ -220,7 +147,6 @@ fragment TitleFields on Title {
       maxResolution
       adRule
     }
-    ...VariantsFields
     linearContent
     visuallySigned
     duration
@@ -229,17 +155,5 @@ fragment TitleFields on Title {
     }
   }
   ...TitleAttributionFragment
-  ... on Episode {
-    __typename
-    ...EpisodeInfo
-  }
-  ... on Film {
-    __typename
-    ...FilmInfo
-  }
-  ... on Special {
-    __typename
-    ...SpecialInfo
-  }
 }
 `
