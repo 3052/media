@@ -9,40 +9,26 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   address pluto.Address
-   dash    string
-   e       internal.License
-   media   string
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.StringVar(&pluto.ForwardedFor, "s", "", "set forward")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.Parse()
    switch {
-   case f.address[0] != "":
-      err := f.download()
+   case f.address != "":
+      err := f.do_address()
+      if err != nil {
+         panic(err)
+      }
+   case f.dash != "":
+      err := f.do_dash()
       if err != nil {
          panic(err)
       }
@@ -51,12 +37,21 @@ func main() {
    }
 }
 
-func (f *flags) download() error {
-   if f.dash != "" {
-      f.e.Widevine = pluto.Widevine
-      return f.e.Download(f.media+"/Mpd", f.dash)
+type flags struct {
+   e     internal.License
+   media string
+
+   address string
+   dash    string
+}
+
+func (f *flags) do_address() error {
+   var address pluto.Address
+   err := address.Set(f.address)
+   if err != nil {
+      return err
    }
-   video, err := f.address.Vod()
+   video, err := address.Vod()
    if err != nil {
       return err
    }
@@ -73,4 +68,20 @@ func (f *flags) download() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
+}
+
+func (f *flags) do_dash() error {
+   f.e.Widevine = pluto.Widevine
+   return f.e.Download(f.media+"/Mpd", f.dash)
+}
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
 }
