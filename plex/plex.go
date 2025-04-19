@@ -10,37 +10,6 @@ import (
    "strings"
 )
 
-func (u User) Match(web Address) (*Match, error) {
-   req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
-   req.URL.Path = "/library/metadata/matches"
-   req.URL.RawQuery = url.Values{
-      "url":          {web[0]},
-      "x-plex-token": {u.AuthToken},
-   }.Encode()
-   req.Header.Set("accept", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Error struct {
-         Message string
-      }
-      MediaContainer struct {
-         Metadata []Match
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if value.Error.Message != "" {
-      return nil, errors.New(value.Error.Message)
-   }
-   return &value.MediaContainer.Metadata[0], nil
-}
-
 func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
    var value struct {
       MediaContainer struct {
@@ -72,19 +41,6 @@ func (u User) Metadata(match1 *Match) (Byte[Metadata], error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "watch.plex.tv")
-   a[0] = strings.TrimPrefix(data, "/watch")
-   return nil
-}
-
-type Address [1]string
-
-func (a Address) String() string {
-   return a[0]
 }
 
 type Metadata struct {
@@ -172,4 +128,43 @@ type Part struct {
 
 type User struct {
    AuthToken string
+}
+
+type Url [1]string
+
+func (u *Url) New(data string) {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "watch.plex.tv")
+   u[0] = strings.TrimPrefix(data, "/watch")
+}
+
+func (u User) Match(url2 Url) (*Match, error) {
+   req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
+   req.URL.Path = "/library/metadata/matches"
+   req.URL.RawQuery = url.Values{
+      "url":          {url2[0]},
+      "x-plex-token": {u.AuthToken},
+   }.Encode()
+   req.Header.Set("accept", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Error struct {
+         Message string
+      }
+      MediaContainer struct {
+         Metadata []Match
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Error.Message != "" {
+      return nil, errors.New(value.Error.Message)
+   }
+   return &value.MediaContainer.Metadata[0], nil
 }

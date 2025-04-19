@@ -11,12 +11,16 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   dash    string
-   e       internal.License
-   media   string
-   mullvad bool
-   tubi    int
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
 }
 
 func main() {
@@ -37,7 +41,12 @@ func main() {
    }
    switch {
    case f.tubi >= 1:
-      err := f.download()
+      err := f.do_tubi()
+      if err != nil {
+         panic(err)
+      }
+   case f.dash != "":
+      err := f.do_dash()
       if err != nil {
          panic(err)
       }
@@ -46,34 +55,7 @@ func main() {
    }
 }
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func (f *flags) download() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/tubi/Content")
-      if err != nil {
-         return err
-      }
-      var content tubi.Content
-      err = content.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return content.VideoResources[0].Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
+func (f *flags) do_tubi() error {
    data, err := tubi.NewContent(f.tubi)
    if err != nil {
       return err
@@ -93,4 +75,29 @@ func (f *flags) download() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
+}
+
+type flags struct {
+   e       internal.License
+   media   string
+   mullvad bool
+   
+   tubi    int
+   dash    string
+}
+
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/tubi/Content")
+   if err != nil {
+      return err
+   }
+   var content tubi.Content
+   err = content.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return content.VideoResources[0].Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }

@@ -10,21 +10,43 @@ import (
    "path/filepath"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.StringVar(&plex.ForwardedFor, "s", "", "set forward")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
    flag.Parse()
    switch {
-   case f.address[0] != "":
-      err := f.download()
+   case f.address != "":
+      err := f.do_address()
+      if err != nil {
+         panic(err)
+      }
+   case f.dash != "":
+      err := f.do_dash()
       if err != nil {
          panic(err)
       }
@@ -33,37 +55,17 @@ func main() {
    }
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+type flags struct {
+   media   string
+   e       internal.License
+   
+   address string
+   dash    string
 }
 
-func (f *flags) download() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/plex/User")
-      if err != nil {
-         return err
-      }
-      var user plex.User
-      err = user.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      data, err = os.ReadFile(f.media + "/plex/Metadata")
-      if err != nil {
-         return err
-      }
-      var metadata plex.Metadata
-      err = metadata.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      part, _ := metadata.Dash()
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return user.Widevine(part, data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
+///
+
+func (f *flags) do_address() error {
    data, err := plex.NewUser()
    if err != nil {
       return err
@@ -105,21 +107,28 @@ func (f *flags) download() error {
    return internal.Mpd(f.media+"/Mpd", resp)
 }
 
-type flags struct {
-   address plex.Address
-   e       internal.License
-   dash    string
-   media   string
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/plex/User")
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
+   var user plex.User
+   err = user.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = os.ReadFile(f.media + "/plex/Metadata")
+   if err != nil {
+      return err
+   }
+   var metadata plex.Metadata
+   err = metadata.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   part, _ := metadata.Dash()
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return user.Widevine(part, data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }
