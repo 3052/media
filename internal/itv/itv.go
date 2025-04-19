@@ -15,8 +15,8 @@ type flags struct {
    e        internal.License
    media    string
    dash     string
-   itv      string
    playlist string
+   address  string
 }
 
 func (f *flags) New() error {
@@ -37,20 +37,25 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.itv, "a", "", "ITV ID")
+   flag.StringVar(&f.itv, "a", "", "address")
    flag.StringVar(&f.playlist, "b", "", "playlist URL")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.Parse()
    switch {
-   case f.itv:
-      err := f.do_itv()
+   case f.address != "":
+      err := f.do_address()
       if err != nil {
          panic(err)
       }
-   case f.playlist:
+   case f.playlist != "":
       err := f.do_playlist()
+      if err != nil {
+         panic(err)
+      }
+   case f.dash != "":
+      err := f.do_dash()
       if err != nil {
          panic(err)
       }
@@ -59,23 +64,25 @@ func main() {
    }
 }
 
-func (f *flags) do_itv() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/itv/Playlist")
-      if err != nil {
-         return err
-      }
-      var play itv.Playlist
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      file, _ := play.FullHd()
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return file.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
+func (f *flags) do_address() error {
+   var id itv.LegacyId
+   err := id.Set(f.address)
+   if err != nil {
+      return err
    }
+   titles, err := id.Titles()
+   if err != nil {
+      return err
+   }
+   for i, title := range titles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&title)
+   }
+}
+
+func (f *flags) do_playlist() error {
    var id itv.EpisodeId
    err := id.Set(path.Base(f.address))
    if err != nil {
@@ -106,7 +113,7 @@ func (f *flags) do_itv() error {
    return internal.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) do_playlist() error {
+func (f *flags) do_dash() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/itv/Playlist")
       if err != nil {
