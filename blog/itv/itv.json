@@ -1,0 +1,166 @@
+{
+  "data": {
+    "titles": [
+      {
+        "series": {
+          "seriesNumber": 5
+        },
+        "episodeNumber": 3,
+        "title": "Need You Dead",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0015.003"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 1
+        },
+        "episodeNumber": 1,
+        "title": "Dead Simple",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0001.002"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 5
+        },
+        "episodeNumber": 1,
+        "title": "Dead If You Don't",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0013.001"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 5
+        },
+        "episodeNumber": 2,
+        "title": "Dead at First Sight",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0014.003"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 1
+        },
+        "episodeNumber": 2,
+        "title": "Looking Good Dead",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0002.002"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 3
+        },
+        "episodeNumber": 3,
+        "title": "Not Dead Yet",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0008.004"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 2
+        },
+        "episodeNumber": 2,
+        "title": "Dead Man's Footsteps",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0004.001"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 5
+        },
+        "episodeNumber": 4,
+        "title": "Find Them Dead",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0016.001"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 4
+        },
+        "episodeNumber": 2,
+        "title": "Want You Dead",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0010.006"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 3
+        },
+        "episodeNumber": 2,
+        "title": "Dead Man's Grip",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0007.003"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 3
+        },
+        "episodeNumber": 1,
+        "title": "Dead Like You",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0006.001"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 4
+        },
+        "episodeNumber": 4,
+        "title": "Love You Dead",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0012.004"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 4
+        },
+        "episodeNumber": 3,
+        "title": "You Are Dead",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0011.005"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 4
+        },
+        "episodeNumber": 1,
+        "title": "Dead Man's Time",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0009.006"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 2
+        },
+        "episodeNumber": 1,
+        "title": "Not Dead Enough",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0003.001"
+        }
+      },
+      {
+        "series": {
+          "seriesNumber": 2
+        },
+        "episodeNumber": 3,
+        "title": "Dead Tomorrow",
+        "latestAvailableVersion": {
+          "playlistUrl": "https://magni.itv.com/playlist/itvonline/ITV/2_7610_0005.001"
+        }
+      }
+    ]
+  }
+}
