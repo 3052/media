@@ -2,9 +2,18 @@ package itv
 
 import (
    "fmt"
+   "path"
    "testing"
    "time"
 )
+
+func TestLegacyId(t *testing.T) {
+   for _, test := range tests {
+      var id LegacyId
+      id.Set(path.Base(test.url))
+      fmt.Println(id)
+   }
+}
 
 var tests = []struct {
    url string
@@ -28,12 +37,12 @@ var tests = []struct {
    },
 }
 
-func Test(t *testing.T) {
-   for i, test1 := range tests {
+func TestTitle(t *testing.T) {
+   for i, test := range tests {
       if i >= 1 {
          fmt.Println("---------------------------------------------------------")
       }
-      titles, err := LegacyId{test1.id}.titles()
+      titles, err := LegacyId{test.id}.Titles()
       if err != nil {
          t.Fatal(err)
       }

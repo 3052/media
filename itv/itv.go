@@ -157,7 +157,25 @@ type Title struct {
    Title                  string
 }
 
-func (v LegacyId) titles() ([]Title, error) {
+func (v LegacyId) String() string {
+   return strings.ReplaceAll(v[0], "/", "a")
+}
+
+type LegacyId [1]string
+
+// 18910
+// 10a3918
+// 10a3918a0001
+func (v *LegacyId) Set(data string) error {
+   split := strings.SplitN(data, "a", 3)
+   v[0] = split[0]
+   if len(split) >= 2 {
+      v[0] += "/" + split[1]
+   }
+   return nil
+}
+
+func (v LegacyId) Titles() ([]Title, error) {
    data, err := json.Marshal(map[string]string{
       "brandLegacyId": v[0],
    })
@@ -189,19 +207,4 @@ func (v LegacyId) titles() ([]Title, error) {
       return nil, err
    }
    return value.Data.Titles, nil
-}
-
-func (v LegacyId) String() string {
-   return strings.ReplaceAll(v[0], "/", "a")
-}
-
-type LegacyId [1]string
-
-// 18910
-// 10a3918
-// 10a3918a0001
-func (v *LegacyId) Set(data string) error {
-   split := strings.SplitN(data, "a", 3)
-   v[0] = strings.Join(split[:2], "/")
-   return nil
 }
