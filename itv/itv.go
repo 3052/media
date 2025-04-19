@@ -12,22 +12,18 @@ import (
    "strings"
 )
 
-const query = `
+const programme_page = `
 query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
    titles(
       filter: { brandLegacyId: $brandLegacyId }
       sortBy: SEQUENCE_ASC
    ) {
       ... on Episode {
-         series {
-            seriesNumber
-         }
+         series { seriesNumber }
          episodeNumber
       }
       title
-      latestAvailableVersion {
-         playlistUrl
-      }
+      latestAvailableVersion { playlistUrl }
    }
 }
 `
@@ -37,41 +33,7 @@ func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
 }
 
-func programme_page(brand_legacy_id string) ([]title, error) {
-   data, err := json.Marshal(map[string]string{
-      "brandLegacyId": brand_legacy_id,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = url.Values{
-      "query":     {graphql_compact(query)},
-      "variables": {string(data)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Titles []title
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.Data.Titles, nil
-}
-
-func (t *title) String() string {
+func (t *Title) String() string {
    var b []byte
    if t.Series != nil {
       b = []byte("series = ")
@@ -93,43 +55,6 @@ func (t *title) String() string {
    b = append(b, t.LatestAvailableVersion.PlaylistUrl...)
    return string(b)
 }
-
-type title struct {
-   Series *struct {
-      SeriesNumber int64
-   }
-   EpisodeNumber          int64
-   Title                  string
-   LatestAvailableVersion struct {
-      PlaylistUrl string
-   }
-}
-type legacy_id [1]string
-
-func (v legacy_id) String() string {
-   return v[0]
-}
-
-// itv.com/watch/joan/10a3918/10a3918a0001
-// itv.com/watch/joan/10_3918/10a3918a0001
-func (v *legacy_id) Set(data string) error {
-   v[0] = strings.ReplaceAll(data, "a", "/")
-   return nil
-}
-
-const programme_page = `
-query ProgrammePage(
-   $brandLegacyId: BrandLegacyId
-) {
-   titles(
-      filter: { brandLegacyId: $brandLegacyId }
-   ) {
-      ... on Title {
-         latestAvailableVersion { playlistUrl }
-      }
-   }
-}
-`
 
 type Playlist struct {
    Playlist struct {
@@ -180,29 +105,9 @@ func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (v legacy_id) programme_page() (*http.Response, error) {
-   data, err := json.Marshal(map[string]string{
-      "brandLegacyId": v[0],
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = url.Values{
-      "query":     {programme_page},
-      "variables": {string(data)},
-   }.Encode()
-   return http.DefaultClient.Do(req)
-}
-
 // hard geo block
-func NewPlaylist() (Byte[Playlist], error) {
-   value := map[string]any{
+func (t *Title) Playlist() (Byte[Playlist], error) {
+   data, err := json.Marshal(map[string]any{
       "client": map[string]string{
          "id": "browser",
       },
@@ -219,18 +124,16 @@ func NewPlaylist() (Byte[Playlist], error) {
          },
          "platformTag": "ctv", // 1080p
       },
-   }
-   data, err := json.MarshalIndent(value, "", " ")
+   })
    if err != nil {
       return nil, err
    }
    req, err := http.NewRequest(
-      "POST", "https://magni.itv.com", bytes.NewReader(data),
+      "POST", t.LatestAvailableVersion.PlaylistUrl, bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
    }
-   req.URL.Path = "/playlist/itvonline/ITV/SOMETHINNG"
    req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -241,4 +144,64 @@ func NewPlaylist() (Byte[Playlist], error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
+}
+
+type Title struct {
+   LatestAvailableVersion struct {
+      PlaylistUrl string
+   }
+   Series *struct {
+      SeriesNumber int64
+   }
+   EpisodeNumber          int64
+   Title                  string
+}
+
+func (v LegacyId) titles() ([]Title, error) {
+   data, err := json.Marshal(map[string]string{
+      "brandLegacyId": v[0],
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = url.Values{
+      "query":     {graphql_compact(programme_page)},
+      "variables": {string(data)},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Titles []Title
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.Data.Titles, nil
+}
+
+func (v LegacyId) String() string {
+   return strings.ReplaceAll(v[0], "/", "a")
+}
+
+type LegacyId [1]string
+
+// 18910
+// 10a3918
+// 10a3918a0001
+func (v *LegacyId) Set(data string) error {
+   split := strings.SplitN(data, "a", 3)
+   v[0] = strings.Join(split[:2], "/")
+   return nil
 }

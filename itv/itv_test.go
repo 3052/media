@@ -2,7 +2,6 @@ package itv
 
 import (
    "fmt"
-   "os"
    "testing"
    "time"
 )
@@ -34,7 +33,7 @@ func Test(t *testing.T) {
       if i >= 1 {
          fmt.Println("---------------------------------------------------------")
       }
-      titles, err := programme_page(test1.id)
+      titles, err := LegacyId{test1.id}.titles()
       if err != nil {
          t.Fatal(err)
       }
@@ -43,22 +42,6 @@ func Test(t *testing.T) {
             fmt.Println()
          }
          fmt.Println(&title1)
-      }
-      time.Sleep(time.Second)
-   }
-}
-
-func Test(t *testing.T) {
-   for _, test1 := range tests {
-      var id legacy_id
-      id.Set(test1.id)
-      resp, err := id.programme_page()
-      if err != nil {
-         t.Fatal(err)
-      }
-      err = resp.Write(os.Stdout)
-      if err != nil {
-         t.Fatal(err)
       }
       time.Sleep(time.Second)
    }
