@@ -177,21 +177,6 @@ type flags struct {
 ///
 
 func (f *flags) do_edit() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/max/Playback")
-      if err != nil {
-         return err
-      }
-      var play max.Playback
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
       return err
@@ -222,31 +207,7 @@ func (f *flags) do_edit() error {
 }
 
 func (f *flags) do_dash() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/max/Playback")
-      if err != nil {
-         return err
-      }
-      var play max.Playback
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = login.Playback(f.edit)
+   data, err := os.ReadFile(f.media + "/max/Playback")
    if err != nil {
       return err
    }
@@ -255,14 +216,8 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/max/Playback", data)
-   if err != nil {
-      return err
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
    }
-   resp, err := http.Get(play.Mpd())
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }
-

@@ -63,8 +63,6 @@ type flags struct {
    dash    string
 }
 
-///
-
 func (f *flags) do_address() error {
    data, err := plex.NewUser()
    if err != nil {
@@ -79,7 +77,9 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   match, err := user.Match(f.address)
+   var url plex.Url
+   url.New(f.address)
+   match, err := user.Match(url)
    if err != nil {
       return err
    }

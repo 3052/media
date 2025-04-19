@@ -34,31 +34,6 @@ type Playback struct {
    }
 }
 
-func (n Login) Movie(id ShowId) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/routes/movie/" + string(id)
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "page[items.size]": {"1"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var movie Videos
-   err = json.NewDecoder(resp.Body).Decode(&movie)
-   if err != nil {
-      return nil, err
-   }
-   if movie.Error() != "" {
-      return nil, &movie
-   }
-   return &movie, nil
-}
-
 func (p *Playback) Mpd() string {
    return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
 }
@@ -273,49 +248,6 @@ type Videos struct {
    Included []Video
 }
 
-func (n Login) Season(id ShowId, number int) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
-   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "pf[seasonNumber]": {strconv.Itoa(number)},
-      "pf[show.id]":      {string(id)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   season := &Videos{}
-   err = json.NewDecoder(resp.Body).Decode(season)
-   if err != nil {
-      return nil, err
-   }
-   return season, nil
-}
-
-func (s ShowId) String() string {
-   return string(s)
-}
-
-// max.com/movies/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/movies/heretic/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/shows/14f9834d-bc23-41a8-ab61-5c8abdbea505
-// max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
-func (s *ShowId) Set(data string) error {
-   switch {
-   case strings.Contains(data, "/movies/"):
-   case strings.Contains(data, "/shows/"):
-   default:
-      return errors.New("/movies/ or /shows/ not found")
-   }
-   *s = ShowId(path.Base(data))
-   return nil
-}
-
-type ShowId string
-
 type Video struct {
    Attributes *struct {
       SeasonNumber  int
@@ -380,3 +312,66 @@ func (v *Videos) Error() string {
    return ""
 }
 
+// max.com/movies/12199308-9afb-460b-9d79-9d54b5d2514c
+// max.com/movies/heretic/12199308-9afb-460b-9d79-9d54b5d2514c
+// max.com/shows/14f9834d-bc23-41a8-ab61-5c8abdbea505
+// max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
+func (s *ShowId) Set(data string) error {
+   switch {
+   case strings.Contains(data, "/movies/"):
+   case strings.Contains(data, "/shows/"):
+   default:
+      return errors.New("/movies/ or /shows/ not found")
+   }
+   s[0] = path.Base(data)
+   return nil
+}
+
+func (n Login) Movie(id ShowId) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/routes/movie/" + id[0]
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "page[items.size]": {"1"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var movie Videos
+   err = json.NewDecoder(resp.Body).Decode(&movie)
+   if err != nil {
+      return nil, err
+   }
+   if movie.Error() != "" {
+      return nil, &movie
+   }
+   return &movie, nil
+}
+
+type ShowId [1]string
+
+func (n Login) Season(id ShowId, number int) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "pf[seasonNumber]": {strconv.Itoa(number)},
+      "pf[show.id]":      {id[0]},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   season := &Videos{}
+   err = json.NewDecoder(resp.Body).Decode(season)
+   if err != nil {
+      return nil, err
+   }
+   return season, nil
+}
