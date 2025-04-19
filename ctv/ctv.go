@@ -10,63 +10,24 @@ import (
    "strings"
 )
 
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://license.9c9media.ca/widevine", "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
+const query_resolve = `
+query resolvePath($path: String!) {
+   resolvedPath(path: $path) {
+      lastSegment {
+         content {
+            ... on AxisObject {
+               id
+               ... on AxisMedia {
+                  firstPlayableContent {
+                     id
+                  }
+               }
+            }
+         }
+      }
    }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
-
-// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   a[0] = strings.TrimPrefix(data, "ctv.ca")
-   return nil
-}
-
-func (a Address) String() string {
-   return a[0]
-}
-
-type Address [1]string
-
-func (a *AxisContent) Mpd(content1 *Content) (string, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/destinations/")
-      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
-      b = append(b, "/platforms/desktop/playback/contents/"...)
-      b = strconv.AppendInt(b, a.AxisId, 10)
-      b = append(b, "/contentPackages/"...)
-      b = strconv.AppendInt(b, content1.ContentPackages[0].Id, 10)
-      b = append(b, "/manifest.mpd"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "action=reference"
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return "", err
-   }
-   data1 := string(data)
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(data1)
-   }
-   return strings.Replace(data1, "/best/", "/ultimate/", 1), nil
-}
-
-///
+`
 
 const query_axis = `
 query axisContent($id: ID!) {
@@ -86,53 +47,17 @@ func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
 }
 
-type Content struct {
-   ContentPackages []struct {
-      Id int64
-   }
-}
-
-func (a *AxisContent) Content() (*Content, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/destinations/")
-      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
-      b = append(b, "/platforms/desktop/contents/"...)
-      b = strconv.AppendInt(b, a.AxisId, 10)
-      return string(b)
-   }()
-   req.URL.RawQuery = "$include=[ContentPackages]"
-   resp, err := http.DefaultClient.Do(req)
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://license.9c9media.ca/widevine", "application/x-protobuf",
+      bytes.NewReader(data),
+   )
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   content1 := &Content{}
-   err = json.NewDecoder(resp.Body).Decode(content1)
-   if err != nil {
-      return nil, err
-   }
-   return content1, nil
+   return io.ReadAll(resp.Body)
 }
-
-const query_resolve = `
-query resolvePath($path: String!) {
-   resolvedPath(path: $path) {
-      lastSegment {
-         content {
-            ... on AxisObject {
-               id
-               ... on AxisMedia {
-                  firstPlayableContent {
-                     id
-                  }
-               }
-            }
-         }
-      }
-   }
-}
-`
 
 func (a Address) Resolve() (*ResolvedPath, error) {
    data, err := json.Marshal(map[string]any{
@@ -179,6 +104,86 @@ func (a Address) Resolve() (*ResolvedPath, error) {
       return nil, errors.New(string(data))
    }
    return &value.Data.ResolvedPath.LastSegment.Content, nil
+}
+
+// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func (a *Address) Set(data string) error {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   a[0] = strings.TrimPrefix(data, "ctv.ca")
+   return nil
+}
+
+func (a Address) String() string {
+   return a[0]
+}
+
+type Address [1]string
+
+type AxisContent struct {
+   AxisId                int64
+   AxisPlaybackLanguages []struct {
+      DestinationCode string
+   }
+}
+
+func (a *AxisContent) Content() (*Content, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/destinations/")
+      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
+      b = append(b, "/platforms/desktop/contents/"...)
+      b = strconv.AppendInt(b, a.AxisId, 10)
+      return string(b)
+   }()
+   req.URL.RawQuery = "$include=[ContentPackages]"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   content1 := &Content{}
+   err = json.NewDecoder(resp.Body).Decode(content1)
+   if err != nil {
+      return nil, err
+   }
+   return content1, nil
+}
+
+func (a *AxisContent) Mpd(content1 *Content) (string, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/destinations/")
+      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
+      b = append(b, "/platforms/desktop/playback/contents/"...)
+      b = strconv.AppendInt(b, a.AxisId, 10)
+      b = append(b, "/contentPackages/"...)
+      b = strconv.AppendInt(b, content1.ContentPackages[0].Id, 10)
+      b = append(b, "/manifest.mpd"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "action=reference"
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return "", err
+   }
+   data1 := string(data)
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(data1)
+   }
+   return strings.Replace(data1, "/best/", "/ultimate/", 1), nil
+}
+
+type Content struct {
+   ContentPackages []struct {
+      Id int64
+   }
 }
 
 type ResolvedPath struct {
@@ -235,11 +240,4 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
       return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.AxisContent, nil
-}
-
-type AxisContent struct {
-   AxisId                int64
-   AxisPlaybackLanguages []struct {
-      DestinationCode string
-   }
 }

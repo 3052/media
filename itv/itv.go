@@ -12,6 +12,17 @@ import (
    "strings"
 )
 
+type Title struct {
+   LatestAvailableVersion struct {
+      PlaylistUrl string
+   }
+   Series *struct {
+      SeriesNumber int64
+   }
+   EpisodeNumber          int64
+   Title                  string
+}
+
 // hard geo block
 func (t *Title) Playlist() (Byte[Playlist], error) {
    data, err := json.Marshal(map[string]any{
@@ -51,17 +62,6 @@ func (t *Title) Playlist() (Byte[Playlist], error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-type Title struct {
-   LatestAvailableVersion struct {
-      PlaylistUrl string
-   }
-   Series *struct {
-      SeriesNumber int64
-   }
-   EpisodeNumber          int64
-   Title                  string
 }
 
 func (v LegacyId) Titles() ([]Title, error) {

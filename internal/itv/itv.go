@@ -5,9 +5,9 @@ import (
    "41.neocities.org/media/itv"
    "errors"
    "flag"
+   "fmt"
    "log"
    "os"
-   "path"
    "path/filepath"
 )
 
@@ -37,7 +37,7 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.itv, "a", "", "address")
+   flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.playlist, "b", "", "playlist URL")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
@@ -80,15 +80,18 @@ func (f *flags) do_address() error {
       }
       fmt.Println(&title)
    }
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) do_playlist() error {
-   var id itv.EpisodeId
-   err := id.Set(path.Base(f.address))
-   if err != nil {
-      return err
-   }
-   data, err := id.Playlist()
+   var title itv.Title
+   title.LatestAvailableVersion.PlaylistUrl = f.playlist
+   data, err := title.Playlist()
    if err != nil {
       return err
    }
@@ -97,8 +100,7 @@ func (f *flags) do_playlist() error {
    if err != nil {
       return err
    }
-   log.Println("WriteFile", f.media+"/itv/Playlist")
-   err = os.WriteFile(f.media+"/itv/Playlist", data, os.ModePerm)
+   err = write_file(f.media + "/itv/Playlist", data)
    if err != nil {
       return err
    }
@@ -114,28 +116,7 @@ func (f *flags) do_playlist() error {
 }
 
 func (f *flags) do_dash() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/itv/Playlist")
-      if err != nil {
-         return err
-      }
-      var play itv.Playlist
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      file, _ := play.FullHd()
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return file.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   var id itv.EpisodeId
-   err := id.Set(path.Base(f.address))
-   if err != nil {
-      return err
-   }
-   data, err := id.Playlist()
+   data, err := os.ReadFile(f.media + "/itv/Playlist")
    if err != nil {
       return err
    }
@@ -144,18 +125,9 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   log.Println("WriteFile", f.media+"/itv/Playlist")
-   err = os.WriteFile(f.media+"/itv/Playlist", data, os.ModePerm)
-   if err != nil {
-      return err
+   file, _ := play.FullHd()
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return file.Widevine(data)
    }
-   file, ok := play.FullHd()
-   if !ok {
-      return errors.New(".FullHd()")
-   }
-   resp, err := file.Mpd()
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }

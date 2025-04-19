@@ -204,8 +204,8 @@ func (e *License) segment_template(represent *dash.Representation) error {
    for r := range represent.Representation() {
       segments = slices.AppendSeq(segments, r.Segment())
    }
-   var parts progress.Parts
-   parts.Set(len(segments))
+   var progress1 progress.Segment
+   progress1.Set(len(segments))
    for chunk := range slices.Chunk(segments, ThreadCount) {
       var (
          datas = make([][]byte, len(chunk))
@@ -219,7 +219,7 @@ func (e *License) segment_template(represent *dash.Representation) error {
          go func() {
             datas[i], err = get(address, head)
             errs <- err
-            parts.Next()
+            progress1.Next()
          }()
       }
       for range chunk {
@@ -285,8 +285,8 @@ func (e *License) segment_base(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   var parts progress.Parts
-   parts.Set(len(file2.Sidx.Reference))
+   var progress1 progress.Segment
+   progress1.Set(len(file2.Sidx.Reference))
    head := http.Header{}
    head.Set("silent", "true")
    var index dash.Range
@@ -302,7 +302,7 @@ func (e *License) segment_base(represent *dash.Representation) error {
       if err != nil {
          return err
       }
-      parts.Next()
+      progress1.Next()
       data, err = media.write_segment(data, key)
       if err != nil {
          return err
@@ -345,8 +345,8 @@ func (e *License) segment_list(represent *dash.Representation) error {
    if err != nil {
       return err
    }
-   var parts progress.Parts
-   parts.Set(len(represent.SegmentList.SegmentUrl))
+   var progress1 progress.Segment
+   progress1.Set(len(represent.SegmentList.SegmentUrl))
    head := http.Header{}
    head.Set("silent", "true")
    for _, segment := range represent.SegmentList.SegmentUrl {
@@ -354,7 +354,7 @@ func (e *License) segment_list(represent *dash.Representation) error {
       if err != nil {
          return err
       }
-      parts.Next()
+      progress1.Next()
       data, err = media.write_segment(data, key)
       if err != nil {
          return err

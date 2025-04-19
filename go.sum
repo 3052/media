@@ -8,8 +8,8 @@
 41.neocities.org/sofia v1.8.3/go.mod h1:sEkwYTmUFHqoL34OBDmyeQR7BrMNa8Z60PKYjOT5unQ=
 41.neocities.org/widevine v1.6.3 h1:RTgQ8/WCuW5IPA9WBOwznFtpv0ukvX6FRJvPwlbHGOo=
 41.neocities.org/widevine v1.6.3/go.mod h1:F6VfuFyLWYNyjJieWwVXr9HiT66fwDCXfynHUV7CTk0=
-41.neocities.org/x v1.5.8 h1:lPUmr4RWhI4MwRUUgJESGwdN9c/98IEQKISh779fM6s=
-41.neocities.org/x v1.5.8/go.mod h1:W914QR0V7rkZGunkjXoKFF97FiObrEdozhJj26qo+f0=
+41.neocities.org/x v1.5.9 h1:NbzVKbplR729IQGHquPuBsZv1AncxaRl341P6BRx0Tc=
+41.neocities.org/x v1.5.9/go.mod h1:W914QR0V7rkZGunkjXoKFF97FiObrEdozhJj26qo+f0=
 github.com/chmike/cmac-go v1.1.0 h1:aF73ZAEx9N2WdQc93DOJ2fMsBDAGqUtuenjMJMb3kEI=
 github.com/chmike/cmac-go v1.1.0/go.mod h1:wcIN7NRqWSKGuORzd4dReBkoBDE9ZBqfyTVxyDxGeUw=
 google.golang.org/protobuf v1.36.6 h1:z1NpPI8ku2WgiWnf+t9wTPsn6eP1L7ksHUlkfLvd9xY=
