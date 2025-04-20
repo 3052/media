@@ -1,28 +1,5 @@
 # cinemember.nl
 
-## Proefperiode van 14 dagen (trial period of 14 days)
-
-1. https://cinemember.nl (https required)
-2. netherlands VPN
-3. Start je proefperiode (start your trial)
-4. name
-5. e-mail
-   - mailsac.com
-6. password
-7. Verder (continue)
-8. MAANDABONNEMENT, Selecteer (monthly subscription, select)
-9. Accepteren en voltooien (accept and complete)
-10. kaart (card)
-11. card number
-12. Kaarthouder (cardholder)
-13. expiration
-14. CVV
-15. Betaal (pay)
-
-no trial extension on cancel request
-
-## android
-
 https://apkcombo.com/cinemember/nl.peoplesplayground.audienceplayer.cinemember
 
 ~~~
