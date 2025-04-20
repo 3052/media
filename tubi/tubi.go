@@ -3,11 +3,32 @@ package tubi
 import (
    "bytes"
    "encoding/json"
+   "errors"
    "io"
    "net/http"
    "net/url"
    "strconv"
 )
+
+func (c *Content) Unmarshal(data Byte[Content]) error {
+   err := json.Unmarshal(data, c)
+   if err != nil {
+      return err
+   }
+   if len(c.VideoResources) == 0 {
+      return errors.New("video_resources")
+   }
+   return nil
+}
+
+type Content struct {
+   Children     []*Content
+   DetailedType string `json:"detailed_type"`
+   Id           int    `json:",string"`
+   SeriesId     int    `json:"series_id,string"`
+   // these should already be in reverse order by resolution
+   VideoResources []VideoResource `json:"video_resources"`
+}
 
 func NewContent(id int) (Byte[Content], error) {
    req, _ := http.NewRequest("", "https://uapi.adrise.tv/cms/content", nil)
@@ -50,17 +71,4 @@ type VideoResource struct {
    Type string
 }
 
-type Content struct {
-   Children     []*Content
-   DetailedType string `json:"detailed_type"`
-   Id           int    `json:",string"`
-   SeriesId     int    `json:"series_id,string"`
-   // these should already be in reverse order by resolution
-   VideoResources []VideoResource `json:"video_resources"`
-}
-
 type Byte[T any] []byte
-
-func (c *Content) Unmarshal(data Byte[Content]) error {
-   return json.Unmarshal(data, c)
-}

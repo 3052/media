@@ -20,6 +20,52 @@ import (
    "strings"
 )
 
+func (e *License) Download(name, id string) error {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return err
+   }
+   resp, err := unmarshal(data)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   var mpd1 dash.Mpd
+   err = mpd1.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   mpd1.Set(resp.Request.URL)
+   for represent := range mpd1.Representation() {
+      if represent.Id == id {
+         if represent.SegmentBase != nil {
+            return e.segment_base(&represent)
+         }
+         if represent.SegmentList != nil {
+            return e.segment_list(&represent)
+         }
+         return e.segment_template(&represent)
+      }
+   }
+   return nil
+}
+
+func dash_create(represent *dash.Representation) (*os.File, error) {
+   switch *represent.MimeType {
+   case "audio/mp4":
+      return create(".m4a")
+   case "text/vtt":
+      return create(".vtt")
+   case "video/mp4":
+      return create(".m4v")
+   }
+   return nil, errors.New(*represent.MimeType)
+}
+
 func init() {
    log.SetFlags(log.Ltime)
    http.DefaultClient.Transport = &transport{
@@ -402,18 +448,6 @@ func create(name string) (*os.File, error) {
    return os.Create(name)
 }
 
-func dash_create(represent *dash.Representation) (*os.File, error) {
-   switch *represent.MimeType {
-   case "audio/mp4":
-      return create(".m4a")
-   case "text/vtt":
-      return create(".vtt")
-   case "video/mp4":
-      return create(".m4v")
-   }
-   return nil, errors.New(*represent.MimeType)
-}
-
 func get(u *url.URL, head http.Header) ([]byte, error) {
    req := http.Request{Method: "GET", URL: u}
    if head != nil {
@@ -434,40 +468,6 @@ func get(u *url.URL, head http.Header) ([]byte, error) {
       return nil, errors.New(data.String())
    }
    return io.ReadAll(resp.Body)
-}
-
-func (e *License) Download(name, id string) error {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return err
-   }
-   resp, err := unmarshal(data)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   var mpd1 dash.Mpd
-   err = mpd1.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   mpd1.Set(resp.Request.URL)
-   for represent := range mpd1.Representation() {
-      if represent.Id == id {
-         if represent.SegmentBase != nil {
-            return e.segment_base(&represent)
-         }
-         if represent.SegmentList != nil {
-            return e.segment_list(&represent)
-         }
-         return e.segment_template(&represent)
-      }
-   }
-   return nil
 }
 
 func marshal(resp *http.Response) ([]byte, error) {

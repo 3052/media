@@ -11,6 +11,48 @@ import (
    "path/filepath"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flags) do_tubi() error {
+   data, err := tubi.NewContent(f.tubi)
+   if err != nil {
+      return err
+   }
+   var content tubi.Content
+   err = content.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/tubi/Content", data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(content.VideoResources[0].Manifest.Url)
+   if err != nil {
+      return err
+   }
+   return internal.Mpd(f.media+"/Mpd", resp)
+}
+
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/tubi/Content")
+   if err != nil {
+      return err
+   }
+   var content tubi.Content
+   err = content.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return content.VideoResources[0].Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
+}
+
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -55,49 +97,10 @@ func main() {
    }
 }
 
-func (f *flags) do_tubi() error {
-   data, err := tubi.NewContent(f.tubi)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", f.media+"/tubi/Content")
-   err = os.WriteFile(f.media+"/tubi/Content", data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   var content tubi.Content
-   err = content.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(content.VideoResources[0].Manifest.Url)
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media+"/Mpd", resp)
-}
-
 type flags struct {
    e       internal.License
    media   string
    mullvad bool
-   
    tubi    int
    dash    string
-}
-
-func (f *flags) do_dash() error {
-   data, err := os.ReadFile(f.media + "/tubi/Content")
-   if err != nil {
-      return err
-   }
-   var content tubi.Content
-   err = content.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return content.VideoResources[0].Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
 }
