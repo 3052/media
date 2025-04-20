@@ -13,95 +13,6 @@ import (
    "slices"
 )
 
-func (f *flags) do_initiate() error {
-   var st max.St
-   err := st.New()
-   if err != nil {
-      return err
-   }
-   log.Println("Create", f.media+"/max/St")
-   file, err := os.Create(f.media + "/max/St")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = fmt.Fprint(file, st)
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate()
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return nil
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flags) do_login() error {
-   data, err := os.ReadFile(f.media + "/max/St")
-   if err != nil {
-      return err
-   }
-   var st max.St
-   err = st.Set(string(data))
-   if err != nil {
-      return err
-   }
-   data, err = st.Login()
-   if err != nil {
-      return err
-   }
-   return write_file(f.media + "/max/Login", data)
-}
-
-func (f *flags) do_address() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   var videos *max.Videos
-   if f.season >= 1 {
-      videos, err = login.Season(f.show_id, f.season)
-   } else {
-      videos, err = login.Movie(f.show_id)
-   }
-   if err != nil {
-      return err
-   }
-   sorted := slices.SortedFunc(videos.Seq(), func(a, b max.Video) int {
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
-   for i, video := range sorted {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&video)
-   }
-   return nil
-}
-
 func main() {
    var f flags
    err := f.New()
@@ -220,4 +131,92 @@ func (f *flags) do_dash() error {
       return play.Widevine(data)
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
+}
+func (f *flags) do_initiate() error {
+   var st max.St
+   err := st.New()
+   if err != nil {
+      return err
+   }
+   log.Println("Create", f.media+"/max/St")
+   file, err := os.Create(f.media + "/max/St")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = fmt.Fprint(file, st)
+   if err != nil {
+      return err
+   }
+   initiate, err := st.Initiate()
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return nil
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flags) do_login() error {
+   data, err := os.ReadFile(f.media + "/max/St")
+   if err != nil {
+      return err
+   }
+   var st max.St
+   err = st.Set(string(data))
+   if err != nil {
+      return err
+   }
+   data, err = st.Login()
+   if err != nil {
+      return err
+   }
+   return write_file(f.media + "/max/Login", data)
+}
+
+func (f *flags) do_address() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   var videos *max.Videos
+   if f.season >= 1 {
+      videos, err = login.Season(f.show_id, f.season)
+   } else {
+      videos, err = login.Movie(f.show_id)
+   }
+   if err != nil {
+      return err
+   }
+   sorted := slices.SortedFunc(videos.Seq(), func(a, b max.Video) int {
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+   for i, video := range sorted {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&video)
+   }
+   return nil
 }
