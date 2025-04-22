@@ -13,6 +13,37 @@ import (
    "slices"
 )
 
+func (f *flags) do_address() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   var videos *max.Videos
+   if f.season >= 1 {
+      videos, err = login.Season(f.show_id, f.season)
+   } else {
+      videos, err = login.Movie(f.show_id)
+   }
+   if err != nil {
+      return err
+   }
+   sorted := slices.SortedFunc(videos.Seq(), func(a, b max.Video) int {
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+   for i, video := range sorted {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&video)
+   }
+   return nil
+}
+
 func main() {
    var f flags
    err := f.New()
@@ -29,7 +60,7 @@ func main() {
    )
    flag.BoolVar(&f.proxy, "p", false, "proxy")
    flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
-   flag.StringVar(&f.address, "a", "address")
+   flag.StringVar(&f.address, "a", "", "address")
    flag.IntVar(&f.season, "s", 0, "season")
    flag.StringVar(&f.edit, "e", "", "edit ID")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
@@ -85,8 +116,6 @@ type flags struct {
    dash     string
 }
 
-///
-
 func (f *flags) do_edit() error {
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
@@ -117,21 +146,6 @@ func (f *flags) do_edit() error {
    return internal.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) do_dash() error {
-   data, err := os.ReadFile(f.media + "/max/Playback")
-   if err != nil {
-      return err
-   }
-   var play max.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
-}
 func (f *flags) do_initiate() error {
    var st max.St
    err := st.New()
@@ -190,33 +204,18 @@ func (f *flags) do_login() error {
    return write_file(f.media + "/max/Login", data)
 }
 
-func (f *flags) do_address() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/max/Playback")
    if err != nil {
       return err
    }
-   var login max.Login
-   err = login.Unmarshal(data)
+   var play max.Playback
+   err = play.Unmarshal(data)
    if err != nil {
       return err
    }
-   var videos *max.Videos
-   if f.season >= 1 {
-      videos, err = login.Season(f.show_id, f.season)
-   } else {
-      videos, err = login.Movie(f.show_id)
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
    }
-   if err != nil {
-      return err
-   }
-   sorted := slices.SortedFunc(videos.Seq(), func(a, b max.Video) int {
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
-   for i, video := range sorted {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&video)
-   }
-   return nil
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }
