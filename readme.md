@@ -41,5 +41,5 @@ Download media or send API requests
    <dt>Discord invite</dt>
       <dd>https://discord.com/invite/rMFzDRQhSx</dd>
    <dt>PayPal</dt>
-      <dd>https://paypal.com/donate?hosted_button_id=UEJBQQTU3VYDY</dd>
+      <dd>https://paypal.com/donate?hosted_button_id=59UKABTT2F8LS</dd>
 </dl>

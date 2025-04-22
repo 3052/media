@@ -31,8 +31,8 @@ func (a At) Item(cid string) (*Item, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   // error 406
-   if resp.StatusCode == http.StatusNotAcceptable {
+   // 403 and 406 can have empty response body
+   if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
    data, err := io.ReadAll(resp.Body)
@@ -40,16 +40,11 @@ func (a At) Item(cid string) (*Item, error) {
       return nil, err
    }
    var value struct {
-      Error    string
       ItemList []Item
    }
    err = json.Unmarshal(data, &value)
    if err != nil {
       return nil, err
-   }
-   // error 403
-   if value.Error != "" {
-      return nil, errors.New(value.Error)
    }
    // error 200
    if len(value.ItemList) == 0 {
