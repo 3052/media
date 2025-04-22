@@ -23,11 +23,16 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
+   var id max.ShowId
+   err = id.Set(f.address)
+   if err != nil {
+      return err
+   }
    var videos *max.Videos
    if f.season >= 1 {
-      videos, err = login.Season(f.show_id, f.season)
+      videos, err = login.Season(id, f.season)
    } else {
-      videos, err = login.Movie(f.show_id)
+      videos, err = login.Movie(id)
    }
    if err != nil {
       return err

@@ -13,6 +13,23 @@ import (
    "strings"
 )
 
+// max.com/movies/12199308-9afb-460b-9d79-9d54b5d2514c
+// max.com/movies/heretic/12199308-9afb-460b-9d79-9d54b5d2514c
+// max.com/shows/14f9834d-bc23-41a8-ab61-5c8abdbea505
+// max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
+func (s *ShowId) Set(data string) error {
+   switch {
+   case strings.Contains(data, "/movies/"):
+   case strings.Contains(data, "/shows/"):
+   default:
+      return errors.New("/movies/ or /shows/ not found")
+   }
+   s[0] = path.Base(data)
+   return nil
+}
+
+type ShowId [1]string
+
 type Playback struct {
    Drm struct {
       Schemes struct {
@@ -312,21 +329,6 @@ func (v *Videos) Error() string {
    return ""
 }
 
-// max.com/movies/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/movies/heretic/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/shows/14f9834d-bc23-41a8-ab61-5c8abdbea505
-// max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
-func (s *ShowId) Set(data string) error {
-   switch {
-   case strings.Contains(data, "/movies/"):
-   case strings.Contains(data, "/shows/"):
-   default:
-      return errors.New("/movies/ or /shows/ not found")
-   }
-   s[0] = path.Base(data)
-   return nil
-}
-
 func (n Login) Movie(id ShowId) (*Videos, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.Path = "/cms/routes/movie/" + id[0]
@@ -351,8 +353,6 @@ func (n Login) Movie(id ShowId) (*Videos, error) {
    }
    return &movie, nil
 }
-
-type ShowId [1]string
 
 func (n Login) Season(id ShowId, number int) (*Videos, error) {
    req, _ := http.NewRequest("", prd_api, nil)

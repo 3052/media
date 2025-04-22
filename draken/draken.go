@@ -9,32 +9,81 @@ import (
    "strings"
 )
 
-func (n Login) Entitlement(movie1 Movie) (*Entitlement, error) {
-   req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
-   req.URL.Path = "/api/entitlement/v2/asset/" + movie1.Id
-   req.Header.Set("authorization", "Bearer "+n.Token)
-   magine_accesstoken.set(req.Header)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
+const get_custom_id = `
+query GetCustomIdFullMovie($customId: ID!) {
+   viewer {
+      viewableCustomId(customId: $customId) {
+         ... on Movie {
+            defaultPlayable {
+               id
+            }
+         }
+      }
    }
-   defer resp.Body.Close()
-   var title Entitlement
-   err = json.NewDecoder(resp.Body).Decode(&title)
-   if err != nil {
-      return nil, err
-   }
-   if title.Error != nil {
-      return nil, errors.New(title.Error.UserMessage)
-   }
-   return &title, nil
 }
+` // do not do `query(`
+
+func graphql_compact(data string) string {
+   return strings.Join(strings.Fields(data), " ")
+}
+
+type Byte[T any] []byte
 
 type Entitlement struct {
    Error *struct {
       UserMessage string `json:"user_message"`
    }
    Token string
+}
+
+type Login struct {
+   Token string
+}
+
+func NewLogin(identity, key string) (Byte[Login], error) {
+   data, err := json.Marshal(map[string]string{
+      "accessKey": key,
+      "identity":  identity,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://drakenfilm.se/api/auth/login", "application/json",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (n *Login) Unmarshal(data Byte[Login]) error {
+   return json.Unmarshal(data, n)
+}
+
+func (n Login) Playback(
+   movie1 *Movie, title *Entitlement,
+) (Byte[Playback], error) {
+   req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
+   req.URL.Path = "/api/playback/v1/preflight/asset/" + movie1.Id
+   magine_accesstoken.set(req.Header)
+   magine_play_devicemodel.set(req.Header)
+   magine_play_deviceplatform.set(req.Header)
+   magine_play_devicetype.set(req.Header)
+   magine_play_drm.set(req.Header)
+   magine_play_protocol.set(req.Header)
+   req.Header.Set("authorization", "Bearer "+n.Token)
+   req.Header.Set("magine-play-deviceid", "!")
+   req.Header.Set("magine-play-entitlementid", title.Token)
+   x_forwarded_for.set(req.Header)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
 
 func (n Login) Widevine(play *Playback, data []byte) ([]byte, error) {
@@ -56,6 +105,27 @@ func (n Login) Widevine(play *Playback, data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+func (n Login) Entitlement(movie1 Movie) (*Entitlement, error) {
+   req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
+   req.URL.Path = "/api/entitlement/v2/asset/" + movie1.Id
+   req.Header.Set("authorization", "Bearer "+n.Token)
+   magine_accesstoken.set(req.Header)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var title Entitlement
+   err = json.NewDecoder(resp.Body).Decode(&title)
+   if err != nil {
+      return nil, err
+   }
+   if title.Error != nil {
+      return nil, errors.New(title.Error.UserMessage)
+   }
+   return &title, nil
 }
 
 func (m *Movie) New(custom_id string) error {
@@ -106,31 +176,13 @@ type Movie struct {
    Id string
 }
 
-type Login struct {
-   Token string
+func (p *Playback) Unmarshal(data Byte[Playback]) error {
+   return json.Unmarshal(data, p)
 }
 
-func NewLogin(identity, key string) (Byte[Login], error) {
-   data, err := json.Marshal(map[string]string{
-      "accessKey": key,
-      "identity":  identity,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://drakenfilm.se/api/auth/login", "application/json",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (n *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, n)
+type Playback struct {
+   Headers  map[string]string
+   Playlist string // MPD
 }
 
 var magine_accesstoken = header{
@@ -169,56 +221,4 @@ func (h *header) set(head http.Header) {
 type header struct {
    key   string
    value string
-}
-
-const get_custom_id = `
-query GetCustomIdFullMovie($customId: ID!) {
-   viewer {
-      viewableCustomId(customId: $customId) {
-         ... on Movie {
-            defaultPlayable {
-               id
-            }
-         }
-      }
-   }
-}
-` // do not do `query(`
-
-func graphql_compact(data string) string {
-   return strings.Join(strings.Fields(data), " ")
-}
-
-type Playback struct {
-   Headers  map[string]string
-   Playlist string // MPD
-}
-
-type Byte[T any] []byte
-
-func (p *Playback) Unmarshal(data Byte[Playback]) error {
-   return json.Unmarshal(data, p)
-}
-
-func (n Login) Playback(
-   movie1 *Movie, title *Entitlement,
-) (Byte[Playback], error) {
-   req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
-   req.URL.Path = "/api/playback/v1/preflight/asset/" + movie1.Id
-   magine_accesstoken.set(req.Header)
-   magine_play_devicemodel.set(req.Header)
-   magine_play_deviceplatform.set(req.Header)
-   magine_play_devicetype.set(req.Header)
-   magine_play_drm.set(req.Header)
-   magine_play_protocol.set(req.Header)
-   req.Header.Set("authorization", "Bearer "+n.Token)
-   req.Header.Set("magine-play-deviceid", "!")
-   req.Header.Set("magine-play-entitlementid", title.Token)
-   x_forwarded_for.set(req.Header)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }

@@ -9,33 +9,6 @@ import (
    "net/url"
 )
 
-func (t *Token) Files(video1 *Video) (Byte[Files], error) {
-   req, err := http.NewRequest("", video1.Links.Files.Href, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-type File struct {
-   DrmAuthorizationToken string `json:"drm_authorization_token"`
-   Links                 struct {
-      Source struct {
-         Href string // MPD
-      }
-   } `json:"_links"`
-   Method string
-}
-
 const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
 type Byte[T any] []byte
@@ -54,6 +27,16 @@ func (f *File) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+type File struct {
+   DrmAuthorizationToken string `json:"drm_authorization_token"`
+   Links                 struct {
+      Source struct {
+         Href string // MPD
+      }
+   } `json:"_links"`
+   Method string
 }
 
 type Files []File
@@ -126,6 +109,23 @@ func (t *Token) Refresh() (Byte[Token], error) {
 
 func (t *Token) Unmarshal(data Byte[Token]) error {
    return json.Unmarshal(data, t)
+}
+
+func (t *Token) Files(video1 *Video) (Byte[Files], error) {
+   req, err := http.NewRequest("", video1.Links.Files.Href, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
 }
 
 type Video struct {
