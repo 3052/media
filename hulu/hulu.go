@@ -16,7 +16,7 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
       "content_eab_id":   deep.EabId,
       "deejay_device_id": 166,
       "unencrypted":      true,
-      "version":          9999999,
+      "version":          9999999, // 4000000 - 2147483647
       "playback": map[string]any{
          "version": 2, // needs to be exactly 2 for 1080p
          "manifest": map[string]string{
