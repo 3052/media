@@ -11,12 +11,21 @@ import (
    "strings"
 )
 
+// this is old device that returns 4K MPD:
+// https://vodmanifest.hulustream.com
+// newer devices return 2K MPD:
+// https://dynamic-manifest.hulustream.com
+const (
+   deejay_device_id = 189
+   version = 8
+)
+
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    value := map[string]any{
+      "deejay_device_id": deejay_device_id,
+      "version":       version,
       "content_eab_id":   deep.EabId,
-      "deejay_device_id": 166,
       "unencrypted":      true,
-      "version":          9999999, // 4000000 - 2147483647
       "playback": map[string]any{
          "version": 2, // needs to be exactly 2 for 1080p
          "manifest": map[string]string{
