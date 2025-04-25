@@ -17,13 +17,13 @@ import (
 // https://dynamic-manifest.hulustream.com
 const (
    deejay_device_id = 189
-   version = 8
+   version          = 8
 )
 
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    value := map[string]any{
       "deejay_device_id": deejay_device_id,
-      "version":       version,
+      "version":          version,
       "content_eab_id":   deep.EabId,
       "unencrypted":      true,
       "playback": map[string]any{
