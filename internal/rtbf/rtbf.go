@@ -34,7 +34,7 @@ type flags struct {
    email    string
    media    string
    password string
-   address string
+   address  string
 }
 
 func (f *flags) do_password() error {
@@ -42,7 +42,7 @@ func (f *flags) do_password() error {
    if err != nil {
       return err
    }
-   return write_file(f.media + "/rtbf/Login", data)
+   return write_file(f.media+"/rtbf/Login", data)
 }
 
 func main() {
@@ -79,24 +79,7 @@ func main() {
    }
 }
 
-///
-
 func (f *flags) do_address() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/rtbf/Entitlement")
-      if err != nil {
-         return err
-      }
-      var title rtbf.Entitlement
-      err = title.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return title.Widevine(data)
-      }
-      return f.e.Download(f.media + "/Mpd", f.dash)
-   }
    data, err := os.ReadFile(f.media + "/rtbf/Login")
    if err != nil {
       return err
@@ -114,7 +97,9 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   content, err := f.address.Content()
+   var address rtbf.Address
+   address.New(f.address)
+   content, err := address.Content()
    if err != nil {
       return err
    }
@@ -127,7 +112,7 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/rtbf/Entitlement", data)
+   err = write_file(f.media+"/rtbf/Entitlement", data)
    if err != nil {
       return err
    }
@@ -139,47 +124,11 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return internal.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/rtbf/Entitlement")
-      if err != nil {
-         return err
-      }
-      var title rtbf.Entitlement
-      err = title.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return title.Widevine(data)
-      }
-      return f.e.Download(f.media + "/Mpd", f.dash)
-   }
-   data, err := os.ReadFile(f.media + "/rtbf/Login")
-   if err != nil {
-      return err
-   }
-   var login rtbf.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   jwt, err := login.Jwt()
-   if err != nil {
-      return err
-   }
-   gigya, err := jwt.Login()
-   if err != nil {
-      return err
-   }
-   content, err := f.address.Content()
-   if err != nil {
-      return err
-   }
-   data, err = gigya.Entitlement(content)
+   data, err := os.ReadFile(f.media + "/rtbf/Entitlement")
    if err != nil {
       return err
    }
@@ -188,17 +137,8 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/rtbf/Entitlement", data)
-   if err != nil {
-      return err
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return title.Widevine(data)
    }
-   format, ok := title.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := http.Get(format.MediaLocator)
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }
