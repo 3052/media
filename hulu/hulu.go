@@ -22,10 +22,8 @@ const (
 
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    value := map[string]any{
-      "deejay_device_id": deejay_device_id,
-      "version":          version,
       "content_eab_id":   deep.EabId,
-      "unencrypted":      true,
+      "deejay_device_id": deejay_device_id,
       "playback": map[string]any{
          "version": 2, // needs to be exactly 2 for 1080p
          "manifest": map[string]string{
@@ -85,6 +83,8 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
             },
          },
       },
+      "unencrypted": true,
+      "version":     version,
    }
    data, err := json.MarshalIndent(value, "", " ")
    if err != nil {
