@@ -39,39 +39,6 @@ func (c *Content) Streamings() Streamings {
    return Streamings{ContentId: c.Id, ContentType: c.Type}
 }
 
-type Address struct {
-   MarketCode string
-   SeasonId   string
-   ContentId  string
-}
-
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-func (a *Address) ClassificationId() (int, bool) {
-   switch a.MarketCode {
-   case "at":
-      return 300, true
-   case "ch":
-      return 319, true
-   case "cz":
-      return 272, true
-   case "de":
-      return 307, true
-   case "fr":
-      return 23, true
-   case "ie":
-      return 41, true
-   case "nl":
-      return 69, true
-   case "pl":
-      return 277, true
-   case "se":
-      return 282, true
-   case "uk":
-      return 18, true
-   }
-   return 0, false
-}
-
 type Streamings struct {
    AudioLanguage            string `json:"audio_language"`
    AudioQuality             string `json:"audio_quality"`
@@ -84,21 +51,6 @@ type Streamings struct {
    Player                   string `json:"player"`
    SubtitleLanguage         string `json:"subtitle_language"`
    VideoType                string `json:"video_type"`
-}
-
-func (a *Address) String() string {
-   var b strings.Builder
-   b.WriteString(a.MarketCode)
-   b.WriteByte('/')
-   if a.SeasonId != "" {
-      b.WriteString("player/episodes/stream/")
-      b.WriteString(a.SeasonId)
-   } else {
-      b.WriteString("movies")
-   }
-   b.WriteByte('/')
-   b.WriteString(a.ContentId)
-   return b.String()
 }
 
 func (c *Content) String() string {
@@ -140,32 +92,8 @@ type Content struct {
    Type string
 }
 
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "rakuten.tv")
-   data = strings.TrimPrefix(data, "/")
-   a.MarketCode, data, _ = strings.Cut(data, "/")
-   var found bool
-   data, a.ContentId, found = strings.Cut(data, "movies/")
-   if !found {
-      data = strings.TrimPrefix(data, "player/episodes/stream/")
-      a.SeasonId, a.ContentId, _ = strings.Cut(data, "/")
-   }
-   return nil
-}
-
 type Season struct {
    Episodes []Content
-}
-
-func (s Season) Content(web *Address) (*Content, bool) {
-   for _, episode := range s.Episodes {
-      if episode.Id == web.ContentId {
-         return &episode, true
-      }
-   }
-   return nil, false
 }
 
 type Byte[T any] []byte
@@ -185,22 +113,6 @@ func (c *Content) Unmarshal(data Byte[Content]) error {
    return nil
 }
 
-func (a *Address) Season(classification_id int) (Byte[Season], error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/seasons/" + a.SeasonId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {strconv.Itoa(classification_id)},
-      "device_identifier": {"atvui40"},
-      "market_code":       {a.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 func (s *Season) Unmarshal(data Byte[Season]) error {
    var value struct {
       Data Season
@@ -211,22 +123,6 @@ func (s *Season) Unmarshal(data Byte[Season]) error {
    }
    *s = value.Data
    return nil
-}
-
-func (a *Address) Movie(classification_id int) (Byte[Content], error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/movies/" + a.ContentId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {strconv.Itoa(classification_id)},
-      "device_identifier": {"atvui40"},
-      "market_code":       {a.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 // hard geo block
@@ -275,4 +171,92 @@ func (s *Streamings) Info(
       return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.StreamInfos[0], nil
+}
+
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+func (a *Address) ClassificationId() (int, bool) {
+   switch a.MarketCode {
+   case "at":
+      return 300, true
+   case "ch":
+      return 319, true
+   case "cz":
+      return 272, true
+   case "de":
+      return 307, true
+   case "fr":
+      return 23, true
+   case "ie":
+      return 41, true
+   case "nl":
+      return 69, true
+   case "pl":
+      return 277, true
+   case "se":
+      return 282, true
+   case "uk":
+      return 18, true
+   }
+   return 0, false
+}
+
+func (s Season) Content(web *Address) (*Content, bool) {
+   for _, episode := range s.Episodes {
+      if episode.Id == web.ContentId {
+         return &episode, true
+      }
+   }
+   return nil, false
+}
+
+func (a *Address) Season(classification_id int) (Byte[Season], error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/seasons/" + a.SeasonId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {strconv.Itoa(classification_id)},
+      "device_identifier": {"atvui40"},
+      "market_code":       {a.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (a *Address) Movie(classification_id int) (Byte[Content], error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/movies/" + a.ContentId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {strconv.Itoa(classification_id)},
+      "device_identifier": {"atvui40"},
+      "market_code":       {a.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Address struct {
+   MarketCode string
+   SeasonId   string
+   ContentId  string
+}
+
+func (a *Address) New(data string) {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   data = strings.TrimPrefix(data, "rakuten.tv")
+   data = strings.TrimPrefix(data, "/")
+   a.MarketCode, data, _ = strings.Cut(data, "/")
+   var found bool
+   data, a.ContentId, found = strings.Cut(data, "movies/")
+   if !found {
+      data = strings.TrimPrefix(data, "player/episodes/stream/")
+      a.SeasonId, a.ContentId, _ = strings.Cut(data, "/")
+   }
 }

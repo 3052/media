@@ -134,24 +134,7 @@ type flags struct {
    dash        string
 }
 
-///
-
 func (f *flags) do_roku() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/roku/Playback")
-      if err != nil {
-         return err
-      }
-      var play roku.Playback
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
    var code *roku.Code
    if f.token_read {
       data, err := os.ReadFile(f.media + "/roku/Code")
@@ -194,58 +177,17 @@ func (f *flags) do_roku() error {
 }
 
 func (f *flags) do_dash() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/roku/Playback")
-      if err != nil {
-         return err
-      }
-      var play roku.Playback
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   var code *roku.Code
-   if f.token_read {
-      data, err := os.ReadFile(f.media + "/roku/Code")
-      if err != nil {
-         return err
-      }
-      code = &roku.Code{}
-      err = code.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-   }
-   data, err := code.AccountToken()
-   if err != nil {
-      return err
-   }
-   var token roku.AccountToken
-   err = token.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data1, err := token.Playback(f.roku)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/roku/Playback", data1)
+   data, err := os.ReadFile(f.media + "/roku/Playback")
    if err != nil {
       return err
    }
    var play roku.Playback
-   err = play.Unmarshal(data1)
+   err = play.Unmarshal(data)
    if err != nil {
       return err
    }
-   resp, err := http.Get(play.Url)
-   if err != nil {
-      return err
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
    }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }

@@ -12,12 +12,21 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   address  rakuten.Address
-   dash     string
-   e        internal.License
-   language string
-   media    string
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func main() {
@@ -50,12 +59,21 @@ func main() {
    }
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+type flags struct {
+   e        internal.License
+   media    string
+   
+   address string
+   language string
+   dash     string
 }
 
-func (f *flags) do_language() error {
+///
+
+func (f *flags) do_language(address string) error {
+   
+   
+   
    class, ok := f.address.ClassificationId()
    if !ok {
       return errors.New(".ClassificationId()")
@@ -95,18 +113,6 @@ func (f *flags) do_language() error {
       }
    }
    fmt.Println(content)
-   return nil
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
    return nil
 }
 
