@@ -8,12 +8,11 @@ import (
    "strings"
 )
 
-func season_episodes(id int64) (*child, error) {
+func (c callback) do() (*http.Response, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
       b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
-      b = append(b, "type/series-detail/id/"...)
-      b = strconv.AppendInt(b, id, 10)
+      b = append(b, c.Endpoint...)
       return string(b)
    }()
    req.Header = http.Header{
@@ -22,19 +21,22 @@ func season_episodes(id int64) (*child, error) {
       "x-amcn-platform": {"android"},
       "x-amcn-tenant":   {"amcn"},
    }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
+   return http.DefaultClient.Do(req)
+}
+
+type child struct {
+   Properties struct {
+      Metadata struct {
+         ItemText    string
+         ElementType string
+      }
    }
-   defer resp.Body.Close()
-   var value struct {
-      Data child
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data, nil
+   Callback *callback
+   Children []child
+}
+
+type callback struct {
+   Endpoint string
 }
 
 func series_detail(id int64) (*child, error) {
@@ -75,19 +77,6 @@ func (c *child) String() string {
    b.WriteString("\nendpoint = ")
    b.WriteString(c.Callback.Endpoint)
    return b.String()
-}
-
-type child struct {
-   Properties struct {
-      Metadata struct {
-         ItemText    string
-         ElementType string
-      }
-   }
-   Callback *struct {
-      Endpoint string
-   }
-   Children []child
 }
 
 func (c *child) seasons() iter.Seq[*child] {
