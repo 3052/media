@@ -10,7 +10,13 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = resp.Write(os.Stdout)
+   defer resp.Body.Close()
+   file, err := os.Create("amc.json")
+   if err != nil {
+      t.Fatal(err)
+   }
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
    if err != nil {
       t.Fatal(err)
    }
