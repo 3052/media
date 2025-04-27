@@ -2,9 +2,31 @@ package amc
 
 import (
    "fmt"
-   "os"
    "testing"
 )
+
+func TestSeason(t *testing.T) {
+   series, err := series_detail(show.id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   for child1 := range series.seasons() {
+      season, err := child1.season()
+      if err != nil {
+         t.Fatal(err)
+      }
+      var line bool
+      for child2 := range season.episodes() {
+         if line {
+            fmt.Println()
+         } else {
+            line = true
+         }
+         fmt.Println(&child2.Properties.Metadata)
+      }
+      break
+   }
+}
 
 var show = struct {
    id  int64
@@ -12,30 +34,6 @@ var show = struct {
 }{
    id:  1010578,
    url: "amcplus.com/shows/orphan-black--1010578",
-}
-
-func TestSeason(t *testing.T) {
-   series, err := series_detail(show.id)
-   if err != nil {
-      t.Fatal(err)
-   }
-   for season := range series.seasons() {
-      resp, err := season.Callback.do()
-      if err != nil {
-         t.Fatal(err)
-      }
-      defer resp.Body.Close()
-      file, err := os.Create("amc.json")
-      if err != nil {
-         t.Fatal(err)
-      }
-      defer file.Close()
-      _, err = file.ReadFrom(resp.Body)
-      if err != nil {
-         t.Fatal(err)
-      }
-      break
-   }
 }
 
 func TestSeries(t *testing.T) {
@@ -50,6 +48,6 @@ func TestSeries(t *testing.T) {
       } else {
          line = true
       }
-      fmt.Println(season)
+      fmt.Println(&season.Properties.Metadata)
    }
 }
