@@ -8,17 +8,7 @@ import (
    "io"
    "net/http"
    "strconv"
-   "strings"
 )
-
-func Id(address string) (int, error) {
-   var found bool
-   _, address, found = strings.Cut(address, "--")
-   if !found {
-      return 0, errors.New(`"--" not found`)
-   }
-   return strconv.Atoi(address)
-}
 
 func (a *Auth) Playback(id int) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{

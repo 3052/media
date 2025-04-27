@@ -1,35 +1,15 @@
-package main
+package amc
 
-import (
-   "encoding/base64"
-   "net/http"
-   "net/url"
-   "os"
-)
+import "net/http"
 
-func cache_hash() string {
-   return base64.StdEncoding.EncodeToString([]byte("ff="))
-}
-
-func main() {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{}
-   req.URL.Host = "gw.cds.amcn.com"
-   req.URL.Path = "/content-compiler-cr/api/v1/content/amcn/amcplus/type/season-episodes/id/1010638"
-   req.URL.Scheme = "https"
-   
-   req.Header["Authorization"] = []string{"Bearer eyJraWQiOiJwcm9kLTEiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOiJ1bmF1dGgiLCJhdWQiOiJyZXNvdXJjZV9zZXJ2ZXIiLCJhdXRoX3R5cGUiOiJiZWFyZXIiLCJmZWF0dXJlX2ZsYWdzIjoiZXlKaGJXTndiSFZ6TFcxMmNHUWlPbnNpWTJoaGNuUmxjaTF0ZG5BdFpXNWhZbXhsWkNJNlptRnNjMlY5TENKaGJXTndiSFZ6TFhScGVtVnVMV04zSWpwN0ltVnVZV0pzWldRaU9uUnlkV1Y5TENKallXSmZZVzFqY0MxamIyNTBaVzUwTFdkaGRHVmtMVzlqZEMweU1ESTBJam9pUWlJc0ltTmhZbDloYldOd0xXTnZiblJsYm5RdFpYaDBjbUZ6TFcxaGNpMHlNREkxSWpvaVFTSXNJbUZ0WTNCc2RYTXRZV1F0ZEdsbGNpSTZleUpoWkMxMGFXVnlMWEIxY21Ob1lYTmxMVzl1SWpwbVlXeHpaWDBzSW1GdFkzQnNkWE10YzJ0cGNDMXdjbTl0YnkxaFpITWlPbnNpYzJ0cGNDMXdjbTl0YnkxaFpITXRaVzVoWW14bFpDSTZabUZzYzJVc0luWmhjbWxoZEdsdmJpSTZJa0ZOUXlzZ1YybDBhQ0JCWkhNaWZTd2lZMjl0WTJGemRDMWhaQzFpYkc5amEyVnlMWE5qY21WbGJpSTZleUp6ZFdKMGFYUnNaU0k2SWtadmNpQm9aV3h3TENCbGJXRnBiQ0JqZFhOMGIyMWxjbk5sY25acFkyVkFZVzFqY0d4MWN5NWpiMjB1SWl3aWRHbDBiR1VpT2lKVWFHVWdUVzl1ZEdoc2VTQjNhWFJvSUVGa2N5QndiR0Z1SUdseklHNXZkQ0JqZFhKeVpXNTBiSGtnYzNWd2NHOXlkR1ZrSUc5dUlGaG1hVzVwZEhrZ1pHVjJhV05sY3k0aUxDSmxibUZpYkdWa0lqcDBjblZsZlN3aVlXMWpjR3gxY3kxMmFYcHBieTF3Y205dGIzUnBiMjRpT25zaVkyOTFjRzl1WDJOdlpHVWlPaUp5WlhSaGFXd3hJaXdpWTI5MWNHOXVYMk52WkdWZmJXOXVkR2hzZVNJNkluSmxkR0ZwYkRNaUxDSmxibUZpYkdWa0lqcDBjblZsZlgwPSIsInJvbGVzIjpbInVuYXV0aCJdLCJpc3MiOiJpcC0xMC0yLTQ3LTM4LmVjMi5pbnRlcm5hbCIsInRva2VuX3R5cGUiOiJhdXRoIiwiZXhwIjoxNzQ1NzY0NzM3LCJkZXZpY2UtaWQiOiJiNjhlNzE0MS1lZGU1LTQxMzctYWNkMS0xOThkNGRjMWJjODkiLCJieXBhc3NfcGVyc2lzdCI6dHJ1ZSwiaWF0IjoxNzQ1NzYxMTM3LCJqdGkiOiIwN2FmY2M3Mi02ODg0LTRmNmYtYWFmOC0zMzMyYThlNGJlNWUifQ.QmSZLBpVUj47DdD7kjpe1I9-OFzDwRi4fSoGVzFHO2vHvILzsG_wkNFg8eE-hVJ_hSMBVCf37_w_U8XHBViQcIIm7U_oV8at0BUtvXBl29aNsjT7kKX72JAGzNbA_UC2RxWPX31rw5Bl84496qowid7c-mlji-9xLZT4YqgD_UrnMADh9AmsnHSkoeGDyvZr5vSkDm4DQHH0ca-2kwwdBbe1W4GX4vJJjeme1Z02qL1oR-uWp9NPvenyc37cQPpRUvfQnJej1M66dn_icTtLY0yQnPDjchrogyj7VVbmZUplHa9W87d8PkQTjs9bsHyjqXW1_Czs8_cStuWbn0ACXw"}
-   req.Header["X-Amcn-Cache-Hash"] = []string{cache_hash()}
-   req.Header["X-Amcn-Network"] = []string{"amcplus"}
-   req.Header["X-Amcn-Platform"] = []string{"web"}
-   req.Header["X-Amcn-Tenant"] = []string{"amcn"}
-   req.Header["X-Amcn-User-Cache-Hash"] = []string{cache_hash()}
-   
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      panic(err)
+func series_detail() (*http.Response, error) {
+   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/content-compiler-cr/api/v1/content/amcn/amcplus/type/series-detail/id/1010578"
+   req.Header = http.Header{
+      "authorization": {"Bearer eyJraWQiOiJwcm9kLTEiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOiJhbWNuLWF1dGgsb2Itc3ViLWFtY3BsdXMiLCJkZWZhdWx0X3Byb2ZpbGVzIjpbeyJwcm9maWxlSWQiOjEwMzgzMTYxLCJwcm9maWxlTmFtZSI6IkRlZmF1bHQiLCJzZXJ2aWNlSWQiOiJhbWNwbHVzIn1dLCJhdXRoX3R5cGUiOiJiZWFyZXIiLCJhbWNuLWFjY291bnQtY291bnRyeSI6InVzIiwicm9sZXMiOlsiYW1jbi1hdXRoIiwib2Itc3ViLWFtY3BsdXMiXSwiaXNzIjoiaXAtMTAtMi0xNjYtNDAuZWMyLmludGVybmFsIiwidG9rZW5fdHlwZSI6ImF1dGgiLCJhdWQiOiJyZXNvdXJjZV9zZXJ2ZXIiLCJhbWNuLWFjY291bnQtaWQiOiI2YjAwZGUxZS1jNmRiLTQ3NmEtYmZjOC04NDUyMTg2MTJiYzkiLCJmZWF0dXJlX2ZsYWdzIjoiZXlKaGJXTndiSFZ6TFcxMmNHUWlPbnNpWTJoaGNuUmxjaTF0ZG5BdFpXNWhZbXhsWkNJNmRISjFaWDBzSW1GdFkzQnNkWE10ZEdsNlpXNHRZM2NpT25zaVpXNWhZbXhsWkNJNlptRnNjMlY5TENKallXSmZZVzFqY0MxamIyNTBaVzUwTFdkaGRHVmtMVzlqZEMweU1ESTBJam9pUVNJc0ltTmhZbDloYldOd0xXTnZiblJsYm5RdFpYaDBjbUZ6TFcxaGNpMHlNREkxSWpvaVFTSXNJbUZ0WTNCc2RYTXRZV1F0ZEdsbGNpSTZleUpoWkMxMGFXVnlMWEIxY21Ob1lYTmxMVzl1SWpwMGNuVmxmU3dpWVcxamNHeDFjeTF6YTJsd0xYQnliMjF2TFdGa2N5STZleUp6YTJsd0xYQnliMjF2TFdGa2N5MWxibUZpYkdWa0lqcDBjblZsTENKMllYSnBZWFJwYjI0aU9pSkJUVU1ySUVGa0lFWnlaV1VpZlN3aVkyOXRZMkZ6ZEMxaFpDMWliRzlqYTJWeUxYTmpjbVZsYmlJNmV5SnpkV0owYVhSc1pTSTZJa1p2Y2lCb1pXeHdMQ0JsYldGcGJDQmpkWE4wYjIxbGNuTmxjblpwWTJWQVlXMWpjR3gxY3k1amIyMHVJaXdpZEdsMGJHVWlPaUpVYUdVZ1RXOXVkR2hzZVNCM2FYUm9JRUZrY3lCd2JHRnVJR2x6SUc1dmRDQmpkWEp5Wlc1MGJIa2djM1Z3Y0c5eWRHVmtJRzl1SUZobWFXNXBkSGtnWkdWMmFXTmxjeTRpTENKbGJtRmliR1ZrSWpwMGNuVmxmU3dpWVcxamNHeDFjeTEyYVhwcGJ5MXdjbTl0YjNScGIyNGlPbnNpWlc1aFlteGxaQ0k2Wm1Gc2MyVjlmUT09IiwiZXhwIjoxNzQ1Nzk3NTIxLCJpYXQiOjE3NDU3NzU5MjEsImFtY24tc2VydmljZS1ncm91cC1pZCI6IjEwIiwianRpIjoiOGFjYTY5YzQtZjJmZi00Y2YzLTlhYTktMzhmNmJkOTA4M2E4IiwiYW1jbi11c2UtYWNjb3VudC1jb3VudHJ5IjpmYWxzZX0.NneInIS7E-sOuSLnNxLto_VR7xAbV4gUiuh3cEXjb4PIvs_p-TUowydhBIOyb-n_RiKMyuJuRK9Gp5CW_5B35dXG254dCzA4UYUGnGUfc-sd1qz1N3tQWybG-MgyC_GiJ97pMNxY9HfmGgd6jd3LHaeRXR0nToIuKLIkbPgGeXsWvbaOAxhr3CN-a7z4bzkb3f9OperSDv1r6iNwZG8V9Ui36pCN_yqOXmL5Y5j4PoVCpkr2mVSGWCFV_v2NuROcS_1KdXLucTyA3z4wduFoxnffcM2jkSTiGdfNHMb4EIW3tEz5uGDyEzhYqLbPz9i7W8oxnbgIf1CuTZKwMM9AIg"},
+      "x-amcn-network": {"amcplus"},
+      "x-amcn-platform": {"android"},
+      "x-amcn-tenant": {"amcn"},
    }
-   defer resp.Body.Close()
-   resp.Write(os.Stdout)
+   return http.DefaultClient.Do(req)
 }
