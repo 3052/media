@@ -7,17 +7,64 @@ import (
    "errors"
    "io"
    "net/http"
+   "strconv"
    "strings"
 )
 
-type Source struct {
-   KeySystems *struct {
-      Widevine struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // MPD
-   Type string
+func Id(address string) (int, error) {
+   var found bool
+   _, address, found = strings.Cut(address, "--")
+   if !found {
+      return 0, errors.New(`"--" not found`)
+   }
+   return strconv.Atoi(address)
+}
+
+func (a *Auth) Playback(id int) (Byte[Playback], error) {
+   data, err := json.Marshal(map[string]any{
+      "adtags": map[string]any{
+         "lat":          0,
+         "mode":         "on-demand",
+         "playerHeight": 0,
+         "playerWidth":  0,
+         "ppid":         0,
+         "url":          "-",
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/playback-id/api/v1/playback/" + strconv.Itoa(id)
+   req.Header = http.Header{
+      "authorization":       {"Bearer " + a.Data.AccessToken},
+      "content-type":        {"application/json"},
+      "x-amcn-device-ad-id": {"-"},
+      "x-amcn-language":     {"en"},
+      "x-amcn-network":      {"amcplus"},
+      "x-amcn-platform":     {"web"},
+      "x-amcn-service-id":   {"amcplus"},
+      "x-amcn-tenant":       {"amcn"},
+      "x-ccpa-do-not-sell":  {"doNotPassData"},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var buf bytes.Buffer
+   err = resp.Write(&buf)
+   if err != nil {
+      return nil, err
+   }
+   return buf.Bytes(), nil
 }
 
 type Auth struct {
@@ -147,69 +194,12 @@ func (p *Playback) Widevine(source1 *Source, data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-///
-
-type Address [2]string
-
-func (a *Address) String() string {
-   return strings.Join(a[:], "--")
-}
-
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "amcplus.com")
-   var found bool
-   a[0], a[1], found = strings.Cut(data, "--")
-   if !found {
-      return errors.New("--")
-   }
-   return nil
-}
-
-func (a *Auth) Playback(web Address) (Byte[Playback], error) {
-   data, err := json.Marshal(map[string]any{
-      "adtags": map[string]any{
-         "lat":          0,
-         "mode":         "on-demand",
-         "playerHeight": 0,
-         "playerWidth":  0,
-         "ppid":         0,
-         "url":          "-",
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/playback-id/api/v1/playback/" + web[1]
-   req.Header = http.Header{
-      "authorization":       {"Bearer " + a.Data.AccessToken},
-      "content-type":        {"application/json"},
-      "x-amcn-device-ad-id": {"-"},
-      "x-amcn-language":     {"en"},
-      "x-amcn-network":      {"amcplus"},
-      "x-amcn-platform":     {"web"},
-      "x-amcn-service-id":   {"amcplus"},
-      "x-amcn-tenant":       {"amcn"},
-      "x-ccpa-do-not-sell":  {"doNotPassData"},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var buf bytes.Buffer
-   err = resp.Write(&buf)
-   if err != nil {
-      return nil, err
-   }
-   return buf.Bytes(), nil
+type Source struct {
+   KeySystems *struct {
+      Widevine struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // MPD
+   Type string
 }
