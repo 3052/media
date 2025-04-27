@@ -12,21 +12,12 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+type flags struct {
+   dash     string
+   e        internal.License
+   language string
+   media    string
+   address  string
 }
 
 func main() {
@@ -35,14 +26,14 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.Var(&f.address, "a", "address")
+   flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.language, "b", "", "language")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.Parse()
-   if f.address.MarketCode != "" {
+   if f.address != "" {
       if f.language != "" {
          err := f.download()
          if err != nil {
@@ -59,28 +50,21 @@ func main() {
    }
 }
 
-type flags struct {
-   e        internal.License
-   media    string
-   
-   address string
-   language string
-   dash     string
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
-///
-
-func (f *flags) do_language(address string) error {
-   
-   
-   
-   class, ok := f.address.ClassificationId()
+func (f *flags) do_language() error {
+   var address rakuten.Address
+   address.New(f.address)
+   class, ok := address.ClassificationId()
    if !ok {
       return errors.New(".ClassificationId()")
    }
    var content *rakuten.Content
-   if f.address.SeasonId != "" {
-      data, err := f.address.Season(class)
+   if address.SeasonId != "" {
+      data, err := address.Season(class)
       if err != nil {
          return err
       }
@@ -93,12 +77,12 @@ func (f *flags) do_language(address string) error {
       if err != nil {
          return err
       }
-      content, ok = season.Content(&f.address)
+      content, ok = season.Content(&address)
       if !ok {
          return errors.New(".Content")
       }
    } else {
-      data, err := f.address.Movie(class)
+      data, err := address.Movie(class)
       if err != nil {
          return err
       }
@@ -116,13 +100,27 @@ func (f *flags) do_language(address string) error {
    return nil
 }
 
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
 func (f *flags) download() error {
-   class, ok := f.address.ClassificationId()
+   var address rakuten.Address
+   address.New(f.address)
+   class, ok := address.ClassificationId()
    if !ok {
       return errors.New(".ClassificationId()")
    }
    var content *rakuten.Content
-   if f.address.SeasonId != "" {
+   if address.SeasonId != "" {
       data, err := os.ReadFile(f.media + "/rakuten/Season")
       if err != nil {
          return err
@@ -132,7 +130,7 @@ func (f *flags) download() error {
       if err != nil {
          return err
       }
-      content, ok = season.Content(&f.address)
+      content, ok = season.Content(&address)
       if !ok {
          return errors.New(".Content")
       }
