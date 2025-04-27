@@ -20,7 +20,11 @@ import (
    "strings"
 )
 
+// segment can be VTT or anything
 func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
+   if key == nil {
+      return data, nil
+   }
    var file1 file.File
    err := file1.Read(data)
    if err != nil {
@@ -39,12 +43,13 @@ func (m *media_file) write_segment(data, key []byte) ([]byte, error) {
       }
       log.Println("bandwidth", m.timescale*m.size*8/m.duration)
    }
-   if file1.Moof.Traf.Senc != nil {
-      for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
-         err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
-         if err != nil {
-            return nil, err
-         }
+   if file1.Moof.Traf.Senc == nil {
+      return data, nil
+   }
+   for i, data := range file1.Mdat.Data(&file1.Moof.Traf) {
+      err = file1.Moof.Traf.Senc.Sample[i].Decrypt(data, key)
+      if err != nil {
+         return nil, err
       }
    }
    return file1.Append(nil)
