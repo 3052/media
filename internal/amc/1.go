@@ -11,65 +11,22 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-///
-
-func (f *flags) do_email_password() error {
-   var auth amc.Auth
-   err := auth.Unauth()
-   if err != nil {
-      return err
-   }
-   data, err := auth.Login(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/amc/Auth", data)
-}
-
-type flags struct {
-   e        internal.License
-   email    string
-   password string
-   media    string
-   
-   series int64
-   season int64
-   
-   
-   
-   amc      int
-   dash     string
-}
-
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.IntVar(&f.amc, "b", 0, "AMC ID")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.StringVar(&f.e.ClientId, "client", f.e.ClientId, "client ID")
+   flag.StringVar(&f.email, "email", "", "email")
+   flag.StringVar(&f.e.PrivateKey, "key", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.password, "password", "", "password")
+   
+   flag.Int64Var(&f.episode, "e", 0, "episode or movie ID")
+   flag.Int64Var(&f.season, "s", 0, "season ID")
+   flag.Int64Var(&f.series, "series", 0, "series ID")
+   
+   
    flag.Parse()
    if f.email != "" {
       if f.password != "" {
