@@ -10,7 +10,7 @@ func Test(t *testing.T) {
 }
 
 type test struct {
-   id int64
+   id  int64
    url string
 }
 
@@ -25,6 +25,6 @@ var season = test{
 }
 
 var movie = test{
-   id: 1061554,
+   id:  1061554,
    url: "amcplus.com/movies/nocebo--1061554",
 }

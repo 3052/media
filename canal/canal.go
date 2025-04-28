@@ -16,104 +16,6 @@ import (
    "time"
 )
 
-const (
-   key    = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-const device_serial = "!!!!"
-
-type Byte[T any] []byte
-
-type ObjectId [1]string
-
-func (ObjectId) prefix() string {
-   return "https://play.canalplus.cz/player/d/"
-}
-
-func (o ObjectId) String() string {
-   return o.prefix() + o[0]
-}
-
-// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
-// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
-func (o *ObjectId) Set(data string) error {
-   if !strings.HasPrefix(data, o.prefix()) {
-      return fmt.Errorf("%q not found", o.prefix())
-   }
-   u, err := url.Parse(data)
-   if err != nil {
-      return err
-   }
-   o[0] = path.Base(u.Path)
-   return nil
-}
-
-func (p *Play) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Play) Unmarshal(data Byte[Play]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
-}
-
-type Play struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-
-func NewSession(sso_token string) (Byte[Session], error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     sso_token,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (s *Session) Unmarshal(data Byte[Session]) error {
-   err := json.Unmarshal(data, s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
-}
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
-
 func (s *Session) Play(id ObjectId) (Byte[Play], error) {
    data, err := json.Marshal(map[string]any{
       "player": map[string]any{
@@ -269,4 +171,102 @@ func (c *client) String() string {
    b = append(b, ",sig="...)
    b = base64.RawURLEncoding.AppendEncode(b, c.sig)
    return string(b)
+}
+
+const (
+   key    = "web.NhFyz4KsZ54"
+   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+const device_serial = "!!!!"
+
+type Byte[T any] []byte
+
+type ObjectId [1]string
+
+func (ObjectId) prefix() string {
+   return "https://play.canalplus.cz/player/d/"
+}
+
+func (o ObjectId) String() string {
+   return o.prefix() + o[0]
+}
+
+// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
+// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
+func (o *ObjectId) Set(data string) error {
+   if !strings.HasPrefix(data, o.prefix()) {
+      return fmt.Errorf("%q not found", o.prefix())
+   }
+   u, err := url.Parse(data)
+   if err != nil {
+      return err
+   }
+   o[0] = path.Base(u.Path)
+   return nil
+}
+
+func (p *Play) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Play) Unmarshal(data Byte[Play]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if p.Message != "" {
+      return errors.New(p.Message)
+   }
+   return nil
+}
+
+type Play struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
+
+func NewSession(sso_token string) (Byte[Session], error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (s *Session) Unmarshal(data Byte[Session]) error {
+   err := json.Unmarshal(data, s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
 }
