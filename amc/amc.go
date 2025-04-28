@@ -6,10 +6,125 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "iter"
    "net/http"
    "strconv"
 )
 
+func (a *Auth) SeriesDetail(id int64) (*Child, error) {
+   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
+      b = append(b, "type/series-detail/id/"...)
+      b = strconv.AppendInt(b, id, 10)
+      return string(b)
+   }()
+   req.Header = http.Header{
+      "authorization":   {"Bearer " + a.Data.AccessToken},
+      "x-amcn-network":  {"amcplus"},
+      "x-amcn-platform": {"android"},
+      "x-amcn-tenant":   {"amcn"},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data Child
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data, nil
+}
+
+type Child struct {
+   Children   []Child
+   Properties struct {
+      Metadata Metadata
+   }
+}
+
+func (c *Child) Episodes() iter.Seq[*Child] {
+   return func(yield func(*Child) bool) {
+      for _, child1 := range c.Children {
+         for _, child2 := range child1.Children {
+            if !yield(&child2) {
+               return
+            }
+         }
+      }
+   }
+}
+
+func (c *Child) Seasons() iter.Seq[*Child] {
+   return func(yield func(*Child) bool) {
+      for _, child1 := range c.Children { // tab_bar
+         for _, child2 := range child1.Children {
+            for _, child3 := range child2.Children {
+               for _, child4 := range child3.Children {
+                  if !yield(&child4) {
+                     return
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+
+type Metadata struct {
+   EpisodeNumber int64
+   Nid           int64
+   Title         string
+}
+
+func (m *Metadata) String() string {
+   var b []byte
+   if m.EpisodeNumber >= 0 {
+      b = []byte("episode = ")
+      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "title = "...)
+   b = append(b, m.Title...)
+   b = append(b, "\nnid = "...)
+   b = strconv.AppendInt(b, m.Nid, 10)
+   return string(b)
+}
+
+func (a *Auth) SeasonEpisodes(id int64) (*Child, error) {
+   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
+      b = append(b, "type/season-episodes/id/"...)
+      b = strconv.AppendInt(b, id, 10)
+      return string(b)
+   }()
+   req.Header = http.Header{
+      "authorization":   {"Bearer " + a.Data.AccessToken},
+      "x-amcn-network":  {"amcplus"},
+      "x-amcn-platform": {"android"},
+      "x-amcn-tenant":   {"amcn"},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data Child
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data, nil
+}
 func (a *Auth) Playback(id int) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{

@@ -11,19 +11,6 @@ import (
    "path/filepath"
 )
 
-func (f *flags) do_email_password() error {
-   var auth amc.Auth
-   err := auth.Unauth()
-   if err != nil {
-      return err
-   }
-   data, err := auth.Login(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/amc/Auth", data)
-}
-
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -41,13 +28,34 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
+///
+
+func (f *flags) do_email_password() error {
+   var auth amc.Auth
+   err := auth.Unauth()
+   if err != nil {
+      return err
+   }
+   data, err := auth.Login(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/amc/Auth", data)
+}
+
 type flags struct {
-   amc      int
-   dash     string
    e        internal.License
    email    string
-   media    string
    password string
+   media    string
+   
+   series int64
+   season int64
+   
+   
+   
+   amc      int
+   dash     string
 }
 
 func main() {
