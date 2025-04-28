@@ -5,6 +5,10 @@ import (
    "testing"
 )
 
+func Test(t *testing.T) {
+   fmt.Println(series, season, movie)
+}
+
 type test struct {
    id int64
    url string

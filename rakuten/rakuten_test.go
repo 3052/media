@@ -86,7 +86,7 @@ type web_test struct {
 func Test(t *testing.T) {
    for _, test1 := range web_tests {
       var web Address
-      web.Set(test1.address)
+      web.New(test1.address)
       class, ok := web.ClassificationId()
       if !ok {
          t.Fatal(".ClassificationId()")
