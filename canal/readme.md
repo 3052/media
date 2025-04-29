@@ -1,5 +1,7 @@
 # canal
 
+no method to get object ID:
+
 - https://github.com/dut-iptv/dut-iptv/blob/master/plugin.video.canaldigitaal/resources/lib/api.py
 - https://github.com/add-ons/plugin.video.tvvlaanderen/blob/master/resources/lib/solocoo/asset.py
 
@@ -26,7 +28,9 @@ def response(f: http.HTTPFlow) -> None:
 
 https://play.google.com/store/apps/details?id=com.canalplus.canalplus
 
-then:
+Updated on Apr 7, 2025
+
+500K+ Downloads
 
 <https://apk.gold/download?file_id=3155967/canalplus-app>
 
@@ -76,17 +80,35 @@ no deep link, so we will need to parse HTML
 
 https://play.google.com/store/apps/details?id=com.canal.android.canal
 
-then:
+Updated on Apr 24, 2025
+
+10M+ Downloads
 
 https://apkmirror.com/apk/groupe-canal/mycanal-vos-programmes-en-live-ou-en-replay
 
+~~~
+SdkVersion='35' fail
+SdkVersion='34' fail
+SdkVersion='33' ABI ABI
+SdkVersion='32'
+SdkVersion='31' fail
+SdkVersion='30'
+SdkVersion='29'
+SdkVersion='28'
+SdkVersion='27' fail
+SdkVersion='26'
+SdkVersion='25'
+sdkVersion:'24' fail
+~~~
+
+then:
+
 ~~~xml
-com.canal.android.canal.xml
 action.name = android.intent.action.VIEW
 category.name = android.intent.category.BROWSABLE
 category.name = android.intent.category.DEFAULT
-data.scheme = https
 data.scheme = http
+data.scheme = https
 data.host = www.mycanal.fr
 
 action.name = android.intent.action.VIEW
@@ -98,16 +120,16 @@ data.host = com.canal.android.canal
 action.name = android.intent.action.VIEW
 category.name = android.intent.category.BROWSABLE
 category.name = android.intent.category.DEFAULT
-data.scheme = https
 data.scheme = http
+data.scheme = https
 data.host = www.canalplus.com
 
 action.name = android.intent.action.VIEW
 category.name = android.intent.category.BROWSABLE
 category.name = android.intent.category.DEFAULT
+data.scheme = https
 data.host = mycanal.onelink.me
 data.pathPrefix = /1424707377
-data.scheme = https
 
 action.name = android.intent.action.VIEW
 category.name = android.intent.category.BROWSABLE
@@ -117,15 +139,10 @@ data.scheme = http
 data.host = mycan.al
 
 action.name = android.intent.action.VIEW
-category.name = android.intent.category.LEANBACK_LAUNCHER
-
-action.name = android.intent.action.VIEW
 category.name = android.intent.category.BROWSABLE
 category.name = android.intent.category.DEFAULT
 data.host = com.canal.android.canal
-data.pathPrefix = /startapp
-data.scheme = mycanaltvlauncher
-data.host = com.canal.android.canal
 data.pathPrefix = /content
+data.pathPrefix = /startapp
 data.scheme = mycanaltvlauncher
 ~~~
