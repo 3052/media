@@ -3,80 +3,30 @@
 - https://github.com/dut-iptv/dut-iptv/blob/master/plugin.video.canaldigitaal/resources/lib/api.py
 - https://github.com/add-ons/plugin.video.tvvlaanderen/blob/master/resources/lib/solocoo/asset.py
 
-## smart proxy
+## web
 
-https://canalplus.cz
+~~~py
+from mitmproxy import http
 
-1. register
-2. register now
-3. VPN
-4. canal+ complete, order
-5. e-mail
-   - mailsac.com
-6. first name
-7. last name
-8. I agree with general terms and conditions
-9. K platbě (to payment)
-10. card number
-11. expiry date
-12. security code
-13. holder name
-14. Zaplatit (pay)
-15. password
-   - min 8 znaků, velké písmeno, číslice, speciální znak (min 8 characters,
-     uppercase letter, number, special character)
-16. repeat the password
-17. Dokončit registraci (complete registration)
+data = '''
+console.log('_0xb40f61', _0xb40f61);
+console.log('_0xffbd34', _0xffbd34);
+console.log('_0x44b887', _0x44b887);
+console.log('_0x5bdf04', _0x5bdf04);
+console.log('_0x5430bb', _0x5430bb);
+console.log('_0x4ab337', _0x4ab337);
+return'Client'''
 
-## mullvad
-
-~~~
-> mullvad status
-Connected to cz-prg-wg-201 in Prague, Czech Republic
-Your connection appears to be from: Czech Republic, Prague. IPv4: 178.249.209.172
-
-> curl -m 30 canalplus.cz
-curl: (28) Failed to connect to canalplus.cz port 80 after 21050 ms: Timed out
+def response(f: http.HTTPFlow) -> None:
+   if f.request.path.startswith('/static/js/main.4c582264.js'):
+      f.response.text = f.response.text.replace("return'Client", data)
 ~~~
 
-## nord
+## com.canalplus.canalplus
 
-~~~
-Secure Connection Failed
-An error occurred during a connection to www.canalplus.cz. PR_END_OF_FILE_ERROR
-~~~
+https://play.google.com/store/apps/details?id=com.canalplus.canalplus
 
-## android
-
-~~~
-> play -i com.canal.android.canal -abi armeabi-v7a
-details[8] = 0 USD
-details[13][1][4] = 5.47.0
-details[13][1][16] = Mar 12, 2025
-details[13][1][17] = APK APK APK APK
-details[13][1][82][1][1] = 7.0 and up
-details[15][18] = https://www.canalplus.com/confidentialite
-downloads = 41.20 million
-name = CANAL+, Live and catch-up TV
-size = 54.93 megabyte
-version code = 450109264
-~~~
-
-and:
-
-~~~
-> play -i com.canalplus.canalplus
-details[8] = 0 USD
-details[13][1][4] = 12.2
-details[13][1][16] = Feb 14, 2025
-details[13][1][17] = APK APK APK
-details[13][1][82][1][1] = 7.0 and up
-details[15][18] = https://www.m7group.eu/privacy-policy-canal-plus/
-downloads = 530.63 thousand
-name = CANAL+ App
-size = 41.71 megabyte
-version code = 1739555674
-~~~
+then:
 
 <https://apk.gold/download?file_id=3155967/canalplus-app>
 
@@ -104,13 +54,12 @@ adb shell am start -a android.intent.action.VIEW `
 next:
 
 ~~~xml
-<intent-filter android:autoVerify="true">
-   <action android:name="android.intent.action.VIEW"/>
-   <category android:name="android.intent.category.BROWSABLE"/>
-   <category android:name="android.intent.category.DEFAULT"/>
-   <data android:scheme="@string/additional_scheme"/>
-   <data android:scheme="@string/application_scheme"/>
-</intent-filter>
+com.canalplus.canalplus.xml
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.DEFAULT
+category.name = android.intent.category.BROWSABLE
+data.scheme = @string/application_scheme
+data.scheme = @string/additional_scheme
 ~~~
 
 then:
@@ -123,21 +72,60 @@ resources\res\values\strings.xml
 
 no deep link, so we will need to parse HTML
 
-## web
+## com.canal.android.canal
 
-~~~py
-from mitmproxy import http
+https://play.google.com/store/apps/details?id=com.canal.android.canal
 
-data = '''
-console.log('_0xb40f61', _0xb40f61);
-console.log('_0xffbd34', _0xffbd34);
-console.log('_0x44b887', _0x44b887);
-console.log('_0x5bdf04', _0x5bdf04);
-console.log('_0x5430bb', _0x5430bb);
-console.log('_0x4ab337', _0x4ab337);
-return'Client'''
+then:
 
-def response(f: http.HTTPFlow) -> None:
-   if f.request.path.startswith('/static/js/main.4c582264.js'):
-      f.response.text = f.response.text.replace("return'Client", data)
+https://apkmirror.com/apk/groupe-canal/mycanal-vos-programmes-en-live-ou-en-replay
+
+~~~xml
+com.canal.android.canal.xml
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.BROWSABLE
+category.name = android.intent.category.DEFAULT
+data.scheme = https
+data.scheme = http
+data.host = www.mycanal.fr
+
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.BROWSABLE
+category.name = android.intent.category.DEFAULT
+data.scheme = tvchannels
+data.host = com.canal.android.canal
+
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.BROWSABLE
+category.name = android.intent.category.DEFAULT
+data.scheme = https
+data.scheme = http
+data.host = www.canalplus.com
+
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.BROWSABLE
+category.name = android.intent.category.DEFAULT
+data.host = mycanal.onelink.me
+data.pathPrefix = /1424707377
+data.scheme = https
+
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.BROWSABLE
+category.name = android.intent.category.DEFAULT
+data.scheme = https
+data.scheme = http
+data.host = mycan.al
+
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.LEANBACK_LAUNCHER
+
+action.name = android.intent.action.VIEW
+category.name = android.intent.category.BROWSABLE
+category.name = android.intent.category.DEFAULT
+data.host = com.canal.android.canal
+data.pathPrefix = /startapp
+data.scheme = mycanaltvlauncher
+data.host = com.canal.android.canal
+data.pathPrefix = /content
+data.scheme = mycanaltvlauncher
 ~~~
