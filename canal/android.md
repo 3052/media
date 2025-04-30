@@ -1,5 +1,21 @@
 # canal
 
+according to this:
+
+https://boutique.canalplus.com/plan-de-site
+
+the URL is here:
+
+https://play.google.com/store/apps/details?id=com.canal.android.canal
+
+according to this:
+
+https://canalplus.cz
+
+the URL is here:
+
+https://play.google.com/store/apps/details?id=com.canalplus.canalplus
+
 ## com.canalplus.canalplus
 
 https://play.google.com/store/apps/details?id=com.canalplus.canalplus

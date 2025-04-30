@@ -10,6 +10,18 @@ import (
    "strings"
 )
 
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
+      "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 // these return a valid response body, but response status is "403 OK":
 // http://siloh-fs.plutotv.net
 // http://siloh-ns1.plutotv.net
@@ -26,18 +38,6 @@ func (f *File) UnmarshalText(data []byte) error {
 }
 
 var ForwardedFor string
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
-      "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
 
 type Clips struct {
    Sources []struct {
