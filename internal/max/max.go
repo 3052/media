@@ -13,40 +13,33 @@ import (
    "slices"
 )
 
-func (f *flags) do_address() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
+type flags struct {
+   address  string
+   dash     string
+   e        internal.License
+   edit     string
+   initiate bool
+   login    bool
+   media    string
+   proxy    bool
+   season   int
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
    if err != nil {
       return err
    }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   var id max.ShowId
-   err = id.Set(f.address)
-   if err != nil {
-      return err
-   }
-   var videos *max.Videos
-   if f.season >= 1 {
-      videos, err = login.Season(id, f.season)
-   } else {
-      videos, err = login.Movie(id)
-   }
-   if err != nil {
-      return err
-   }
-   sorted := slices.SortedFunc(videos.Seq(), func(a, b max.Video) int {
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
-   for i, video := range sorted {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&video)
-   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
    return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func main() {
@@ -55,20 +48,16 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.BoolVar(
-      &f.initiate, "initiate", false, "/authentication/linkDevice/initiate",
-   )
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.BoolVar(
-      &f.login, "login", false, "/authentication/linkDevice/login",
-   )
-   flag.BoolVar(&f.proxy, "p", false, "proxy")
-   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.StringVar(&f.address, "a", "", "address")
-   flag.IntVar(&f.season, "s", 0, "season")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.StringVar(&f.edit, "e", "", "edit ID")
-   flag.StringVar(&f.dash, "i", "", "DASH ID")
+   flag.BoolVar(&f.initiate, "i", false, "device initiate")
+   flag.BoolVar(&f.login, "l", false, "device login")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.BoolVar(&f.proxy, "proxy", false, "proxy server")
+   flag.IntVar(&f.season, "s", 0, "season")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.Parse()
    if f.proxy {
       http.DefaultClient.Transport = &proxy.Transport{
@@ -106,51 +95,6 @@ func main() {
    }
 }
 
-type flags struct {
-   e        internal.License
-   initiate bool
-   login    bool
-   proxy    bool
-   media    string
-   
-   address string
-   season   int
-   
-   edit     string
-   
-   dash     string
-}
-
-func (f *flags) do_edit() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = login.Playback(f.edit)
-   if err != nil {
-      return err
-   }
-   var play max.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media + "/max/Playback", data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Mpd())
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media+"/Mpd", resp)
-}
-
 func (f *flags) do_initiate() error {
    var st max.St
    err := st.New()
@@ -175,23 +119,6 @@ func (f *flags) do_initiate() error {
    return nil
 }
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (f *flags) do_login() error {
    data, err := os.ReadFile(f.media + "/max/St")
    if err != nil {
@@ -206,7 +133,73 @@ func (f *flags) do_login() error {
    if err != nil {
       return err
    }
-   return write_file(f.media + "/max/Login", data)
+   return write_file(f.media+"/max/Login", data)
+}
+
+func (f *flags) do_address() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   var id max.ShowId
+   err = id.Set(f.address)
+   if err != nil {
+      return err
+   }
+   var videos *max.Videos
+   if f.season >= 1 {
+      videos, err = login.Season(id, f.season)
+   } else {
+      videos, err = login.Movie(id)
+   }
+   if err != nil {
+      return err
+   }
+   sorted := slices.SortedFunc(videos.Seq(), func(a, b max.Video) int {
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+   for i, video := range sorted {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&video)
+   }
+   return nil
+}
+
+func (f *flags) do_edit() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = login.Playback(f.edit)
+   if err != nil {
+      return err
+   }
+   var play max.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/max/Playback", data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Mpd())
+   if err != nil {
+      return err
+   }
+   return internal.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

@@ -16,6 +16,20 @@ import (
    "time"
 )
 
+// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
+// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
+func ObjectId(data string) (string, error) {
+   const prefix = "https://play.canalplus.cz/player/d/"
+   if !strings.HasPrefix(data, prefix) {
+      return "", fmt.Errorf("%q not found", prefix)
+   }
+   url2, err := url.Parse(data)
+   if err != nil {
+      return "", err
+   }
+   return path.Base(url2.Path), nil
+}
+
 func (t *Ticket) Token(username, password string) (*Token, error) {
    data, err := json.Marshal(map[string]any{
       "ticket": t.Ticket,
@@ -245,18 +259,4 @@ func (s *Session) Play(object_id string) (Byte[Play], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
-// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
-func ObjectId(data string) (string, error) {
-   const prefix = "https://play.canalplus.cz/player/d/"
-   if !strings.HasPrefix(data, prefix) {
-      return "", fmt.Errorf("%q not found", prefix)
-   }
-   url2, err := url.Parse(data)
-   if err != nil {
-      return "", err
-   }
-   return path.Base(url2.Path), nil
 }
