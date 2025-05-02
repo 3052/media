@@ -28,21 +28,19 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-///
-
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.roku, "b", "", "Roku ID")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.BoolVar(&f.code_write, "code", false, "write code")
-   flag.BoolVar(&f.token_write, "token", false, "write token")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.roku, "r", "", "Roku ID")
    flag.BoolVar(&f.token_read, "t", false, "read token")
+   flag.BoolVar(&f.token_write, "token", false, "write token")
    flag.Parse()
    switch {
    case f.code_write:

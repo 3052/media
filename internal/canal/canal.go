@@ -11,52 +11,6 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   dash      string
-   e         internal.License
-   email     string
-   media     string
-   password  string
-   proxy     bool
-   object_id canal.ObjectId
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.Var(&f.object_id, "a", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.password, "password", "", "password")
-   flag.StringVar(&f.email, "email", "", "email")
-   flag.BoolVar(&f.proxy, "p", false, "proxy")
-   flag.Parse()
-   if f.proxy {
-      http.DefaultClient.Transport = &proxy.Transport{
-         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-         Proxy:     http.ProxyFromEnvironment,
-      }
-   }
-   switch {
-   case f.password != "":
-      err := f.authenticate()
-      if err != nil {
-         panic(err)
-      }
-   case f.object_id[0] != "":
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
-}
-
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -74,7 +28,17 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flags) authenticate() error {
+type flags struct {
+   e        internal.License
+   email    string
+   password string
+   media    string
+   dash     string
+   proxy    bool
+   address  string
+}
+
+func (f *flags) do_email() error {
    var ticket canal.Ticket
    err := ticket.New()
    if err != nil {
@@ -88,10 +52,54 @@ func (f *flags) authenticate() error {
    if err != nil {
       return err
    }
-   return write_file(f.media + "/canal/Session", data)
+   return write_file(f.media+"/canal/Session", data)
 }
 
-func (f *flags) download() error {
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.StringVar(&f.address, "a", "", "canal address")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "d", "", "dash ID")
+   flag.StringVar(&f.email, "email", "", "canal email")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.password, "password", "", "canal password")
+   flag.BoolVar(&f.proxy, "proxy", false, "proxy server")
+   flag.Parse()
+   if f.proxy {
+      http.DefaultClient.Transport = &proxy.Transport{
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+         Proxy:     http.ProxyFromEnvironment,
+      }
+   }
+   if f.email != "" {
+      if f.password != "" {
+         err := f.do_email()
+         if err != nil {
+            panic(err)
+         }
+      }
+   } else if f.address != "" {
+      err := f.do_address()
+      if err != nil {
+         panic(err)
+      }
+   } else if f.dash != "" {
+      err := f.do_dash()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
+
+///
+
+func (f *flags) do_address() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/canal/Play")
       if err != nil {
@@ -124,11 +132,11 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/canal/Session", data)
+   err = write_file(f.media+"/canal/Session", data)
    if err != nil {
       return err
    }
-   data, err = session.Play(f.object_id)
+   data, err = session.Play(f.address)
    if err != nil {
       return err
    }
@@ -137,7 +145,64 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/canal/Play", data)
+   err = write_file(f.media+"/canal/Play", data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Url)
+   if err != nil {
+      return err
+   }
+   return internal.Mpd(f.media+"/Mpd", resp)
+}
+
+func (f *flags) do_dash() error {
+   if f.dash != "" {
+      data, err := os.ReadFile(f.media + "/canal/Play")
+      if err != nil {
+         return err
+      }
+      var play canal.Play
+      err = play.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      f.e.Widevine = func(data []byte) ([]byte, error) {
+         return play.Widevine(data)
+      }
+      return f.e.Download(f.media+"/Mpd", f.dash)
+   }
+   data, err := os.ReadFile(f.media + "/canal/Session")
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = canal.NewSession(session.SsoToken)
+   if err != nil {
+      return err
+   }
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/canal/Session", data)
+   if err != nil {
+      return err
+   }
+   data, err = session.Play(f.address)
+   if err != nil {
+      return err
+   }
+   var play canal.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/canal/Play", data)
    if err != nil {
       return err
    }

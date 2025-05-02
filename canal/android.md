@@ -27,6 +27,8 @@ split for com.canalplus.canalplus
 
 https://apkpure.com/canal-app/com.canalplus.canalplus/download/11.3
 
+create Android 7 device
+
 1. select your region, cesko
 2. submit
 3. english
@@ -35,13 +37,6 @@ https://apkpure.com/canal-app/com.canalplus.canalplus/download/11.3
 6. password
    - adb shell input text PASSWORD
 7. log in
-
-~~~
-adb shell am start -a android.intent.action.VIEW `
--d https://www.canalplus.cz/stream/film/argylle-tajny-agent
-~~~
-
-next:
 
 ~~~xml
 com.canalplus.canalplus.xml
@@ -60,15 +55,23 @@ resources\res\values\strings.xml
 <string name="application_scheme">https</string>
 ~~~
 
-no deep link, so we will need to parse HTML
+if you do this:
+
+~~~
+adb shell am start -a android.intent.action.VIEW `
+-d https://www.canalplus.cz/stream/film/argylle-tajny-agent
+~~~
+
+it opens the app, but it stays stuck on the splash screen. same for this:
+
+~~~
+adb shell am start -a android.intent.action.VIEW `
+-d m7cp://www.canalplus.cz/stream/film/argylle-tajny-agent
+~~~
+
+also no requests are made
 
 ## com.canal.android.canal
-
-https://play.google.com/store/apps/details?id=com.canal.android.canal
-
-Updated on Apr 24, 2025
-
-10M+ Downloads
 
 https://apkmirror.com/apk/groupe-canal/mycanal-vos-programmes-en-live-ou-en-replay
 
