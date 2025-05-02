@@ -29,13 +29,13 @@ func write_file(name string, data []byte) error {
 }
 
 type flags struct {
+   address  string
+   dash     string
    e        internal.License
    email    string
-   password string
    media    string
-   dash     string
+   password string
    proxy    bool
-   address  string
 }
 
 func (f *flags) do_email() error {
@@ -97,24 +97,7 @@ func main() {
    }
 }
 
-///
-
 func (f *flags) do_address() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/canal/Play")
-      if err != nil {
-         return err
-      }
-      var play canal.Play
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
    data, err := os.ReadFile(f.media + "/canal/Session")
    if err != nil {
       return err
@@ -136,7 +119,11 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   data, err = session.Play(f.address)
+   object_id, err := canal.ObjectId(f.address)
+   if err != nil {
+      return err
+   }
+   data, err = session.Play(object_id)
    if err != nil {
       return err
    }
@@ -157,43 +144,7 @@ func (f *flags) do_address() error {
 }
 
 func (f *flags) do_dash() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/canal/Play")
-      if err != nil {
-         return err
-      }
-      var play canal.Play
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   data, err := os.ReadFile(f.media + "/canal/Session")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = canal.NewSession(session.SsoToken)
-   if err != nil {
-      return err
-   }
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/canal/Session", data)
-   if err != nil {
-      return err
-   }
-   data, err = session.Play(f.address)
+   data, err := os.ReadFile(f.media + "/canal/Play")
    if err != nil {
       return err
    }
@@ -202,13 +153,8 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/canal/Play", data)
-   if err != nil {
-      return err
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
    }
-   resp, err := http.Get(play.Url)
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }
