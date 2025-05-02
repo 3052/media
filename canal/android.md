@@ -18,12 +18,6 @@ https://play.google.com/store/apps/details?id=com.canalplus.canalplus
 
 ## com.canalplus.canalplus
 
-https://play.google.com/store/apps/details?id=com.canalplus.canalplus
-
-Updated on Apr 7, 2025
-
-500K+ Downloads
-
 <https://apk.gold/download?file_id=3155967/canalplus-app>
 
 ~~~
