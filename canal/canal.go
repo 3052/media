@@ -16,6 +16,85 @@ import (
    "time"
 )
 
+func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
+   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
+   req.Header.Set("authorization", "Bearer " + s.Token)
+   req.URL.RawQuery = func() string {
+      b := []byte("limit=99&query=episodes,")
+      b = append(b, series_id...)
+      b = append(b, ",season,"...)
+      b = strconv.AppendInt(b, season, 10)
+      return string(b)
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Assets  []Asset
+      Message string
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Message != "" {
+      return nil, errors.New(value.Message)
+   }
+   return value.Assets, nil
+}
+
+func (s *Session) Play(asset_id string) (Byte[Play], error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v1/assets/")
+      b.WriteString(asset_id)
+      b.WriteString("/play")
+      return b.String()
+   }()
+   // .Get .Set
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (f Fields) AlgoliaConvertTracking() string {
+   return f.Get("data-algolia-convert-tracking")
+}
+
+func (p *Play) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 type Asset struct {
    Params struct {
       SeriesEpisode int64
@@ -160,15 +239,6 @@ const device_serial = "!!!!"
 
 type Byte[T any] []byte
 
-func (p *Play) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 func (p *Play) Unmarshal(data Byte[Play]) error {
    err := json.Unmarshal(data, p)
    if err != nil {
@@ -254,74 +324,4 @@ func (f Fields) Get(key string) string {
       }
    }
    return ""
-}
-
-func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
-   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
-   req.Header.Set("authorization", "Bearer " + s.Token)
-   req.URL.RawQuery = func() string {
-      b := []byte("limit=99&query=episodes,")
-      b = append(b, series_id...)
-      b = append(b, ",season,"...)
-      b = strconv.AppendInt(b, season, 10)
-      return string(b)
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Assets  []Asset
-      Message string
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if value.Message != "" {
-      return nil, errors.New(value.Message)
-   }
-   return value.Assets, nil
-}
-
-func (f Fields) AlgoliaConvertTracking() string {
-   return f.Get("data-algolia-convert-tracking")
-}
-
-func (s *Session) Play(asset_id string) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(asset_id)
-      b.WriteString("/play")
-      return b.String()
-   }()
-   // .Get .Set
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }

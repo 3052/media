@@ -3,29 +3,12 @@ package main
 import (
    "41.neocities.org/media/canal"
    "41.neocities.org/media/internal"
-   "41.neocities.org/platform/proxy"
    "flag"
    "log"
    "net/http"
    "os"
    "path/filepath"
 )
-
-func (f *flags) do_dash() error {
-   data, err := os.ReadFile(f.media + "/canal/Play")
-   if err != nil {
-      return err
-   }
-   var play canal.Play
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
-}
 
 func (f *flags) New() error {
    var err error
@@ -61,15 +44,23 @@ func (f *flags) do_email() error {
    return write_file(f.media+"/canal/Session", data)
 }
 
-type flags struct {
-   address  string
-   dash     string
-   e        internal.License
-   email    string
-   media    string
-   password string
-   proxy    bool
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/canal/Play")
+   if err != nil {
+      return err
+   }
+   var play canal.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }
+
+///
 
 func main() {
    var f flags
@@ -83,14 +74,8 @@ func main() {
    flag.StringVar(&f.email, "email", "", "canal email")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.StringVar(&f.password, "password", "", "canal password")
-   flag.BoolVar(&f.proxy, "proxy", false, "proxy server")
+   
    flag.Parse()
-   if f.proxy {
-      http.DefaultClient.Transport = &proxy.Transport{
-         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-         Proxy:     http.ProxyFromEnvironment,
-      }
-   }
    if f.email != "" {
       if f.password != "" {
          err := f.do_email()
@@ -111,6 +96,21 @@ func main() {
    } else {
       flag.Usage()
    }
+}
+
+type flags struct {
+   e        internal.License
+   media    string
+   
+   email    string
+   password string
+   
+   address  string
+   
+   asset string
+   season int64
+   
+   dash     string
 }
 
 func (f *flags) do_address() error {
@@ -140,7 +140,7 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   data, err = session.Play(fields)
+   data, err = session.Play(fields.AlgoliaConvertTracking())
    if err != nil {
       return err
    }
