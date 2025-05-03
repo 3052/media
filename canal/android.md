@@ -142,3 +142,10 @@ from:
 GET https://tvapi-hlm2.solocoo.tv/v1/assets?query=episodes%2CWY31FZFpXEpd6-TwSvwG29-SvzpxbpZ-RtzixkdY%2Cseason%2C2&sort=seasonepisode HTTP/2.0
 authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0di5zb2xvY29vLmF...
 ~~~
+
+from:
+
+~~~
+GET https://tvapi-hlm2.solocoo.tv/v1/assets/mySUpDGjv8miXctEHQ5xEloGr5E_QKzFamETXHFX HTTP/2.0
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0di5zb2xvY29vLmF...
+~~~
