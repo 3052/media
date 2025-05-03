@@ -1,0 +1,685 @@
+{
+ "nextAsset": "10",
+ "assets": [
+  {
+   "type": "VOD",
+   "id": "fkjX8fxFHcwisYdpHV19lQHA8ojPdnfAbT4SLAsn",
+   "title": "Přísný taťulda",
+   "desc": "Navenek je Rodriovo působení jako nového maestra velký úspěch, ale sám dirigent pochybuje. Hailey se mezitím snaží najít náhradu na svou pozici Rodrigovy asistentky, aby se mohla soustředit na novou pozici, náhradnici v hobojové sekci. Cynthia se setkává s právním zástupcem orchestru.",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SZTm-CyT1ZaRiyRGLWlyAA_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SZTm-CyT1ZaRiyRGLWlyAA_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SZTm-CyT1ZaRiyRGLWlyAA_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SZTm-CyT1ZaRiyRGLWlyAA_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SZTm-CyT1ZaRiyRGLWlyAA_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-22T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1579,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 1,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "_dNvILhQ_5auDI3EmenTEWli5JRqCtumqbediAlg",
+   "title": "Nic nerezonuje tak jako předkožka nosorožce",
+   "desc": "Během živého koncertu dojde téměř ke katastrofě, která Rodriga donutí změnit způsob, jak diriguje nejen sebe, ale i orchestr. Gloria má pro Hailey nezvyklou pozvánku. Ale mladá hobojistka brzy zjistí, že nic jako večeře zdarma neexistuje.",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/sRv9cgH8qB-6tHHnoLbgkQ_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/sRv9cgH8qB-6tHHnoLbgkQ_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/sRv9cgH8qB-6tHHnoLbgkQ_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/sRv9cgH8qB-6tHHnoLbgkQ_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/sRv9cgH8qB-6tHHnoLbgkQ_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-22T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1538,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 2,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "2n_R3wOWNHJCyLPIA9Qyg81fRPxvFm0HdF5CMOxm",
+   "title": "Záleží jen na tobě",
+   "desc": "Po jednom intenzivním bubnování dostane Rodrigo výpověď z bytu, ale netrvá mu dlouho najít si nový podnájem. Hailey a Lizzie pomáhají Bradfordovi nahrávat podcast o slavné budově pro umělce. Hailey se v budoucnu vidí jako jeden z nájemníků, kteří znovu předvedou slavné představení. Hrozící stáv…",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/XvJYREB7RJ1ccIVDDE2oJQ_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/XvJYREB7RJ1ccIVDDE2oJQ_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/XvJYREB7RJ1ccIVDDE2oJQ_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/XvJYREB7RJ1ccIVDDE2oJQ_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/XvJYREB7RJ1ccIVDDE2oJQ_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-22T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1489,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 3,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "zPehuXKwB3V6u0cK_Fox78MTGWzAOc8mpAnpGy8-",
+   "title": "Přesně, maestro, přesně",
+   "desc": "Hostující cellista Andrew Walsh (Dermot Mulroney) pozve Hailey na koncert Lang Langa a dá jí poprvé nahlédnout do světa elity klasické hudby. Thomas a Rodrigo si užívají vzácnou pánskou jízdu a skončí ve stanu v obývajím pokoji, kde objevují nejvzdálenější zákoutí svých myslí. Gloria dokáže, že…",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/-7kGUirMGsd95MtCvDNGXQ_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/-7kGUirMGsd95MtCvDNGXQ_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/-7kGUirMGsd95MtCvDNGXQ_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/-7kGUirMGsd95MtCvDNGXQ_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/-7kGUirMGsd95MtCvDNGXQ_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-22T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1808,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 4,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "S-w-Z3mMgq46Rw_gytMofVHxjBRqeHcUh8x0bMR-",
+   "title": "Regresso Del Rey",
+   "desc": "Hailey má během turné v jižní Americe víc práce, než myslela. Ukradené housle ohrožují finálový koncert, na který má přijít Rodrigův bývalý maestro i potenciální velký sponzor. Rodrigo proto musí zavolat starému příteli. Následkem je dobrodružství v podsvětí Mexico City.",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/fpT9APWfA8yiHO0mq-rwGA_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/fpT9APWfA8yiHO0mq-rwGA_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/fpT9APWfA8yiHO0mq-rwGA_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/fpT9APWfA8yiHO0mq-rwGA_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/fpT9APWfA8yiHO0mq-rwGA_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-22T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1760,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 5,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "Z6-53O1J4YEmvCYtBT87mpIuag8tte4aOlWIPrzp",
+   "title": "Jak rozesmát boha",
+   "desc": "Rodrigo ukazuje Hailey SVÉ Mexiko a bere ji na představení svého orchestru z dětství. Thomas a Gloria se setkávají s Juanem Luisem Delgadou, nejbohatším mužem Mexika. Cynthia má překvapivou návštěvu a skončí v nečekané pozici. Rodrigův učitel maestro Rivera ho žádá, aby splnil slib.",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SYkZIaD75U904edvgGSOyA_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SYkZIaD75U904edvgGSOyA_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SYkZIaD75U904edvgGSOyA_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SYkZIaD75U904edvgGSOyA_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/SYkZIaD75U904edvgGSOyA_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-22T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1751,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 6,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "5L-Pwxfp5swiUAh2924rCe6dX_T6UotRmwcD0HmQ",
+   "title": "Můžeš si vzít měsíc?",
+   "desc": "Orchestr slaví Bettyiných 35 odehraných let s tequilou a speciálním hostem. Hailey poruší základní pravidlo turné: Co se stane na cestě, zůstane na cestě. Vyjednávání narazí na zeď a na povrch se vynoří představa pracovních překážek. Rodriga postihne záhadná nemoc a když natáčí pro novou videoh…",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/kFepK1uEaNyZypwxNsOd-A_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/kFepK1uEaNyZypwxNsOd-A_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/kFepK1uEaNyZypwxNsOd-A_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/kFepK1uEaNyZypwxNsOd-A_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/kFepK1uEaNyZypwxNsOd-A_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-31T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1554,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 7,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "vpzqGVnb5fmaKf2jX6pinUCRSxteesg4hQ_KlPBn",
+   "title": "Hodit všechno za hlavu",
+   "desc": "Thomas představí svou symfonii brzy již bývalé ženě Claire, které připadá jeho hudba dechberoucí. Na pozadí jednání mezi radou a orchestem se odehraje pohřeb. Rodrigo se pokusí opustit jisté věci ze své minulosti, ale ty vstoupí do kláštera. Hailey jde na rande s členem rady a zjistí víc, než č…",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/smBS5oCWyJb1VJj2norKjQ_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/smBS5oCWyJb1VJj2norKjQ_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/smBS5oCWyJb1VJj2norKjQ_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/smBS5oCWyJb1VJj2norKjQ_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/smBS5oCWyJb1VJj2norKjQ_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-31T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1342,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 8,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "9eXln_7AG4SsCP8XwrGX7LtOcanTBbQ4OEECk5n0",
+   "title": "Amúzie",
+   "desc": "Lennox, hostující dirigent a „zlobivé dítě“, vnese do orchestru hněv a zlobu. Thomas bojuje se svými nejstaršími démony a slyší, jak se jeho odkaz hroutí. Rordigo se usilovně snaží, aby se svět okolo něj nerozladil. Nina a Cynthia se shodnou na vyjednávací metodě. V chaosu se ukazují priority j…",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/Q7E5adTvAJnBdN6cYj8BEg_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/Q7E5adTvAJnBdN6cYj8BEg_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/Q7E5adTvAJnBdN6cYj8BEg_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/Q7E5adTvAJnBdN6cYj8BEg_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/Q7E5adTvAJnBdN6cYj8BEg_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-31T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1558,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 9,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  },
+  {
+   "type": "VOD",
+   "id": "TYXxVKLEITbtxrVBDuC7qlPUYdoJ4DZq4XZ8UT7V",
+   "title": "Domov",
+   "desc": "Už je jasné, že mezi radou a orchestrem dojde k výbuchu, a Rodrigo se připravuje udělat, co bude potřeba. Jak se jednotlivé strany vzájemně zrazují, nikdo není v bezpečí. Ani ti největší skladatelé v dějinách. Budoucnost je nejistá.",
+   "images": [
+    {
+     "type": "po",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/JP-JT_m2e7qDiJT4QQUflw_portrait_org.jpg?w=147&h=219&ext=.jpg"
+    },
+    {
+     "type": "po",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/JP-JT_m2e7qDiJT4QQUflw_portrait_org.jpg?w=208&h=308&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "md",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/JP-JT_m2e7qDiJT4QQUflw_landscape_org.jpg?w=260&h=145&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "sm",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/JP-JT_m2e7qDiJT4QQUflw_landscape_org.jpg?w=220&h=113&ext=.jpg"
+    },
+    {
+     "type": "la",
+     "size": "lg",
+     "url": "https://static-content.solocoo.tv/dynamic_vod/cpactioncz/publish/posters/JP-JT_m2e7qDiJT4QQUflw_landscape_org.jpg?w=590&h=337&ext=.jpg"
+    }
+   ],
+   "overlays": [
+    {
+     "type": "ol",
+     "x": "right",
+     "y": "bottom",
+     "url": "https://static-content.solocoo.tv/dynamic_other/live/m7/mmchan/partners/cpactioncz_org.png?w=68&h=38&ext=.png"
+    }
+   ],
+   "deals": [
+    {
+     "name": "HD",
+     "offers": [
+      "0"
+     ],
+     "start": "2025-01-31T00:00:00Z",
+     "end": "2026-09-30T23:59:00Z"
+    }
+   ],
+   "params": {
+    "duration": 1615,
+    "owner": "cpactioncz",
+    "seriesId": "ZXkaWHVpx827Fz_4ZNtW5l8MoKD5_2lhv0nYe4m3",
+    "seriesSeason": "2",
+    "seriesEpisode": 10,
+    "age": 12,
+    "genres": [
+     {
+      "label": "sg.ui.genre.Comedy"
+     }
+    ],
+    "year": 2018,
+    "qualities": [
+     "HD"
+    ]
+   }
+  }
+ ]
+}
