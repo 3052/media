@@ -1,10 +1,5 @@
 # canal
 
-no method to get object ID:
-
-- https://github.com/dut-iptv/dut-iptv/blob/master/plugin.video.canaldigitaal/resources/lib/api.py
-- https://github.com/add-ons/plugin.video.tvvlaanderen/blob/master/resources/lib/solocoo/asset.py
-
 ## web
 
 ~~~py

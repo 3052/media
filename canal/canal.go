@@ -11,9 +11,25 @@ import (
    "io"
    "net/http"
    "net/url"
+   "strconv"
    "strings"
    "time"
 )
+
+type Asset struct {
+   Params struct {
+      SeriesEpisode int64
+   }
+   Id string
+}
+
+func (a *Asset) String() string {
+   b := []byte("episode = ")
+   b = strconv.AppendInt(b, a.Params.SeriesEpisode, 10)
+   b = append(b, "\nid = "...)
+   b = append(b, a.Id...)
+   return string(b)
+}
 
 func (t *Ticket) Token(username, password string) (*Token, error) {
    data, err := json.Marshal(map[string]any{
@@ -208,6 +224,7 @@ type Session struct {
    SsoToken string
    Token    string // this last one hour
 }
+
 func (f *Fields) New(address string) error {
    resp, err := http.Get(address)
    if err != nil {
@@ -226,7 +243,7 @@ func (f *Fields) New(address string) error {
 
 type Fields []string
 
-func (f Fields) get(key string) string {
+func (f Fields) Get(key string) string {
    var found bool
    for _, field := range f {
       switch {
@@ -239,12 +256,41 @@ func (f Fields) get(key string) string {
    return ""
 }
 
-func (f Fields) algolia_convert_tracking() string {
-   return f.get("data-algolia-convert-tracking")
+func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
+   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
+   req.Header.Set("authorization", "Bearer " + s.Token)
+   req.URL.RawQuery = func() string {
+      b := []byte("limit=99&query=episodes,")
+      b = append(b, series_id...)
+      b = append(b, ",season,"...)
+      b = strconv.AppendInt(b, season, 10)
+      return string(b)
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Assets  []Asset
+      Message string
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Message != "" {
+      return nil, errors.New(value.Message)
+   }
+   return value.Assets, nil
 }
 
-func (s *Session) Play(data Fields) (Byte[Play], error) {
-   data1, err := json.Marshal(map[string]any{
+func (f Fields) AlgoliaConvertTracking() string {
+   return f.Get("data-algolia-convert-tracking")
+}
+
+func (s *Session) Play(asset_id string) (Byte[Play], error) {
+   data, err := json.Marshal(map[string]any{
       "player": map[string]any{
          "capabilities": map[string]any{
             "drmSystems": []string{"Widevine"},
@@ -256,7 +302,7 @@ func (s *Session) Play(data Fields) (Byte[Play], error) {
       return nil, err
    }
    req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data1),
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
@@ -264,7 +310,7 @@ func (s *Session) Play(data Fields) (Byte[Play], error) {
    req.URL.Path = func() string {
       var b strings.Builder
       b.WriteString("/v1/assets/")
-      b.WriteString(data.algolia_convert_tracking())
+      b.WriteString(asset_id)
       b.WriteString("/play")
       return b.String()
    }()
