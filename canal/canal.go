@@ -82,10 +82,6 @@ func (s *Session) Play(asset_id string) (Byte[Play], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (f Fields) AlgoliaConvertTracking() string {
-   return f.Get("data-algolia-convert-tracking")
-}
-
 func (p *Play) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
    if err != nil {
@@ -312,6 +308,8 @@ func (f *Fields) New(address string) error {
 }
 
 type Fields []string
+
+const AlgoliaConvertTracking = "data-algolia-convert-tracking"
 
 func (f Fields) Get(key string) string {
    var found bool
