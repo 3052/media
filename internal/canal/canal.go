@@ -113,8 +113,6 @@ func main() {
    }
 }
 
-///
-
 func (f *flags) do_address() error {
    data, err := os.ReadFile(f.media + "/canal/Session")
    if err != nil {
@@ -137,11 +135,12 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   object_id, err := canal.ObjectId(f.address)
+   var fields canal.Fields
+   err = fields.New(f.address)
    if err != nil {
       return err
    }
-   data, err = session.Play(object_id)
+   data, err = session.Play(fields)
    if err != nil {
       return err
    }

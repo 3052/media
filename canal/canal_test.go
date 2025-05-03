@@ -14,7 +14,7 @@ var tests = []string{
 
 func Test(t *testing.T) {
    for _, test1 := range tests {
-      var fields1 fields
+      var fields1 Fields
       err := fields1.New(test1)
       if err != nil {
          t.Fatal(err)
