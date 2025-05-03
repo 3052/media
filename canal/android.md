@@ -126,26 +126,4 @@ adb shell am start -a android.intent.action.VIEW `
 -d m7cp://www.canalplus.cz/stream/film/argylle-tajny-agent
 ~~~
 
-also no requests are made. this is it:
-
-~~~
-POST https://tvapi-hlm2.solocoo.tv/v1/assets/6kJR8duRW27PS1KJuZKRkzLHw3-Z1OVNKQH5kN56/play HTTP/2.0
-authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0di5zb2xvY29vLmF...
-content-type: application/json; charset=UTF-8
-
-{"connectionType":"MobileData","player":{"capabilities":{"drmSystems":["Widevine"],"drmSystemsWithInfo":[{"level":"L3","system":"Widevine","systemId":"4464"}],"embeddedSubtitles":true,"hdcpLevel":"Unprotected","maxHdcpLevel":"Unprotected","mediaTypes":["DASH"],"smartLib":true},"name":"AndroidXMedia3","version":"1.2.0"}}
-~~~
-
-from:
-
-~~~
-GET https://tvapi-hlm2.solocoo.tv/v1/assets?query=episodes%2CWY31FZFpXEpd6-TwSvwG29-SvzpxbpZ-RtzixkdY%2Cseason%2C2&sort=seasonepisode HTTP/2.0
-authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0di5zb2xvY29vLmF...
-~~~
-
-from:
-
-~~~
-GET https://tvapi-hlm2.solocoo.tv/v1/assets/mySUpDGjv8miXctEHQ5xEloGr5E_QKzFamETXHFX HTTP/2.0
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0di5zb2xvY29vLmF...
-~~~
+also no requests are made

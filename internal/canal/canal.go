@@ -11,6 +11,22 @@ import (
    "path/filepath"
 )
 
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/canal/Play")
+   if err != nil {
+      return err
+   }
+   var play canal.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
+}
+
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -28,16 +44,6 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-type flags struct {
-   address  string
-   dash     string
-   e        internal.License
-   email    string
-   media    string
-   password string
-   proxy    bool
-}
-
 func (f *flags) do_email() error {
    var ticket canal.Ticket
    err := ticket.New()
@@ -53,6 +59,16 @@ func (f *flags) do_email() error {
       return err
    }
    return write_file(f.media+"/canal/Session", data)
+}
+
+type flags struct {
+   address  string
+   dash     string
+   e        internal.License
+   email    string
+   media    string
+   password string
+   proxy    bool
 }
 
 func main() {
@@ -96,6 +112,8 @@ func main() {
       flag.Usage()
    }
 }
+
+///
 
 func (f *flags) do_address() error {
    data, err := os.ReadFile(f.media + "/canal/Session")
@@ -141,20 +159,4 @@ func (f *flags) do_address() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
-}
-
-func (f *flags) do_dash() error {
-   data, err := os.ReadFile(f.media + "/canal/Play")
-   if err != nil {
-      return err
-   }
-   var play canal.Play
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
 }

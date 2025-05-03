@@ -11,61 +11,9 @@ import (
    "io"
    "net/http"
    "net/url"
-   "path"
    "strings"
    "time"
 )
-
-func (s *Session) Play(object_id string) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(object_id)
-      b.WriteString("/play")
-      return b.String()
-   }()
-   // .Get .Set
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-// https://play.canalplus.cz/player/d/Kc2fAJPVBKrayXNH2qQEuZV-94NggmNHxMQ0cpmT?
-// parentId=SAVHw6HscpOmZ5tForujsLwVVWFKn8mobkGX5p2d
-func ObjectId(data string) (string, error) {
-   const prefix = "https://play.canalplus.cz/player/d/"
-   if !strings.HasPrefix(data, prefix) {
-      return "", fmt.Errorf("%q not found", prefix)
-   }
-   url2, err := url.Parse(data)
-   if err != nil {
-      return "", err
-   }
-   return path.Base(url2.Path), nil
-}
 
 func (t *Ticket) Token(username, password string) (*Token, error) {
    data, err := json.Marshal(map[string]any{
@@ -259,4 +207,75 @@ type Session struct {
    Message  string
    SsoToken string
    Token    string // this last one hour
+}
+func (f *Fields) New(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   *f = strings.FieldsFunc(string(data), func(r rune) bool {
+      return strings.ContainsRune(` "=`, r)
+   })
+   return nil
+}
+
+type Fields []string
+
+func (f Fields) get(key string) string {
+   var found bool
+   for _, field := range f {
+      switch {
+      case field == key:
+         found = true
+      case found:
+         return field
+      }
+   }
+   return ""
+}
+
+func (f Fields) algolia_convert_tracking() string {
+   return f.get("data-algolia-convert-tracking")
+}
+
+func (s *Session) Play(data Fields) (Byte[Play], error) {
+   data1, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v1/assets/")
+      b.WriteString(data.algolia_convert_tracking())
+      b.WriteString("/play")
+      return b.String()
+   }()
+   // .Get .Set
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }

@@ -3,20 +3,23 @@ package canal
 import (
    "fmt"
    "testing"
+   "time"
 )
 
-/*
-https://www.canalplus.cz/stream/series/silo/
-*/
-
-var film = struct {
-   player string
-   stream string
-}{
-   player: "https://play.canalplus.cz/player/d/1EBvrU5Q2IFTIWSC2_4cAlD98U0OR0ejZm_dgGJi",
-   stream: "https://www.canalplus.cz/stream/film/argylle-tajny-agent/",
+var tests = []string{
+   "https://www.canalplus.cz/stream/film/argylle-tajny-agent/",
+   "https://www.canalplus.cz/stream/series/mozart-v-dzungli/",
+   "https://www.canalplus.cz/stream/series/silo/",
 }
 
 func Test(t *testing.T) {
-   fmt.Println(film)
+   for _, test1 := range tests {
+      var fields1 fields
+      err := fields1.New(test1)
+      if err != nil {
+         t.Fatal(err)
+      }
+      fmt.Printf("%q\n", fields1.algolia_convert_tracking())
+      time.Sleep(time.Second)
+   }
 }
