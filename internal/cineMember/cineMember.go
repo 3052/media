@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/media/cineMember"
    "41.neocities.org/media/internal"
-   "41.neocities.org/platform/mullvad"
    "errors"
    "flag"
    "log"
@@ -11,32 +10,6 @@ import (
    "os"
    "path/filepath"
 )
-
-func (f *flags) do_dash() error {
-   data, err := os.ReadFile(f.media + "/cineMember/Play")
-   if err != nil {
-      return err
-   }
-   var play cineMember.Play
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   title, _ := play.Dash()
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return title.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
-}
-
-type flags struct {
-   address  string
-   dash     string
-   e        internal.License
-   email    string
-   media    string
-   password string
-}
 
 func (f *flags) do_address() error {
    data, err := os.ReadFile(f.media + "/cineMember/User")
@@ -48,7 +21,12 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   article, err := f.address.Article()
+   var address cineMember.Address
+   err = address.Parse(f.address)
+   if err != nil {
+      return err
+   }
+   article, err := address.Article()
    if err != nil {
       return err
    }
@@ -133,4 +111,29 @@ func (f *flags) New() error {
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
    return nil
+}
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/cineMember/Play")
+   if err != nil {
+      return err
+   }
+   var play cineMember.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   title, _ := play.Dash()
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return title.Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
+}
+
+type flags struct {
+   address  string
+   dash     string
+   e        internal.License
+   email    string
+   media    string
+   password string
 }
