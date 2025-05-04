@@ -10,15 +10,6 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   dash     string
-   e        internal.License
-   email    string
-   media    string
-   password string
-   video_id int
-}
-
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -31,41 +22,41 @@ func (f *flags) New() error {
    return nil
 }
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.IntVar(&f.video_id, "b", 0, "video ID")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.dash, "i", "", "DASH ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.password, "p", "", "password")
+   flag.StringVar(&f.dash, "d", "", "DASH ID")
+   flag.StringVar(&f.email, "email", "", "email")
+   flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.password, "password", "", "password")
    flag.Parse()
-   switch {
-   case f.password != "":
-      err := f.authenticate()
-      if err != nil {
-         panic(err)
+   if f.email != "" {
+      if f.password != "" {
+         err = f.do_email()
       }
-   case f.video_id >= 1:
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
+   } else if f.kanopy >= 1 {
+      err = f.do_kanopy()
+   } else if f.dash != "" {
+      err = f.do_dash()
+   } else {
       flag.Usage()
+   }
+   if err != nil {
+      panic(err)
    }
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flags) authenticate() error {
+func (f *flags) do_email() error {
    data, err := kanopy.NewLogin(f.email, f.password)
    if err != nil {
       return err
@@ -73,7 +64,21 @@ func (f *flags) authenticate() error {
    return write_file(f.media + "/kanopy/Login", data)
 }
 
-func (f *flags) download() error {
+type flags struct {
+   e        internal.License
+   media    string
+   
+   email    string
+   password string
+   
+   kanopy int
+   
+   dash     string
+}
+
+///
+
+func (f *flags) do_kanopy() error {
    data, err := os.ReadFile(f.media + "/kanopy/Login")
    if err != nil {
       return err
@@ -103,7 +108,61 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   data, err = login.Plays(member, f.video_id)
+   data, err = login.Plays(member, f.kanopy)
+   if err != nil {
+      return err
+   }
+   var plays kanopy.Plays
+   err = plays.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media + "/kanopy/Plays", data)
+   if err != nil {
+      return err
+   }
+   manifest, ok := plays.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := manifest.Mpd()
+   if err != nil {
+      return err
+   }
+   return internal.Mpd(f.media + "/Mpd", resp)
+}
+
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/kanopy/Login")
+   if err != nil {
+      return err
+   }
+   var login kanopy.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   if f.dash != "" {
+      data, err := os.ReadFile(f.media + "/kanopy/Plays")
+      if err != nil {
+         return err
+      }
+      var plays kanopy.Plays
+      err = plays.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      manifest, _ := plays.Dash()
+      f.e.Widevine = func(data []byte) ([]byte, error) {
+         return login.Widevine(manifest, data)
+      }
+      return f.e.Download(f.media + "/Mpd", f.dash)
+   }
+   member, err := login.Membership()
+   if err != nil {
+      return err
+   }
+   data, err = login.Plays(member, f.kanopy)
    if err != nil {
       return err
    }
