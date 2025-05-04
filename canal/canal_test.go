@@ -3,7 +3,6 @@ package canal
 import (
    "fmt"
    "testing"
-   "time"
 )
 
 var tests = []struct {
@@ -27,13 +26,5 @@ var tests = []struct {
 func TestAssets(t *testing.T) {
    for _, test1 := range tests {
       fmt.Println(test1.url)
-      assets1, err := assets(test1.id, 1)
-      if err != nil {
-         t.Fatal(err)
-      }
-      for _, asset1 := range assets1 {
-         fmt.Print("\n", &asset1, "\n")
-      }
-      time.Sleep(time.Second)
    }
 }

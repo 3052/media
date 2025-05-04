@@ -11,6 +11,19 @@ import (
    "path/filepath"
 )
 
+func (f *flags) do_address() error {
+   var fields canal.Fields
+   err := fields.New(f.address)
+   if err != nil {
+      return err
+   }
+   fmt.Println(
+      canal.AlgoliaConvertTracking, "=",
+      fields.Get(canal.AlgoliaConvertTracking),
+   )
+   return nil
+}
+
 type flags struct {
    address  string
    asset    string
@@ -67,18 +80,6 @@ func (f *flags) do_asset() error {
       return err
    }
    return internal.Mpd(f.media+"/Mpd", resp)
-}
-
-func (f *flags) do_address() error {
-   var fields canal.Fields
-   err := fields.New(f.address)
-   if err != nil {
-      return err
-   }
-   fmt.Println(
-      canal.AlgoliaConvertTracking, fields.Get(canal.AlgoliaConvertTracking),
-   )
-   return nil
 }
 
 func (f *flags) do_refresh() error {
