@@ -18,7 +18,7 @@ import (
 
 func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
    req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
-   req.Header.Set("authorization", "Bearer " + s.Token)
+   req.Header.Set("authorization", "Bearer "+s.Token)
    req.URL.RawQuery = func() string {
       b := []byte("limit=99&query=episodes,")
       b = append(b, series_id...)
@@ -43,43 +43,6 @@ func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
       return nil, errors.New(value.Message)
    }
    return value.Assets, nil
-}
-
-func (s *Session) Play(asset_id string) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(asset_id)
-      b.WriteString("/play")
-      return b.String()
-   }()
-   // .Get .Set
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 func (p *Play) Widevine(data []byte) ([]byte, error) {
@@ -322,4 +285,40 @@ func (f Fields) Get(key string) string {
       }
    }
    return ""
+}
+
+// hard geo block
+func (s *Session) Play(asset_id string) (Byte[Play], error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v1/assets/")
+      b.WriteString(asset_id)
+      b.WriteString("/play")
+      return b.String()
+   }()
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
