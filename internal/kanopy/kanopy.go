@@ -61,22 +61,17 @@ func (f *flags) do_email() error {
    if err != nil {
       return err
    }
-   return write_file(f.media + "/kanopy/Login", data)
+   return write_file(f.media+"/kanopy/Login", data)
 }
 
 type flags struct {
-   e        internal.License
-   media    string
-   
-   email    string
-   password string
-   
-   kanopy int
-   
    dash     string
+   e        internal.License
+   email    string
+   kanopy   int
+   media    string
+   password string
 }
-
-///
 
 func (f *flags) do_kanopy() error {
    data, err := os.ReadFile(f.media + "/kanopy/Login")
@@ -87,22 +82,6 @@ func (f *flags) do_kanopy() error {
    err = login.Unmarshal(data)
    if err != nil {
       return err
-   }
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/kanopy/Plays")
-      if err != nil {
-         return err
-      }
-      var plays kanopy.Plays
-      err = plays.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      manifest, _ := plays.Dash()
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return login.Widevine(manifest, data)
-      }
-      return f.e.Download(f.media + "/Mpd", f.dash)
    }
    member, err := login.Membership()
    if err != nil {
@@ -117,7 +96,7 @@ func (f *flags) do_kanopy() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/kanopy/Plays", data)
+   err = write_file(f.media+"/kanopy/Plays", data)
    if err != nil {
       return err
    }
@@ -129,7 +108,7 @@ func (f *flags) do_kanopy() error {
    if err != nil {
       return err
    }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return internal.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {
@@ -142,27 +121,7 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/kanopy/Plays")
-      if err != nil {
-         return err
-      }
-      var plays kanopy.Plays
-      err = plays.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      manifest, _ := plays.Dash()
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return login.Widevine(manifest, data)
-      }
-      return f.e.Download(f.media + "/Mpd", f.dash)
-   }
-   member, err := login.Membership()
-   if err != nil {
-      return err
-   }
-   data, err = login.Plays(member, f.kanopy)
+   data, err = os.ReadFile(f.media + "/kanopy/Plays")
    if err != nil {
       return err
    }
@@ -171,17 +130,9 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/kanopy/Plays", data)
-   if err != nil {
-      return err
+   manifest, _ := plays.Dash()
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return login.Widevine(manifest, data)
    }
-   manifest, ok := plays.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := manifest.Mpd()
-   if err != nil {
-      return err
-   }
-   return internal.Mpd(f.media + "/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }

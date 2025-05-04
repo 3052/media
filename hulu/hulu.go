@@ -21,7 +21,7 @@ const (
 )
 
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
-   value := map[string]any{
+   data, err := json.Marshal(map[string]any{
       "content_eab_id":   deep.EabId,
       "deejay_device_id": deejay_device_id,
       "playback": map[string]any{
@@ -85,8 +85,7 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
       },
       "unencrypted": true,
       "version":     version,
-   }
-   data, err := json.MarshalIndent(value, "", " ")
+   })
    if err != nil {
       return nil, err
    }
@@ -106,18 +105,6 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
-func (e *Entity) Set(data string) error {
-   e[0] = path.Base(data)
-   return nil
-}
-
-type Entity [1]string
-
-func (e Entity) String() string {
-   return e[0]
 }
 
 func (p *Playlist) Widevine(data []byte) ([]byte, error) {
@@ -186,11 +173,33 @@ func (a *Authenticate) Refresh() error {
    return json.NewDecoder(resp.Body).Decode(a)
 }
 
-func (a Authenticate) DeepLink(id Entity) (*DeepLink, error) {
+type Authenticate struct {
+   DeviceToken string `json:"device_token"`
+   UserToken   string `json:"user_token"`
+}
+
+type Playlist struct {
+   Message   string
+   StreamUrl string `json:"stream_url"` // MPD
+   WvServer  string `json:"wv_server"`
+}
+
+func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if p.Message != "" {
+      return errors.New(p.Message)
+   }
+   return nil
+}
+
+func (a Authenticate) DeepLink(id string) (*DeepLink, error) {
    req, _ := http.NewRequest("", "https://discover.hulu.com", nil)
    req.URL.Path = "/content/v5/deeplink/playback"
    req.URL.RawQuery = url.Values{
-      "id":        {id[0]},
+      "id":        {id},
       "namespace": {"entity"},
    }.Encode()
    req.Header.Set("authorization", "Bearer "+a.UserToken)
@@ -210,23 +219,7 @@ func (a Authenticate) DeepLink(id Entity) (*DeepLink, error) {
    return &deep, nil
 }
 
-type Authenticate struct {
-   DeviceToken string `json:"device_token"`
-   UserToken   string `json:"user_token"`
-}
-type Playlist struct {
-   Message   string
-   StreamUrl string `json:"stream_url"` // MPD
-   WvServer  string `json:"wv_server"`
-}
-
-func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
+// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
+func Id(data string) string {
+   return path.Base(data)
 }
