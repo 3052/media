@@ -12,16 +12,72 @@ import (
    "path/filepath"
 )
 
+func (f *flags) do_dash() error {
+   data, err := os.ReadFile(f.media + "/cineMember/Play")
+   if err != nil {
+      return err
+   }
+   var play cineMember.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   title, _ := play.Dash()
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return title.Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
+}
+
 type flags struct {
-   e        internal.License
-   media    string
-   
-   email    string
-   password string
-   
-   address string
-   
+   address  string
    dash     string
+   e        internal.License
+   email    string
+   media    string
+   password string
+}
+
+func (f *flags) do_address() error {
+   data, err := os.ReadFile(f.media + "/cineMember/User")
+   if err != nil {
+      return err
+   }
+   var user cineMember.User
+   err = user.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   article, err := f.address.Article()
+   if err != nil {
+      return err
+   }
+   asset, ok := article.Film()
+   if !ok {
+      return errors.New(".Film()")
+   }
+   data, err = user.Play(article, asset)
+   if err != nil {
+      return err
+   }
+   var play cineMember.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/cineMember/Play", data)
+   if err != nil {
+      return err
+   }
+   title, ok := play.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(title.Manifest)
+   if err != nil {
+      return err
+   }
+   return internal.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_email() error {
@@ -29,7 +85,7 @@ func (f *flags) do_email() error {
    if err != nil {
       return err
    }
-   return write_file(f.media + "/cineMember/User", data)
+   return write_file(f.media+"/cineMember/User", data)
 }
 
 func main() {
