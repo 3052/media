@@ -10,44 +10,42 @@ import (
    "path/filepath"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type flags struct {
+   e       internal.License
+   media   string
+   
+   tubi    int
+   dash    string
+}
+
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.IntVar(&f.tubi, "b", 0, "Tubi ID")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "DASH ID")
+   flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&f.tubi, "t", 0, "Tubi ID")
+   flag.IntVar(&internal.ThreadCount, "thread", 1, "thread count")
    flag.Parse()
    switch {
    case f.tubi >= 1:
-      err := f.do_tubi()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_tubi()
    case f.dash != "":
-      err := f.do_dash()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_dash()
    default:
       flag.Usage()
    }
-}
-
-type flags struct {
-   e       internal.License
-   media   string
-   tubi    int
-   dash    string
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+   if err != nil {
+      panic(err)
+   }
 }
 
 func (f *flags) do_tubi() error {

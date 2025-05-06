@@ -11,19 +11,22 @@ import (
    "strings"
 )
 
-// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
-func Id(data string) string {
-   return path.Base(data)
-}
-
 // this is old device that returns 4K MPD:
 // https://vodmanifest.hulustream.com
 // newer devices return 2K MPD:
 // https://dynamic-manifest.hulustream.com
 const (
-   deejay_device_id = 189
-   version          = 8
+   //deejay_device_id = 189
+   //version          = 8
+   
+   deejay_device_id = 166
+   version          = 9999999
 )
+
+// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
+func Id(data string) string {
+   return path.Base(data)
+}
 
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    data, err := json.Marshal(map[string]any{
