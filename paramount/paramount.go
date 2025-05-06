@@ -23,63 +23,6 @@ func pad(data []byte) []byte {
    return data
 }
 
-func (a At) Item(cid string) (*Item, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v2.0/androidphone/video/cid/")
-      b.WriteString(cid)
-      b.WriteString(".json")
-      return b.String()
-   }()
-   req.URL.RawQuery = "at=" + string(a)
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   // 403 and 406 can have empty response body
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   var value struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &value)
-   if err != nil {
-      return nil, err
-   }
-   // error 200
-   if len(value.ItemList) == 0 {
-      return nil, errors.New(string(data))
-   }
-   return &value.ItemList[0], nil
-}
-
-func (i *Item) Mpd() (*http.Response, error) {
-   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/s/")
-      b = append(b, i.CmsAccountId...)
-      b = append(b, "/media/guid/"...)
-      b = strconv.AppendInt(b, cms_account(i.CmsAccountId), 10)
-      b = append(b, '/')
-      b = append(b, i.ContentId...)
-      return string(b)
-   }()
-   req.URL.RawQuery = url.Values{
-      "assetTypes": {i.AssetType},
-      "formats":    {"MPEG-DASH"},
-   }.Encode()
-   req.Header.Set("proxy", "true")
-   return http.DefaultClient.Do(req)
-}
-
 func (s *Session) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
    if err != nil {
@@ -182,4 +125,61 @@ func (a AppSecret) At() (At, error) {
    data1 = append(data1, iv[:]...)
    data1 = append(data1, data...)
    return At(base64.StdEncoding.EncodeToString(data1)), nil
+}
+
+// hard geo block
+func (a At) Item(cid string) (*Item, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v2.0/androidphone/video/cid/")
+      b.WriteString(cid)
+      b.WriteString(".json")
+      return b.String()
+   }()
+   req.URL.RawQuery = "at=" + string(a)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   // 403 and 406 can have empty response body
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   var value struct {
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &value)
+   if err != nil {
+      return nil, err
+   }
+   // error 200
+   if len(value.ItemList) == 0 {
+      return nil, errors.New(string(data))
+   }
+   return &value.ItemList[0], nil
+}
+
+// hard geo block
+func (i *Item) Mpd() (*http.Response, error) {
+   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/s/")
+      b = append(b, i.CmsAccountId...)
+      b = append(b, "/media/guid/"...)
+      b = strconv.AppendInt(b, cms_account(i.CmsAccountId), 10)
+      b = append(b, '/')
+      b = append(b, i.ContentId...)
+      return string(b)
+   }()
+   req.URL.RawQuery = url.Values{
+      "assetTypes": {i.AssetType},
+      "formats":    {"MPEG-DASH"},
+   }.Encode()
+   return http.DefaultClient.Do(req)
 }
