@@ -15,6 +15,14 @@ import (
    "strings"
 )
 
+func pad(data []byte) []byte {
+   length := aes.BlockSize - len(data)%aes.BlockSize
+   for high := byte(length); length >= 1; length-- {
+      data = append(data, high)
+   }
+   return data
+}
+
 func (a At) Item(cid string) (*Item, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
@@ -134,14 +142,6 @@ func (a At) Session(content_id string) (*Session, error) {
 }
 
 const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
-
-func pad(data []byte) []byte {
-   length := aes.BlockSize - len(data)%aes.BlockSize
-   for high := byte(length); length >= 1; length-- {
-      data = append(data, high)
-   }
-   return data
-}
 
 const encoding = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 

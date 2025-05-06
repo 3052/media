@@ -27,40 +27,36 @@ func (f *flags) New() error {
    return nil
 }
 
+type flags struct {
+   media   string
+   e       internal.License
+   address string
+   dash    string
+}
+
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.StringVar(&plex.ForwardedFor, "s", "", "set forward")
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "d", "", "dash ID")
+   flag.StringVar(&plex.ForwardedFor, "f", "", "set forward")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.Parse()
    switch {
    case f.address != "":
-      err := f.do_address()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_address()
    case f.dash != "":
-      err := f.do_dash()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_dash()
    default:
       flag.Usage()
    }
-}
-
-type flags struct {
-   media   string
-   e       internal.License
-   
-   address string
-   dash    string
+   if err != nil {
+      panic(err)
+   }
 }
 
 func (f *flags) do_address() error {
