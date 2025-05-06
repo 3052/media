@@ -4,7 +4,6 @@ import (
    "41.neocities.org/media/internal"
    "41.neocities.org/media/paramount"
    "flag"
-   "net/http"
    "os"
    "path/filepath"
 )
@@ -56,25 +55,7 @@ type flags struct {
    dash      string
 }
 
-///
-
 func (f *flags) do_paramount() error {
-   if f.dash != "" {
-      // INTL does NOT allow anonymous key request, so if you are INTL you
-      // will need to use US VPN until someone codes the INTL login
-      at, err := paramount.ComCbsApp.At()
-      if err != nil {
-         return err
-      }
-      session, err := at.Session(f.paramount)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return session.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
    var secret paramount.AppSecret
    if f.intl {
       secret = paramount.ComCbsCa
@@ -97,39 +78,18 @@ func (f *flags) do_paramount() error {
 }
 
 func (f *flags) do_dash() error {
-   if f.dash != "" {
-      // INTL does NOT allow anonymous key request, so if you are INTL you
-      // will need to use US VPN until someone codes the INTL login
-      at, err := paramount.ComCbsApp.At()
-      if err != nil {
-         return err
-      }
-      session, err := at.Session(f.paramount)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return session.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   var secret paramount.AppSecret
-   if f.intl {
-      secret = paramount.ComCbsCa
-   } else {
-      secret = paramount.ComCbsApp
-   }
-   at, err := secret.At()
+   // INTL does NOT allow anonymous key request, so if you are INTL you
+   // will need to use US VPN until someone codes the INTL login
+   at, err := paramount.ComCbsApp.At()
    if err != nil {
       return err
    }
-   item, err := at.Item(f.paramount)
+   session, err := at.Session(f.paramount)
    if err != nil {
       return err
    }
-   resp, err := item.Mpd()
-   if err != nil {
-      return err
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return session.Widevine(data)
    }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }

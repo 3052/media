@@ -16,4 +16,4 @@
 13. zip code
 14. submit
 
-if you try to cancel the trial is not extended
+no benefit from trying to cancel

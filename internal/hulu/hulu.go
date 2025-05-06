@@ -57,15 +57,12 @@ func main() {
 }
 
 type flags struct {
-   e        internal.License
-   media    string
-   
-   email    string
-   password string
-   
    address string
-   
    dash     string
+   e        internal.License
+   email    string
+   media    string
+   password string
 }
 
 func (f *flags) do_email() error {
@@ -76,24 +73,7 @@ func (f *flags) do_email() error {
    return write_file(f.media + "/hulu/Authenticate", data)
 }
 
-///
-
 func (f *flags) do_address() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/hulu/Playlist")
-      if err != nil {
-         return err
-      }
-      var play hulu.Playlist
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
    data, err := os.ReadFile(f.media + "/hulu/Authenticate")
    if err != nil {
       return err
@@ -107,7 +87,7 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   deep, err := auth.DeepLink(f.address)
+   deep, err := auth.DeepLink(hulu.Id(f.address))
    if err != nil {
       return err
    }
@@ -132,43 +112,7 @@ func (f *flags) do_address() error {
 }
 
 func (f *flags) do_dash() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/hulu/Playlist")
-      if err != nil {
-         return err
-      }
-      var play hulu.Playlist
-      err = play.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return play.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   data, err := os.ReadFile(f.media + "/hulu/Authenticate")
-   if err != nil {
-      return err
-   }
-   var auth hulu.Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = auth.Refresh()
-   if err != nil {
-      return err
-   }
-   deep, err := auth.DeepLink(f.address)
-   if err != nil {
-      return err
-   }
-   data, err = auth.Playlist(deep)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media + "/hulu/Playlist", data)
+   data, err := os.ReadFile(f.media + "/hulu/Playlist")
    if err != nil {
       return err
    }
@@ -177,9 +121,8 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   resp, err := http.Get(play.StreamUrl)
-   if err != nil {
-      return err
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
    }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return f.e.Download(f.media+"/Mpd", f.dash)
 }
