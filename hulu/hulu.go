@@ -16,9 +16,6 @@ import (
 // newer devices return 2K MPD:
 // https://dynamic-manifest.hulustream.com
 const (
-   //deejay_device_id = 189
-   //version          = 8
-   
    deejay_device_id = 166
    version          = 9999999
 )
@@ -39,8 +36,8 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
          },
          "drm": map[string]any{
             "selection_mode": "ALL",
-            "values": []map[string]string{
-               {
+            "values": []any{
+               map[string]string{
                   "security_level": "L3",
                   "type":           "WIDEVINE",
                   "version":        "MODULAR",
@@ -49,8 +46,8 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
          },
          "segments": map[string]any{
             "selection_mode": "ALL",
-            "values": []map[string]any{
-               {
+            "values": []any{
+               map[string]any{
                   "type": "FMP4",
                   "encryption": map[string]string{
                      "mode": "CENC",
@@ -62,24 +59,24 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
          "audio": map[string]any{
             "codecs": map[string]any{
                "selection_mode": "ALL",
-               "values": []map[string]string{
-                  {"type": "AAC"},
-                  {"type": "EC3"},
+               "values": []any{
+                  map[string]string{"type": "AAC"},
+                  map[string]string{"type": "EC3"},
                },
             },
          },
          "video": map[string]any{
             "codecs": map[string]any{
                "selection_mode": "ALL",
-               "values": []map[string]any{
-                  {
+               "values": []any{
+                  map[string]any{
                      "height":  9999,
                      "level":   "9",
                      "profile": "HIGH",
                      "type":    "H264",
                      "width":   9999,
                   },
-                  {
+                  map[string]any{
                      "height":  9999,
                      "level":   "9",
                      "profile": "MAIN_10",
