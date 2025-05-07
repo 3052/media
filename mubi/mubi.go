@@ -12,21 +12,6 @@ import (
    "strings"
 )
 
-func (a *Address) Set(data string) error {
-   var found bool
-   _, a[0], found = strings.Cut(data, "/films/")
-   if !found {
-      return errors.New("/films/ not found")
-   }
-   return nil
-}
-
-func (a Address) String() string {
-   return a[0]
-}
-
-type Address [1]string
-
 func (a *Authenticate) Widevine(data []byte) ([]byte, error) {
    // final slash is needed
    req, err := http.NewRequest(
@@ -88,26 +73,6 @@ var ClientCountry = "US"
 // client-device-identifier
 // client-version
 const client = "web"
-
-func (a Address) Film() (*Film, error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.URL.Path = "/v3/films/" + a[0]
-   req.Header = http.Header{
-      "client":         {client},
-      "client-country": {ClientCountry},
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   film1 := &Film{}
-   err = json.NewDecoder(resp.Body).Decode(film1)
-   if err != nil {
-      return nil, err
-   }
-   return film1, nil
-}
 
 // to get the MPD you have to call this or view video on the website. request
 // is hard geo blocked only the first time
@@ -213,7 +178,7 @@ func (c *LinkCode) Unmarshal(data Byte[LinkCode]) error {
 }
 
 type SecureUrl struct {
-   TextTrackUrls []TextTrack `json:"text_track_urls"`
+   TextTrackUrls []Text `json:"text_track_urls"`
    Url           string      // MPD
    UserMessage   string      `json:"user_message"`
 }
@@ -249,11 +214,43 @@ func (a *Authenticate) SecureUrl(film1 *Film) (Byte[SecureUrl], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (t *TextTrack) Base() string {
+func (t *Text) Base() string {
    return path.Base(t.Url)
 }
 
-type TextTrack struct {
+type Text struct {
    Id  string
    Url string
+}
+
+func (s *Slug) Parse(data string) error {
+   var found bool
+   _, data, found = strings.Cut(data, "/films/")
+   if !found {
+      return errors.New("/films/ not found")
+   }
+   *s = Slug(data)
+   return nil
+}
+
+type Slug string
+
+func (s Slug) Film() (*Film, error) {
+   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
+   req.URL.Path = "/v3/films/" + string(s)
+   req.Header = http.Header{
+      "client":         {client},
+      "client-country": {ClientCountry},
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   film1 := &Film{}
+   err = json.NewDecoder(resp.Body).Decode(film1)
+   if err != nil {
+      return nil, err
+   }
+   return film1, nil
 }

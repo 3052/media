@@ -12,55 +12,7 @@ import (
    "path/filepath"
 )
 
-func (f *flags) do_dash() error {
-   if f.dash != "" {
-      if f.text {
-         data, err := os.ReadFile(f.media + "/mubi/SecureUrl")
-         if err != nil {
-            return err
-         }
-         var secure mubi.SecureUrl
-         err = secure.Unmarshal(data)
-         if err != nil {
-            return err
-         }
-         for _, text := range secure.TextTrackUrls {
-            err = func() error {
-               resp, err := http.Get(text.Url)
-               if err != nil {
-                  return err
-               }
-               defer resp.Body.Close()
-               file, err := os.Create(text.Base())
-               if err != nil {
-                  return err
-               }
-               defer file.Close()
-               _, err = file.ReadFrom(resp.Body)
-               if err != nil {
-                  return err
-               }
-               return nil
-            }()
-            if err != nil {
-               return err
-            }
-         }
-      }
-      data, err := os.ReadFile(f.media + "/mubi/Authenticate")
-      if err != nil {
-         return err
-      }
-      var auth mubi.Authenticate
-      err = auth.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return auth.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
+func (f *flags) do_slug() error {
    data, err := os.ReadFile(f.media + "/mubi/Authenticate")
    if err != nil {
       return err
@@ -70,7 +22,7 @@ func (f *flags) do_dash() error {
    if err != nil {
       return err
    }
-   film, err := f.address.Film()
+   film, err := f.slug.Film()
    if err != nil {
       return err
    }
@@ -98,60 +50,56 @@ func (f *flags) do_dash() error {
    return internal.Mpd(f.media+"/Mpd", resp)
 }
 
-type flags struct {
-   address mubi.Address
-   auth    bool
-   code    bool
-   e       internal.License
-   media   string
-   dash    string
-   text    bool
-   mullvad bool
-}
-
-func main() {
-   var f flags
-   err := f.New()
+func get(text *mubi.Text) error {
+   resp, err := http.Get(text.Url)
    if err != nil {
-      panic(err)
+      return err
    }
-   flag.Var(&f.address, "a", "address")
-   flag.BoolVar(&f.auth, "auth", false, "authenticate")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.BoolVar(&f.code, "code", false, "link code")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.BoolVar(&f.text, "text", false, "text track")
-   flag.Parse()
-   if f.mullvad {
-      http.DefaultClient.Transport = &mullvad.Transport{
-         Protocols: &http.Protocols{}, // github.com/golang/go/issues/18639
-         Proxy:     http.ProxyFromEnvironment,
-      }
-      defer mullvad.Disconnect()
+   defer resp.Body.Close()
+   file, err := os.Create(text.Base())
+   if err != nil {
+      return err
    }
-   switch {
-   case f.code:
-      err := f.do_code()
-      if err != nil {
-         panic(err)
-      }
-   case f.auth:
-      err := f.do_auth()
-      if err != nil {
-         panic(err)
-      }
-   case f.address[0] != "":
-      err := f.do_dash()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
+   if err != nil {
+      return err
    }
+   return nil
 }
 
+func (f *flags) do_dash() error {
+   if f.text {
+      data, err := os.ReadFile(f.media + "/mubi/SecureUrl")
+      if err != nil {
+         return err
+      }
+      var secure mubi.SecureUrl
+      err = secure.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      for _, text := range secure.TextTrackUrls {
+         err := get(&text)
+         if err != nil {
+            return err
+         }
+      }
+   }
+   data, err := os.ReadFile(f.media + "/mubi/Authenticate")
+   if err != nil {
+      return err
+   }
+   var auth mubi.Authenticate
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return auth.Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
+}
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -167,6 +115,47 @@ func (f *flags) New() error {
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
+}
+
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.Func("a", "address", func(data string) error {
+      return f.slug.Parse(data)
+   })
+   flag.BoolVar(&f.auth, "auth", false, "authenticate")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.BoolVar(&f.code, "code", false, "link code")
+   flag.StringVar(&f.dash, "d", "", "dash ID")
+   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.BoolVar(&f.text, "t", false, "text track")
+   flag.Parse()
+   if f.mullvad {
+      http.DefaultClient.Transport = &mullvad.Transport{
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/18639
+         Proxy:     http.ProxyFromEnvironment,
+      }
+      defer mullvad.Disconnect()
+   }
+   switch {
+   case f.code:
+      err = f.do_code()
+   case f.auth:
+      err = f.do_auth()
+   case f.slug != "":
+      err = f.do_slug()
+   case f.dash != "":
+      err = f.do_dash()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
 }
 
 func (f *flags) do_code() error {
@@ -199,3 +188,19 @@ func (f *flags) do_auth() error {
    }
    return write_file(f.media + "/mubi/Authenticate", data)
 }
+
+type flags struct {
+   e       internal.License
+   media   string
+   mullvad bool
+   
+   code    bool
+   
+   auth    bool
+   
+   slug mubi.Slug
+   
+   dash    string
+   text    bool
+}
+
