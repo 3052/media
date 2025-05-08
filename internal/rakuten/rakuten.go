@@ -12,13 +12,23 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   dash     string
-   e        internal.License
-   language string
-   media    string
-   address  string
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
+
+type flags struct {
+   e        internal.License
+   media    string
+   
+   address  string
+   
+   language string
+   
+   dash     string
+}
+
+///
 
 func main() {
    var f flags
@@ -48,11 +58,6 @@ func main() {
    } else {
       flag.Usage()
    }
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flags) do_language() error {

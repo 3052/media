@@ -12,6 +12,89 @@ import (
    "path/filepath"
 )
 
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.Func("a", "address", func(data string) error {
+      return f.slug.Parse(data)
+   })
+   flag.BoolVar(&f.auth, "auth", false, "authenticate")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.BoolVar(&f.code, "code", false, "link code")
+   flag.StringVar(&f.dash, "d", "", "dash ID")
+   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
+   flag.BoolVar(&f.text, "text", false, "text track")
+   flag.Parse()
+   if f.mullvad {
+      http.DefaultClient.Transport = &mullvad.Transport{
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/18639
+         Proxy:     http.ProxyFromEnvironment,
+      }
+      defer mullvad.Disconnect()
+   }
+   switch {
+   case f.code:
+      err = f.do_code()
+   case f.auth:
+      err = f.do_auth()
+   case f.slug != "":
+      err = f.do_slug()
+   case f.dash != "":
+      err = f.do_dash()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flags) do_code() error {
+   data, err := mubi.NewLinkCode()
+   if err != nil {
+      return err
+   }
+   var code mubi.LinkCode
+   err = code.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   fmt.Println(&code)
+   return write_file(f.media+"/mubi/LinkCode", data)
+}
+
+func (f *flags) do_auth() error {
+   data, err := os.ReadFile(f.media + "/mubi/LinkCode")
+   if err != nil {
+      return err
+   }
+   var code mubi.LinkCode
+   err = code.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = code.Authenticate()
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/mubi/Authenticate", data)
+}
+
+type flags struct {
+   auth    bool
+   code    bool
+   dash    string
+   e       internal.License
+   media   string
+   mullvad bool
+   slug    mubi.Slug
+   text    bool
+}
 func (f *flags) do_slug() error {
    data, err := os.ReadFile(f.media + "/mubi/Authenticate")
    if err != nil {
@@ -34,7 +117,7 @@ func (f *flags) do_slug() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/mubi/SecureUrl", data)
+   err = write_file(f.media+"/mubi/SecureUrl", data)
    if err != nil {
       return err
    }
@@ -100,6 +183,7 @@ func (f *flags) do_dash() error {
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
+
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -116,91 +200,3 @@ func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.Func("a", "address", func(data string) error {
-      return f.slug.Parse(data)
-   })
-   flag.BoolVar(&f.auth, "auth", false, "authenticate")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.BoolVar(&f.code, "code", false, "link code")
-   flag.StringVar(&f.dash, "d", "", "dash ID")
-   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.BoolVar(&f.text, "t", false, "text track")
-   flag.Parse()
-   if f.mullvad {
-      http.DefaultClient.Transport = &mullvad.Transport{
-         Protocols: &http.Protocols{}, // github.com/golang/go/issues/18639
-         Proxy:     http.ProxyFromEnvironment,
-      }
-      defer mullvad.Disconnect()
-   }
-   switch {
-   case f.code:
-      err = f.do_code()
-   case f.auth:
-      err = f.do_auth()
-   case f.slug != "":
-      err = f.do_slug()
-   case f.dash != "":
-      err = f.do_dash()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func (f *flags) do_code() error {
-   data, err := mubi.NewLinkCode()
-   if err != nil {
-      return err
-   }
-   var code mubi.LinkCode
-   err = code.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   fmt.Println(&code)
-   return write_file(f.media + "/mubi/LinkCode", data)
-}
-
-func (f *flags) do_auth() error {
-   data, err := os.ReadFile(f.media + "/mubi/LinkCode")
-   if err != nil {
-      return err
-   }
-   var code mubi.LinkCode
-   err = code.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = code.Authenticate()
-   if err != nil {
-      return err
-   }
-   return write_file(f.media + "/mubi/Authenticate", data)
-}
-
-type flags struct {
-   e       internal.License
-   media   string
-   mullvad bool
-   
-   code    bool
-   
-   auth    bool
-   
-   slug mubi.Slug
-   
-   dash    string
-   text    bool
-}
-

@@ -242,12 +242,12 @@ func (a *Address) Movie(classification_id int) (Byte[Content], error) {
 }
 
 type Address struct {
+   ContentId  string
    MarketCode string
    SeasonId   string
-   ContentId  string
 }
 
-func (a *Address) New(data string) {
+func (a *Address) Set(data string) error {
    data = strings.TrimPrefix(data, "https://")
    data = strings.TrimPrefix(data, "www.")
    data = strings.TrimPrefix(data, "rakuten.tv")
@@ -259,4 +259,5 @@ func (a *Address) New(data string) {
       data = strings.TrimPrefix(data, "player/episodes/stream/")
       a.SeasonId, a.ContentId, _ = strings.Cut(data, "/")
    }
+   return nil
 }
