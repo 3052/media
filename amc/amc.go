@@ -89,6 +89,7 @@ func (a *Auth) Playback(id int64) (Byte[Playback], error) {
    }
    return buf.Bytes(), nil
 }
+
 func (a *Auth) SeriesDetail(id int64) (*Child, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
