@@ -62,7 +62,7 @@ func main() {
 
 func (f *flags) do_language() error {
    var address rakuten.Address
-   address.New(f.address)
+   address.Set(f.address)
    class, ok := address.ClassificationId()
    if !ok {
       return errors.New(".ClassificationId()")
@@ -119,7 +119,7 @@ func (f *flags) New() error {
 
 func (f *flags) download() error {
    var address rakuten.Address
-   address.New(f.address)
+   address.Set(f.address)
    class, ok := address.ClassificationId()
    if !ok {
       return errors.New(".ClassificationId()")

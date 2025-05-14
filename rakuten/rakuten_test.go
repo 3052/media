@@ -2,6 +2,32 @@ package rakuten
 
 import "testing"
 
+func Test(t *testing.T) {
+   for _, test1 := range web_tests {
+      var web Address
+      web.Set(test1.address)
+      class, ok := web.ClassificationId()
+      if !ok {
+         t.Fatal(".ClassificationId()")
+      }
+      if web.SeasonId != "" {
+         data, err := web.Season(class)
+         if err != nil {
+            t.Fatal(err)
+         }
+         var season1 Season
+         err = season1.Unmarshal(data)
+         if err != nil {
+            t.Fatal(err)
+         }
+      } else {
+         _, err := web.Movie(class)
+         if err != nil {
+            t.Fatal(err)
+         }
+      }
+   }
+}
 var web_tests = []web_test{
    {
       address:    "rakuten.tv/at/movies/ricky-bobby-koenig-der-rennfahrer",
@@ -83,29 +109,3 @@ type web_test struct {
    location   string
 }
 
-func Test(t *testing.T) {
-   for _, test1 := range web_tests {
-      var web Address
-      web.New(test1.address)
-      class, ok := web.ClassificationId()
-      if !ok {
-         t.Fatal(".ClassificationId()")
-      }
-      if web.SeasonId != "" {
-         data, err := web.Season(class)
-         if err != nil {
-            t.Fatal(err)
-         }
-         var season1 Season
-         err = season1.Unmarshal(data)
-         if err != nil {
-            t.Fatal(err)
-         }
-      } else {
-         _, err := web.Movie(class)
-         if err != nil {
-            t.Fatal(err)
-         }
-      }
-   }
-}
