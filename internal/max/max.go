@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/media/internal"
    "41.neocities.org/media/max"
-   "41.neocities.org/platform/proxy"
    "flag"
    "fmt"
    "log"
@@ -21,7 +20,6 @@ type flags struct {
    initiate bool
    login    bool
    media    string
-   proxy    bool
    season   int
 }
 
@@ -55,15 +53,9 @@ func main() {
    flag.BoolVar(&f.initiate, "i", false, "device initiate")
    flag.BoolVar(&f.login, "l", false, "device login")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.BoolVar(&f.proxy, "proxy", false, "proxy server")
    flag.IntVar(&f.season, "s", 0, "season")
    flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
    flag.Parse()
-   if f.proxy {
-      http.DefaultClient.Transport = &proxy.Transport{
-         Proxy: http.ProxyFromEnvironment,
-      }
-   }
    switch {
    case f.initiate:
       err := f.do_initiate()
