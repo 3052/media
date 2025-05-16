@@ -16,6 +16,15 @@ import (
    "time"
 )
 
+func (p *Play) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
    req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
    req.Header.Set("authorization", "Bearer "+s.Token)
@@ -45,14 +54,7 @@ func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
    return value.Assets, nil
 }
 
-func (p *Play) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
+///
 
 type Asset struct {
    Params struct {
