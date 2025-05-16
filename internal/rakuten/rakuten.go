@@ -1,8 +1,8 @@
 package main
 
 import (
-   "41.neocities.org/media/internal"
    "41.neocities.org/media/rakuten"
+   "41.neocities.org/stream"
    "errors"
    "flag"
    "fmt"
@@ -18,17 +18,12 @@ func write_file(name string, data []byte) error {
 }
 
 type flags struct {
-   e        internal.License
-   media    string
-   
-   address  string
-   
+   address string
+   dash string
+   e     stream.License
    language string
-   
-   dash     string
+   media string
 }
-
-///
 
 func main() {
    var f flags
@@ -41,7 +36,7 @@ func main() {
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.IntVar(&internal.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&stream.ThreadCount, "t", 1, "thread count")
    flag.Parse()
    if f.address != "" {
       if f.language != "" {
@@ -78,7 +73,7 @@ func (f *flags) do_language() error {
       if err != nil {
          return err
       }
-      err = write_file(f.media + "/rakuten/Season", data)
+      err = write_file(f.media+"/rakuten/Season", data)
       if err != nil {
          return err
       }
@@ -96,7 +91,7 @@ func (f *flags) do_language() error {
       if err != nil {
          return err
       }
-      err = write_file(f.media + "/rakuten/Content", data)
+      err = write_file(f.media+"/rakuten/Content", data)
       if err != nil {
          return err
       }
@@ -150,10 +145,10 @@ func (f *flags) download() error {
          return err
       }
    }
-   stream := content.Streamings()
+   streaming := content.Streamings()
    if f.dash != "" {
-      stream.Hd()
-      info, err := stream.Info(f.language, class)
+      streaming.Hd()
+      info, err := streaming.Info(f.language, class)
       if err != nil {
          return err
       }
@@ -162,8 +157,8 @@ func (f *flags) download() error {
       }
       return f.e.Download(f.media+"/Mpd", f.dash)
    }
-   stream.Fhd()
-   info, err := stream.Info(f.language, class)
+   streaming.Fhd()
+   info, err := streaming.Info(f.language, class)
    if err != nil {
       return err
    }
@@ -171,5 +166,5 @@ func (f *flags) download() error {
    if err != nil {
       return err
    }
-   return internal.Mpd(f.media+"/Mpd", resp)
+   return stream.Mpd(f.media+"/Mpd", resp)
 }
