@@ -12,6 +12,18 @@ import (
    "slices"
 )
 
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/L3/client_id.bin"
+   f.e.PrivateKey = f.media + "/L3/private_key.pem"
+   return nil
+}
+
 type flags struct {
    address  string
    dash     string
@@ -21,18 +33,6 @@ type flags struct {
    login    bool
    media    string
    season   int
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
 }
 
 func write_file(name string, data []byte) error {
@@ -58,32 +58,20 @@ func main() {
    flag.Parse()
    switch {
    case f.initiate:
-      err := f.do_initiate()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_initiate()
    case f.login:
-      err := f.do_login()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_login()
    case f.address != "":
-      err := f.do_address()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_address()
    case f.edit != "":
-      err := f.do_edit()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_edit()
    case f.dash != "":
-      err := f.do_dash()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_dash()
    default:
       flag.Usage()
+   }
+   if err != nil {
+      panic(err)
    }
 }
 

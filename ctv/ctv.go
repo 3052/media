@@ -59,67 +59,6 @@ func Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (a Address) Resolve() (*ResolvedPath, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": graphql_compact(query_resolve),
-      "variables": map[string]string{
-         "path": a[0],
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // you need this for the first request, then can omit
-   req.Header.Set("graphql-client-platform", "entpay_web")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   var value struct {
-      Data struct {
-         ResolvedPath *struct {
-            LastSegment struct {
-               Content ResolvedPath
-            }
-         }
-      }
-   }
-   err = json.Unmarshal(data, &value)
-   if err != nil {
-      return nil, err
-   }
-   if value.Data.ResolvedPath == nil {
-      return nil, errors.New(string(data))
-   }
-   return &value.Data.ResolvedPath.LastSegment.Content, nil
-}
-
-// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func (a *Address) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   a[0] = strings.TrimPrefix(data, "ctv.ca")
-   return nil
-}
-
-func (a Address) String() string {
-   return a[0]
-}
-
-type Address [1]string
-
 type AxisContent struct {
    AxisId                int64
    AxisPlaybackLanguages []struct {
@@ -240,4 +179,62 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
       return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.AxisContent, nil
+}
+
+// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func (a *Address) Set(data string) error {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   data = strings.TrimPrefix(data, "ctv.ca")
+   *a = Address(data)
+   return nil
+}
+
+type Address string
+
+func (a Address) Resolve() (*ResolvedPath, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": graphql_compact(query_resolve),
+      "variables": map[string]string{
+         "path": string(a),
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // you need this for the first request, then can omit
+   req.Header.Set("graphql-client-platform", "entpay_web")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   var value struct {
+      Data struct {
+         ResolvedPath *struct {
+            LastSegment struct {
+               Content ResolvedPath
+            }
+         }
+      }
+   }
+   err = json.Unmarshal(data, &value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Data.ResolvedPath == nil {
+      return nil, errors.New(string(data))
+   }
+   return &value.Data.ResolvedPath.LastSegment.Content, nil
 }

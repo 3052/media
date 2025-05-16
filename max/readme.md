@@ -5,6 +5,7 @@
 - https://max.com/movies/2012/78415642-c904-4883-9007-12d895741b04
 - https://max.com/movies/accountant/79c82925-2e6e-48eb-8534-6a5dfcb9378d
 - https://max.com/movies/adult-best-friends/abbf22d7-ddaf-42e4-9519-74d2c55d75cc
+- https://max.com/movies/all-i-see-is-you/fb6f7c7f-03d4-43e4-9e39-206e8088d3f1
 - https://max.com/movies/am-i-ok/ac037e4c-0b87-4865-9235-c86b98f806c2
 - https://max.com/movies/aquaman/7b5168e8-da4e-4b49-bd29-091bc899ef2b
 - https://max.com/movies/assassins-creed/467a34c5-d098-4181-b2f3-404a1afe264f
@@ -12,6 +13,7 @@
 - https://max.com/movies/badmans-country/8c282551-caed-4e71-9117-4ef8929337f6
 - https://max.com/movies/band-wagon/b5138b9b-3a8a-40a9-9ce7-1850ce32ddf2
 - https://max.com/movies/barricade/da4ff8fe-0224-43bd-b98c-bb3e27f225bd
+- https://max.com/movies/beware-the-slenderman/7d311e1b-d7d1-4536-a612-68dedd60835e
 - https://max.com/movies/blade-runner-1982/cac60c48-3202-4c9a-b7fc-acbdf4006924
 - https://max.com/movies/batman-v-superman-dawn-of-justice/f672e34c-6103-4a1c-a925-e131b6b70761
 - https://max.com/movies/carson-city/a757357d-9587-407c-8565-85f1b602f20b
@@ -57,6 +59,7 @@
 - https://max.com/movies/harry-potter-and-the-prisoner-of-azkaban/73553a76-1658-45f6-9e26-1b9c4443b0d6
 - https://max.com/movies/hes-just-not-that-into-you/1b0f520d-0b68-4fa9-ba4a-c372e5e20416
 - https://max.com/movies/i-am-legend/489fcfaa-d5f3-4edf-8034-1549790a5b55
+- https://max.com/movies/in-the-fade/9eb9044d-0d26-40c2-a20f-6a9d9f6e38ed
 - https://max.com/movies/inception/14552c93-d318-4563-a00b-343df7e35d0b
 - https://max.com/movies/independence-day-resurgence/21b3bb64-e943-4ff8-b47c-9a0af8e0aa0e
 - https://max.com/movies/interstellar/aa5b9295-8f9c-44f5-809b-3f2b84badfbf
@@ -78,6 +81,7 @@
 - https://max.com/movies/matrix-reloaded/15f1f852-5a97-4e78-b509-e045dbc1ba37
 - https://max.com/movies/matrix-revolutions/7f34ec0d-34d9-42bb-96ac-251a42009f2d
 - https://max.com/movies/meg-2-the-trench/ecbe2f81-8f8a-4239-8247-77ec703bb8e1
+- https://max.com/movies/morgan/d4764f19-d431-4ea8-a1c0-a25d56a84b75
 - https://max.com/movies/mortal-engines/a519ee44-a318-4329-9047-d07187331cef
 - https://max.com/movies/ninja-assassin/dbeddeee-2322-40f0-972a-4776a12d124f
 - https://max.com/movies/nocturnal-animals/82de016d-1f4d-41c6-b261-2b3615e2e846
@@ -102,6 +106,7 @@
 - https://max.com/movies/we-bought-a-zoo/d2ff7e8a-a598-4be6-9d8d-61ab2f5d0d1b
 - https://max.com/movies/whale/e8f61267-d144-454d-942e-e815d9fa863e
 - https://max.com/movies/where-the-crawdads-sing/a6dbf8ea-6116-4fe4-953a-c05c0ea4ccff
+- https://max.com/movies/wonder-woman-2017/a618358a-a71d-44a2-8294-24da8fae8591
 
 ## low
 
@@ -125,12 +130,13 @@ period = 0
 id = v9
 ~~~
 
-- https://max.com/movies/arrival/624309d7-db32-44c1-a677-7ec79e64c1c9
-   - Fantasy & Sci-Fi
-   - Mystery & Suspense
-- https://max.com/movies/blade-runner-2049/3e2754f6-8ee9-48ef-806d-bdf3f64b6243
-   - Fantasy & Sci-Fi
-   - High Octane Thrillers
+2016:
+
+https://max.com/movies/arrival/624309d7-db32-44c1-a677-7ec79e64c1c9
+
+2017:
+
+https://max.com/movies/blade-runner-2049/3e2754f6-8ee9-48ef-806d-bdf3f64b6243
 
 ## phone
 
