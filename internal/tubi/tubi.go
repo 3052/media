@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/tubi"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"flag"
 	"log"
 	"net/http"
@@ -16,7 +16,7 @@ func write_file(name string, data []byte) error {
 }
 
 type flags struct {
-	e     stream.License
+	e     net.License
 	media string
 
 	tubi int
@@ -33,7 +33,7 @@ func main() {
 	flag.StringVar(&f.dash, "d", "", "DASH ID")
 	flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
 	flag.IntVar(&f.tubi, "t", 0, "Tubi ID")
-	flag.IntVar(&stream.ThreadCount, "thread", 1, "thread count")
+	flag.IntVar(&net.ThreadCount, "thread", 1, "thread count")
 	flag.Parse()
 	switch {
 	case f.tubi >= 1:
@@ -66,7 +66,7 @@ func (f *flags) do_tubi() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

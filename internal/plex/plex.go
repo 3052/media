@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/plex"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"errors"
 	"flag"
 	"log"
@@ -29,7 +29,7 @@ func (f *flags) New() error {
 
 type flags struct {
 	media   string
-	e       stream.License
+	e       net.License
 	address string
 	dash    string
 }
@@ -100,7 +100,7 @@ func (f *flags) do_address() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/pluto"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"errors"
 	"flag"
 	"os"
@@ -38,7 +38,7 @@ func main() {
 }
 
 type flags struct {
-	e     stream.License
+	e     net.License
 	media string
 
 	address string
@@ -67,7 +67,7 @@ func (f *flags) do_address() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

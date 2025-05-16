@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/draken"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"flag"
 	"log"
 	"net/http"
@@ -14,7 +14,7 @@ import (
 type flags struct {
 	address  string
 	dash     string
-	e        stream.License
+	e        net.License
 	email    string
 	media    string
 	password string
@@ -134,5 +134,5 @@ func (f *flags) download() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }

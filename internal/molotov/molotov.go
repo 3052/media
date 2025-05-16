@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/molotov"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"flag"
 	"log"
 	"net/http"
@@ -94,13 +94,13 @@ func (f *flags) download() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 type flags struct {
 	address  molotov.Address
 	dash     string
-	e        stream.License
+	e        net.License
 	email    string
 	media    string
 	password string
@@ -118,7 +118,7 @@ func main() {
 	flag.StringVar(&f.dash, "i", "", "dash ID")
 	flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
 	flag.StringVar(&f.password, "p", "", "password")
-	flag.IntVar(&stream.ThreadCount, "t", 1, "thread count")
+	flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
 	flag.Parse()
 	switch {
 	case f.password != "":

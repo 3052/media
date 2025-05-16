@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/paramount"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"flag"
 	"os"
 	"path/filepath"
@@ -47,7 +47,7 @@ func main() {
 
 type flags struct {
 	media string
-	e     stream.License
+	e     net.License
 
 	paramount string
 	intl      bool
@@ -74,7 +74,7 @@ func (f *flags) do_paramount() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

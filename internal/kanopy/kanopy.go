@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/kanopy"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"errors"
 	"flag"
 	"log"
@@ -66,7 +66,7 @@ func (f *flags) do_email() error {
 
 type flags struct {
 	dash     string
-	e        stream.License
+	e        net.License
 	email    string
 	kanopy   int
 	media    string
@@ -108,7 +108,7 @@ func (f *flags) do_kanopy() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

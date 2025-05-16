@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/cineMember"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"errors"
 	"flag"
 	"log"
@@ -55,7 +55,7 @@ func (f *flags) do_address() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_email() error {
@@ -78,7 +78,7 @@ func main() {
 	flag.StringVar(&f.email, "email", "", "email")
 	flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
 	flag.StringVar(&f.password, "password", "", "password")
-	flag.IntVar(&stream.ThreadCount, "t", 1, "thread count")
+	flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
 	flag.Parse()
 	if f.email != "" {
 		if f.password != "" {
@@ -132,7 +132,7 @@ func (f *flags) do_dash() error {
 type flags struct {
 	address  string
 	dash     string
-	e        stream.License
+	e        net.License
 	email    string
 	media    string
 	password string

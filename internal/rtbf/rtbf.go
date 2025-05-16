@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/rtbf"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"errors"
 	"flag"
 	"log"
@@ -30,7 +30,7 @@ func write_file(name string, data []byte) error {
 
 type flags struct {
 	dash     string
-	e        stream.License
+	e        net.License
 	email    string
 	media    string
 	password string
@@ -124,7 +124,7 @@ func (f *flags) do_address() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

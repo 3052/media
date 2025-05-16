@@ -2,8 +2,8 @@ package main
 
 import (
    "41.neocities.org/media/mubi"
-   "41.neocities.org/platform/mullvad"
-   "41.neocities.org/stream"
+   "41.neocities.org/net"
+   "41.neocities.org/net/mullvad"
    "flag"
    "fmt"
    "log"
@@ -12,6 +12,55 @@ import (
    "path/filepath"
 )
 
+func (f *flags) do_dash() error {
+   if f.text {
+      data, err := os.ReadFile(f.media + "/mubi/SecureUrl")
+      if err != nil {
+         return err
+      }
+      var secure mubi.SecureUrl
+      err = secure.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      for _, text := range secure.TextTrackUrls {
+         err := get(&text)
+         if err != nil {
+            return err
+         }
+      }
+   }
+   data, err := os.ReadFile(f.media + "/mubi/Authenticate")
+   if err != nil {
+      return err
+   }
+   var auth mubi.Authenticate
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return auth.Widevine(data)
+   }
+   return f.e.Download(f.media+"/Mpd", f.dash)
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
 func main() {
    var f flags
    err := f.New()
@@ -27,7 +76,7 @@ func main() {
    flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.IntVar(&stream.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.BoolVar(&f.text, "text", false, "text track")
    flag.Parse()
    if f.mullvad {
@@ -89,7 +138,7 @@ type flags struct {
    auth    bool
    code    bool
    dash    string
-   e       stream.License
+   e       net.License
    media   string
    mullvad bool
    slug    mubi.Slug
@@ -131,7 +180,7 @@ func (f *flags) do_slug() error {
    if err != nil {
       return err
    }
-   return stream.Mpd(f.media+"/Mpd", resp)
+   return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func get(text *mubi.Text) error {
@@ -150,54 +199,4 @@ func get(text *mubi.Text) error {
       return err
    }
    return nil
-}
-
-func (f *flags) do_dash() error {
-   if f.text {
-      data, err := os.ReadFile(f.media + "/mubi/SecureUrl")
-      if err != nil {
-         return err
-      }
-      var secure mubi.SecureUrl
-      err = secure.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      for _, text := range secure.TextTrackUrls {
-         err := get(&text)
-         if err != nil {
-            return err
-         }
-      }
-   }
-   data, err := os.ReadFile(f.media + "/mubi/Authenticate")
-   if err != nil {
-      return err
-   }
-   var auth mubi.Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return auth.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }

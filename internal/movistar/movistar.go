@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/movistar"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"flag"
 	"log"
 	"os"
@@ -28,7 +28,7 @@ func (f *flags) New() error {
 
 type flags struct {
 	dash     string
-	e        stream.License
+	e        net.License
 	email    string
 	media    string
 	movistar int64
@@ -47,7 +47,7 @@ func main() {
 	flag.Int64Var(&f.movistar, "m", 0, "movistar ID")
 	flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
 	flag.StringVar(&f.password, "password", "", "password")
-	flag.IntVar(&stream.ThreadCount, "t", 1, "thread count")
+	flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
 	flag.Parse()
 	if f.email != "" {
 		if f.password != "" {
@@ -114,7 +114,7 @@ func (f *flags) do_movistar() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

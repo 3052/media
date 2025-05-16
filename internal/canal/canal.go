@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/canal"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"flag"
 	"fmt"
 	"log"
@@ -28,7 +28,7 @@ type flags struct {
 	address  string
 	asset    string
 	dash     string
-	e        stream.License
+	e        net.License
 	email    string
 	media    string
 	password string
@@ -79,7 +79,7 @@ func (f *flags) do_asset() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_refresh() error {

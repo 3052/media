@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/nbc"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"flag"
 	"net/http"
 	"os"
@@ -23,7 +23,7 @@ func (f *flags) New() error {
 
 type flags struct {
 	dash  string
-	e     stream.License
+	e     net.License
 	media string
 	nbc   int
 }
@@ -38,7 +38,7 @@ func main() {
 	flag.StringVar(&f.dash, "d", "", "dash ID")
 	flag.IntVar(&f.nbc, "n", 0, "NBC ID")
 	flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-	flag.IntVar(&stream.ThreadCount, "t", 1, "thread count")
+	flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
 	flag.Parse()
 	switch {
 	case f.nbc >= 1:
@@ -67,7 +67,7 @@ func (f *flags) do_nbc() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

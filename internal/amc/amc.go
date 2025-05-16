@@ -2,7 +2,7 @@ package main
 
 import (
 	"41.neocities.org/media/amc"
-	"41.neocities.org/stream"
+	"41.neocities.org/net"
 	"errors"
 	"flag"
 	"fmt"
@@ -43,7 +43,7 @@ func (f *flags) do_episode() error {
 	if err != nil {
 		return err
 	}
-	return stream.Mpd(f.media+"/Mpd", resp)
+	return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {
@@ -64,7 +64,7 @@ func (f *flags) do_dash() error {
 }
 
 type flags struct {
-	e        stream.License
+	e        net.License
 	media    string
 	email    string
 	password string
