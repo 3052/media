@@ -9,32 +9,25 @@ import (
    "path/filepath"
 )
 
-///
-
-type flags struct {
-   e     net.License
-   media string
-   
-   address string
-   dash    string
-}
-
 func main() {
    var f flags
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "dash ID")
+   flag.StringVar(&f.episode, "e", "", "episode/movie ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.StringVar(&pluto.ForwardedFor, "s", "", "set forward")
+   flag.StringVar(&f.show, "s", "", "show ID")
    flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
    flag.Parse()
    switch {
-   case f.address != "":
-      err = f.do_address()
+   case f.show != "":
+      err = f.do_show()
+   case f.episode != "":
+      err = f.do_episode()
    case f.dash != "":
       err = f.do_dash()
    default:
@@ -45,17 +38,37 @@ func main() {
    }
 }
 
-func (f *flags) do_address() error {
-   var address pluto.Address
-   err := address.Set(f.address)
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
    if err != nil {
       return err
    }
-   video, err := address.Vod()
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   return nil
+}
+
+type flags struct {
+   dash    string
+   e       net.License
+   episode string
+   media   string
+   show    string
+}
+
+func (f *flags) do_show() error {
+   vod, err := pluto.NewVod(f.show)
    if err != nil {
       return err
    }
-   clips, err := video.Clips()
+   fmt.Println(vod)
+   return nil
+}
+
+func (f *flags) do_episode() error {
+   clips, err := pluto.NewClips(f.episode)
    if err != nil {
       return err
    }
@@ -73,16 +86,4 @@ func (f *flags) do_address() error {
 func (f *flags) do_dash() error {
    f.e.Widevine = pluto.Widevine
    return f.e.Download(f.media+"/Mpd", f.dash)
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
 }
