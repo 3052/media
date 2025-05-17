@@ -15,34 +15,31 @@ func main() {
    if err != nil {
       panic(err)
    }
+   flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.StringVar(&pluto.ForwardedFor, "s", "", "set forward")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.Parse()
    switch {
    case f.address != "":
-      err := f.do_address()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_address()
    case f.dash != "":
-      err := f.do_dash()
-      if err != nil {
-         panic(err)
-      }
+      err = f.do_dash()
    default:
       flag.Usage()
+   }
+   if err != nil {
+      panic(err)
    }
 }
 
 type flags struct {
-   e     net.License
-   media string
-
    address string
    dash    string
+   e     net.License
+   media string
 }
 
 func (f *flags) do_address() error {
