@@ -9,6 +9,16 @@ import (
    "path/filepath"
 )
 
+///
+
+type flags struct {
+   e     net.License
+   media string
+   
+   address string
+   dash    string
+}
+
 func main() {
    var f flags
    err := f.New()
@@ -33,13 +43,6 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-type flags struct {
-   address string
-   dash    string
-   e     net.License
-   media string
 }
 
 func (f *flags) do_address() error {

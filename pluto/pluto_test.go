@@ -21,12 +21,7 @@ var tests = []struct {
 
 func Test(t *testing.T) {
    for _, test1 := range tests {
-      var web Address
-      err := web.Set(test1.url)
-      if err != nil {
-         t.Fatal(err)
-      }
-      video, err := web.Vod()
+      video, err := NewVod(test1.id)
       if err != nil {
          t.Fatal(err)
       }

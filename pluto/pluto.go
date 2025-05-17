@@ -7,60 +7,33 @@ import (
    "io"
    "net/http"
    "net/url"
+   "strconv"
    "strings"
 )
 
-type SeriesId string
-
-// pluto.tv/on-demand/movies/623a01faef11000014cf41f7
-// pluto.tv/on-demand/movies/623a01faef11000014cf41f7/details
-// pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6
-// pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6/season/1
-func (s *SeriesId) Set(data string) error {
-   for {
-      var (
-         before string
-         found  bool
-      )
-      before, data, found = strings.Cut(data, "/")
-      if !found {
-         return errors.New(`"/" not found`)
+func (v Vod) String() string {
+   var (
+      b []byte
+      lines bool
+   )
+   for _, season := range v.Seasons {
+      for _, episode := range season.Episodes {
+         if lines {
+            b = append(b, "\n\n"...)
+         } else {
+            lines = true
+         }
+         b = append(b, "season = "...)
+         b = strconv.AppendInt(b, season.Number, 10)
+         b = append(b, "\nepisode = "...)
+         b = strconv.AppendInt(b, episode.Number, 10)
+         b = append(b, "\nname = "...)
+         b = append(b, episode.Name...)
+         b = append(b, "\nid = "...)
+         b = append(b, episode.Id...)
       }
-      switch before {
-      case "movies", "series":
-         before, _, _ = strings.Cut(data, "/")
-         *s = SeriesId(before)
-         return nil
-      }
    }
-}
-
-func (s SeriesId) Vod() (*Vod, error) {
-   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
-   req.URL.RawQuery = url.Values{
-      "appName":           {"web"},
-      "appVersion":        {"9"},
-      "clientID":          {"9"},
-      "clientModelNumber": {"9"},
-      "drmCapabilities":   {"widevine:L3"},
-      "seriesIDs":         {string(s)},
-   }.Encode()
-   if ForwardedFor != "" {
-      req.Header.Set("x-forwarded-for", ForwardedFor)
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Vod []Vod
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Vod[0], nil
+   return string(b)
 }
 
 type Vod struct {
@@ -72,12 +45,6 @@ type Vod struct {
          Id     string `json:"_id"`
       }
    }
-}
-
-///
-
-func (v Vod) String() string {
-   return ""
 }
 
 func Widevine(data []byte) ([]byte, error) {
@@ -93,28 +60,6 @@ func Widevine(data []byte) ([]byte, error) {
 }
 
 var ForwardedFor string
-
-func (s SeriesId) Clips() (*Clips, error) {
-   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v2/episodes/")
-      b.WriteString(string(s))
-      b.WriteString("/clips.json")
-      return b.String()
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var clips1 []Clips
-   err = json.NewDecoder(resp.Body).Decode(&clips1)
-   if err != nil {
-      return nil, err
-   }
-   return &clips1[0], nil
-}
 
 type Clips struct {
    Sources []struct {
@@ -156,4 +101,76 @@ func (f *File) Mpd() (*http.Response, error) {
    req.URL = &f[0]
    req.Header = http.Header{}
    return http.DefaultClient.Do(&req)
+}
+
+func NewClips(id string) (*Clips, error) {
+   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v2/episodes/")
+      b.WriteString(id)
+      b.WriteString("/clips.json")
+      return b.String()
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var clips1 []Clips
+   err = json.NewDecoder(resp.Body).Decode(&clips1)
+   if err != nil {
+      return nil, err
+   }
+   return &clips1[0], nil
+}
+
+func NewVod(id string) (*Vod, error) {
+   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
+   req.URL.RawQuery = url.Values{
+      "appName":           {"web"},
+      "appVersion":        {"9"},
+      "clientID":          {"9"},
+      "clientModelNumber": {"9"},
+      "drmCapabilities":   {"widevine:L3"},
+      "seriesIDs":         {id},
+   }.Encode()
+   if ForwardedFor != "" {
+      req.Header.Set("x-forwarded-for", ForwardedFor)
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Vod []Vod
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Vod[0], nil
+}
+
+// pluto.tv/on-demand/movies/623a01faef11000014cf41f7
+// pluto.tv/on-demand/movies/623a01faef11000014cf41f7/details
+// pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6
+// pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6/season/1
+func Id(data string) (string, error) {
+   for {
+      var (
+         before string
+         found  bool
+      )
+      before, data, found = strings.Cut(data, "/")
+      if !found {
+         return "", errors.New(`"/" not found`)
+      }
+      switch before {
+      case "movies", "series":
+         before, _, _ = strings.Cut(data, "/")
+         return before, nil
+      }
+   }
 }
