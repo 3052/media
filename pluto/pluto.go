@@ -3,7 +3,6 @@ package pluto
 import (
    "bytes"
    "encoding/json"
-   "errors"
    "io"
    "net/http"
    "net/url"
