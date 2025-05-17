@@ -5,20 +5,17 @@ import (
    "testing"
 )
 
-var tests = []struct{
-   id     string
-   key_id string
-   url    string
+var tests = []struct {
+   id  string
+   url string
 }{
    {
-      id:     "5c4bb2b308d10f9a25bbc6af",
-      key_id: "AAAAAGbZBRrrxvnmpuNLhg==",
-      url:    "pluto.tv/on-demand/movies/5c4bb2b308d10f9a25bbc6af",
+      id: "623a01faef11000014cf41f7",
+      url: "pluto.tv/on-demand/movies/623a01faef11000014cf41f7",
    },
    {
-      url:    "pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6/episode/66fb16fda2922a00135e87f7",
-      id:     "66fb16fda2922a00135e87f7",
-      key_id: "",
+      id:  "66d0bb64a1c89200137fb0e6",
+      url: "pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6",
    },
 }
 

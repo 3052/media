@@ -73,7 +73,7 @@ type Vod struct {
    Seasons []struct {
       Episodes []Vod
    }
-   Slug    string
+   Slug string
 }
 
 func (v *Vod) Clips() (*Clips, error) {
@@ -102,31 +102,30 @@ func (v *Vod) Clips() (*Clips, error) {
    return &clips1[0], nil
 }
 
-type Address [2]string
-
-func (a *Address) Set(data string) error {
+// pluto.tv/on-demand/movies/623a01faef11000014cf41f7
+// pluto.tv/on-demand/movies/623a01faef11000014cf41f7/details
+// pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6
+// pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6/season/1
+func (s *SeriesId) Set(data string) error {
    for {
       var (
-         key string
-         ok  bool
+         before string
+         found bool
       )
-      key, data, ok = strings.Cut(data, "/")
-      if !ok {
-         return nil
+      before, data, found = strings.Cut(data, "/")
+      if !found {
+         return errors.New(`"/" not found`)
       }
-      switch key {
-      case "movies":
-         a[0] = data
-      case "series":
-         a[0], data, ok = strings.Cut(data, "/")
-         if !ok {
-            return errors.New("episode")
-         }
-      case "episode":
-         a[1] = data
+      switch before {
+      case "movies", "series":
+         before, _, _ = strings.Cut(data, "/")
+         *s = SeriesId(before)
+         return nil
       }
    }
 }
+
+type SeriesId string
 
 func (a *Address) Vod() (*Vod, error) {
    req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
