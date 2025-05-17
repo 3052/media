@@ -12,6 +12,36 @@ import (
    "slices"
 )
 
+func (f *flags) do_edit() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = login.Playback(f.edit)
+   if err != nil {
+      return err
+   }
+   var play max.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/max/Playback", data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Mpd())
+   if err != nil {
+      return err
+   }
+   return net.Mpd(f.media+"/Mpd", resp)
+}
+
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -150,36 +180,6 @@ func (f *flags) do_address() error {
       fmt.Println(&video)
    }
    return nil
-}
-
-func (f *flags) do_edit() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = login.Playback(f.edit)
-   if err != nil {
-      return err
-   }
-   var play max.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/max/Playback", data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Mpd())
-   if err != nil {
-      return err
-   }
-   return net.Mpd(f.media+"/Mpd", resp)
 }
 
 func (f *flags) do_dash() error {

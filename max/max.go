@@ -13,6 +13,91 @@ import (
    "strings"
 )
 
+func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
+   data, err := json.Marshal(map[string]any{
+      "editId": edit_id,
+      "consumptionType":      "streaming",
+      "appBundle":            "",         // required
+      "applicationSessionId": "",         // required
+      "firstPlay":            false,      // required
+      "gdpr":                 false,      // required
+      "playbackSessionId":    "",         // required
+      "userPreferences":      struct{}{}, // required
+      "capabilities": map[string]any{
+         "manifests": map[string]any{
+            "formats": map[string]any{
+               "dash": struct{}{}, // required
+            }, // required
+         }, // required
+      }, // required
+      "deviceInfo": map[string]any{
+         "player": map[string]any{
+            "mediaEngine": map[string]string{
+               "name":    "", // required
+               "version": "", // required
+            }, // required
+            "playerView": map[string]int{
+               "height": 0, // required
+               "width":  0, // required
+            }, // required
+            "sdk": map[string]string{
+               "name":    "", // required
+               "version": "", // required
+            }, // required
+         }, // required
+      }, // required
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest("POST", prd_api, bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b bytes.Buffer
+      b.WriteString("/playback-orchestrator/any/playback-orchestrator/v1")
+      b.WriteString("/playbackInfo")
+      return b.String()
+   }()
+   // .Set to match .Get
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode == 504 {
+      // bail since no response body
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (n Login) Movie(id ShowId) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/routes/movie/" + id[0]
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "page[items.size]": {"1"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var movie Videos
+   err = json.NewDecoder(resp.Body).Decode(&movie)
+   if err != nil {
+      return nil, err
+   }
+   if movie.Error() != "" {
+      return nil, &movie
+   }
+   return &movie, nil
+}
 func (n Login) Season(id ShowId, number int) (*Videos, error) {
    req, _ := http.NewRequest("", prd_api, nil)
    req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
@@ -285,91 +370,4 @@ func (v *Videos) Error() string {
       return err.Message
    }
    return ""
-}
-
-func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
-   value := map[string]any{
-      "editId": edit_id,
-      "consumptionType":      "streaming",
-      "appBundle":            "",         // required
-      "applicationSessionId": "",         // required
-      "firstPlay":            false,      // required
-      "gdpr":                 false,      // required
-      "playbackSessionId":    "",         // required
-      "userPreferences":      struct{}{}, // required
-      "capabilities": map[string]any{
-         "manifests": map[string]any{
-            "formats": map[string]any{
-               "dash": struct{}{}, // required
-            }, // required
-         }, // required
-      }, // required
-      "deviceInfo": map[string]any{
-         "player": map[string]any{
-            "mediaEngine": map[string]string{
-               "name":    "", // required
-               "version": "", // required
-            }, // required
-            "playerView": map[string]int{
-               "height": 0, // required
-               "width":  0, // required
-            }, // required
-            "sdk": map[string]string{
-               "name":    "", // required
-               "version": "", // required
-            }, // required
-         }, // required
-      }, // required
-   }
-   data, err := json.MarshalIndent(value, "", " ")
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest("POST", prd_api, bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b bytes.Buffer
-      b.WriteString("/playback-orchestrator/any/playback-orchestrator/v1")
-      b.WriteString("/playbackInfo")
-      return b.String()
-   }()
-   // .Set to match .Get
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode == 504 {
-      // bail since no response body
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-func (n Login) Movie(id ShowId) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/routes/movie/" + id[0]
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "page[items.size]": {"1"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+n.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var movie Videos
-   err = json.NewDecoder(resp.Body).Decode(&movie)
-   if err != nil {
-      return nil, err
-   }
-   if movie.Error() != "" {
-      return nil, &movie
-   }
-   return &movie, nil
 }
