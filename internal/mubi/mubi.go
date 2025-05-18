@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/media/mubi"
    "41.neocities.org/net"
-   "41.neocities.org/net/mullvad"
    "flag"
    "fmt"
    "log"
@@ -11,6 +10,40 @@ import (
    "os"
    "path/filepath"
 )
+
+func main() {
+   var f flags
+   err := f.New()
+   if err != nil {
+      panic(err)
+   }
+   flag.Func("a", "address", func(data string) error {
+      return f.slug.Parse(data)
+   })
+   flag.BoolVar(&f.auth, "auth", false, "authenticate")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.BoolVar(&f.code, "code", false, "link code")
+   flag.StringVar(&f.dash, "d", "", "dash ID")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.BoolVar(&f.text, "text", false, "text track")
+   flag.Parse()
+   switch {
+   case f.code:
+      err = f.do_code()
+   case f.auth:
+      err = f.do_auth()
+   case f.slug != "":
+      err = f.do_slug()
+   case f.dash != "":
+      err = f.do_dash()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
 
 func (f *flags) do_dash() error {
    if f.text {
@@ -61,47 +94,6 @@ func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.Func("a", "address", func(data string) error {
-      return f.slug.Parse(data)
-   })
-   flag.BoolVar(&f.auth, "auth", false, "authenticate")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.BoolVar(&f.code, "code", false, "link code")
-   flag.StringVar(&f.dash, "d", "", "dash ID")
-   flag.BoolVar(&f.mullvad, "m", false, "Mullvad")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
-   flag.BoolVar(&f.text, "text", false, "text track")
-   flag.Parse()
-   if f.mullvad {
-      http.DefaultClient.Transport = &mullvad.Transport{
-         Protocols: &http.Protocols{}, // github.com/golang/go/issues/18639
-         Proxy:     http.ProxyFromEnvironment,
-      }
-      defer mullvad.Disconnect()
-   }
-   switch {
-   case f.code:
-      err = f.do_code()
-   case f.auth:
-      err = f.do_auth()
-   case f.slug != "":
-      err = f.do_slug()
-   case f.dash != "":
-      err = f.do_dash()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
 
 func (f *flags) do_code() error {
    data, err := mubi.NewLinkCode()
@@ -140,7 +132,6 @@ type flags struct {
    dash    string
    e       net.License
    media   string
-   mullvad bool
    slug    mubi.Slug
    text    bool
 }
