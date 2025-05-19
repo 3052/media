@@ -16,8 +16,155 @@ import (
    "time"
 )
 
+const (
+   key    = "web.NhFyz4KsZ54"
+   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+const device_serial = "!!!!"
+
+const AlgoliaConvertTracking = "data-algolia-convert-tracking"
+
+type Asset struct {
+   Params struct {
+      SeriesEpisode int64
+   }
+   Id string
+}
+
+func (a *Asset) String() string {
+   b := []byte("episode = ")
+   b = strconv.AppendInt(b, a.Params.SeriesEpisode, 10)
+   b = append(b, "\nid = "...)
+   b = append(b, a.Id...)
+   return string(b)
+}
+
+type Byte[T any] []byte
+
+func (f *Fields) New(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   *f = strings.FieldsFunc(string(data), func(r rune) bool {
+      return strings.ContainsRune(` "=`, r)
+   })
+   return nil
+}
+
+type Fields []string
+
+func (f Fields) Get(key string) string {
+   var found bool
+   for _, field := range f {
+      switch {
+      case field == key:
+         found = true
+      case found:
+         return field
+      }
+   }
+   return ""
+}
+
+func (p *Play) Unmarshal(data Byte[Play]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if p.Message != "" {
+      return errors.New(p.Message)
+   }
+   return nil
+}
+
+type Play struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
 func (p *Play) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func NewSession(sso_token string) (Byte[Session], error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (s *Session) Unmarshal(data Byte[Session]) error {
+   err := json.Unmarshal(data, s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
+// hard geo block
+func (s *Session) Play(asset_id string) (Byte[Play], error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/v1/assets/")
+      b.WriteString(asset_id)
+      b.WriteString("/play")
+      return b.String()
+   }()
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
@@ -52,23 +199,6 @@ func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
       return nil, errors.New(value.Message)
    }
    return value.Assets, nil
-}
-
-///
-
-type Asset struct {
-   Params struct {
-      SeriesEpisode int64
-   }
-   Id string
-}
-
-func (a *Asset) String() string {
-   b := []byte("episode = ")
-   b = strconv.AppendInt(b, a.Params.SeriesEpisode, 10)
-   b = append(b, "\nid = "...)
-   b = append(b, a.Id...)
-   return string(b)
 }
 
 func (t *Ticket) Token(username, password string) (*Token, error) {
@@ -189,138 +319,4 @@ func (c *client) String() string {
    b = append(b, ",sig="...)
    b = base64.RawURLEncoding.AppendEncode(b, c.sig)
    return string(b)
-}
-
-const (
-   key    = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-const device_serial = "!!!!"
-
-type Byte[T any] []byte
-
-func (p *Play) Unmarshal(data Byte[Play]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
-}
-
-type Play struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-
-func NewSession(sso_token string) (Byte[Session], error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     sso_token,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (s *Session) Unmarshal(data Byte[Session]) error {
-   err := json.Unmarshal(data, s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
-}
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
-
-func (f *Fields) New(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   *f = strings.FieldsFunc(string(data), func(r rune) bool {
-      return strings.ContainsRune(` "=`, r)
-   })
-   return nil
-}
-
-type Fields []string
-
-const AlgoliaConvertTracking = "data-algolia-convert-tracking"
-
-func (f Fields) Get(key string) string {
-   var found bool
-   for _, field := range f {
-      switch {
-      case field == key:
-         found = true
-      case found:
-         return field
-      }
-   }
-   return ""
-}
-
-// hard geo block
-func (s *Session) Play(asset_id string) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(asset_id)
-      b.WriteString("/play")
-      return b.String()
-   }()
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }

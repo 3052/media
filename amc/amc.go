@@ -199,6 +199,8 @@ func (a *Auth) SeriesDetail(id int64) (*Child, error) {
    return &value.Data, nil
 }
 
+type Byte[T any] []byte
+
 type Child struct {
    Children   []Child
    Properties struct {
@@ -255,10 +257,6 @@ func (m *Metadata) String() string {
    b = strconv.AppendInt(b, m.Nid, 10)
    return string(b)
 }
-
-///
-
-type Byte[T any] []byte
 
 type Playback struct {
    Header http.Header
