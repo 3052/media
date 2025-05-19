@@ -21,6 +21,7 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
+   f.bandwidth.Value = []int64{127000, 2588000}
    return nil
 }
 
@@ -155,6 +156,39 @@ func main() {
    }
 }
 
+func (f *flags) do_episode() error {
+   data, err := os.ReadFile(f.media + "/amc/Auth")
+   if err != nil {
+      return err
+   }
+   var auth amc.Auth
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = auth.Playback(f.episode)
+   if err != nil {
+      return err
+   }
+   var play amc.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   source, ok := play.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(source.Src)
+   if err != nil {
+      return err
+   }
+   f.e.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(source, data)
+   }
+   return f.e.Tolerance(resp, f.bandwidth.Value, f.tolerance)
+}
+
 type flags struct {
    e        net.License
    media    string
@@ -172,57 +206,3 @@ type flags struct {
    tolerance float64
    bandwidth net.Bandwidth
 }
-
-///
-
-func (f *flags) do_episode() error {
-   data, err := os.ReadFile(f.media + "/amc/Auth")
-   if err != nil {
-      return err
-   }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = auth.Playback(f.episode)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/amc/Playback", data)
-   if err != nil {
-      return err
-   }
-   var play amc.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   source, ok := play.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := http.Get(source.Src)
-   if err != nil {
-      return err
-   }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-
-func (f *flags) do_dash() error {
-   data, err := os.ReadFile(f.media + "/amc/Playback")
-   if err != nil {
-      return err
-   }
-   var play amc.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   source, _ := play.Dash()
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(source, data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
-}
-
