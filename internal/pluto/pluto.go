@@ -19,7 +19,18 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
-   f.bandwidth.Value = []int64{100_000, 4_100_000}
+   f.bitrate.Value = [][2]int{
+      {100_000, 200_000}, {3_000_000, 5_000_000},
+   }
+   return nil
+}
+
+func (f *flags) do_show() error {
+   vod, err := pluto.NewVod(f.show)
+   if err != nil {
+      return err
+   }
+   fmt.Println(vod)
    return nil
 }
 
@@ -29,18 +40,15 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.Func("b", fmt.Sprint("bandwidth ", f.bandwidth.Value),
-      func(data string) error {
-         return f.bandwidth.Set(data)
-      },
-   )
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.episode, "e", "", "episode/movie ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.show, "s", "", "show ID")
    flag.IntVar(&net.Threads, "t", 1, "threads")
-   flag.Float64Var(&f.tolerance, "tolerance", 0.2, "tolerance")
    flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
+   /////////////////////////////////////////////////////////////////////
+   flag.StringVar(&f.show, "s", "", "show ID")
+   /////////////////////////////////////////////////////////////////////
+   flag.StringVar(&f.episode, "e", "", "episode/movie ID")
+   flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
    switch {
    case f.show != "":
@@ -55,22 +63,14 @@ func main() {
    }
 }
 
-func (f *flags) do_show() error {
-   vod, err := pluto.NewVod(f.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(vod)
-   return nil
-}
-
 type flags struct {
-   bandwidth net.Bandwidth
-   e         net.License
-   episode   string
-   media     string
-   show      string
-   tolerance float64
+   media string
+   e     net.License
+   ////////////////////////////
+   show string
+   //////////////////////
+   episode string
+   bitrate net.Bitrate
 }
 
 func (f *flags) do_episode() error {
@@ -87,6 +87,5 @@ func (f *flags) do_episode() error {
       return err
    }
    f.e.Widevine = pluto.Widevine
-   return f.e.Tolerance(resp, f.bandwidth.Value, f.tolerance)
+   return f.e.Bitrate(resp, &f.bitrate)
 }
-
