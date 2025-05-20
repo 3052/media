@@ -10,6 +10,19 @@ import (
    "path/filepath"
 )
 
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.bitrate.Value = [][2]int{{100_000, 200_000}, {2_200_000, 4_000_000}}
+   return nil
+}
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -42,20 +55,8 @@ type flags struct {
    e     net.License
    media string
    ////////////////////////
-   tubi int
+   tubi    int
    bitrate net.Bitrate
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
 }
 
 func (f *flags) do_tubi() error {
