@@ -5,15 +5,9 @@ import (
    "41.neocities.org/net"
    "errors"
    "flag"
-   "log"
    "os"
    "path/filepath"
 )
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
 
 func (f *flags) New() error {
    var err error
@@ -22,16 +16,12 @@ func (f *flags) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.license.ClientId = f.media + "/client_id.bin"
+   f.license.PrivateKey = f.media + "/private_key.pem"
+   f.bitrate.Value = [][2]int{
+      {128_000, 256_000}, {3_000_000, 4_000_000},
+   }
    return nil
-}
-
-type flags struct {
-   media   string
-   e       net.License
-   address string
-   dash    string
 }
 
 func main() {
@@ -40,31 +30,35 @@ func main() {
    if err != nil {
       panic(err)
    }
+   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
+   flag.StringVar(
+      &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
+   )
+   flag.StringVar(&plex.ForwardedFor, "x", "", "x-forwarded-for")
+   /////////////////////////////////////////////////////////////////////////
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "d", "", "dash ID")
-   flag.StringVar(&plex.ForwardedFor, "f", "", "set forward")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
-   switch {
-   case f.address != "":
+   if f.address != "" {
       err = f.do_address()
-   case f.dash != "":
-      err = f.do_dash()
-   default:
+      if err != nil {
+         panic(err)
+      }
+   } else {
       flag.Usage()
    }
-   if err != nil {
-      panic(err)
-   }
+}
+
+type flags struct {
+   media   string
+   license net.License
+   ////////////////////////////////
+   address string
+   bitrate net.Bitrate
 }
 
 func (f *flags) do_address() error {
    data, err := plex.NewUser()
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/plex/User", data)
    if err != nil {
       return err
    }
@@ -73,17 +67,11 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   var url plex.Url
-   url.New(f.address)
-   match, err := user.Match(url)
+   match, err := user.Match(plex.Path(f.address))
    if err != nil {
       return err
    }
    data1, err := user.Metadata(match)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/plex/Metadata", data1)
    if err != nil {
       return err
    }
@@ -100,31 +88,8 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-
-func (f *flags) do_dash() error {
-   data, err := os.ReadFile(f.media + "/plex/User")
-   if err != nil {
-      return err
-   }
-   var user plex.User
-   err = user.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = os.ReadFile(f.media + "/plex/Metadata")
-   if err != nil {
-      return err
-   }
-   var metadata plex.Metadata
-   err = metadata.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   part, _ := metadata.Dash()
-   f.e.Widevine = func(data []byte) ([]byte, error) {
+   f.license.Widevine = func(data []byte) ([]byte, error) {
       return user.Widevine(part, data)
    }
-   return f.e.Download(f.media+"/Mpd", f.dash)
+   return f.license.Bitrate(resp, &f.bitrate)
 }

@@ -130,19 +130,11 @@ type User struct {
    AuthToken string
 }
 
-type Url [1]string
-
-func (u *Url) New(data string) {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "watch.plex.tv")
-   u[0] = strings.TrimPrefix(data, "/watch")
-}
-
-func (u User) Match(url2 Url) (*Match, error) {
+func (u User) Match(path string) (*Match, error) {
    req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
    req.URL.Path = "/library/metadata/matches"
    req.URL.RawQuery = url.Values{
-      "url":          {url2[0]},
+      "url":          {path},
       "x-plex-token": {u.AuthToken},
    }.Encode()
    req.Header.Set("accept", "application/json")
@@ -167,4 +159,10 @@ func (u User) Match(url2 Url) (*Match, error) {
       return nil, errors.New(value.Error.Message)
    }
    return &value.MediaContainer.Metadata[0], nil
+}
+
+func Path(data string) string {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "watch.plex.tv")
+   return strings.TrimPrefix(data, "/watch")
 }
