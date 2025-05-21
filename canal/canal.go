@@ -16,93 +16,6 @@ import (
    "time"
 )
 
-const (
-   key    = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-const device_serial = "!!!!"
-
-type Asset struct {
-   Params struct {
-      SeriesEpisode int64
-   }
-   Id string
-}
-
-func (a *Asset) String() string {
-   b := []byte("episode = ")
-   b = strconv.AppendInt(b, a.Params.SeriesEpisode, 10)
-   b = append(b, "\nid = "...)
-   b = append(b, a.Id...)
-   return string(b)
-}
-
-type Byte[T any] []byte
-
-func (p *Play) Unmarshal(data Byte[Play]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
-}
-
-type Play struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-func (p *Play) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func NewSession(sso_token string) (Byte[Session], error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     sso_token,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (s *Session) Unmarshal(data Byte[Session]) error {
-   err := json.Unmarshal(data, s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
-}
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
 // hard geo block
 func (s *Session) Play(asset_id string) (Byte[Play], error) {
    data, err := json.Marshal(map[string]any{
@@ -286,4 +199,93 @@ func (c *client) String() string {
    b = append(b, ",sig="...)
    b = base64.RawURLEncoding.AppendEncode(b, c.sig)
    return string(b)
+}
+
+const (
+   key    = "web.NhFyz4KsZ54"
+   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+const device_serial = "!!!!"
+
+type Asset struct {
+   Params struct {
+      SeriesEpisode int64
+   }
+   Id string
+}
+
+func (a *Asset) String() string {
+   b := []byte("episode = ")
+   b = strconv.AppendInt(b, a.Params.SeriesEpisode, 10)
+   b = append(b, "\nid = "...)
+   b = append(b, a.Id...)
+   return string(b)
+}
+
+type Byte[T any] []byte
+
+func (p *Play) Unmarshal(data Byte[Play]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if p.Message != "" {
+      return errors.New(p.Message)
+   }
+   return nil
+}
+
+type Play struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
+
+func (p *Play) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func NewSession(sso_token string) (Byte[Session], error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (s *Session) Unmarshal(data Byte[Session]) error {
+   err := json.Unmarshal(data, s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
 }

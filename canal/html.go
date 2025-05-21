@@ -6,8 +6,6 @@ import (
    "strings"
 )
 
-const AlgoliaConvertTracking = "data-algolia-convert-tracking"
-
 func (f *Fields) New(address string) error {
    resp, err := http.Get(address)
    if err != nil {
@@ -25,16 +23,3 @@ func (f *Fields) New(address string) error {
 }
 
 type Fields []string
-
-func (f Fields) Get(key string) string {
-   var found bool
-   for _, field := range f {
-      switch {
-      case field == key:
-         found = true
-      case found:
-         return field
-      }
-   }
-   return ""
-}
