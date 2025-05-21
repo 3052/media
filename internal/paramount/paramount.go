@@ -15,8 +15,11 @@ func (f *flags) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.license.ClientId = f.media + "/client_id.bin"
+   f.license.PrivateKey = f.media + "/private_key.pem"
+   f.bitrate.Value = [][2]int{
+      {100_000, 150_000}, {3_900_000, 5_900_000},
+   }
    return nil
 }
 
@@ -26,43 +29,53 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "d", "", "dash ID")
+   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
+   flag.StringVar(
+      &f.license.PrivateKey, "k", f.license.PrivateKey, "private key",
+   )
+   /////////////////////////////////////////////////////////////////////////
    flag.BoolVar(&f.intl, "i", false, "P+ instance: INTL")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
+   flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
-   switch {
-   case f.paramount != "":
+   if f.paramount != "" {
       err = f.do_paramount()
-   case f.dash != "":
-      err = f.do_dash()
-   default:
+      if err != nil {
+         panic(err)
+      }
+   } else {
       flag.Usage()
-   }
-   if err != nil {
-      panic(err)
    }
 }
 
 type flags struct {
    media string
-   e     net.License
-
+   license     net.License
+   ///////////////////////
    paramount string
    intl      bool
-
-   dash string
+   bitrate net.Bitrate
 }
 
 func (f *flags) do_paramount() error {
-   var secret paramount.AppSecret
+   secret := paramount.ComCbsApp
+   // INTL does NOT allow anonymous key request, so if you are INTL you
+   // will need to use US VPN until someone codes the INTL login
+   at, err := secret.At()
+   if err != nil {
+      return err
+   }
+   session, err := at.Session(f.paramount)
+   if err != nil {
+      return err
+   }
+   f.license.Widevine = func(data []byte) ([]byte, error) {
+      return session.Widevine(data)
+   }
    if f.intl {
       secret = paramount.ComCbsCa
-   } else {
-      secret = paramount.ComCbsApp
    }
-   at, err := secret.At()
+   at, err = secret.At()
    if err != nil {
       return err
    }
@@ -74,22 +87,6 @@ func (f *flags) do_paramount() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.media+"/Mpd", resp)
+   return f.license.Bitrate(resp, &f.bitrate)
 }
 
-func (f *flags) do_dash() error {
-   // INTL does NOT allow anonymous key request, so if you are INTL you
-   // will need to use US VPN until someone codes the INTL login
-   at, err := paramount.ComCbsApp.At()
-   if err != nil {
-      return err
-   }
-   session, err := at.Session(f.paramount)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return session.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
-}

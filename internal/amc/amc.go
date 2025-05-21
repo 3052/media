@@ -19,9 +19,11 @@ func (f *flags) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   f.bandwidth.Value = []int64{127000, 2588000}
+   f.license.ClientId = f.media + "/client_id.bin"
+   f.license.PrivateKey = f.media + "/private_key.pem"
+   f.bitrate.Value = [][2]int{
+      {100_000, 200_000}, {2_000_000, 4_000_000},
+   }
    return nil
 }
 
@@ -118,23 +120,20 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.e.ClientId, "client", f.e.ClientId, "client ID")
-   flag.StringVar(&f.e.PrivateKey, "key", f.e.PrivateKey, "private key")
-   //////////////////////////////////////////////////////////////////////////////
+   flag.StringVar(&f.license.ClientId, "client", f.license.ClientId, "client ID")
+   flag.StringVar(&f.license.PrivateKey, "key", f.license.PrivateKey, "private key")
+   /////////////////////////////////////////////////////////////////////
    flag.StringVar(&f.email, "email", "", "email")
    flag.StringVar(&f.password, "password", "", "password")
-   //////////////////////////////////////////////////////////////////////////////
+   ///////////////////////////////////////////////////////
    flag.BoolVar(&f.refresh, "r", false, "refresh")
-   //////////////////////////////////////////////////////////////////////////////
+   //////////////////////////////////////////////////
    flag.Int64Var(&f.series, "series", 0, "series ID")
-   //////////////////////////////////////////////////////////////////////////////
+   //////////////////////////////////////////////////
    flag.Int64Var(&f.season, "s", 0, "season ID")
-   //////////////////////////////////////////////////////////////////////////////
+   ////////////////////////////////////////////////////////
    flag.Int64Var(&f.episode, "e", 0, "episode or movie ID")
-   flag.Float64Var(&f.tolerance, "t", 0.2, "tolerance")
-   flag.Func("b", "bandwidth", func(data string) error {
-      return f.bandwidth.Set(data)
-   })
+   flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
    if f.email != "" {
       if f.password != "" {
@@ -154,6 +153,23 @@ func main() {
    if err != nil {
       panic(err)
    }
+}
+
+type flags struct {
+   license net.License
+   media   string
+   ///////////////
+   email    string
+   password string
+   ///////////////
+   refresh bool
+   ////////////
+   series int64
+   ////////////
+   season int64
+   /////////////
+   episode int64
+   bitrate net.Bitrate
 }
 
 func (f *flags) do_episode() error {
@@ -183,26 +199,8 @@ func (f *flags) do_episode() error {
    if err != nil {
       return err
    }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
+   f.license.Widevine = func(data []byte) ([]byte, error) {
       return play.Widevine(source, data)
    }
-   return f.e.Tolerance(resp, f.bandwidth.Value, f.tolerance)
-}
-
-type flags struct {
-   e        net.License
-   media    string
-   /////////////////////////
-   email    string
-   password string
-   /////////////////////////
-   refresh  bool
-   /////////////////////////
-   series   int64
-   /////////////////////////
-   season   int64
-   /////////////////////////
-   episode  int64
-   tolerance float64
-   bandwidth net.Bandwidth
+   return f.license.Bitrate(resp, &f.bitrate)
 }
