@@ -23,8 +23,6 @@ const (
 
 const device_serial = "!!!!"
 
-const AlgoliaConvertTracking = "data-algolia-convert-tracking"
-
 type Asset struct {
    Params struct {
       SeriesEpisode int64
@@ -41,37 +39,6 @@ func (a *Asset) String() string {
 }
 
 type Byte[T any] []byte
-
-func (f *Fields) New(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   *f = strings.FieldsFunc(string(data), func(r rune) bool {
-      return strings.ContainsRune(` "=`, r)
-   })
-   return nil
-}
-
-type Fields []string
-
-func (f Fields) Get(key string) string {
-   var found bool
-   for _, field := range f {
-      switch {
-      case field == key:
-         found = true
-      case found:
-         return field
-      }
-   }
-   return ""
-}
 
 func (p *Play) Unmarshal(data Byte[Play]) error {
    err := json.Unmarshal(data, p)
