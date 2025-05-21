@@ -6,6 +6,22 @@ import (
    "strings"
 )
 
+func (f Fields) AssetId() string {
+   var key, value string
+   for _, field := range f {
+      switch key {
+      case "data-algolia-convert-tracking":
+         value = field
+      case "/web/signup/":
+         return value
+      }
+      key = field
+   }
+   return ""
+}
+
+type Fields []string
+
 func (f *Fields) New(address string) error {
    resp, err := http.Get(address)
    if err != nil {
@@ -21,5 +37,3 @@ func (f *Fields) New(address string) error {
    })
    return nil
 }
-
-type Fields []string

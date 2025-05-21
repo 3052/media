@@ -11,6 +11,50 @@ import (
    "path/filepath"
 )
 
+func (f *flags) do_asset() error {
+   data, err := os.ReadFile(f.media + "/canal/Session")
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = session.Play(f.asset)
+   if err != nil {
+      return err
+   }
+   var play canal.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Url)
+   if err != nil {
+      return err
+   }
+   f.license.Widevine = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
+   }
+   return f.license.Bitrate(resp, &f.bitrate)
+}
+
+func (f *flags) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.license.ClientId = f.media + "/client_id.bin"
+   f.license.PrivateKey = f.media + "/private_key.pem"
+   f.bitrate.Value = [][2]int{
+      {300_000, 400_000}, {3_000_000, 4_000_000},
+   }
+   return nil
+}
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -56,10 +100,7 @@ func (f *flags) do_address() error {
    if err != nil {
       return err
    }
-   fmt.Println(
-      canal.AlgoliaConvertTracking, "=",
-      fields.Get(canal.AlgoliaConvertTracking),
-   )
+   fmt.Println("asset id =", fields.AssetId())
    return nil
 }
 
@@ -83,18 +124,6 @@ func (f *flags) do_season() error {
       }
       fmt.Println(&asset)
    }
-   return nil
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.license.ClientId = f.media + "/client_id.bin"
-   f.license.PrivateKey = f.media + "/private_key.pem"
    return nil
 }
 
@@ -158,33 +187,4 @@ type flags struct {
    ///////////////
    asset   string
    bitrate net.Bitrate
-}
-
-func (f *flags) do_asset() error {
-   data, err := os.ReadFile(f.media + "/canal/Session")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = session.Play(f.asset)
-   if err != nil {
-      return err
-   }
-   var play canal.Play
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Url)
-   if err != nil {
-      return err
-   }
-   f.license.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
-   }
-   return f.license.Bitrate(resp, &f.bitrate)
 }
