@@ -10,6 +10,21 @@ import (
    "strings"
 )
 
+// these return a valid response body, but response status is "403 OK":
+// http://siloh-fs.plutotv.net
+// http://siloh-ns1.plutotv.net
+// https://siloh-fs.plutotv.net
+// https://siloh-ns1.plutotv.net
+func (f *File) UnmarshalText(data []byte) error {
+   err := f[0].UnmarshalBinary(data)
+   if err != nil {
+      return err
+   }
+   f[0].Scheme = "http"
+   f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
+   return nil
+}
+
 func NewClips(id string) (*Clips, error) {
    req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
    req.URL.Path = func() string {
@@ -115,21 +130,6 @@ type Clips struct {
       File File
       Type string
    }
-}
-
-// these return a valid response body, but response status is "403 OK":
-// http://siloh-fs.plutotv.net
-// http://siloh-ns1.plutotv.net
-// https://siloh-fs.plutotv.net
-// https://siloh-ns1.plutotv.net
-func (f *File) UnmarshalText(data []byte) error {
-   err := f[0].UnmarshalBinary(data)
-   if err != nil {
-      return err
-   }
-   f[0].Scheme = "http"
-   f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
-   return nil
 }
 
 func (c *Clips) Dash() (*File, bool) {
