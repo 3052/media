@@ -10,6 +10,46 @@ import (
    "strings"
 )
 
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
+      "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+var ForwardedFor string
+
+type Clips struct {
+   Sources []struct {
+      File File
+      Type string
+   }
+}
+
+func (c *Clips) Dash() (*File, bool) {
+   for _, source := range c.Sources {
+      if source.Type == "DASH" {
+         return &source.File, true
+      }
+   }
+   return nil, false
+}
+
+type File [1]url.URL
+
+// The Request's URL and Header fields must be initialized
+func (f *File) Mpd() (*http.Response, error) {
+   var req http.Request
+   req.Method = "GET"
+   req.URL = &f[0]
+   req.Header = http.Header{}
+   return http.DefaultClient.Do(&req)
+}
 // these return a valid response body, but response status is "403 OK":
 // http://siloh-fs.plutotv.net
 // http://siloh-ns1.plutotv.net
@@ -109,45 +149,4 @@ type Vod struct {
          Id     string `json:"_id"`
       }
    }
-}
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
-      "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-var ForwardedFor string
-
-type Clips struct {
-   Sources []struct {
-      File File
-      Type string
-   }
-}
-
-func (c *Clips) Dash() (*File, bool) {
-   for _, source := range c.Sources {
-      if source.Type == "DASH" {
-         return &source.File, true
-      }
-   }
-   return nil, false
-}
-
-type File [1]url.URL
-
-// The Request's URL and Header fields must be initialized
-func (f *File) Mpd() (*http.Response, error) {
-   var req http.Request
-   req.Method = "GET"
-   req.URL = &f[0]
-   req.Header = http.Header{}
-   return http.DefaultClient.Do(&req)
 }
