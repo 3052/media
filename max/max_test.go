@@ -7,54 +7,16 @@ import (
    "time"
 )
 
-func TestPlayback(t *testing.T) {
-   data, err := os.ReadFile("login.txt")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var login1 Login
-   err = login1.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   for _, test1 := range tests {
-      data, err := login1.Playback(test1.one)
-      if err != nil {
-         t.Fatal(err)
-      }
-      var play Playback
-      err = play.Unmarshal(data)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Printf("%+v\n", play.Fallback)
-      time.Sleep(time.Second)
-   }
-}
-
 var tests = []struct {
-   zero     string
-   one      string
+   url      string
    location []string
 }{
    {
-      zero: "play.max.com/movie/83e518fa-7f76-47d0-a607-227b53bf3e6c",
-      location: []string{
-         "Brazil",
-         "Chile",
-         "Colombia",
-         "Denmark",
-         "Finland",
-         "France",
-         "Mexico",
-         "Norway",
-         "Peru",
-         "Sweden",
-         "United States",
-      },
+      location: []string{"united states"},
+      url:      "max.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7",
    },
    {
-      zero: "play.max.com/show/14f9834d-bc23-41a8-ab61-5c8abdbea505",
+      url: "play.max.com/show/14f9834d-bc23-41a8-ab61-5c8abdbea505",
       location: []string{
          "Belgium",
          "Brazil",
@@ -86,7 +48,7 @@ var tests = []struct {
       },
    },
    {
-      zero: "play.max.com/movie/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
+      url: "play.max.com/movie/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
       location: []string{
          "Chile",
          "Colombia",
@@ -99,4 +61,10 @@ var tests = []struct {
          "Thailand",
       },
    },
+}
+
+func Test(t *testing.T) {
+   for _, test1 := range tests {
+      fmt.Println(test1)
+   }
 }

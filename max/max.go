@@ -15,7 +15,7 @@ import (
 
 func (n *Login) Playback(edit_id string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
-      "editId": edit_id,
+      "editId":               edit_id,
       "consumptionType":      "streaming",
       "appBundle":            "",         // required
       "applicationSessionId": "",         // required
@@ -302,7 +302,7 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
 
 type Videos struct {
    Errors []struct {
-      Detail string // show was filtered by validator
+      Detail  string // show was filtered by validator
       Message string // Token is missing or not valid
    }
    Included []Video

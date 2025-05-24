@@ -8,6 +8,8 @@ import (
    "fmt"
    "os"
    "path/filepath"
+
+   "net/http"
 )
 
 func (f *flags) New() error {
@@ -17,8 +19,8 @@ func (f *flags) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.license.ClientId = f.media + "/client_id.bin"
+   f.license.PrivateKey = f.media + "/private_key.pem"
    f.bitrate.Value = [][2]int{
       {100_000, 200_000}, {3_000_000, 5_000_000},
    }
@@ -40,13 +42,15 @@ func main() {
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
+   flag.StringVar(
+      &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
+   )
    flag.IntVar(&net.Threads, "t", 1, "threads")
    flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
-   /////////////////////////////////////////////////////////////////////
+   ///////////////////////////////////////////////////////////////
    flag.StringVar(&f.show, "s", "", "show ID")
-   /////////////////////////////////////////////////////////////////////
+   ///////////////////////////////////////////////////////
    flag.StringVar(&f.episode, "e", "", "episode/movie ID")
    flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
@@ -64,11 +68,11 @@ func main() {
 }
 
 type flags struct {
-   media string
-   e     net.License
-   ////////////////////////////
+   media   string
+   license net.License
+   ///////////////////
    show string
-   //////////////////////
+   //////////////
    episode string
    bitrate net.Bitrate
 }
@@ -86,6 +90,6 @@ func (f *flags) do_episode() error {
    if err != nil {
       return err
    }
-   f.e.Widevine = pluto.Widevine
-   return f.e.Bitrate(resp, &f.bitrate)
+   f.license.Widevine = pluto.Widevine
+   return f.license.Bitrate(resp, &f.bitrate)
 }

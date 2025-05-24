@@ -11,7 +11,6 @@ var tests = []struct {
    program string
    id      int
    lock    bool
-   key_id  string
 }{
    {
       id:      3494500,
@@ -21,13 +20,11 @@ var tests = []struct {
    },
    {
       id:      9000283422,
-      key_id:  "0552e44842654a4e81b326004be47be0",
       program: "episode",
       url:     "nbc.com/saturday-night-live/video/may-18-jake-gyllenhaal/9000283438",
    },
    {
       id:      9000283435,
-      key_id:  "a48d84f23ec74aa1ba8b1d4c863ac02b",
       lock:    true,
       program: "episode",
       url:     "nbc.com/saturday-night-live/video/march-30-ramy-youssef/9000283435",

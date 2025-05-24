@@ -7,23 +7,22 @@ import (
 )
 
 var watch_tests = []struct {
-   key_id string
-   path   string
-   url    string
+   drm  bool
+   path string
+   url  string
 }{
    {
-      path: "/movie/american-psycho",
-      url: "watch.plex.tv/movie/american-psycho",
+      drm:  true,
+      path: "/movie/ghost-in-the-shell",
+      url:  "watch.plex.tv/watch/movie/ghost-in-the-shell",
    },
    {
-      url:    "watch.plex.tv/movie/limitless",
-      path:   "/movie/limitless",
-      key_id: "", // no DRM
+      url:  "watch.plex.tv/movie/limitless",
+      path: "/movie/limitless",
    },
    {
-      key_id: "", // no DRM
-      path:   "/show/broadchurch/season/3/episode/5",
-      url:    "watch.plex.tv/show/broadchurch/season/3/episode/5",
+      path: "/show/broadchurch/season/3/episode/5",
+      url:  "watch.plex.tv/show/broadchurch/season/3/episode/5",
    },
 }
 

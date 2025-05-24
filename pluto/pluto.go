@@ -50,6 +50,7 @@ func (f *File) Mpd() (*http.Response, error) {
    req.Header = http.Header{}
    return http.DefaultClient.Do(&req)
 }
+
 // these return a valid response body, but response status is "403 OK":
 // http://siloh-fs.plutotv.net
 // http://siloh-ns1.plutotv.net
@@ -117,7 +118,7 @@ func NewVod(id string) (*Vod, error) {
 
 func (v *Vod) String() string {
    var (
-      b []byte
+      b     []byte
       lines bool
    )
    for _, season := range v.Seasons {

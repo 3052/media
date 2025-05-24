@@ -6,6 +6,26 @@ import (
    "time"
 )
 
+var tests = []struct {
+   content_id int
+   location   string
+   url        string
+}{
+   {
+      content_id: 312926,
+      url:        "tubitv.com/movies/312926",
+   },
+   {
+      content_id: 200042567,
+      url:        "tubitv.com/tv-shows/200042567",
+   },
+   {
+      content_id: 643397,
+      location:   "Australia",
+      url:        "tubitv.com/movies/643397",
+   },
+}
+
 func Test(t *testing.T) {
    for _, test1 := range tests {
       data, err := NewContent(test1.content_id)
@@ -20,26 +40,4 @@ func Test(t *testing.T) {
       fmt.Println(content1)
       time.Sleep(time.Second)
    }
-}
-
-var tests = []struct {
-   content_id int
-   key_id     string
-   location   string
-   url        string
-}{
-   {
-      content_id: 643397,
-      location:   "Australia",
-      url:        "tubitv.com/movies/643397",
-   },
-   {
-      content_id: 100001047,
-      url:        "tubitv.com/movies/100001047",
-   },
-   {
-      content_id: 200042567,
-      key_id:     "Ndopo1ozQ8iSL75MAfbL6A==",
-      url:        "tubitv.com/tv-shows/200042567",
-   },
 }

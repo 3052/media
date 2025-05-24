@@ -8,15 +8,11 @@ import (
 )
 
 var test = struct {
-   content_id string
-   id         int64
-   key_id     string
-   url        string
+   id  int64
+   url string
 }{
-   content_id: "MTE3NjU2OA==",
-   id:         3427440,
-   key_id:     "Yc2mUFQwSrKc25rgupRzRQ==",
-   url:        "movistarplus.es/cine/ficha?id=3427440",
+   id:  3427440,
+   url: "movistarplus.es/cine/ficha?id=3427440",
 }
 
 func TestDetails(t *testing.T) {
