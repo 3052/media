@@ -8,6 +8,39 @@ import (
    "path/filepath"
 )
 
+func (f *flags) do_paramount() error {
+   secret := paramount.ComCbsApp
+   // INTL does NOT allow anonymous key request, so if you are INTL you
+   // will need to use US VPN until someone codes the INTL login
+   at, err := secret.At()
+   if err != nil {
+      return err
+   }
+   session, err := at.Session(f.paramount)
+   if err != nil {
+      return err
+   }
+   f.license.Widevine = func(data []byte) ([]byte, error) {
+      return session.Widevine(data)
+   }
+   if f.intl {
+      secret = paramount.ComCbsCa
+   }
+   at, err = secret.At()
+   if err != nil {
+      return err
+   }
+   item, err := at.Item(f.paramount)
+   if err != nil {
+      return err
+   }
+   resp, err := item.Mpd()
+   if err != nil {
+      return err
+   }
+   return f.license.Bitrate(resp, &f.bitrate)
+}
+
 func (f *flags) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -56,37 +89,3 @@ type flags struct {
    intl      bool
    bitrate net.Bitrate
 }
-
-func (f *flags) do_paramount() error {
-   secret := paramount.ComCbsApp
-   // INTL does NOT allow anonymous key request, so if you are INTL you
-   // will need to use US VPN until someone codes the INTL login
-   at, err := secret.At()
-   if err != nil {
-      return err
-   }
-   session, err := at.Session(f.paramount)
-   if err != nil {
-      return err
-   }
-   f.license.Widevine = func(data []byte) ([]byte, error) {
-      return session.Widevine(data)
-   }
-   if f.intl {
-      secret = paramount.ComCbsCa
-   }
-   at, err = secret.At()
-   if err != nil {
-      return err
-   }
-   item, err := at.Item(f.paramount)
-   if err != nil {
-      return err
-   }
-   resp, err := item.Mpd()
-   if err != nil {
-      return err
-   }
-   return f.license.Bitrate(resp, &f.bitrate)
-}
-
