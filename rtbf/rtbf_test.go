@@ -7,18 +7,16 @@ import (
 )
 
 var tests = []struct {
-   key_id string
-   path   string
-   url    string
+   path string
+   url  string
 }{
    {
       path: "/emission/thelma-et-louise-29388",
-      url: "auvio.rtbf.be/emission/thelma-et-louise-29388",
+      url:  "auvio.rtbf.be/emission/thelma-et-louise-29388",
    },
    {
-      key_id: "xESyRLihQMacu++BvoakfA==",
-      path:   "/media/agatha-christie-pourquoi-pas-evans-agatha-christie-pourquoi-pas-evans-3280380",
-      url:    "auvio.rtbf.be/media/agatha-christie-pourquoi-pas-evans-agatha-christie-pourquoi-pas-evans-3280380",
+      path: "/media/agatha-christie-pourquoi-pas-evans-agatha-christie-pourquoi-pas-evans-3280380",
+      url:  "auvio.rtbf.be/media/agatha-christie-pourquoi-pas-evans-agatha-christie-pourquoi-pas-evans-3280380",
    },
 }
 

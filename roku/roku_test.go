@@ -6,6 +6,23 @@ import (
    "time"
 )
 
+var tests = []struct{
+   id    string
+   type1 string
+   url   string
+}{
+   {
+      id:    "597a64a4a25c5bf6af4a8c7053049a6f",
+      type1: "movie",
+      url:   "therokuchannel.roku.com/watch/597a64a4a25c5bf6af4a8c7053049a6f",
+   },
+   {
+      id:    "105c41ea75775968b670fbb26978ed76",
+      type1: "episode",
+      url:   "therokuchannel.roku.com/watch/105c41ea75775968b670fbb26978ed76",
+   },
+}
+
 func Test(t *testing.T) {
    for _, test1 := range tests {
       data, err := (*Code).AccountToken(nil)
@@ -24,21 +41,4 @@ func Test(t *testing.T) {
       fmt.Println(play)
       time.Sleep(time.Second)
    }
-}
-
-var tests = []struct {
-   id    string
-   type1 string
-   url   string
-}{
-   {
-      id:    "597a64a4a25c5bf6af4a8c7053049a6f",
-      type1: "movie",
-      url:   "therokuchannel.roku.com/watch/597a64a4a25c5bf6af4a8c7053049a6f",
-   },
-   {
-      id:    "105c41ea75775968b670fbb26978ed76",
-      type1: "episode",
-      url:   "therokuchannel.roku.com/watch/105c41ea75775968b670fbb26978ed76",
-   },
 }

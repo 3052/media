@@ -7,6 +7,20 @@ import (
    "time"
 )
 
+var tests = []struct {
+   url      string
+   video_id int
+}{
+   {
+      url:      "kanopy.com/en/product/13808102",
+      video_id: 13808102,
+   },
+   {
+      url:      "kanopy.com/en/product/14881167",
+      video_id: 14881167,
+   },
+}
+
 func Test(t *testing.T) {
    data, err := exec.Command("password", "kanopy.com").Output()
    if err != nil {
@@ -33,21 +47,4 @@ func Test(t *testing.T) {
       }
       time.Sleep(time.Second)
    }
-}
-
-var tests = []struct {
-   key_id   string
-   url      string
-   video_id int
-}{
-   {
-      key_id:   "DUCS1DH4TB6Po1oEkG9xUA==",
-      url:      "kanopy.com/en/product/13808102",
-      video_id: 13808102,
-   },
-   {
-      key_id:   "sYcEuBtnTH6Bqn65yIE0Ww==",
-      url:      "kanopy.com/en/product/14881167",
-      video_id: 14881167,
-   },
 }

@@ -11,6 +11,54 @@ import (
    "strings"
 )
 
+// hard geo block
+func (s *Streamings) Info(
+   audio_language string, classification_id int,
+) (*StreamInfo, error) {
+   s.AudioLanguage = audio_language
+   s.AudioQuality = "2.0"
+   s.ClassificationId = classification_id
+   s.DeviceIdentifier = "atvui40"
+   s.DeviceSerial = "not implemented"
+   s.Player = "atvui40:DASH-CENC:WVM"
+   s.SubtitleLanguage = "MIS"
+   s.VideoType = "stream"
+   data, err := json.Marshal(s)
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gizmo.rakuten.tv/v3/avod/streamings",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         StreamInfos []StreamInfo `json:"stream_infos"`
+      }
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   // you can trigger this with wrong location
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
+   }
+   return &value.Data.StreamInfos[0], nil
+}
+
 func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
@@ -123,54 +171,6 @@ func (s *Season) Unmarshal(data Byte[Season]) error {
    }
    *s = value.Data
    return nil
-}
-
-// hard geo block
-func (s *Streamings) Info(
-   audio_language string, classification_id int,
-) (*StreamInfo, error) {
-   s.AudioLanguage = audio_language
-   s.AudioQuality = "2.0"
-   s.ClassificationId = classification_id
-   s.DeviceIdentifier = "atvui40"
-   s.DeviceSerial = "not implemented"
-   s.Player = "atvui40:DASH-CENC:WVM"
-   s.SubtitleLanguage = "MIS"
-   s.VideoType = "stream"
-   data, err := json.Marshal(s)
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gizmo.rakuten.tv/v3/avod/streamings",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         StreamInfos []StreamInfo `json:"stream_infos"`
-      }
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   // you can trigger this with wrong location
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Message)
-   }
-   return &value.Data.StreamInfos[0], nil
 }
 
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py

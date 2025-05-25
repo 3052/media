@@ -6,16 +6,15 @@ import (
 )
 
 var tests = []struct {
-   path       string
-   url        string
+   path string
+   url  string
 }{
+   {
+      url: "ctv.ca/movies/x-men-days-of-future-past",
+   },
    {
       path: "/shows/friends/the-one-with-the-chicken-pox-s2e23",
       url:  "ctv.ca/shows/friends/the-one-with-the-chicken-pox-s2e23",
-   },
-   {
-      path: "/movies/the-transporter",
-      url:  "ctv.ca/movies/the-transporter",
    },
 }
 
