@@ -2,7 +2,7 @@ module 41.neocities.org/media
 
 go 1.24.0
 
-require 41.neocities.org/net v1.7.4
+require 41.neocities.org/net v1.7.6
 
 require (
 	41.neocities.org/dash v1.27.7 // indirect

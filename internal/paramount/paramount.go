@@ -9,6 +9,7 @@ import (
 )
 
 func (f *flags) do_paramount() error {
+   paramount.Client.Transport = net.Proxy(false)
    secret := paramount.ComCbsApp
    // INTL does NOT allow anonymous key request, so if you are INTL you
    // will need to use US VPN until someone codes the INTL login
@@ -62,14 +63,14 @@ func main() {
    if err != nil {
       panic(err)
    }
+   flag.Var(&f.bitrate, "b", "bitrate")
    flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
+   flag.BoolVar(&f.intl, "i", false, "P+ instance: INTL")
    flag.StringVar(
       &f.license.PrivateKey, "k", f.license.PrivateKey, "private key",
    )
-   /////////////////////////////////////////////////////////////////////////
-   flag.BoolVar(&f.intl, "i", false, "P+ instance: INTL")
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.Var(&f.bitrate, "b", "bitrate")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    if f.paramount != "" {
       err = f.do_paramount()

@@ -15,14 +15,6 @@ import (
    "strings"
 )
 
-func pad(data []byte) []byte {
-   length := aes.BlockSize - len(data)%aes.BlockSize
-   for high := byte(length); length >= 1; length-- {
-      data = append(data, high)
-   }
-   return data
-}
-
 func (s *Session) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
    if err != nil {
@@ -32,27 +24,22 @@ func (s *Session) Widevine(data []byte) ([]byte, error) {
       "authorization": {"Bearer " + s.LsSession},
       "content-type":  {"application/x-protobuf"},
    }
-   resp, err := http.DefaultClient.Do(req)
+   resp, err := Client.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(string(data))
+   }
+   return data, nil
 }
 
-type Item struct {
-   AssetType    string
-   CmsAccountId string
-   ContentId    string
-}
-
-type AppSecret string
-
-// 15.0.52
-const ComCbsApp AppSecret = "4fb47ec1f5c17caa"
-
-// 15.0.52
-const ComCbsCa AppSecret = "e55edaeb8451f737"
+var Client http.Client
 
 func (a At) Session(content_id string) (*Session, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
@@ -66,7 +53,7 @@ func (a At) Session(content_id string) (*Session, error) {
       "at":        {string(a)},
       "contentId": {content_id},
    }.Encode()
-   resp, err := http.DefaultClient.Do(req)
+   resp, err := Client.Do(req)
    if err != nil {
       return nil, err
    }
@@ -83,6 +70,28 @@ func (a At) Session(content_id string) (*Session, error) {
    }
    return session1, nil
 }
+
+func pad(data []byte) []byte {
+   length := aes.BlockSize - len(data)%aes.BlockSize
+   for high := byte(length); length >= 1; length-- {
+      data = append(data, high)
+   }
+   return data
+}
+
+type Item struct {
+   AssetType    string
+   CmsAccountId string
+   ContentId    string
+}
+
+type AppSecret string
+
+// 15.0.52
+const ComCbsApp AppSecret = "4fb47ec1f5c17caa"
+
+// 15.0.52
+const ComCbsCa AppSecret = "e55edaeb8451f737"
 
 const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
 
