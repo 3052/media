@@ -16,17 +16,44 @@ import (
    "strings"
 )
 
-func Proxy(address *url.URL) func(*http.Request) (*url.URL, error) {
-   return func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      if strings.Contains(req.URL.Path, "/video/cid/") {
-         return address, nil
-      }
-      return nil, nil
+func Transport(proxy *url.URL) *http.Transport {
+   return &http.Transport{
+      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         contains := func(data string) bool {
+            return strings.Contains(req.URL.Path, data)
+         }
+         if contains("/media/guid/") || contains("/video/cid/") {
+            log.Println("Proxy", req.Method, req.URL)
+            return proxy, nil
+         } else if contains("/paramountplus/") {
+            return nil, nil
+         } else {
+            log.Println(req.Method, req.URL)
+            return nil, nil
+         }
+      },
    }
 }
 
-// hard geo block
+func (i *Item) Mpd() (*http.Response, error) {
+   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/s/")
+      b = append(b, i.CmsAccountId...)
+      b = append(b, "/media/guid/"...)
+      b = strconv.AppendInt(b, cms_account(i.CmsAccountId), 10)
+      b = append(b, '/')
+      b = append(b, i.ContentId...)
+      return string(b)
+   }()
+   req.URL.RawQuery = url.Values{
+      "assetTypes": {i.AssetType},
+      "formats":    {"MPEG-DASH"},
+   }.Encode()
+   return http.DefaultClient.Do(req)
+}
+
 func (a At) Item(cid string) (*Item, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
@@ -154,25 +181,6 @@ func (a AppSecret) At() (At, error) {
    return At(base64.StdEncoding.EncodeToString(data1)), nil
 }
 
-// hard geo block
-func (i *Item) Mpd() (*http.Response, error) {
-   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/s/")
-      b = append(b, i.CmsAccountId...)
-      b = append(b, "/media/guid/"...)
-      b = strconv.AppendInt(b, cms_account(i.CmsAccountId), 10)
-      b = append(b, '/')
-      b = append(b, i.ContentId...)
-      return string(b)
-   }()
-   req.URL.RawQuery = url.Values{
-      "assetTypes": {i.AssetType},
-      "formats":    {"MPEG-DASH"},
-   }.Encode()
-   return http.DefaultClient.Do(req)
-}
-
 func (a At) Session(content_id string) (*Session, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
@@ -189,12 +197,12 @@ func (a At) Session(content_id string) (*Session, error) {
    if err != nil {
       return nil, err
    }
-   defer resp.Body.Close()
    if resp.StatusCode != http.StatusOK {
       var b strings.Builder
       resp.Write(&b)
       return nil, errors.New(b.String())
    }
+   defer resp.Body.Close()
    session1 := &Session{}
    err = json.NewDecoder(resp.Body).Decode(session1)
    if err != nil {

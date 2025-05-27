@@ -142,12 +142,12 @@ func NewAuthenticate(email, password string) (Byte[Authenticate], error) {
    if err != nil {
       return nil, err
    }
-   defer resp.Body.Close()
    if resp.StatusCode != http.StatusOK {
       var data strings.Builder
       resp.Write(&data)
       return nil, errors.New(data.String())
    }
+   defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
 
