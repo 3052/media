@@ -11,26 +11,13 @@ import (
 )
 
 func main() {
-   var f flags
-   err := f.New()
+   var set flag_set
+   err := set.New()
    if err != nil {
       panic(err)
    }
-   flag.Var(&f.bitrate, "b", "bitrate")
-   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
-   flag.StringVar(
-      &f.license.PrivateKey, "k", f.license.PrivateKey, "private key",
-   )
-   flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
-   flag.Func("x", "proxy", func(data string) error {
-      var err error
-      f.proxy, err = url.Parse(data)
-      return err
-   })
-   flag.Parse()
-   if f.paramount != "" {
-      err = f.do_paramount()
+   if set.paramount != "" {
+      err = set.do_paramount()
       if err != nil {
          panic(err)
       }
@@ -39,14 +26,14 @@ func main() {
    }
 }
 
-type flags struct {
-   bitrate   net.Bitrate
-   license   net.License
+type flag_set struct {
+   cdm       net.Cdm
+   filters   net.Filters
    paramount string
    proxy     *url.URL
 }
 
-func (f *flags) do_paramount() error {
+func (f *flag_set) do_paramount() error {
    http.DefaultTransport = paramount.Transport(f.proxy)
    // INTL does NOT allow anonymous key request, so if you are INTL you
    // will need to use US VPN until someone codes the INTL login
@@ -59,8 +46,8 @@ func (f *flags) do_paramount() error {
    if err != nil {
       return err
    }
-   f.license.Widevine = func(data []byte) ([]byte, error) {
-      return session.Widevine(data)
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return session.License(data)
    }
    if f.proxy != nil {
       secret = paramount.ComCbsCa
@@ -77,18 +64,31 @@ func (f *flags) do_paramount() error {
    if err != nil {
       return err
    }
-   return f.license.Bitrate(resp, &f.bitrate)
+   return f.filters.Filter(resp, &f.cdm)
 }
-func (f *flags) New() error {
+
+func (f *flag_set) New() error {
    media, err := os.UserHomeDir()
    if err != nil {
       return err
    }
    media = filepath.ToSlash(media) + "/media"
-   f.license.ClientId = media + "/client_id.bin"
-   f.license.PrivateKey = media + "/private_key.pem"
-   f.bitrate.Value = [][2]int{
-      {100_000, 150_000}, {3_900_000, 5_900_000},
+   f.cdm.ClientId = media + "/client_id.bin"
+   f.cdm.PrivateKey = media + "/private_key.pem"
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
+   flag.StringVar(&f.paramount, "p", "", "paramount ID")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
+   flag.Func("x", "proxy", func(data string) error {
+      var err error
+      f.proxy, err = url.Parse(data)
+      return err
+   })
+   f.filters = net.Filters{
+      {BitrateStart: 3_000_000, BitrateEnd: 5_000_000},
+      {BitrateStart: 100_000, BitrateEnd: 200_000, Language: "en-US"},
    }
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.Parse()
    return nil
 }
