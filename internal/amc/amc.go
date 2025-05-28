@@ -12,27 +12,12 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.license.ClientId = f.media + "/client_id.bin"
-   f.license.PrivateKey = f.media + "/private_key.pem"
-   f.bitrate.Value = [][2]int{
-      {100_000, 200_000}, {2_000_000, 4_000_000},
-   }
-   return nil
-}
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flags) do_refresh() error {
+func (f *flag_set) do_refresh() error {
    data, err := os.ReadFile(f.media + "/amc/Auth")
    if err != nil {
       return err
@@ -49,7 +34,7 @@ func (f *flags) do_refresh() error {
    return write_file(f.media+"/amc/Auth", data)
 }
 
-func (f *flags) do_email() error {
+func (f *flag_set) do_email() error {
    var auth amc.Auth
    err := auth.Unauth()
    if err != nil {
@@ -62,7 +47,7 @@ func (f *flags) do_email() error {
    return write_file(f.media+"/amc/Auth", data)
 }
 
-func (f *flags) do_season() error {
+func (f *flag_set) do_season() error {
    data, err := os.ReadFile(f.media + "/amc/Auth")
    if err != nil {
       return err
@@ -88,7 +73,7 @@ func (f *flags) do_season() error {
    return nil
 }
 
-func (f *flags) do_series() error {
+func (f *flag_set) do_series() error {
    data, err := os.ReadFile(f.media + "/amc/Auth")
    if err != nil {
       return err
@@ -114,15 +99,23 @@ func (f *flags) do_series() error {
    return nil
 }
 
-func main() {
-   var f flags
-   err := f.New()
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
    if err != nil {
-      panic(err)
+      return err
    }
-   flag.StringVar(&f.license.ClientId, "client", f.license.ClientId, "client ID")
-   flag.StringVar(&f.license.PrivateKey, "key", f.license.PrivateKey, "private key")
-   /////////////////////////////////////////////////////////////////////
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.filters = net.Filters{
+      {BitrateStart: 100_000, BitrateEnd: 200_000},
+      {BitrateStart: 2_000_000, BitrateEnd: 4_000_000},
+   }
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.cdm.ClientId, "client", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.cdm.PrivateKey, "key", f.cdm.PrivateKey, "private key")
+   /////////////////////////////////////////////////////////////////////////
    flag.StringVar(&f.email, "email", "", "email")
    flag.StringVar(&f.password, "password", "", "password")
    ///////////////////////////////////////////////////////
@@ -133,20 +126,28 @@ func main() {
    flag.Int64Var(&f.season, "s", 0, "season ID")
    ////////////////////////////////////////////////////////
    flag.Int64Var(&f.episode, "e", 0, "episode or movie ID")
-   flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
-   if f.email != "" {
-      if f.password != "" {
-         err = f.do_email()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.email != "" {
+      if set.password != "" {
+         err = set.do_email()
       }
-   } else if f.refresh {
-      err = f.do_refresh()
-   } else if f.series >= 1 {
-      err = f.do_series()
-   } else if f.season >= 1 {
-      err = f.do_season()
-   } else if f.episode >= 1 {
-      err = f.do_episode()
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else if set.series >= 1 {
+      err = set.do_series()
+   } else if set.season >= 1 {
+      err = set.do_season()
+   } else if set.episode >= 1 {
+      err = set.do_episode()
    } else {
       flag.Usage()
    }
@@ -155,10 +156,11 @@ func main() {
    }
 }
 
-type flags struct {
-   license net.License
+type flag_set struct {
+   cdm     net.Cdm
+   filters net.Filters
    media   string
-   ///////////////
+   ///////////////////
    email    string
    password string
    ///////////////
@@ -169,10 +171,9 @@ type flags struct {
    season int64
    /////////////
    episode int64
-   bitrate net.Bitrate
 }
 
-func (f *flags) do_episode() error {
+func (f *flag_set) do_episode() error {
    data, err := os.ReadFile(f.media + "/amc/Auth")
    if err != nil {
       return err
@@ -199,8 +200,8 @@ func (f *flags) do_episode() error {
    if err != nil {
       return err
    }
-   f.license.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(source, data)
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return play.License(source, data)
    }
-   return f.license.Bitrate(resp, &f.bitrate)
+   return f.filters.Filter(resp, &f.cdm)
 }

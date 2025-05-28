@@ -11,7 +11,31 @@ import (
    "path/filepath"
 )
 
-func (f *flags) do_asset() error {
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) do_email() error {
+   var ticket canal.Ticket
+   err := ticket.New()
+   if err != nil {
+      return err
+   }
+   token, err := ticket.Token(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   data, err := canal.NewSession(token.SsoToken)
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/canal/Session", data)
+}
+
+///
+
+func (f *flag_set) do_asset() error {
    data, err := os.ReadFile(f.media + "/canal/Session")
    if err != nil {
       return err
@@ -40,7 +64,7 @@ func (f *flags) do_asset() error {
    return f.license.Bitrate(resp, &f.bitrate)
 }
 
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -55,29 +79,7 @@ func (f *flags) New() error {
    return nil
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flags) do_email() error {
-   var ticket canal.Ticket
-   err := ticket.New()
-   if err != nil {
-      return err
-   }
-   token, err := ticket.Token(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   data, err := canal.NewSession(token.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/canal/Session", data)
-}
-
-func (f *flags) do_refresh() error {
+func (f *flag_set) do_refresh() error {
    data, err := os.ReadFile(f.media + "/canal/Session")
    if err != nil {
       return err
@@ -94,7 +96,7 @@ func (f *flags) do_refresh() error {
    return write_file(f.media+"/canal/Session", data)
 }
 
-func (f *flags) do_address() error {
+func (f *flag_set) do_address() error {
    var fields canal.Fields
    err := fields.New(f.address)
    if err != nil {
@@ -104,7 +106,7 @@ func (f *flags) do_address() error {
    return nil
 }
 
-func (f *flags) do_season() error {
+func (f *flag_set) do_season() error {
    data, err := os.ReadFile(f.media + "/canal/Session")
    if err != nil {
       return err
@@ -128,7 +130,7 @@ func (f *flags) do_season() error {
 }
 
 func main() {
-   var f flags
+   var f flag_set
    err := f.New()
    if err != nil {
       panic(err)
@@ -172,7 +174,7 @@ func main() {
    }
 }
 
-type flags struct {
+type flag_set struct {
    media   string
    license net.License
    ///////////////////

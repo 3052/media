@@ -86,7 +86,7 @@ func (f *flag_set) New() error {
    })
    f.filters = net.Filters{
       {BitrateStart: 3_000_000, BitrateEnd: 5_000_000},
-      {BitrateStart: 100_000, BitrateEnd: 200_000, Language: "en-US"},
+      {BitrateStart: 100_000, BitrateEnd: 150_000, Role: "main"},
    }
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.Parse()
