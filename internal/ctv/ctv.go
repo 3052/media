@@ -10,6 +10,22 @@ import (
    "path/filepath"
 )
 
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      err = set.do_address()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
+
 func (f *flag_set) do_address() error {
    http.DefaultTransport = net.Transport(f.proxy)
    resolve, err := ctv.Resolve(ctv.Path(f.address))
@@ -61,22 +77,6 @@ func (f *flag_set) New() error {
    })
    flag.Parse()
    return nil
-}
-
-func main() {
-   var f flag_set
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   if f.address != "" {
-      err = f.do_address()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }
 
 type flag_set struct {

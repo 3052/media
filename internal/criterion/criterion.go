@@ -12,12 +12,15 @@ import (
    "path/filepath"
 )
 
-func main() {
-   var f flags
-   err := f.New()
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
    if err != nil {
-      panic(err)
+      return err
    }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")
@@ -26,19 +29,25 @@ func main() {
    flag.StringVar(&f.password, "p", "", "password")
    flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
    switch {
-   case f.password != "":
-      err := f.authenticate()
-      if err != nil {
-         panic(err)
-      }
-   case f.address != "":
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
+   case set.password != "":
+      err = set.authenticate()
+   case set.address != "":
+      err = set.download()
    default:
       flag.Usage()
+   }
+   if err != nil {
+      panic(err)
    }
 }
 
@@ -47,7 +56,7 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flags) authenticate() error {
+func (f *flag_set) authenticate() error {
    data, err := criterion.NewToken(f.email, f.password)
    if err != nil {
       return err
@@ -55,7 +64,7 @@ func (f *flags) authenticate() error {
    return write_file(f.media+"/criterion/Token", data)
 }
 
-func (f *flags) download() error {
+func (f *flag_set) download() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/criterion/Files")
       if err != nil {
@@ -121,23 +130,11 @@ func (f *flags) download() error {
    return net.Mpd(f.media+"/Mpd", resp)
 }
 
-type flags struct {
+type flag_set struct {
    address  string
    dash     string
    e        net.License
    email    string
    media    string
    password string
-}
-
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
 }

@@ -11,12 +11,15 @@ import (
    "path/filepath"
 )
 
-func main() {
-   var f flags
-   err := f.New()
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
    if err != nil {
-      panic(err)
+      return err
    }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "DASH ID")
@@ -25,14 +28,23 @@ func main() {
    flag.StringVar(&f.password, "password", "", "password")
    flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.Parse()
-   if f.email != "" {
-      if f.password != "" {
-         err = f.do_email()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.email != "" {
+      if set.password != "" {
+         err = set.do_email()
       }
-   } else if f.address != "" {
-      err = f.do_address()
-   } else if f.dash != "" {
-      err = f.do_dash()
+   } else if set.address != "" {
+      err = set.do_address()
+   } else if set.dash != "" {
+      err = set.do_dash()
    } else {
       flag.Usage()
    }
@@ -46,19 +58,7 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func (f *flags) do_dash() error {
+func (f *flag_set) do_dash() error {
    data, err := os.ReadFile(f.media + "/cineMember/Play")
    if err != nil {
       return err
@@ -75,7 +75,7 @@ func (f *flags) do_dash() error {
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
 
-type flags struct {
+type flag_set struct {
    address  string
    dash     string
    e        net.License
@@ -83,7 +83,8 @@ type flags struct {
    media    string
    password string
 }
-func (f *flags) do_address() error {
+
+func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.media + "/cineMember/User")
    if err != nil {
       return err
@@ -130,7 +131,7 @@ func (f *flags) do_address() error {
    return net.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) do_email() error {
+func (f *flag_set) do_email() error {
    data, err := cineMember.NewUser(f.email, f.password)
    if err != nil {
       return err
