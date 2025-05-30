@@ -9,12 +9,7 @@ import (
    "path/filepath"
 )
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -23,24 +18,6 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-type flags struct {
-   dash     string
-   e        net.License
-   email    string
-   media    string
-   movistar int64
-   password string
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.StringVar(&f.email, "email", "", "email")
@@ -49,29 +26,32 @@ func main() {
    flag.StringVar(&f.password, "password", "", "password")
    flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.Parse()
-   if f.email != "" {
-      if f.password != "" {
-         err := f.do_email()
-         if err != nil {
-            panic(err)
-         }
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.email != "" {
+      if set.password != "" {
+         err = set.do_email()
       }
-   } else if f.movistar >= 1 {
-      err := f.do_movistar()
-      if err != nil {
-         panic(err)
-      }
-   } else if f.dash != "" {
-      err := f.do_dash()
-      if err != nil {
-         panic(err)
-      }
+   } else if set.movistar >= 1 {
+      err = set.do_movistar()
+   } else if set.dash != "" {
+      err = set.do_dash()
    } else {
       flag.Usage()
    }
+   if err != nil {
+      panic(err)
+   }
 }
 
-func (f *flags) do_email() error {
+func (f *flag_set) do_email() error {
    data, err := movistar.NewToken(f.email, f.password)
    if err != nil {
       return err
@@ -96,7 +76,7 @@ func (f *flags) do_email() error {
    return write_file(f.media+"/movistar/Device", data1)
 }
 
-func (f *flags) do_movistar() error {
+func (f *flag_set) do_movistar() error {
    data, err := movistar.NewDetails(f.movistar)
    if err != nil {
       return err
@@ -117,7 +97,7 @@ func (f *flags) do_movistar() error {
    return net.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) do_dash() error {
+func (f *flag_set) do_dash() error {
    data, err := os.ReadFile(f.media + "/movistar/Token")
    if err != nil {
       return err
@@ -162,3 +142,17 @@ func (f *flags) do_dash() error {
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type flag_set struct {
+   dash     string
+   e        net.License
+   email    string
+   media    string
+   movistar int64
+   password string
+}
+

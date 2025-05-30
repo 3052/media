@@ -10,7 +10,7 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -19,7 +19,34 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
+   flag.Var(&f.address, "a", "address")
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.StringVar(&f.dash, "i", "", "dash ID")
+   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.Parse()
    return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.password != "":
+      err = set.authenticate()
+   case set.address.String() != "":
+      err = set.download()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
 }
 
 func write_file(name string, data []byte) error {
@@ -27,7 +54,7 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flags) authenticate() error {
+func (f *flag_set) authenticate() error {
    var login molotov.Login
    err := login.New(f.email, f.password)
    if err != nil {
@@ -40,7 +67,7 @@ func (f *flags) authenticate() error {
    return write_file(f.media+"/molotov/Refresh", data)
 }
 
-func (f *flags) download() error {
+func (f *flag_set) download() error {
    if f.dash != "" {
       data, err := os.ReadFile(f.media + "/molotov/Asset")
       if err != nil {
@@ -97,41 +124,11 @@ func (f *flags) download() error {
    return net.Mpd(f.media+"/Mpd", resp)
 }
 
-type flags struct {
+type flag_set struct {
    address  molotov.Address
    dash     string
    e        net.License
    email    string
    media    string
    password string
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.Var(&f.address, "a", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
-   flag.Parse()
-   switch {
-   case f.password != "":
-      err := f.authenticate()
-      if err != nil {
-         panic(err)
-      }
-   case f.address.String() != "":
-      err := f.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
 }

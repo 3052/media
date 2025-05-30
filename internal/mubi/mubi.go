@@ -11,12 +11,15 @@ import (
    "path/filepath"
 )
 
-func main() {
-   var f flags
-   err := f.New()
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
    if err != nil {
-      panic(err)
+      return err
    }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.e.ClientId = f.media + "/client_id.bin"
+   f.e.PrivateKey = f.media + "/private_key.pem"
    flag.Func("a", "address", func(data string) error {
       return f.slug.Parse(data)
    })
@@ -28,15 +31,24 @@ func main() {
    flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.BoolVar(&f.text, "text", false, "text track")
    flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
    switch {
-   case f.code:
-      err = f.do_code()
-   case f.auth:
-      err = f.do_auth()
-   case f.slug != "":
-      err = f.do_slug()
-   case f.dash != "":
-      err = f.do_dash()
+   case set.code:
+      err = set.do_code()
+   case set.auth:
+      err = set.do_auth()
+   case set.slug != "":
+      err = set.do_slug()
+   case set.dash != "":
+      err = set.do_dash()
    default:
       flag.Usage()
    }
@@ -45,7 +57,7 @@ func main() {
    }
 }
 
-func (f *flags) do_dash() error {
+func (f *flag_set) do_dash() error {
    if f.text {
       data, err := os.ReadFile(f.media + "/mubi/SecureUrl")
       if err != nil {
@@ -78,24 +90,12 @@ func (f *flags) do_dash() error {
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flags) do_code() error {
+func (f *flag_set) do_code() error {
    data, err := mubi.NewLinkCode()
    if err != nil {
       return err
@@ -109,7 +109,7 @@ func (f *flags) do_code() error {
    return write_file(f.media+"/mubi/LinkCode", data)
 }
 
-func (f *flags) do_auth() error {
+func (f *flag_set) do_auth() error {
    data, err := os.ReadFile(f.media + "/mubi/LinkCode")
    if err != nil {
       return err
@@ -126,7 +126,7 @@ func (f *flags) do_auth() error {
    return write_file(f.media+"/mubi/Authenticate", data)
 }
 
-type flags struct {
+type flag_set struct {
    auth    bool
    code    bool
    dash    string
@@ -136,7 +136,7 @@ type flags struct {
    text    bool
 }
 
-func (f *flags) do_slug() error {
+func (f *flag_set) do_slug() error {
    data, err := os.ReadFile(f.media + "/mubi/Authenticate")
    if err != nil {
       return err
