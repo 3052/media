@@ -87,7 +87,6 @@ func (a *Authenticate) Viewing(film1 *Film) error {
    req.Header.Set("authorization", "Bearer "+a.Token)
    req.Header.Set("client", client)
    req.Header.Set("client-country", ClientCountry)
-   // use Header.Set for canonical spelling
    req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -146,11 +145,9 @@ func (c *LinkCode) Authenticate() (Byte[Authenticate], error) {
    if err != nil {
       return nil, err
    }
-   req.Header = http.Header{
-      "client":         {client},
-      "client-country": {ClientCountry},
-      "content-type":   {"application/json"},
-   }
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.Header.Set("content-type", "application/json")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -161,10 +158,8 @@ func (c *LinkCode) Authenticate() (Byte[Authenticate], error) {
 
 func NewLinkCode() (Byte[LinkCode], error) {
    req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
-   req.Header = http.Header{
-      "client":         {client},
-      "client-country": {ClientCountry},
-   }
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -204,7 +199,6 @@ func (a *Authenticate) SecureUrl(film1 *Film) (Byte[SecureUrl], error) {
    req.Header.Set("authorization", "Bearer "+a.Token)
    req.Header.Set("client", client)
    req.Header.Set("client-country", ClientCountry)
-   // use Header.Set for canonical spelling
    req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -238,10 +232,8 @@ type Slug string
 func (s Slug) Film() (*Film, error) {
    req, _ := http.NewRequest("", "https://api.mubi.com", nil)
    req.URL.Path = "/v3/films/" + string(s)
-   req.Header = http.Header{
-      "client":         {client},
-      "client-country": {ClientCountry},
-   }
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

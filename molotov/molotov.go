@@ -124,10 +124,8 @@ func (r *Refresh) Asset(view1 *View) (Byte[Asset], error) {
    query := req.URL.Query()
    query.Set("access_token", r.AccessToken)
    req.URL.RawQuery = query.Encode()
-   req.Header = http.Header{
-      "x-forwarded-for": {"138.199.15.158"},
-      "x-molotov-agent": {molotov_agent},
-   }
+   req.Header.Set("x-forwarded-for", "138.199.15.158")
+   req.Header.Set("x-molotov-agent", molotov_agent)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

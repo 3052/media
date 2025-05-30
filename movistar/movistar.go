@@ -45,10 +45,8 @@ func (d Device) Session(init1 *InitData, details1 *Details) (*Session, error) {
       b.WriteString("/Session")
       return b.String()
    }()
-   req.Header = http.Header{
-      "content-type": {"application/json"},
-      "x-hzid":       {init1.Token},
-   }
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-hzid", init1.Token)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

@@ -59,11 +59,9 @@ type Byte[T any] []byte
 func NewUser() (Byte[User], error) {
    req, _ := http.NewRequest("POST", "https://plex.tv", nil)
    req.URL.Path = "/api/v2/users/anonymous"
-   req.Header = http.Header{
-      "accept":                   {"application/json"},
-      "x-plex-product":           {"Plex Mediaverse"},
-      "x-plex-client-identifier": {"!"},
-   }
+   req.Header.Set("accept", "application/json")
+   req.Header.Set("x-plex-product", "Plex Mediaverse")
+   req.Header.Set("x-plex-client-identifier", "!")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

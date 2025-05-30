@@ -40,10 +40,8 @@ func (s *Session) License(data []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   req.Header = http.Header{
-      "authorization": {"Bearer " + s.LsSession},
-      "content-type":  {"application/x-protobuf"},
-   }
+   req.Header.Set("authorization", "Bearer " + s.LsSession)
+   req.Header.Set("content-type", "application/x-protobuf")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

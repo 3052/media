@@ -222,10 +222,8 @@ func (s St) Initiate() (*Initiate, error) {
 
 func (s *St) New() error {
    req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header = http.Header{
-      "x-device-info":  {device_info},
-      "x-disco-client": {disco_client},
-   }
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err

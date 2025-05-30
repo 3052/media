@@ -11,7 +11,7 @@ import (
 )
 
 func (f *flag_set) do_address() error {
-   http.DefaultTransport = ctv.Transport(f.proxy)
+   http.DefaultTransport = net.Transport(f.proxy)
    resolve, err := ctv.Resolve(ctv.Path(f.address))
    if err != nil {
       return err
@@ -53,7 +53,7 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
-   flag.IntVar(&net.Threads, "t", 4, "threads")
+   flag.IntVar(&net.Threads, "t", 5, "threads")
    flag.Func("x", "proxy", func(data string) error {
       var err error
       f.proxy, err = url.Parse(data)

@@ -100,10 +100,8 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    if err != nil {
       return nil, err
    }
-   req.Header = http.Header{
-      "authorization": {"Bearer " + a.UserToken},
-      "content-type":  {"application/json"},
-   }
+   req.Header.Set("authorization", "Bearer " + a.UserToken)
+   req.Header.Set("content-type", "application/json")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

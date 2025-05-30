@@ -5,31 +5,10 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
-   "net/url"
    "strconv"
    "strings"
 )
-
-func Transport(proxy *url.URL) *http.Transport {
-   return &http.Transport{
-      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         switch {
-         case req.URL.RawQuery == "action=reference":
-            log.Println("Proxy", req.Method, req.URL)
-            return proxy, nil
-         case strings.HasSuffix(req.URL.Path, ".m4a"),
-            strings.HasSuffix(req.URL.Path, ".m4v"):
-            return nil, nil
-         default:
-            log.Println(req.Method, req.URL)
-            return nil, nil
-         }
-      },
-   }
-}
 
 func (a *AxisContent) Mpd(content1 *Content) (string, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
@@ -44,6 +23,7 @@ func (a *AxisContent) Mpd(content1 *Content) (string, error) {
       return string(b)
    }()
    req.URL.RawQuery = "action=reference"
+   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return "", err
