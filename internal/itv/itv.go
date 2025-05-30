@@ -11,15 +11,7 @@ import (
    "path/filepath"
 )
 
-type flags struct {
-   e        net.License
-   media    string
-   dash     string
-   playlist string
-   address  string
-}
-
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -28,43 +20,37 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.playlist, "b", "", "playlist URL")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
    switch {
-   case f.address != "":
-      err := f.do_address()
-      if err != nil {
-         panic(err)
-      }
-   case f.playlist != "":
-      err := f.do_playlist()
-      if err != nil {
-         panic(err)
-      }
-   case f.dash != "":
-      err := f.do_dash()
-      if err != nil {
-         panic(err)
-      }
+   case set.address != "":
+      err = set.do_address()
+   case set.playlist != "":
+      err = set.do_playlist()
+   case set.dash != "":
+      err = set.do_dash()
    default:
       flag.Usage()
    }
+   if err != nil {
+      panic(err)
+   }
 }
 
-func (f *flags) do_address() error {
+func (f *flag_set) do_address() error {
    var id itv.LegacyId
    err := id.Set(f.address)
    if err != nil {
@@ -88,7 +74,7 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flags) do_playlist() error {
+func (f *flag_set) do_playlist() error {
    var title itv.Title
    title.LatestAvailableVersion.PlaylistUrl = f.playlist
    data, err := title.Playlist()
@@ -115,7 +101,7 @@ func (f *flags) do_playlist() error {
    return net.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) do_dash() error {
+func (f *flag_set) do_dash() error {
    data, err := os.ReadFile(f.media + "/itv/Playlist")
    if err != nil {
       return err
@@ -131,3 +117,12 @@ func (f *flags) do_dash() error {
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
+
+type flag_set struct {
+   e        net.License
+   media    string
+   dash     string
+   playlist string
+   address  string
+}
+

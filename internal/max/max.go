@@ -12,37 +12,7 @@ import (
    "slices"
 )
 
-func (f *flags) do_edit() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = login.Playback(f.edit)
-   if err != nil {
-      return err
-   }
-   var play max.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/max/Playback", data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Mpd())
-   if err != nil {
-      return err
-   }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -51,31 +21,6 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-type flags struct {
-   address  string
-   dash     string
-   e        net.License
-   edit     string
-   initiate bool
-   login    bool
-   media    string
-   season   int
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "DASH ID")
@@ -86,17 +31,26 @@ func main() {
    flag.IntVar(&f.season, "s", 0, "season")
    flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
    switch {
-   case f.initiate:
-      err = f.do_initiate()
-   case f.login:
-      err = f.do_login()
-   case f.address != "":
-      err = f.do_address()
-   case f.edit != "":
-      err = f.do_edit()
-   case f.dash != "":
-      err = f.do_dash()
+   case set.initiate:
+      err = set.do_initiate()
+   case set.login:
+      err = set.do_login()
+   case set.address != "":
+      err = set.do_address()
+   case set.edit != "":
+      err = set.do_edit()
+   case set.dash != "":
+      err = set.do_dash()
    default:
       flag.Usage()
    }
@@ -105,7 +59,7 @@ func main() {
    }
 }
 
-func (f *flags) do_initiate() error {
+func (f *flag_set) do_initiate() error {
    var st max.St
    err := st.New()
    if err != nil {
@@ -129,7 +83,7 @@ func (f *flags) do_initiate() error {
    return nil
 }
 
-func (f *flags) do_login() error {
+func (f *flag_set) do_login() error {
    data, err := os.ReadFile(f.media + "/max/St")
    if err != nil {
       return err
@@ -146,7 +100,7 @@ func (f *flags) do_login() error {
    return write_file(f.media+"/max/Login", data)
 }
 
-func (f *flags) do_address() error {
+func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
       return err
@@ -182,7 +136,7 @@ func (f *flags) do_address() error {
    return nil
 }
 
-func (f *flags) do_dash() error {
+func (f *flag_set) do_dash() error {
    data, err := os.ReadFile(f.media + "/max/Playback")
    if err != nil {
       return err
@@ -197,3 +151,49 @@ func (f *flags) do_dash() error {
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
+func (f *flag_set) do_edit() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = login.Playback(f.edit)
+   if err != nil {
+      return err
+   }
+   var play max.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/max/Playback", data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Mpd())
+   if err != nil {
+      return err
+   }
+   return net.Mpd(f.media+"/Mpd", resp)
+}
+
+type flag_set struct {
+   address  string
+   dash     string
+   e        net.License
+   edit     string
+   initiate bool
+   login    bool
+   media    string
+   season   int
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+

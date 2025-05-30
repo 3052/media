@@ -10,7 +10,7 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -19,20 +19,6 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.StringVar(&f.email, "email", "", "email")
@@ -40,14 +26,23 @@ func main() {
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.StringVar(&f.password, "password", "", "password")
    flag.Parse()
-   if f.email != "" {
-      if f.password != "" {
-         err = f.do_email()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.email != "" {
+      if set.password != "" {
+         err = set.do_email()
       }
-   } else if f.kanopy >= 1 {
-      err = f.do_kanopy()
-   } else if f.dash != "" {
-      err = f.do_dash()
+   } else if set.kanopy >= 1 {
+      err = set.do_kanopy()
+   } else if set.dash != "" {
+      err = set.do_dash()
    } else {
       flag.Usage()
    }
@@ -56,7 +51,7 @@ func main() {
    }
 }
 
-func (f *flags) do_email() error {
+func (f *flag_set) do_email() error {
    data, err := kanopy.NewLogin(f.email, f.password)
    if err != nil {
       return err
@@ -64,7 +59,7 @@ func (f *flags) do_email() error {
    return write_file(f.media+"/kanopy/Login", data)
 }
 
-type flags struct {
+type flag_set struct {
    dash     string
    e        net.License
    email    string
@@ -73,7 +68,7 @@ type flags struct {
    password string
 }
 
-func (f *flags) do_kanopy() error {
+func (f *flag_set) do_kanopy() error {
    data, err := os.ReadFile(f.media + "/kanopy/Login")
    if err != nil {
       return err
@@ -111,7 +106,7 @@ func (f *flags) do_kanopy() error {
    return net.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) do_dash() error {
+func (f *flag_set) do_dash() error {
    data, err := os.ReadFile(f.media + "/kanopy/Login")
    if err != nil {
       return err
@@ -136,3 +131,8 @@ func (f *flags) do_dash() error {
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
