@@ -14,16 +14,50 @@ import (
 
 func Transport(proxy *url.URL) *http.Transport {
    return &http.Transport{
+      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
       Proxy: func(req *http.Request) (*url.URL, error) {
-         if strings.HasSuffix(req.URL.Path, "/manifest.mpd") {
+         switch {
+         case req.URL.RawQuery == "action=reference":
             log.Println("Proxy", req.Method, req.URL)
             return proxy, nil
-         } else {
+         case strings.HasSuffix(req.URL.Path, ".m4a"),
+            strings.HasSuffix(req.URL.Path, ".m4v"):
+            return nil, nil
+         default:
             log.Println(req.Method, req.URL)
             return nil, nil
          }
       },
    }
+}
+
+func (a *AxisContent) Mpd(content1 *Content) (string, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/destinations/")
+      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
+      b = append(b, "/platforms/desktop/playback/contents/"...)
+      b = strconv.AppendInt(b, a.AxisId, 10)
+      b = append(b, "/contentPackages/"...)
+      b = strconv.AppendInt(b, content1.ContentPackages[0].Id, 10)
+      b = append(b, "/manifest.mpd"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "action=reference"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return "", err
+   }
+   data1 := string(data)
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(data1)
+   }
+   return strings.Replace(data1, "/best/", "/ultimate/", 1), nil
 }
 
 func License(data []byte) ([]byte, error) {
@@ -105,36 +139,6 @@ func (a *AxisContent) Content() (*Content, error) {
    return content1, nil
 }
 
-func (a *AxisContent) Mpd(content1 *Content) (string, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/destinations/")
-      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
-      b = append(b, "/platforms/desktop/playback/contents/"...)
-      b = strconv.AppendInt(b, a.AxisId, 10)
-      b = append(b, "/contentPackages/"...)
-      b = strconv.AppendInt(b, content1.ContentPackages[0].Id, 10)
-      b = append(b, "/manifest.mpd"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "action=reference"
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return "", err
-   }
-   data1 := string(data)
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(data1)
-   }
-   return strings.Replace(data1, "/best/", "/ultimate/", 1), nil
-}
-
 type Content struct {
    ContentPackages []struct {
       Id int64
@@ -198,21 +202,17 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
 }
 
 // https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func (a *Address) Set(data string) error {
+func Path(data string) string {
    data = strings.TrimPrefix(data, "https://")
    data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "ctv.ca")
-   *a = Address(data)
-   return nil
+   return strings.TrimPrefix(data, "ctv.ca")
 }
 
-type Address string
-
-func (a Address) Resolve() (*ResolvedPath, error) {
+func Resolve(path string) (*ResolvedPath, error) {
    data, err := json.Marshal(map[string]any{
       "query": graphql_compact(query_resolve),
       "variables": map[string]string{
-         "path": string(a),
+         "path": path,
       },
    })
    if err != nil {

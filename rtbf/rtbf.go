@@ -179,10 +179,8 @@ func (g *GigyaLogin) Entitlement(c *Content) (Byte[Entitlement], error) {
       data.WriteString("/play")
       return data.String()
    }()
-   req.Header = http.Header{
-      "authorization":   {"Bearer " + g.SessionToken},
-      "x-forwarded-for": {"91.90.123.17"},
-   }
+   req.Header.Set("x-forwarded-for", "91.90.123.17")
+   req.Header.Set("authorization", "Bearer " + g.SessionToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

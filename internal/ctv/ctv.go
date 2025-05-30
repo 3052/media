@@ -12,7 +12,7 @@ import (
 
 func (f *flag_set) do_address() error {
    http.DefaultTransport = ctv.Transport(f.proxy)
-   resolve, err := f.address.Resolve()
+   resolve, err := ctv.Resolve(ctv.Path(f.address))
    if err != nil {
       return err
    }
@@ -36,6 +36,33 @@ func (f *flag_set) do_address() error {
    return f.filters.Filter(resp, &f.cdm)
 }
 
+func (f *flag_set) New() error {
+   media, err := os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   media = filepath.ToSlash(media) + "/media"
+   f.cdm.ClientId = media + "/client_id.bin"
+   f.cdm.PrivateKey = media + "/private_key.pem"
+   f.filters = net.Filters{
+      {BitrateStart: 100_000, BitrateEnd: 200_000},
+      {BitrateStart: 2_000_000, BitrateEnd: 7_000_000},
+   }
+   ///////////////////////////////////////////////////
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
+   flag.IntVar(&net.Threads, "t", 4, "threads")
+   flag.Func("x", "proxy", func(data string) error {
+      var err error
+      f.proxy, err = url.Parse(data)
+      return err
+   })
+   flag.Parse()
+   return nil
+}
+
 func main() {
    var f flag_set
    err := f.New()
@@ -52,34 +79,10 @@ func main() {
    }
 }
 
-func (f *flag_set) New() error {
-   media, err := os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   media = filepath.ToSlash(media) + "/media"
-   f.cdm.ClientId = media + "/client_id.bin"
-   f.cdm.PrivateKey = media + "/private_key.pem"
-   ///////////////////////////////////////////////////
-   flag.Func("a", "address", func(data string) error {
-      return f.address.Set(data)
-   })
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
-   flag.Func("x", "proxy", func(data string) error {
-      var err error
-      f.proxy, err = url.Parse(data)
-      return err
-   })
-   ///////////////////////////////////////////////////////////////////////
-   flag.Parse()
-   return nil
-}
-
 type flag_set struct {
-   address ctv.Address
+   address string
    cdm     net.Cdm
    filters net.Filters
-   proxy *url.URL
+   proxy   *url.URL
 }
+

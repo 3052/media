@@ -47,13 +47,11 @@ type Auth struct {
 func (a *Auth) Unauth() error {
    req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
    req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
-   req.Header = http.Header{
-      "x-amcn-device-id": {"-"},
-      "x-amcn-language":  {"en"},
-      "x-amcn-network":   {"amcplus"},
-      "x-amcn-platform":  {"web"},
-      "x-amcn-tenant":    {"amcn"},
-   }
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-tenant", "amcn")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
@@ -89,19 +87,17 @@ func (a *Auth) Login(email, password string) (Byte[Auth], error) {
       return nil, err
    }
    req.URL.Path = "/auth-orchestration-id/api/v1/login"
-   req.Header = http.Header{
-      "authorization":           {"Bearer " + a.Data.AccessToken},
-      "content-type":            {"application/json"},
-      "x-amcn-device-ad-id":     {"-"},
-      "x-amcn-device-id":        {"-"},
-      "x-amcn-language":         {"en"},
-      "x-amcn-network":          {"amcplus"},
-      "x-amcn-platform":         {"web"},
-      "x-amcn-service-group-id": {"10"},
-      "x-amcn-service-id":       {"amcplus"},
-      "x-amcn-tenant":           {"amcn"},
-      "x-ccpa-do-not-sell":      {"doNotPassData"},
-   }
+   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-group-id", "10")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -122,12 +118,10 @@ func (a *Auth) SeasonEpisodes(id int64) (*Child, error) {
       b = strconv.AppendInt(b, id, 10)
       return string(b)
    }()
-   req.Header = http.Header{
-      "authorization":   {"Bearer " + a.Data.AccessToken},
-      "x-amcn-network":  {"amcplus"},
-      "x-amcn-platform": {"android"},
-      "x-amcn-tenant":   {"amcn"},
-   }
+   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -167,17 +161,15 @@ func (a *Auth) Playback(id int64) (Byte[Playback], error) {
       return nil, err
    }
    req.URL.Path = "/playback-id/api/v1/playback/" + strconv.FormatInt(id, 10)
-   req.Header = http.Header{
-      "authorization":       {"Bearer " + a.Data.AccessToken},
-      "content-type":        {"application/json"},
-      "x-amcn-device-ad-id": {"-"},
-      "x-amcn-language":     {"en"},
-      "x-amcn-network":      {"amcplus"},
-      "x-amcn-platform":     {"web"},
-      "x-amcn-service-id":   {"amcplus"},
-      "x-amcn-tenant":       {"amcn"},
-      "x-ccpa-do-not-sell":  {"doNotPassData"},
-   }
+   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -201,12 +193,10 @@ func (a *Auth) SeriesDetail(id int64) (*Child, error) {
       b = strconv.AppendInt(b, id, 10)
       return string(b)
    }()
-   req.Header = http.Header{
-      "authorization":   {"Bearer " + a.Data.AccessToken},
-      "x-amcn-network":  {"amcplus"},
-      "x-amcn-platform": {"android"},
-      "x-amcn-tenant":   {"amcn"},
-   }
+   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

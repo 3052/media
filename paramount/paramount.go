@@ -20,15 +20,14 @@ func Transport(proxy *url.URL) *http.Transport {
    return &http.Transport{
       Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
       Proxy: func(req *http.Request) (*url.URL, error) {
-         contains := func(data string) bool {
-            return strings.Contains(req.URL.Path, data)
-         }
-         if contains("/media/guid/") || contains("/video/cid/") {
+         switch {
+         case strings.Contains(req.URL.Path, "/media/guid/"),
+            strings.Contains(req.URL.Path, "/video/cid/"):
             log.Println("Proxy", req.Method, req.URL)
             return proxy, nil
-         } else if contains("/paramountplus/") {
+         case strings.Contains(req.URL.Path, "/paramountplus/"):
             return nil, nil
-         } else {
+         default:
             log.Println(req.Method, req.URL)
             return nil, nil
          }
