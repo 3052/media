@@ -11,6 +11,83 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.license.ClientId = f.media + "/client_id.bin"
+   f.license.PrivateKey = f.media + "/private_key.pem"
+   f.bitrate.Value = [][2]int{
+      {300_000, 400_000}, {3_000_000, 4_000_000},
+   }
+   flag.StringVar(
+      &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
+   )
+   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
+   /////////////////////////////////////////////////////////////////////////
+   flag.StringVar(&f.email, "email", "", "email")
+   flag.StringVar(&f.password, "password", "", "password")
+   ///////////////////////////////////////////////////////
+   flag.BoolVar(&f.refresh, "r", false, "refresh")
+   ///////////////////////////////////////////////
+   flag.StringVar(&f.address, "a", "", "address")
+   //////////////////////////////////////////////
+   flag.Int64Var(&f.season, "s", 0, "season")
+   //////////////////////////////////////////
+   flag.StringVar(&f.asset, "asset", "", "asset ID")
+   flag.Var(&f.bitrate, "b", "bitrate")
+   flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.email != "" {
+      if set.password != "" {
+         err = set.do_email()
+      }
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else if set.address != "" {
+      err = set.do_address()
+   } else if set.asset != "" {
+      if set.season >= 1 {
+         err = set.do_season()
+      } else {
+         err = set.do_asset()
+      }
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+type flag_set struct {
+   media   string
+   license net.License
+   ///////////////////
+   email    string
+   password string
+   ///////////////
+   refresh bool
+   /////////////
+   address string
+   ///////////////
+   season int64
+   ///////////////
+   asset   string
+   bitrate net.Bitrate
+}
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -32,8 +109,6 @@ func (f *flag_set) do_email() error {
    }
    return write_file(f.media+"/canal/Session", data)
 }
-
-///
 
 func (f *flag_set) do_asset() error {
    data, err := os.ReadFile(f.media + "/canal/Session")
@@ -62,21 +137,6 @@ func (f *flag_set) do_asset() error {
       return play.Widevine(data)
    }
    return f.license.Bitrate(resp, &f.bitrate)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.license.ClientId = f.media + "/client_id.bin"
-   f.license.PrivateKey = f.media + "/private_key.pem"
-   f.bitrate.Value = [][2]int{
-      {300_000, 400_000}, {3_000_000, 4_000_000},
-   }
-   return nil
 }
 
 func (f *flag_set) do_refresh() error {
@@ -129,64 +189,3 @@ func (f *flag_set) do_season() error {
    return nil
 }
 
-func main() {
-   var f flag_set
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
-   flag.StringVar(
-      &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
-   )
-   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
-   /////////////////////////////////////////////////////////////////////////
-   flag.StringVar(&f.email, "email", "", "email")
-   flag.StringVar(&f.password, "password", "", "password")
-   ///////////////////////////////////////////////////////
-   flag.BoolVar(&f.refresh, "r", false, "refresh")
-   ///////////////////////////////////////////////
-   flag.StringVar(&f.address, "a", "", "address")
-   //////////////////////////////////////////////
-   flag.Int64Var(&f.season, "s", 0, "season")
-   //////////////////////////////////////////
-   flag.StringVar(&f.asset, "asset", "", "asset ID")
-   flag.Var(&f.bitrate, "b", "bitrate")
-   flag.Parse()
-   if f.email != "" {
-      if f.password != "" {
-         err = f.do_email()
-      }
-   } else if f.refresh {
-      err = f.do_refresh()
-   } else if f.address != "" {
-      err = f.do_address()
-   } else if f.asset != "" {
-      if f.season >= 1 {
-         err = f.do_season()
-      } else {
-         err = f.do_asset()
-      }
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-type flag_set struct {
-   media   string
-   license net.License
-   ///////////////////
-   email    string
-   password string
-   ///////////////
-   refresh bool
-   /////////////
-   address string
-   ///////////////
-   season int64
-   ///////////////
-   asset   string
-   bitrate net.Bitrate
-}

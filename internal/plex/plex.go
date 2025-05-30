@@ -9,7 +9,7 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -21,15 +21,6 @@ func (f *flags) New() error {
    f.bitrate.Value = [][2]int{
       {128_000, 256_000}, {3_000_000, 4_000_000},
    }
-   return nil
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
    flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
    flag.StringVar(
       &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
@@ -39,8 +30,17 @@ func main() {
    flag.StringVar(&f.address, "a", "", "address")
    flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
-   if f.address != "" {
-      err = f.do_address()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      err = set.do_address()
       if err != nil {
          panic(err)
       }
@@ -49,7 +49,7 @@ func main() {
    }
 }
 
-type flags struct {
+type flag_set struct {
    media   string
    license net.License
    ////////////////////////////////
@@ -57,7 +57,7 @@ type flags struct {
    bitrate net.Bitrate
 }
 
-func (f *flags) do_address() error {
+func (f *flag_set) do_address() error {
    data, err := plex.NewUser()
    if err != nil {
       return err

@@ -12,11 +12,6 @@ import (
    "path/filepath"
 )
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 type flag_set struct {
    address  string
    cdm      net.Cdm
@@ -45,25 +40,22 @@ func (f *flag_set) New() error {
 }
 
 func main() {
-   var f flag_set
-   err := f.New()
+   var set flag_set
+   err := set.New()
    if err != nil {
       panic(err)
    }
-   if f.address != "" {
-      if f.language != "" {
-         err := f.download()
-         if err != nil {
-            panic(err)
-         }
+   if set.address != "" {
+      if set.language != "" {
+         err = set.download()
       } else {
-         err := f.do_language()
-         if err != nil {
-            panic(err)
-         }
+         err = set.do_language()
       }
    } else {
       flag.Usage()
+   }
+   if err != nil {
+      panic(err)
    }
 }
 
@@ -168,3 +160,8 @@ func (f *flag_set) download() error {
    }
    return net.Mpd(f.media+"/Mpd", resp)
 }
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+

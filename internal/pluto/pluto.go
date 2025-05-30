@@ -6,13 +6,12 @@ import (
    "errors"
    "flag"
    "fmt"
+   "net/http"
    "os"
    "path/filepath"
-
-   "net/http"
 )
 
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -23,24 +22,6 @@ func (f *flags) New() error {
    f.license.PrivateKey = f.media + "/private_key.pem"
    f.bitrate.Value = [][2]int{
       {100_000, 200_000}, {3_000_000, 5_000_000},
-   }
-   return nil
-}
-
-func (f *flags) do_show() error {
-   vod, err := pluto.NewVod(f.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(vod)
-   return nil
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
    }
    flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
    flag.StringVar(
@@ -54,11 +35,20 @@ func main() {
    flag.StringVar(&f.episode, "e", "", "episode/movie ID")
    flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
    switch {
-   case f.show != "":
-      err = f.do_show()
-   case f.episode != "":
-      err = f.do_episode()
+   case set.show != "":
+      err = set.do_show()
+   case set.episode != "":
+      err = set.do_episode()
    default:
       flag.Usage()
    }
@@ -67,7 +57,7 @@ func main() {
    }
 }
 
-type flags struct {
+type flag_set struct {
    media   string
    license net.License
    ///////////////////
@@ -77,7 +67,7 @@ type flags struct {
    bitrate net.Bitrate
 }
 
-func (f *flags) do_episode() error {
+func (f *flag_set) do_episode() error {
    clips, err := pluto.NewClips(f.episode)
    if err != nil {
       return err
@@ -93,3 +83,13 @@ func (f *flags) do_episode() error {
    f.license.Widevine = pluto.Widevine
    return f.license.Bitrate(resp, &f.bitrate)
 }
+
+func (f *flag_set) do_show() error {
+   vod, err := pluto.NewVod(f.show)
+   if err != nil {
+      return err
+   }
+   fmt.Println(vod)
+   return nil
+}
+
