@@ -17,27 +17,39 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-type flags struct {
+type flag_set struct {
    address  string
-   dash     string
-   e        net.License
+   cdm      net.Cdm
+   filters  net.Filters
    language string
    media    string
 }
 
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.language, "b", "", "language")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.dash, "i", "", "DASH ID")
+   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
+   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.Parse()
+   return nil
+}
+
 func main() {
-   var f flags
+   var f flag_set
    err := f.New()
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.language, "b", "", "language")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "DASH ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
-   flag.Parse()
    if f.address != "" {
       if f.language != "" {
          err := f.download()
@@ -55,7 +67,7 @@ func main() {
    }
 }
 
-func (f *flags) do_language() error {
+func (f *flag_set) do_language() error {
    var address rakuten.Address
    address.Set(f.address)
    class, ok := address.ClassificationId()
@@ -100,19 +112,7 @@ func (f *flags) do_language() error {
    return nil
 }
 
-func (f *flags) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func (f *flags) download() error {
+func (f *flag_set) download() error {
    var address rakuten.Address
    address.Set(f.address)
    class, ok := address.ClassificationId()
@@ -152,10 +152,10 @@ func (f *flags) download() error {
       if err != nil {
          return err
       }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
+      f.cdm.Widevine = func(data []byte) ([]byte, error) {
          return info.Widevine(data)
       }
-      return f.e.Download(f.media+"/Mpd", f.dash)
+      return f.cdm.Download(f.media+"/Mpd", f.dash)
    }
    streaming.Fhd()
    info, err := streaming.Info(f.language, class)

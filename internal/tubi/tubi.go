@@ -10,7 +10,7 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -20,6 +20,13 @@ func (f *flags) New() error {
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
    f.bitrate.Value = [][2]int{{100_000, 200_000}, {2_200_000, 4_000_000}}
+   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.IntVar(&net.Threads, "threads", 1, "threads")
+   ///////////////////////////////////////////////////////////////
+   flag.IntVar(&f.tubi, "t", 0, "Tubi ID")
+   flag.Var(&f.bitrate, "b", "bitrate")
+   flag.Parse()
    return nil
 }
 
@@ -29,20 +36,13 @@ func write_file(name string, data []byte) error {
 }
 
 func main() {
-   var f flags
-   err := f.New()
+   var set flag_set
+   err := set.New()
    if err != nil {
       panic(err)
    }
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.IntVar(&net.Threads, "threads", 1, "threads")
-   ///////////////////////////////////////////////////////////////
-   flag.IntVar(&f.tubi, "t", 0, "Tubi ID")
-   flag.Var(&f.bitrate, "b", "bitrate")
-   flag.Parse()
-   if f.tubi >= 1 {
-      err = f.do_tubi()
+   if set.tubi >= 1 {
+      err = set.do_tubi()
       if err != nil {
          panic(err)
       }
@@ -51,7 +51,7 @@ func main() {
    }
 }
 
-type flags struct {
+type flag_set struct {
    e     net.License
    media string
    ////////////////////////
@@ -59,7 +59,7 @@ type flags struct {
    bitrate net.Bitrate
 }
 
-func (f *flags) do_tubi() error {
+func (f *flag_set) do_tubi() error {
    data, err := tubi.NewContent(f.tubi)
    if err != nil {
       return err

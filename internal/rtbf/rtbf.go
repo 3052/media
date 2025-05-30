@@ -20,37 +20,6 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-type flags struct {
-   dash     string
-   e        net.License
-   email    string
-   media    string
-   password string
-   address  string
-}
-
-func (f *flags) do_password() error {
-   data, err := rtbf.NewLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/rtbf/Login", data)
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
@@ -58,19 +27,28 @@ func main() {
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.address, "a", "", "address")
    flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flags
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
    switch {
-   case f.password != "":
-      err := f.do_password()
+   case set.password != "":
+      err := set.do_password()
       if err != nil {
          panic(err)
       }
-   case f.address != "":
-      err := f.do_address()
+   case set.address != "":
+      err := set.do_address()
       if err != nil {
          panic(err)
       }
-   case f.dash != "":
-      err := f.do_dash()
+   case set.dash != "":
+      err := set.do_dash()
       if err != nil {
          panic(err)
       }
@@ -141,4 +119,25 @@ func (f *flags) do_dash() error {
       return title.Widevine(data)
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
+}
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type flags struct {
+   dash     string
+   e        net.License
+   email    string
+   media    string
+   password string
+   address  string
+}
+
+func (f *flags) do_password() error {
+   data, err := rtbf.NewLogin(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/rtbf/Login", data)
 }
