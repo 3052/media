@@ -5,10 +5,38 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
+   "net/url"
    "strconv"
    "strings"
 )
+
+func Transport(proxy *url.URL) *http.Transport {
+   return &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         if strings.HasSuffix(req.URL.Path, "/manifest.mpd") {
+            log.Println("Proxy", req.Method, req.URL)
+            return proxy, nil
+         } else {
+            log.Println(req.Method, req.URL)
+            return nil, nil
+         }
+      },
+   }
+}
+
+func License(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://license.9c9media.ca/widevine", "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
 
 const query_resolve = `
 query resolvePath($path: String!) {
@@ -45,18 +73,6 @@ query axisContent($id: ID!) {
 // this is better than strings.Replace and strings.ReplaceAll
 func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
-}
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://license.9c9media.ca/widevine", "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type AxisContent struct {

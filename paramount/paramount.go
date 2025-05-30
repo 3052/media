@@ -16,6 +16,26 @@ import (
    "strings"
 )
 
+func Transport(proxy *url.URL) *http.Transport {
+   return &http.Transport{
+      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         contains := func(data string) bool {
+            return strings.Contains(req.URL.Path, data)
+         }
+         if contains("/media/guid/") || contains("/video/cid/") {
+            log.Println("Proxy", req.Method, req.URL)
+            return proxy, nil
+         } else if contains("/paramountplus/") {
+            return nil, nil
+         } else {
+            log.Println(req.Method, req.URL)
+            return nil, nil
+         }
+      },
+   }
+}
+
 func (s *Session) License(data []byte) ([]byte, error) {
    req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
    if err != nil {
@@ -133,25 +153,6 @@ func (a At) Session(content_id string) (*Session, error) {
       return nil, err
    }
    return session1, nil
-}
-func Transport(proxy *url.URL) *http.Transport {
-   return &http.Transport{
-      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         contains := func(data string) bool {
-            return strings.Contains(req.URL.Path, data)
-         }
-         if contains("/media/guid/") || contains("/video/cid/") {
-            log.Println("Proxy", req.Method, req.URL)
-            return proxy, nil
-         } else if contains("/paramountplus/") {
-            return nil, nil
-         } else {
-            log.Println(req.Method, req.URL)
-            return nil, nil
-         }
-      },
-   }
 }
 
 func (i *Item) Mpd() (*http.Response, error) {
