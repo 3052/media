@@ -10,13 +10,55 @@ import (
    "strings"
 )
 
-func (t *tv_show) info(
+type address struct {
+   market_code string
+   tv_show_id  string
+}
+
+func (a *address) Set(data string) error {
+   web, err := url.Parse(data)
+   if err != nil {
+      return err
+   }
+   a.market_code = strings.TrimPrefix(web.Path, "/")
+   a.tv_show_id = web.Query().Get("tv_show_id")
+   return nil
+}
+
+func (a *address) episodes(season_id string) ([]episode, error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/seasons/" + season_id
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(a.classification_id()),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {a.market_code},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Episodes []episode
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.Data.Episodes, nil
+}
+
+func (a *address) info(
    content_id, audio_language string, video quality,
 ) (*stream_info, error) {
    data, err := json.Marshal(map[string]string{
       "audio_language":              audio_language,
       "audio_quality":               "2.0",
-      "classification_id":           strconv.Itoa(t.classification_id()),
+      "classification_id":           strconv.Itoa(a.classification_id()),
       "content_id":                  content_id,
       "content_type":                "episodes",
       "device_identifier":           device_identifier,
@@ -60,6 +102,7 @@ func (t *tv_show) info(
    }
    return &value.Data.StreamInfos[0], nil
 }
+
 func (e *episode) String() string {
    var b strings.Builder
    b.WriteString("title = ")
@@ -98,15 +141,15 @@ const (
    hd  quality = "HD"
 )
 
-func (t *tv_show) seasons() ([]season, error) {
+func (a *address) seasons() ([]season, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/tv_shows/" + t.tv_show_id
+   req.URL.Path = "/v3/tv_shows/" + a.tv_show_id
    req.URL.RawQuery = url.Values{
       "classification_id": {
-         strconv.Itoa(t.classification_id()),
+         strconv.Itoa(a.classification_id()),
       },
       "device_identifier": {device_identifier},
-      "market_code":       {t.market_code},
+      "market_code":       {a.market_code},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -145,50 +188,8 @@ func (s *season) String() string {
    return b.String()
 }
 
-func (t *tv_show) episodes(season_id string) ([]episode, error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/seasons/" + season_id
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(t.classification_id()),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {t.market_code},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Episodes []episode
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.Data.Episodes, nil
-}
-
-type tv_show struct {
-   market_code string
-   tv_show_id  string
-}
-
-func (t *tv_show) Set(data string) error {
-   tv_url, err := url.Parse(data)
-   if err != nil {
-      return err
-   }
-   t.market_code = strings.TrimPrefix(tv_url.Path, "/")
-   t.tv_show_id = tv_url.Query().Get("tv_show_id")
-   return nil
-}
-
-func (t *tv_show) classification_id() int {
-   switch t.market_code {
+func (a *address) classification_id() int {
+   switch a.market_code {
    case "at":
       return 300
    case "ch":
