@@ -9,6 +9,16 @@ import (
    "strings"
 )
 
+func (a *address) Set(data string) error {
+   url2, err := url.Parse(data)
+   if err != nil {
+      return err
+   }
+   a.market_code = strings.TrimPrefix(url2.Path, "/")
+   a.tv_show_id = url2.Query().Get("tv_show_id")
+   return nil
+}
+
 func (a *address) classification_id() int {
    switch a.market_code {
    case "at":
@@ -33,15 +43,6 @@ func (a *address) classification_id() int {
       return 18
    }
    return 0
-}
-
-type season struct {
-   Id string
-}
-
-type address struct {
-   market_code string
-   tv_show_id  string
 }
 
 func (a *address) seasons() ([]season, error) {
@@ -77,12 +78,11 @@ func (a *address) seasons() ([]season, error) {
    return value.Data.Seasons, nil
 }
 
-func (a *address) Set(data string) error {
-   url2, err := url.Parse(data)
-   if err != nil {
-      return err
-   }
-   a.market_code = strings.TrimPrefix(url2.Path, "/")
-   a.tv_show_id = url2.Query().Get("tv_show_id")
-   return nil
+type address struct {
+   market_code string
+   tv_show_id  string
+}
+
+type season struct {
+   Id string
 }

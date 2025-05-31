@@ -12,6 +12,34 @@ import (
    "strings"
 )
 
+func (s *Season) Unmarshal(data Byte[Season]) error {
+   var value struct {
+      Data Season
+   }
+   err := json.Unmarshal(data, &value)
+   if err != nil {
+      return err
+   }
+   *s = value.Data
+   return nil
+}
+
+func (p *Path) Season(classification_id int) (Byte[Season], error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/seasons/" + p.SeasonId
+   req.URL.RawQuery = url.Values{
+      "device_identifier": {"atvui40"},
+      "classification_id": {strconv.Itoa(classification_id)},
+      "market_code":       {p.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 type Content struct {
    ViewOptions struct {
       Private struct {
@@ -49,22 +77,6 @@ type Streamings struct {
    Player                   string `json:"player"`
    SubtitleLanguage         string `json:"subtitle_language"`
    VideoType                string `json:"video_type"`
-}
-
-func (p *Path) Season(classification_id int) (Byte[Season], error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/seasons/" + p.SeasonId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {strconv.Itoa(classification_id)},
-      "device_identifier": {"atvui40"},
-      "market_code":       {p.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type Path struct {
@@ -224,18 +236,6 @@ func (c *Content) Unmarshal(data Byte[Content]) error {
       return err
    }
    *c = value.Data
-   return nil
-}
-
-func (s *Season) Unmarshal(data Byte[Season]) error {
-   var value struct {
-      Data Season
-   }
-   err := json.Unmarshal(data, &value)
-   if err != nil {
-      return err
-   }
-   *s = value.Data
    return nil
 }
 
