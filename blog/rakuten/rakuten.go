@@ -45,8 +45,6 @@ func (t *tv_show) classification_id() int {
    return 0
 }
 
-const device_identifier = "atvui40"
-
 func (t *tv_show) seasons() ([]season, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/tv_shows/" + t.tv_show_id
@@ -94,20 +92,6 @@ func (s *season) String() string {
    return b.String()
 }
 
-type episode struct {
-   Id    string
-   Title string
-}
-
-func (e *episode) String() string {
-   var b strings.Builder
-   b.WriteString("title = ")
-   b.WriteString(e.Title)
-   b.WriteString("\nid = ")
-   b.WriteString(e.Id)
-   return b.String()
-}
-
 func (t *tv_show) episodes(season_id string) ([]episode, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/seasons/" + season_id
@@ -140,12 +124,36 @@ type tv_show struct {
    tv_show_id  string
 }
 
-type quality string
+func (e *episode) String() string {
+   var b strings.Builder
+   b.WriteString("title = ")
+   b.WriteString(e.Title)
+   for _, stream := range e.ViewOptions.Private.Streams {
+      for _, language := range stream.AudioLanguages {
+         b.WriteString("\nlanguage = ")
+         b.WriteString(language.Id)
+      }
+   }
+   b.WriteString("\nid = ")
+   b.WriteString(e.Id)
+   return b.String()
+}
 
-const (
-   fhd quality = "FHD"
-   hd  quality = "HD"
-)
+type episode struct {
+   Id    string
+   Title string
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string
+            } `json:"audio_languages"`
+         }
+      }
+   } `json:"view_options"`
+}
+
+const device_identifier = "atvui40"
 
 type streamings struct {
    AudioLanguage            string  `json:"audio_language"`
@@ -161,20 +169,27 @@ type streamings struct {
    VideoType                string  `json:"video_type"`
 }
 
-func (e *episode) streamings(video quality) streamings {
+type quality string
+
+const (
+   fhd quality = "FHD"
+   hd  quality = "HD"
+)
+
+func (t *tv_show) streamings(
+   content_id, audio_language string, video quality,
+) streamings {
    var s streamings
-   s.ContentType = "episodes"
-   s.DeviceStreamVideoQuality = video
-   s.ContentId = e.Id
+   s.AudioLanguage = audio_language
    s.AudioQuality = "2.0"
+   s.ContentId = content_id
+   s.ContentType = "episodes"
    s.DeviceIdentifier = device_identifier
    s.DeviceSerial = "not implemented"
+   s.DeviceStreamVideoQuality = video
    s.Player = device_identifier + ":DASH-CENC:WVM"
    s.SubtitleLanguage = "MIS"
    s.VideoType = "stream"
-   
-   s.AudioLanguage = ""
-   s.ClassificationId = 0
-   
+   s.ClassificationId = t.classification_id()
    return s
 }

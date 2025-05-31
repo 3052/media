@@ -15,16 +15,16 @@ var test = struct {
 }
 
 func TestSeason(t *testing.T) {
-   var web address
-   err := web.Set(test.url)
+   var show tv_show
+   err := show.Set(test.url)
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile("address", []byte(test.url), os.ModePerm)
+   err = os.WriteFile("tv_show", []byte(test.url), os.ModePerm)
    if err != nil {
       t.Fatal(err)
    }
-   seasons, err := web.seasons()
+   seasons, err := show.seasons()
    if err != nil {
       t.Fatal(err)
    }
@@ -34,16 +34,16 @@ func TestSeason(t *testing.T) {
 }
 
 func TestEpisode(t *testing.T) {
-   data, err := os.ReadFile("address")
+   data, err := os.ReadFile("tv_show")
    if err != nil {
       t.Fatal(err)
    }
-   var web address
-   err = web.Set(string(data))
+   var show tv_show
+   err = show.Set(string(data))
    if err != nil {
       t.Fatal(err)
    }
-   episodes, err := web.episodes(test.season)
+   episodes, err := show.episodes(test.season)
    if err != nil {
       t.Fatal(err)
    }

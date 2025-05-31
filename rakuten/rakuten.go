@@ -12,54 +12,18 @@ import (
    "strings"
 )
 
-func (s *Streamings) Info(
-   audio_language string, classification_id int,
-) (*StreamInfo, error) {
-   s.AudioLanguage = audio_language
-   s.AudioQuality = "2.0"
-   s.ClassificationId = classification_id
-   s.DeviceIdentifier = "atvui40"
-   s.DeviceSerial = "not implemented"
-   s.Player = "atvui40:DASH-CENC:WVM"
-   s.SubtitleLanguage = "MIS"
-   s.VideoType = "stream"
-   data, err := json.Marshal(s)
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gizmo.rakuten.tv/v3/avod/streamings",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Id          string
-         StreamInfos []StreamInfo `json:"stream_infos"`
+type Content struct {
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string
+            } `json:"audio_languages"`
+         }
       }
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   // you can trigger this with wrong location
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Message)
-   }
-   log.Println("id", value.Data.Id)
-   return &value.Data.StreamInfos[0], nil
+   } `json:"view_options"`
+   Id   string
+   Type string
 }
 
 func (s *Season) Unmarshal(data Byte[Season]) error {
@@ -233,20 +197,6 @@ func (s Season) Content(path1 *Path) (*Content, bool) {
    return nil, false
 }
 
-type Content struct {
-   ViewOptions struct {
-      Private struct {
-         Streams []struct {
-            AudioLanguages []struct {
-               Id string
-            } `json:"audio_languages"`
-         }
-      }
-   } `json:"view_options"`
-   Id   string
-   Type string
-}
-
 type StreamInfo struct {
    LicenseUrl string `json:"license_url"`
    Url        string // MPD
@@ -262,4 +212,54 @@ func (s *Streamings) Hd() {
 
 func (s *Streamings) Fhd() {
    s.DeviceStreamVideoQuality = "FHD"
+}
+
+func (s *Streamings) Info(
+   audio_language string, classification_id int,
+) (*StreamInfo, error) {
+   s.AudioLanguage = audio_language
+   s.AudioQuality = "2.0"
+   s.ClassificationId = classification_id
+   s.DeviceIdentifier = "atvui40"
+   s.DeviceSerial = "not implemented"
+   s.Player = "atvui40:DASH-CENC:WVM"
+   s.SubtitleLanguage = "MIS"
+   s.VideoType = "stream"
+   data, err := json.Marshal(s)
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gizmo.rakuten.tv/v3/avod/streamings",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Id          string
+         StreamInfos []StreamInfo `json:"stream_infos"`
+      }
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   // you can trigger this with wrong location
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
+   }
+   log.Println("id", value.Data.Id)
+   return &value.Data.StreamInfos[0], nil
 }
