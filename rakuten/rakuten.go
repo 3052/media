@@ -176,20 +176,6 @@ func (s *Season) Unmarshal(data Byte[Season]) error {
    return nil
 }
 
-func (p *Path) New(data string) {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "rakuten.tv")
-   data = strings.TrimPrefix(data, "/")
-   p.MarketCode, data, _ = strings.Cut(data, "/")
-   var found bool
-   data, p.ContentId, found = strings.Cut(data, "movies/")
-   if !found {
-      data = strings.TrimPrefix(data, "player/episodes/stream/")
-      p.SeasonId, p.ContentId, _ = strings.Cut(data, "/")
-   }
-}
-
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
 func (p *Path) ClassificationId() (int, bool) {
    switch p.MarketCode {
@@ -263,3 +249,17 @@ func (p *Path) Movie(classification_id int) (Byte[Content], error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
+func (p *Path) New(data string) {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   data = strings.TrimPrefix(data, "rakuten.tv")
+   data = strings.TrimPrefix(data, "/")
+   p.MarketCode, data, _ = strings.Cut(data, "/")
+   var found bool
+   data, p.ContentId, found = strings.Cut(data, "movies/")
+   if !found {
+      data = strings.TrimPrefix(data, "player/episodes/stream/")
+      p.SeasonId, p.ContentId, _ = strings.Cut(data, "/")
+   }
+}
+

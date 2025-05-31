@@ -29,7 +29,7 @@ func (f *flag_set) New() error {
    flag.BoolVar(&f.login, "l", false, "device login")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.IntVar(&f.season, "s", 0, "season")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }

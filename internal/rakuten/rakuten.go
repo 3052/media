@@ -12,12 +12,86 @@ import (
    "path/filepath"
 )
 
-type flag_set struct {
-   address  string
-   cdm      net.Cdm
-   filters  net.Filters
-   language string
-   media    string
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      if set.language != "" {
+         // second
+         // do we really need address for this?
+         err = set.do_language()
+      } else {
+         // first
+         err = set.do_address()
+      }
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flag_set) do_language() error {
+   var path rakuten.Path
+   path.New(f.address)
+   class, ok := path.ClassificationId()
+   if !ok {
+      return errors.New(".ClassificationId()")
+   }
+   var content *rakuten.Content
+   if path.SeasonId != "" {
+      data, err := os.ReadFile(f.media + "/rakuten/Season")
+      if err != nil {
+         return err
+      }
+      var season rakuten.Season
+      err = season.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      content, ok = season.Content(&path)
+      if !ok {
+         return errors.New(".Content")
+      }
+   } else {
+      data, err := os.ReadFile(f.media + "/rakuten/Content")
+      if err != nil {
+         return err
+      }
+      content = &rakuten.Content{}
+      err = content.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+   }
+   streaming := content.Streamings()
+   streaming.Fhd()
+   info, err := streaming.Info(f.language, class)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(info.Url)
+   if err != nil {
+      return err
+   }
+   streaming.Hd()
+   info, err = streaming.Info(f.language, class)
+   if err != nil {
+      return err
+   }
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return info.License(data)
+   }
+   return f.filters.Filter(resp, &f.cdm)
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flag_set) New() error {
@@ -32,43 +106,22 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.language, "b", "", "language")
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }
 
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      if set.language != "" {
-         err = set.download()
-      } else {
-         err = set.do_language()
-      }
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func (f *flag_set) do_language() error {
-   var address rakuten.Address
-   address.Set(f.address)
-   class, ok := address.ClassificationId()
+func (f *flag_set) do_address() error {
+   var path rakuten.Path
+   path.New(f.address)
+   class, ok := path.ClassificationId()
    if !ok {
       return errors.New(".ClassificationId()")
    }
    var content *rakuten.Content
-   if address.SeasonId != "" {
-      data, err := address.Season(class)
+   if path.SeasonId != "" {
+      data, err := path.Season(class)
       if err != nil {
          return err
       }
@@ -81,12 +134,12 @@ func (f *flag_set) do_language() error {
       if err != nil {
          return err
       }
-      content, ok = season.Content(&address)
+      content, ok = season.Content(&path)
       if !ok {
          return errors.New(".Content")
       }
    } else {
-      data, err := address.Movie(class)
+      data, err := path.Movie(class)
       if err != nil {
          return err
       }
@@ -104,64 +157,11 @@ func (f *flag_set) do_language() error {
    return nil
 }
 
-func (f *flag_set) download() error {
-   var address rakuten.Address
-   address.Set(f.address)
-   class, ok := address.ClassificationId()
-   if !ok {
-      return errors.New(".ClassificationId()")
-   }
-   var content *rakuten.Content
-   if address.SeasonId != "" {
-      data, err := os.ReadFile(f.media + "/rakuten/Season")
-      if err != nil {
-         return err
-      }
-      var season rakuten.Season
-      err = season.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      content, ok = season.Content(&address)
-      if !ok {
-         return errors.New(".Content")
-      }
-   } else {
-      data, err := os.ReadFile(f.media + "/rakuten/Content")
-      if err != nil {
-         return err
-      }
-      content = &rakuten.Content{}
-      err = content.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-   }
-   streaming := content.Streamings()
-   if f.dash != "" {
-      streaming.Hd()
-      info, err := streaming.Info(f.language, class)
-      if err != nil {
-         return err
-      }
-      f.cdm.Widevine = func(data []byte) ([]byte, error) {
-         return info.Widevine(data)
-      }
-      return f.cdm.Download(f.media+"/Mpd", f.dash)
-   }
-   streaming.Fhd()
-   info, err := streaming.Info(f.language, class)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(info.Url)
-   if err != nil {
-      return err
-   }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+type flag_set struct {
+   address  string
+   cdm      net.Cdm
+   filters  net.Filters
+   language string
+   media    string
 }
 

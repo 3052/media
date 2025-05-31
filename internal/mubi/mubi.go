@@ -28,8 +28,8 @@ func (f *flag_set) New() error {
    flag.BoolVar(&f.code, "code", false, "link code")
    flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
    flag.BoolVar(&f.text, "text", false, "text track")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }

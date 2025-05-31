@@ -24,7 +24,7 @@ func (f *flag_set) New() error {
    flag.Int64Var(&f.movistar, "m", 0, "movistar ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
    flag.StringVar(&f.password, "password", "", "password")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }

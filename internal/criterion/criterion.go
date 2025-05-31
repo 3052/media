@@ -27,7 +27,7 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.dash, "i", "", "DASH ID")
    flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
    flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }

@@ -9,7 +9,7 @@ import (
    "path/filepath"
 )
 
-func (f *flags) New() error {
+func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
    if err != nil {
@@ -18,33 +18,26 @@ func (f *flags) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.e.ClientId = f.media + "/client_id.bin"
    f.e.PrivateKey = f.media + "/private_key.pem"
-   return nil
-}
-
-type flags struct {
-   dash  string
-   e     net.License
-   media string
-   nbc   int
-}
-
-func main() {
-   var f flags
-   err := f.New()
-   if err != nil {
-      panic(err)
-   }
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.IntVar(&f.nbc, "n", 0, "NBC ID")
    flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.IntVar(&net.ThreadCount, "t", 1, "thread count")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
    switch {
-   case f.nbc >= 1:
-      err = f.do_nbc()
-   case f.dash != "":
-      err = f.do_dash()
+   case set.nbc >= 1:
+      err = set.do_nbc()
+   case set.dash != "":
+      err = set.do_dash()
    default:
       flag.Usage()
    }
@@ -53,7 +46,7 @@ func main() {
    }
 }
 
-func (f *flags) do_nbc() error {
+func (f *flag_set) do_nbc() error {
    var metadata nbc.Metadata
    err := metadata.New(f.nbc)
    if err != nil {
@@ -70,7 +63,15 @@ func (f *flags) do_nbc() error {
    return net.Mpd(f.media+"/Mpd", resp)
 }
 
-func (f *flags) do_dash() error {
+func (f *flag_set) do_dash() error {
    f.e.Widevine = nbc.Widevine
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
+
+type flag_set struct {
+   dash  string
+   e     net.License
+   media string
+   nbc   int
+}
+
