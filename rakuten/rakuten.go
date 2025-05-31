@@ -51,26 +51,6 @@ type Streamings struct {
    VideoType                string `json:"video_type"`
 }
 
-func (p *Path) New(data string) {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "rakuten.tv")
-   data = strings.TrimPrefix(data, "/")
-   p.MarketCode, data, _ = strings.Cut(data, "/")
-   var found bool
-   data, p.ContentId, found = strings.Cut(data, "movies/")
-   if !found {
-      data = strings.TrimPrefix(data, "player/episodes/stream/")
-      p.SeasonId, p.ContentId, _ = strings.Cut(data, "/")
-   }
-}
-
-type Path struct {
-   SeasonId   string
-   MarketCode string
-   ContentId  string
-}
-
 func (p *Path) Season(classification_id int) (Byte[Season], error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/seasons/" + p.SeasonId
@@ -85,6 +65,53 @@ func (p *Path) Season(classification_id int) (Byte[Season], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+type Path struct {
+   SeasonId   string
+   MarketCode string
+   ContentId  string
+}
+
+func (p *Path) New(data string) {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   data = strings.TrimPrefix(data, "rakuten.tv")
+   data = strings.TrimPrefix(data, "/")
+   p.MarketCode, data, _ = strings.Cut(data, "/")
+   var found bool
+   data, p.ContentId, found = strings.Cut(data, "movies/")
+   if !found {
+      data = strings.TrimPrefix(data, "player/episodes/stream/")
+      p.SeasonId, p.ContentId, _ = strings.Cut(data, "/")
+   }
+}
+
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+func (p *Path) ClassificationId() (int, bool) {
+   switch p.MarketCode {
+   case "at":
+      return 300, true
+   case "ch":
+      return 319, true
+   case "cz":
+      return 272, true
+   case "de":
+      return 307, true
+   case "fr":
+      return 23, true
+   case "ie":
+      return 41, true
+   case "nl":
+      return 69, true
+   case "pl":
+      return 277, true
+   case "se":
+      return 282, true
+   case "uk":
+      return 18, true
+   }
+   return 0, false
 }
 
 func (s *StreamInfo) License(data []byte) ([]byte, error) {
@@ -210,33 +237,6 @@ func (s *Season) Unmarshal(data Byte[Season]) error {
    }
    *s = value.Data
    return nil
-}
-
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-func (p *Path) ClassificationId() (int, bool) {
-   switch p.MarketCode {
-   case "at":
-      return 300, true
-   case "ch":
-      return 319, true
-   case "cz":
-      return 272, true
-   case "de":
-      return 307, true
-   case "fr":
-      return 23, true
-   case "ie":
-      return 41, true
-   case "nl":
-      return 69, true
-   case "pl":
-      return 277, true
-   case "se":
-      return 282, true
-   case "uk":
-      return 18, true
-   }
-   return 0, false
 }
 
 func (s Season) Content(path1 *Path) (*Content, bool) {
