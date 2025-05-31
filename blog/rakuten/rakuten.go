@@ -9,70 +9,18 @@ import (
    "strings"
 )
 
-type address struct {
-   market_code string
-   tv_show_id  string
-}
-
-func (a *address) seasons() ([]season, error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/tv_shows/" + a.tv_show_id
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(a.classification_id()),
-      },
-      "device_identifier": {"web"},
-      "market_code":       {a.market_code},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Seasons []season
-      }
-      Errors []struct {
-         Code string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Code)
-   }
-   return value.Data.Seasons, nil
-}
-
-func (s *season) String() string {
-   var b strings.Builder
-   b.WriteString("show title = ")
-   b.WriteString(s.TvShowTitle)
-   b.WriteString("\nid = ")
-   b.WriteString(s.Id)
-   return b.String()
-}
-
-type season struct {
-   TvShowTitle string `json:"tv_show_title"`
-   Id          string
-}
-
-func (a *address) Set(data string) error {
-   url2, err := url.Parse(data)
+func (t *tv_show) Set(data string) error {
+   tv_url, err := url.Parse(data)
    if err != nil {
       return err
    }
-   a.market_code = strings.TrimPrefix(url2.Path, "/")
-   a.tv_show_id = url2.Query().Get("tv_show_id")
+   t.market_code = strings.TrimPrefix(tv_url.Path, "/")
+   t.tv_show_id = tv_url.Query().Get("tv_show_id")
    return nil
 }
 
-func (a *address) classification_id() int {
-   switch a.market_code {
+func (t *tv_show) classification_id() int {
+   switch t.market_code {
    case "at":
       return 300
    case "ch":
@@ -97,26 +45,58 @@ func (a *address) classification_id() int {
    return 0
 }
 
-func (s *streamings) Fhd() {
-   s.DeviceStreamVideoQuality = "FHD"
+const device_identifier = "atvui40"
+
+func (t *tv_show) seasons() ([]season, error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/tv_shows/" + t.tv_show_id
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(t.classification_id()),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {t.market_code},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Seasons []season
+      }
+      Errors []struct {
+         Code string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Code)
+   }
+   return value.Data.Seasons, nil
 }
 
-func (e *episode) streamings() streamings {
-   return streamings{ContentId: e.Id, ContentType: "episodes"}
+type season struct {
+   TvShowTitle string `json:"tv_show_title"`
+   Id          string
 }
 
-type streamings struct {
-   AudioLanguage            string `json:"audio_language"`
-   AudioQuality             string `json:"audio_quality"`
-   ClassificationId         int    `json:"classification_id"`
-   ContentId                string `json:"content_id"`
-   ContentType              string `json:"content_type"`
-   DeviceIdentifier         string `json:"device_identifier"`
-   DeviceSerial             string `json:"device_serial"`
-   DeviceStreamVideoQuality string `json:"device_stream_video_quality"`
-   Player                   string `json:"player"`
-   SubtitleLanguage         string `json:"subtitle_language"`
-   VideoType                string `json:"video_type"`
+func (s *season) String() string {
+   var b strings.Builder
+   b.WriteString("show title = ")
+   b.WriteString(s.TvShowTitle)
+   b.WriteString("\nid = ")
+   b.WriteString(s.Id)
+   return b.String()
+}
+
+type episode struct {
+   Id    string
+   Title string
 }
 
 func (e *episode) String() string {
@@ -128,20 +108,15 @@ func (e *episode) String() string {
    return b.String()
 }
 
-type episode struct {
-   Id    string
-   Title string
-}
-
-func (a *address) episodes(season_id string) ([]episode, error) {
+func (t *tv_show) episodes(season_id string) ([]episode, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/seasons/" + season_id
    req.URL.RawQuery = url.Values{
       "classification_id": {
-         strconv.Itoa(a.classification_id()),
+         strconv.Itoa(t.classification_id()),
       },
-      "device_identifier": {"web"},
-      "market_code":       {a.market_code},
+      "device_identifier": {device_identifier},
+      "market_code":       {t.market_code},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -158,4 +133,48 @@ func (a *address) episodes(season_id string) ([]episode, error) {
       return nil, err
    }
    return value.Data.Episodes, nil
+}
+
+type tv_show struct {
+   market_code string
+   tv_show_id  string
+}
+
+type quality string
+
+const (
+   fhd quality = "FHD"
+   hd  quality = "HD"
+)
+
+type streamings struct {
+   AudioLanguage            string  `json:"audio_language"`
+   AudioQuality             string  `json:"audio_quality"`
+   ClassificationId         int     `json:"classification_id"`
+   ContentId                string  `json:"content_id"`
+   ContentType              string  `json:"content_type"`
+   DeviceIdentifier         string  `json:"device_identifier"`
+   DeviceSerial             string  `json:"device_serial"`
+   DeviceStreamVideoQuality quality `json:"device_stream_video_quality"`
+   Player                   string  `json:"player"`
+   SubtitleLanguage         string  `json:"subtitle_language"`
+   VideoType                string  `json:"video_type"`
+}
+
+func (e *episode) streamings(video quality) streamings {
+   var s streamings
+   s.ContentType = "episodes"
+   s.DeviceStreamVideoQuality = video
+   s.ContentId = e.Id
+   s.AudioQuality = "2.0"
+   s.DeviceIdentifier = device_identifier
+   s.DeviceSerial = "not implemented"
+   s.Player = device_identifier + ":DASH-CENC:WVM"
+   s.SubtitleLanguage = "MIS"
+   s.VideoType = "stream"
+   
+   s.AudioLanguage = ""
+   s.ClassificationId = 0
+   
+   return s
 }
