@@ -46,6 +46,7 @@ type address struct {
    market_code string
    tv_show_id  string
 }
+
 func (s *season) String() string {
    var b strings.Builder
    b.WriteString("show title = ")
@@ -95,4 +96,3 @@ func (a *address) classification_id() int {
    }
    return 0
 }
-

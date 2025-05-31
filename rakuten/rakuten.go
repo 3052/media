@@ -93,6 +93,96 @@ func (p *Path) ClassificationId() (int, bool) {
    return 0, false
 }
 
+type Streamings struct {
+   AudioLanguage            string `json:"audio_language"`
+   AudioQuality             string `json:"audio_quality"`
+   ClassificationId         int    `json:"classification_id"`
+   ContentId                string `json:"content_id"`
+   ContentType              string `json:"content_type"`
+   DeviceIdentifier         string `json:"device_identifier"`
+   DeviceSerial             string `json:"device_serial"`
+   DeviceStreamVideoQuality string `json:"device_stream_video_quality"`
+   Player                   string `json:"player"`
+   SubtitleLanguage         string `json:"subtitle_language"`
+   VideoType                string `json:"video_type"`
+}
+
+func (c *Content) Unmarshal(data Byte[Content]) error {
+   var value struct {
+      Data   Content
+      Errors []struct {
+         Message string
+      }
+   }
+   err := json.Unmarshal(data, &value)
+   if err != nil {
+      return err
+   }
+   *c = value.Data
+   return nil
+}
+
+func (s *StreamInfo) License(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Path) Movie(classification_id int) (Byte[Content], error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/movies/" + p.ContentId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {strconv.Itoa(classification_id)},
+      "device_identifier": {"atvui40"},
+      "market_code":       {p.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (c *Content) String() string {
+   var (
+      audio = map[string]struct{}{}
+      b     []byte
+   )
+   for _, stream := range c.ViewOptions.Private.Streams {
+      for _, language := range stream.AudioLanguages {
+         _, ok := audio[language.Id]
+         if !ok {
+            if b != nil {
+               b = append(b, '\n')
+            }
+            b = append(b, "audio language = "...)
+            b = append(b, language.Id...)
+            audio[language.Id] = struct{}{}
+         }
+      }
+   }
+   b = append(b, "\nid = "...)
+   b = append(b, c.Id...)
+   b = append(b, "\ntype = "...)
+   b = append(b, c.Type...)
+   return string(b)
+}
+
+func (s Season) Content(path1 *Path) (*Content, bool) {
+   for _, episode := range s.Episodes {
+      if episode.Id == path1.ContentId {
+         return &episode, true
+      }
+   }
+   return nil, false
+}
+
 type Content struct {
    ViewOptions struct {
       Private struct {
@@ -112,31 +202,16 @@ type StreamInfo struct {
    Url        string // MPD
 }
 
-type Streamings struct {
-   AudioLanguage            string `json:"audio_language"`
-   AudioQuality             string `json:"audio_quality"`
-   ClassificationId         int    `json:"classification_id"`
-   ContentId                string `json:"content_id"`
-   ContentType              string `json:"content_type"`
-   DeviceIdentifier         string `json:"device_identifier"`
-   DeviceSerial             string `json:"device_serial"`
-   DeviceStreamVideoQuality string `json:"device_stream_video_quality"`
-   Player                   string `json:"player"`
-   SubtitleLanguage         string `json:"subtitle_language"`
-   VideoType                string `json:"video_type"`
+func (c *Content) Streamings() Streamings {
+   return Streamings{ContentId: c.Id, ContentType: c.Type}
 }
 
-///
+func (s *Streamings) Hd() {
+   s.DeviceStreamVideoQuality = "HD"
+}
 
-func (s *StreamInfo) License(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+func (s *Streamings) Fhd() {
+   s.DeviceStreamVideoQuality = "FHD"
 }
 
 func (s *Streamings) Info(
@@ -187,81 +262,4 @@ func (s *Streamings) Info(
    }
    log.Println("id", value.Data.Id)
    return &value.Data.StreamInfos[0], nil
-}
-
-func (s *Streamings) Hd() {
-   s.DeviceStreamVideoQuality = "HD"
-}
-
-func (s *Streamings) Fhd() {
-   s.DeviceStreamVideoQuality = "FHD"
-}
-
-func (c *Content) Streamings() Streamings {
-   return Streamings{ContentId: c.Id, ContentType: c.Type}
-}
-
-func (c *Content) String() string {
-   var (
-      audio = map[string]struct{}{}
-      b     []byte
-   )
-   for _, stream := range c.ViewOptions.Private.Streams {
-      for _, language := range stream.AudioLanguages {
-         _, ok := audio[language.Id]
-         if !ok {
-            if b != nil {
-               b = append(b, '\n')
-            }
-            b = append(b, "audio language = "...)
-            b = append(b, language.Id...)
-            audio[language.Id] = struct{}{}
-         }
-      }
-   }
-   b = append(b, "\nid = "...)
-   b = append(b, c.Id...)
-   b = append(b, "\ntype = "...)
-   b = append(b, c.Type...)
-   return string(b)
-}
-
-func (c *Content) Unmarshal(data Byte[Content]) error {
-   var value struct {
-      Data   Content
-      Errors []struct {
-         Message string
-      }
-   }
-   err := json.Unmarshal(data, &value)
-   if err != nil {
-      return err
-   }
-   *c = value.Data
-   return nil
-}
-
-func (s Season) Content(path1 *Path) (*Content, bool) {
-   for _, episode := range s.Episodes {
-      if episode.Id == path1.ContentId {
-         return &episode, true
-      }
-   }
-   return nil, false
-}
-
-func (p *Path) Movie(classification_id int) (Byte[Content], error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/movies/" + p.ContentId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {strconv.Itoa(classification_id)},
-      "device_identifier": {"atvui40"},
-      "market_code":       {p.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
