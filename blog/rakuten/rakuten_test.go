@@ -1,39 +1,56 @@
 package rakuten
 
 import (
+   "41.neocities.org/net"
    "fmt"
+   "net/http"
+   "net/url"
    "os"
+   "os/exec"
+   "strings"
    "testing"
 )
 
 var test = struct {
-   season string
-   url    string
+   url      string
+   season   string
+   episode  string
+   language string
 }{
-   season: "clink-1",
-   url:    "//rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+   url:      "//rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+   season:   "clink-1",
+   episode:  "clink-1-1",
+   language: "ENG",
 }
 
-func TestSeason(t *testing.T) {
+func TestInfo(t *testing.T) {
+   data, err := exec.Command("password", "-i", "nordvpn.com").Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   user, password, _ := strings.Cut(string(data), ":")
+   http.DefaultTransport = net.Transport(&url.URL{
+      Scheme: "https",
+      User: url.UserPassword(user, password),
+      Host: "uk812.nordvpn.com:89",
+   })
+   data, err = os.ReadFile("tv_show")
+   if err != nil {
+      t.Fatal(err)
+   }
    var show tv_show
-   err := show.Set(test.url)
+   err = show.Set(string(data))
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile("tv_show", []byte(test.url), os.ModePerm)
+   info, err := show.info(test.episode, test.language, fhd)
    if err != nil {
       t.Fatal(err)
    }
-   seasons, err := show.seasons()
-   if err != nil {
-      t.Fatal(err)
-   }
-   for _, season1 := range seasons {
-      fmt.Println(&season1)
-   }
+   fmt.Printf("%+v\n", info)
 }
 
-func TestEpisode(t *testing.T) {
+func TestEpisodes(t *testing.T) {
    data, err := os.ReadFile("tv_show")
    if err != nil {
       t.Fatal(err)
@@ -52,5 +69,24 @@ func TestEpisode(t *testing.T) {
          fmt.Println()
       }
       fmt.Println(&episode1)
+   }
+}
+
+func TestSeasons(t *testing.T) {
+   var show tv_show
+   err := show.Set(test.url)
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile("tv_show", []byte(test.url), os.ModePerm)
+   if err != nil {
+      t.Fatal(err)
+   }
+   seasons, err := show.seasons()
+   if err != nil {
+      t.Fatal(err)
+   }
+   for _, season1 := range seasons {
+      fmt.Println(&season1)
    }
 }
