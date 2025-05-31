@@ -12,6 +12,14 @@ import (
    "path/filepath"
 )
 
+type flag_set struct {
+   address  string
+   cdm      net.Cdm
+   filters  net.Filters
+   language string
+   media    string
+}
+
 func main() {
    var set flag_set
    err := set.New()
@@ -33,6 +41,29 @@ func main() {
    if err != nil {
       panic(err)
    }
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.language, "b", "", "language")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
 }
 
 func (f *flag_set) do_address() error {
@@ -78,14 +109,6 @@ func (f *flag_set) do_address() error {
    }
    fmt.Println(content)
    return nil
-}
-
-type flag_set struct {
-   address  string
-   cdm      net.Cdm
-   filters  net.Filters
-   language string
-   media    string
 }
 
 func (f *flag_set) do_language() error {
@@ -141,27 +164,3 @@ func (f *flag_set) do_language() error {
    }
    return f.filters.Filter(resp, &f.cdm)
 }
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.language, "b", "", "language")
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
-   flag.Parse()
-   return nil
-}
-
