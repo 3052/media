@@ -2,36 +2,28 @@ package rakuten
 
 import (
    "encoding/json"
+   "errors"
    "net/http"
    "net/url"
    "strconv"
    "strings"
 )
 
-func (s *Streamings) Info(
-   audio_language string, classification_id int,
-) (*StreamInfo, error) {
-   s.AudioLanguage = audio_language
-   s.AudioQuality = "2.0"
-   s.ClassificationId = classification_id
-   s.DeviceIdentifier = "atvui40"
-   s.DeviceSerial = "not implemented"
-   s.Player = "atvui40:DASH-CENC:WVM"
-   s.SubtitleLanguage = "MIS"
-   s.VideoType = "stream"
-   data, err := json.Marshal(s)
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gizmo.rakuten.tv/v3/avod/streamings",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
+type address struct {
+   market_code string
+   tv_show_id  string
+}
+
+func (a *address) seasons() ([]season, error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/tv_shows/" + a.tv_show_id
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(a.classification_id()),
+      },
+      "device_identifier": {"web"},
+      "market_code":       {a.market_code},
+   }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -39,23 +31,70 @@ func (s *Streamings) Info(
    defer resp.Body.Close()
    var value struct {
       Data struct {
-         Id          string
-         StreamInfos []StreamInfo `json:"stream_infos"`
+         Seasons []season
       }
       Errors []struct {
-         Message string
+         Code string
       }
    }
    err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {
       return nil, err
    }
-   // you can trigger this with wrong location
    if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Message)
+      return nil, errors.New(value.Errors[0].Code)
    }
-   log.Println("id", value.Data.Id)
-   return &value.Data.StreamInfos[0], nil
+   return value.Data.Seasons, nil
+}
+
+func (s *season) String() string {
+   var b strings.Builder
+   b.WriteString("show title = ")
+   b.WriteString(s.TvShowTitle)
+   b.WriteString("\nid = ")
+   b.WriteString(s.Id)
+   return b.String()
+}
+
+type season struct {
+   TvShowTitle string `json:"tv_show_title"`
+   Id          string
+}
+
+func (a *address) Set(data string) error {
+   url2, err := url.Parse(data)
+   if err != nil {
+      return err
+   }
+   a.market_code = strings.TrimPrefix(url2.Path, "/")
+   a.tv_show_id = url2.Query().Get("tv_show_id")
+   return nil
+}
+
+func (a *address) classification_id() int {
+   switch a.market_code {
+   case "at":
+      return 300
+   case "ch":
+      return 319
+   case "cz":
+      return 272
+   case "de":
+      return 307
+   case "fr":
+      return 23
+   case "ie":
+      return 41
+   case "nl":
+      return 69
+   case "pl":
+      return 277
+   case "se":
+      return 282
+   case "uk":
+      return 18
+   }
+   return 0
 }
 
 func (s *streamings) Fhd() {
