@@ -10,8 +10,8 @@ var test = struct {
    season string
    url    string
 }{
-   season: "hell-s-kitchen-usa-1",
-   url:    "//rakuten.tv/uk?content_type=tv_shows&tv_show_id=hell-s-kitchen-usa",
+   season: "clink-1",
+   url:    "//rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
 }
 
 func TestSeason(t *testing.T) {
@@ -29,6 +29,6 @@ func TestSeason(t *testing.T) {
       t.Fatal(err)
    }
    for _, season1 := range seasons {
-      fmt.Println(season1.Id)
+      fmt.Println(&season1)
    }
 }

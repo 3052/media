@@ -20,7 +20,10 @@ func TestEpisode(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   for _, episode1 := range episodes {
-      fmt.Printf("%+v\n", episode1)
+   for i, episode1 := range episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&episode1)
    }
 }

@@ -5,11 +5,8 @@ import (
    "net/http"
    "net/url"
    "strconv"
+   "strings"
 )
-
-type episode struct {
-   Id string
-}
 
 func (a *address) episodes(season_id string) ([]episode, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
@@ -36,4 +33,18 @@ func (a *address) episodes(season_id string) ([]episode, error) {
       return nil, err
    }
    return value.Data.Episodes, nil
+}
+
+func (e *episode) String() string {
+   var b strings.Builder
+   b.WriteString("title = ")
+   b.WriteString(e.Title)
+   b.WriteString("\nid = ")
+   b.WriteString(e.Id)
+   return b.String()
+}
+
+type episode struct {
+   Id    string
+   Title string
 }
