@@ -35,6 +35,59 @@ func main() {
    }
 }
 
+func (f *flag_set) do_address() error {
+   var path rakuten.Path
+   path.New(f.address)
+   class, ok := path.ClassificationId()
+   if !ok {
+      return errors.New(".ClassificationId()")
+   }
+   var content *rakuten.Content
+   if path.SeasonId != "" {
+      data, err := path.Season(class)
+      if err != nil {
+         return err
+      }
+      var season rakuten.Season
+      err = season.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      err = write_file(f.media+"/rakuten/Season", data)
+      if err != nil {
+         return err
+      }
+      content, ok = season.Content(&path)
+      if !ok {
+         return errors.New(".Content")
+      }
+   } else {
+      data, err := path.Movie(class)
+      if err != nil {
+         return err
+      }
+      content = &rakuten.Content{}
+      err = content.Unmarshal(data)
+      if err != nil {
+         return err
+      }
+      err = write_file(f.media+"/rakuten/Content", data)
+      if err != nil {
+         return err
+      }
+   }
+   fmt.Println(content)
+   return nil
+}
+
+type flag_set struct {
+   address  string
+   cdm      net.Cdm
+   filters  net.Filters
+   language string
+   media    string
+}
+
 func (f *flag_set) do_language() error {
    var path rakuten.Path
    path.New(f.address)
@@ -110,58 +163,5 @@ func (f *flag_set) New() error {
    flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
-}
-
-func (f *flag_set) do_address() error {
-   var path rakuten.Path
-   path.New(f.address)
-   class, ok := path.ClassificationId()
-   if !ok {
-      return errors.New(".ClassificationId()")
-   }
-   var content *rakuten.Content
-   if path.SeasonId != "" {
-      data, err := path.Season(class)
-      if err != nil {
-         return err
-      }
-      var season rakuten.Season
-      err = season.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      err = write_file(f.media+"/rakuten/Season", data)
-      if err != nil {
-         return err
-      }
-      content, ok = season.Content(&path)
-      if !ok {
-         return errors.New(".Content")
-      }
-   } else {
-      data, err := path.Movie(class)
-      if err != nil {
-         return err
-      }
-      content = &rakuten.Content{}
-      err = content.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      err = write_file(f.media+"/rakuten/Content", data)
-      if err != nil {
-         return err
-      }
-   }
-   fmt.Println(content)
-   return nil
-}
-
-type flag_set struct {
-   address  string
-   cdm      net.Cdm
-   filters  net.Filters
-   language string
-   media    string
 }
 
