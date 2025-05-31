@@ -9,41 +9,57 @@ import (
    "strings"
 )
 
-func (t *tv_show) Set(data string) error {
-   tv_url, err := url.Parse(data)
-   if err != nil {
-      return err
+func (e *episode) String() string {
+   var b strings.Builder
+   b.WriteString("title = ")
+   b.WriteString(e.Title)
+   for _, stream := range e.ViewOptions.Private.Streams {
+      for _, language := range stream.AudioLanguages {
+         b.WriteString("\nlanguage = ")
+         b.WriteString(language.Id)
+      }
    }
-   t.market_code = strings.TrimPrefix(tv_url.Path, "/")
-   t.tv_show_id = tv_url.Query().Get("tv_show_id")
-   return nil
+   b.WriteString("\nid = ")
+   b.WriteString(e.Id)
+   return b.String()
 }
 
-func (t *tv_show) classification_id() int {
-   switch t.market_code {
-   case "at":
-      return 300
-   case "ch":
-      return 319
-   case "cz":
-      return 272
-   case "de":
-      return 307
-   case "fr":
-      return 23
-   case "ie":
-      return 41
-   case "nl":
-      return 69
-   case "pl":
-      return 277
-   case "se":
-      return 282
-   case "uk":
-      return 18
-   }
-   return 0
+type episode struct {
+   Id    string
+   Title string
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string
+            } `json:"audio_languages"`
+         }
+      }
+   } `json:"view_options"`
 }
+
+const device_identifier = "atvui40"
+
+type streamings struct {
+   AudioLanguage            string  `json:"audio_language"`
+   AudioQuality             string  `json:"audio_quality"`
+   ClassificationId         int     `json:"classification_id"`
+   ContentId                string  `json:"content_id"`
+   ContentType              string  `json:"content_type"`
+   DeviceIdentifier         string  `json:"device_identifier"`
+   DeviceSerial             string  `json:"device_serial"`
+   DeviceStreamVideoQuality quality `json:"device_stream_video_quality"`
+   Player                   string  `json:"player"`
+   SubtitleLanguage         string  `json:"subtitle_language"`
+   VideoType                string  `json:"video_type"`
+}
+
+type quality string
+
+const (
+   fhd quality = "FHD"
+   hd  quality = "HD"
+)
 
 func (t *tv_show) seasons() ([]season, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
@@ -124,57 +140,41 @@ type tv_show struct {
    tv_show_id  string
 }
 
-func (e *episode) String() string {
-   var b strings.Builder
-   b.WriteString("title = ")
-   b.WriteString(e.Title)
-   for _, stream := range e.ViewOptions.Private.Streams {
-      for _, language := range stream.AudioLanguages {
-         b.WriteString("\nlanguage = ")
-         b.WriteString(language.Id)
-      }
+func (t *tv_show) Set(data string) error {
+   tv_url, err := url.Parse(data)
+   if err != nil {
+      return err
    }
-   b.WriteString("\nid = ")
-   b.WriteString(e.Id)
-   return b.String()
+   t.market_code = strings.TrimPrefix(tv_url.Path, "/")
+   t.tv_show_id = tv_url.Query().Get("tv_show_id")
+   return nil
 }
 
-type episode struct {
-   Id    string
-   Title string
-   ViewOptions struct {
-      Private struct {
-         Streams []struct {
-            AudioLanguages []struct {
-               Id string
-            } `json:"audio_languages"`
-         }
-      }
-   } `json:"view_options"`
+func (t *tv_show) classification_id() int {
+   switch t.market_code {
+   case "at":
+      return 300
+   case "ch":
+      return 319
+   case "cz":
+      return 272
+   case "de":
+      return 307
+   case "fr":
+      return 23
+   case "ie":
+      return 41
+   case "nl":
+      return 69
+   case "pl":
+      return 277
+   case "se":
+      return 282
+   case "uk":
+      return 18
+   }
+   return 0
 }
-
-const device_identifier = "atvui40"
-
-type streamings struct {
-   AudioLanguage            string  `json:"audio_language"`
-   AudioQuality             string  `json:"audio_quality"`
-   ClassificationId         int     `json:"classification_id"`
-   ContentId                string  `json:"content_id"`
-   ContentType              string  `json:"content_type"`
-   DeviceIdentifier         string  `json:"device_identifier"`
-   DeviceSerial             string  `json:"device_serial"`
-   DeviceStreamVideoQuality quality `json:"device_stream_video_quality"`
-   Player                   string  `json:"player"`
-   SubtitleLanguage         string  `json:"subtitle_language"`
-   VideoType                string  `json:"video_type"`
-}
-
-type quality string
-
-const (
-   fhd quality = "FHD"
-   hd  quality = "HD"
-)
 
 func (t *tv_show) streamings(
    content_id, audio_language string, video quality,
@@ -192,4 +192,54 @@ func (t *tv_show) streamings(
    s.VideoType = "stream"
    s.ClassificationId = t.classification_id()
    return s
+}
+
+func (s *Streamings) Info(
+   audio_language string, classification_id int,
+) (*StreamInfo, error) {
+   s.AudioLanguage = audio_language
+   s.AudioQuality = "2.0"
+   s.ClassificationId = classification_id
+   s.DeviceIdentifier = "atvui40"
+   s.DeviceSerial = "not implemented"
+   s.Player = "atvui40:DASH-CENC:WVM"
+   s.SubtitleLanguage = "MIS"
+   s.VideoType = "stream"
+   data, err := json.Marshal(s)
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gizmo.rakuten.tv/v3/avod/streamings",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Id          string
+         StreamInfos []StreamInfo `json:"stream_infos"`
+      }
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   // you can trigger this with wrong location
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
+   }
+   log.Println("id", value.Data.Id)
+   return &value.Data.StreamInfos[0], nil
 }
