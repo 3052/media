@@ -7,6 +7,34 @@ import (
    "os"
 )
 
+func (f *flag_set) do_content() error {
+   data, err := os.ReadFile(f.media + "/rakuten/Address")
+   if err != nil {
+      return err
+   }
+   var address rakuten.Address
+   err = address.Set(string(data))
+   if err != nil {
+      return err
+   }
+   info, err := address.Info(f.content, f.language, rakuten.Wvm, rakuten.Fhd)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(info.Url)
+   if err != nil {
+      return err
+   }
+   info, err = address.Info(f.content, f.language, rakuten.Wvm, rakuten.Hd)
+   if err != nil {
+      return err
+   }
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return info.License(data)
+   }
+   return f.filters.Filter(resp, &f.cdm)
+}
+
 // print movie
 func (f *flag_set) do_movie() error {
    var address rakuten.Address
@@ -68,33 +96,4 @@ func (f *flag_set) do_season() error {
       fmt.Println(&content)
    }
    return nil
-}
-
-// download
-func (f *flag_set) do_content() error {
-   data, err := os.ReadFile(f.media + "/rakuten/Address")
-   if err != nil {
-      return err
-   }
-   var address rakuten.Address
-   err = address.Set(string(data))
-   if err != nil {
-      return err
-   }
-   info, err := address.Info(f.content, f.language, rakuten.Fhd)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(info.Url)
-   if err != nil {
-      return err
-   }
-   info, err = address.Info(f.content, f.language, rakuten.Hd)
-   if err != nil {
-      return err
-   }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return info.License(data)
-   }
-   return f.filters.Filter(resp, &f.cdm)
 }
