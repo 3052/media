@@ -30,7 +30,11 @@ func (f *flag_set) do_movie() error {
 // print seasons
 func (f *flag_set) do_show() error {
    var address rakuten.Address
-   err := address.Set(f.movie)
+   err := address.Set(f.show)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media + "/rakuten/Address", []byte(f.show))
    if err != nil {
       return err
    }
@@ -48,16 +52,31 @@ func (f *flag_set) do_show() error {
 }
 
 // print episodes
-func (*flag_set) do_season() error {
+func (f *flag_set) do_season() error {
+   data, err := os.ReadFile(f.media + "/rakuten/Address")
+   if err != nil {
+      return err
+   }
+   var address rakuten.Address
+   err := address.Set(string(data))
+   if err != nil {
+      return err
+   }
+   contents, err := address.Episodes(f.season)
+   if err != nil {
+      return err
+   }
+   for i, content := range contents {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&content)
+   }
    return nil
 }
 
 // download
 func (*flag_set) do_content() error {
-   return nil
-}
-
-func (f *flag_set) old_do_address() error {
    var path rakuten.Path
    path.New(f.address)
    class, ok := path.ClassificationId()
@@ -99,10 +118,6 @@ func (f *flag_set) old_do_address() error {
       }
    }
    fmt.Println(content)
-   return nil
-}
-
-func (f *flag_set) old_do_language() error {
    var path rakuten.Path
    path.New(f.address)
    class, ok := path.ClassificationId()
