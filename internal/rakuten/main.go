@@ -29,11 +29,11 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
    ///////////////////////////////////////////////////////////////////////
-   flag.StringVar(&f.movie, "movie", "", "print movie")
+   flag.StringVar(&f.movie, "m", "", "movie URL")
    ////////////////////////////////////////////////////
-   flag.StringVar(&f.show, "show", "", "print seasons")
+   flag.StringVar(&f.show, "s", "", "TV show URL")
    ////////////////////////////////////////////////////
-   flag.StringVar(&f.season, "season", "", "print episodes")
+   flag.StringVar(&f.season, "S", "", "season ID")
    /////////////////////////////////////////////////////////
    flag.StringVar(&f.content, "c", "", "content ID")
    flag.StringVar(&f.language, "a", "", "audio language")

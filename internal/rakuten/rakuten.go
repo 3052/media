@@ -12,7 +12,52 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
+// print movie
+func (f *flag_set) do_movie() error {
+   var address rakuten.Address
+   err := address.Set(f.movie)
+   if err != nil {
+      return err
+   }
+   content, err := address.Movie()
+   if err != nil {
+      return err
+   }
+   fmt.Println(content)
+   return nil
+}
+
+// print seasons
+func (f *flag_set) do_show() error {
+   var address rakuten.Address
+   err := address.Set(f.movie)
+   if err != nil {
+      return err
+   }
+   seasons, err := address.Seasons()
+   if err != nil {
+      return err
+   }
+   for i, season := range seasons {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&season)
+   }
+   return nil
+}
+
+// print episodes
+func (*flag_set) do_season() error {
+   return nil
+}
+
+// download
+func (*flag_set) do_content() error {
+   return nil
+}
+
+func (f *flag_set) old_do_address() error {
    var path rakuten.Path
    path.New(f.address)
    class, ok := path.ClassificationId()
@@ -57,7 +102,7 @@ func (f *flag_set) do_address() error {
    return nil
 }
 
-func (f *flag_set) do_language() error {
+func (f *flag_set) old_do_language() error {
    var path rakuten.Path
    path.New(f.address)
    class, ok := path.ClassificationId()
