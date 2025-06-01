@@ -22,7 +22,6 @@ func (f *flag_set) New() error {
       {BitrateStart: 100_000, BitrateEnd: 200_000},
       {BitrateStart: 2_000_000, BitrateEnd: 7_000_000},
    }
-   ///////////////////////////////////////////////////
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.Var(&f.filters, "f", net.FilterUsage)

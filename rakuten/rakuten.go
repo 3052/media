@@ -11,46 +11,7 @@ import (
    "strings"
 )
 
-func (c *Content) String() string {
-   var b strings.Builder
-   b.WriteString("title = ")
-   b.WriteString(c.Title)
-   b.WriteString("\ncontent id = ")
-   b.WriteString(c.Id)
-   for _, stream := range c.ViewOptions.Private.Streams {
-      for _, language := range stream.AudioLanguages {
-         b.WriteString("\naudio language = ")
-         b.WriteString(language.Id)
-      }
-   }
-   return b.String()
-}
-
-func (s *Season) String() string {
-   var b strings.Builder
-   b.WriteString("show title = ")
-   b.WriteString(s.TvShowTitle)
-   b.WriteString("\nseason id = ")
-   b.WriteString(s.Id)
-   return b.String()
-}
-
-func (s *StreamInfo) License(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-const (
-   Fhd Quality = "FHD"
-   Hd  Quality = "HD"
-)
-
+// geo block
 func (a *Address) Info(
    content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
@@ -78,7 +39,6 @@ func (a *Address) Info(
       return nil, err
    }
    req.Header.Set("content-type", "application/json")
-   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -258,3 +218,42 @@ func (a *Address) Episodes(season_id string) ([]Content, error) {
    }
    return value.Data.Episodes, nil
 }
+func (c *Content) String() string {
+   var b strings.Builder
+   b.WriteString("title = ")
+   b.WriteString(c.Title)
+   b.WriteString("\ncontent id = ")
+   b.WriteString(c.Id)
+   for _, stream := range c.ViewOptions.Private.Streams {
+      for _, language := range stream.AudioLanguages {
+         b.WriteString("\naudio language = ")
+         b.WriteString(language.Id)
+      }
+   }
+   return b.String()
+}
+
+func (s *Season) String() string {
+   var b strings.Builder
+   b.WriteString("show title = ")
+   b.WriteString(s.TvShowTitle)
+   b.WriteString("\nseason id = ")
+   b.WriteString(s.Id)
+   return b.String()
+}
+
+func (s *StreamInfo) License(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+const (
+   Fhd Quality = "FHD"
+   Hd  Quality = "HD"
+)
