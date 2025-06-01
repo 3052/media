@@ -76,80 +76,17 @@ func (f *flag_set) do_season() error {
 }
 
 // download
-func (*flag_set) do_content() error {
-   var path rakuten.Path
-   path.New(f.address)
-   class, ok := path.ClassificationId()
-   if !ok {
-      return errors.New(".ClassificationId()")
+func (f *flag_set) do_content() error {
+   data, err := os.ReadFile(f.media + "/rakuten/Address")
+   if err != nil {
+      return err
    }
-   var content *rakuten.Content
-   if path.SeasonId != "" {
-      data, err := path.Season(class)
-      if err != nil {
-         return err
-      }
-      var season rakuten.Season
-      err = season.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      err = write_file(f.media+"/rakuten/Season", data)
-      if err != nil {
-         return err
-      }
-      content, ok = season.Content(&path)
-      if !ok {
-         return errors.New(".Content")
-      }
-   } else {
-      data, err := path.Movie(class)
-      if err != nil {
-         return err
-      }
-      content = &rakuten.Content{}
-      err = content.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      err = write_file(f.media+"/rakuten/Content", data)
-      if err != nil {
-         return err
-      }
+   var address rakuten.Address
+   err := address.Set(string(data))
+   if err != nil {
+      return err
    }
-   fmt.Println(content)
-   var path rakuten.Path
-   path.New(f.address)
-   class, ok := path.ClassificationId()
-   if !ok {
-      return errors.New(".ClassificationId()")
-   }
-   var content *rakuten.Content
-   if path.SeasonId != "" {
-      data, err := os.ReadFile(f.media + "/rakuten/Season")
-      if err != nil {
-         return err
-      }
-      var season rakuten.Season
-      err = season.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      content, ok = season.Content(&path)
-      if !ok {
-         return errors.New(".Content")
-      }
-   } else {
-      data, err := os.ReadFile(f.media + "/rakuten/Content")
-      if err != nil {
-         return err
-      }
-      content = &rakuten.Content{}
-      err = content.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-   }
+   // FIXME
    streaming := content.Streamings()
    streaming.Fhd()
    info, err := streaming.Info(f.language, class)

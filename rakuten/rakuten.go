@@ -11,36 +11,14 @@ import (
    "strings"
 )
 
-func (a *Address) Episodes(season_id string) ([]Content, error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/seasons/" + season_id
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(a.classification_id()),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {a.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Episodes []Content
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.Data.Episodes, nil
-}
+const (
+   Fhd Quality = "FHD"
+   Hd  Quality = "HD"
+)
 
-func (a *Address) info(
-   content_id, audio_language string, video quality,
-) (*stream_info, error) {
+func (a *Address) Info(
+   content_id, audio_language string, video Quality,
+) (*StreamInfo, error) {
    data, err := json.Marshal(map[string]string{
       "audio_language":              audio_language,
       "audio_quality":               "2.0",
@@ -73,7 +51,7 @@ func (a *Address) info(
    defer resp.Body.Close()
    var value struct {
       Data struct {
-         StreamInfos []stream_info `json:"stream_infos"`
+         StreamInfos []StreamInfo `json:"stream_infos"`
       }
       Errors []struct {
          Message string
@@ -105,12 +83,7 @@ type Content struct {
 
 const device_identifier = "atvui40"
 
-type quality string
-
-const (
-   fhd quality = "FHD"
-   hd  quality = "HD"
-)
+type Quality string
 
 func (s *Season) String() string {
    var b strings.Builder
@@ -185,12 +158,12 @@ func (a *Address) classification_id() int {
    return 0
 }
 
-type stream_info struct {
+type StreamInfo struct {
    LicenseUrl string `json:"license_url"`
    Url        string // MPD
 }
 
-func (s *stream_info) license(data []byte) ([]byte, error) {
+func (s *StreamInfo) License(data []byte) ([]byte, error) {
    resp, err := http.Post(
       s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
    )
@@ -258,4 +231,30 @@ func (a *Address) Movie() (*Content, error) {
       return nil, err
    }
    return &value.Data, nil
+}
+func (a *Address) Episodes(season_id string) ([]Content, error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/seasons/" + season_id
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(a.classification_id()),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {a.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Episodes []Content
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.Data.Episodes, nil
 }
