@@ -11,9 +11,25 @@ import (
    "strings"
 )
 
+const device = "atvui40"
+
+type Quality string
+
+const (
+   Fhd Quality = "FHD"
+   Hd  Quality = "HD"
+)
+
+type Player string
+
+const (
+   Pr  Player = "PR"
+   Wvm Player = "WVM"
+)
+
 // geo block
 func (a *Address) Info(
-   content_id, audio_language string, video Quality,
+   content_id, audio_language string, play Player, video Quality,
 ) (*StreamInfo, error) {
    data, err := json.Marshal(map[string]string{
       "audio_language":              audio_language,
@@ -21,10 +37,10 @@ func (a *Address) Info(
       "classification_id":           strconv.Itoa(a.classification_id()),
       "content_id":                  content_id,
       "content_type":                "episodes",
-      "device_identifier":           device_identifier,
+      "device_identifier":           device,
       "device_serial":               "not implemented",
       "device_stream_video_quality": string(video),
-      "player":                      device_identifier + ":DASH-CENC:WVM",
+      "player":                      device + ":DASH-CENC:" + string(play),
       "subtitle_language":           "MIS",
       "video_type":                  "stream",
    })
@@ -76,10 +92,6 @@ type Content struct {
    } `json:"view_options"`
 }
 
-const device_identifier = "atvui40"
-
-type Quality string
-
 func (a *Address) Seasons() ([]Season, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/tv_shows/" + a.TvShowId
@@ -87,7 +99,7 @@ func (a *Address) Seasons() ([]Season, error) {
       "classification_id": {
          strconv.Itoa(a.classification_id()),
       },
-      "device_identifier": {device_identifier},
+      "device_identifier": {device},
       "market_code":       {a.MarketCode},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
@@ -154,7 +166,7 @@ type StreamInfo struct {
 type Address struct {
    ContentId  string
    MarketCode string
-   TvShowId  string
+   TvShowId   string
 }
 
 func (a *Address) Set(data string) error {
@@ -175,7 +187,7 @@ func (a *Address) Movie() (*Content, error) {
       "classification_id": {
          strconv.Itoa(a.classification_id()),
       },
-      "device_identifier": {device_identifier},
+      "device_identifier": {device},
       "market_code":       {a.MarketCode},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
@@ -199,7 +211,7 @@ func (a *Address) Episodes(season_id string) ([]Content, error) {
       "classification_id": {
          strconv.Itoa(a.classification_id()),
       },
-      "device_identifier": {device_identifier},
+      "device_identifier": {device},
       "market_code":       {a.MarketCode},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
@@ -252,8 +264,3 @@ func (s *StreamInfo) License(data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
-
-const (
-   Fhd Quality = "FHD"
-   Hd  Quality = "HD"
-)

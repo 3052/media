@@ -30,7 +30,6 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.movie, "m", "", "movie URL")
    flag.StringVar(&f.show, "s", "", "TV show URL")
-   flag.IntVar(&net.Threads, "t", 1, "threads") // not supported
    flag.Parse()
    return nil
 }
