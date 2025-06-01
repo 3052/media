@@ -11,25 +11,6 @@ import (
    "strings"
 )
 
-func (s *stream_info) license(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-// rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees
-// rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink
-type address struct {
-   content_id  string
-   market_code string
-   tv_show_id  string
-}
-
 func (a *address) movie() (*content, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/movies/" + a.content_id
@@ -82,7 +63,7 @@ func (a *address) episodes(season_id string) ([]content, error) {
    return value.Data.Episodes, nil
 }
 
-func (a *address) Set(data string) error {
+func (a *address) set(data string) error {
    web, err := url.Parse(data)
    if err != nil {
       return err
@@ -258,4 +239,22 @@ func (a *address) classification_id() int {
 type stream_info struct {
    LicenseUrl string `json:"license_url"`
    Url        string // MPD
+}
+func (s *stream_info) license(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+// rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees
+// rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink
+type address struct {
+   content_id  string
+   market_code string
+   tv_show_id  string
 }

@@ -12,12 +12,55 @@ import (
    "path/filepath"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 type flag_set struct {
-   address  string
    cdm      net.Cdm
    filters  net.Filters
-   language string
    media    string
+   address  string
+   language string
+}
+
+/*
+print movie:
+
+rakuten -movie url
+
+print seasons:
+
+rakuten -show url
+
+print episodes:
+
+rakuten -season id
+
+download:
+
+rakuten -c content_id -a audio_language
+*/
+
+///
+
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.language, "b", "", "language")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
 }
 
 func main() {
@@ -41,29 +84,6 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.language, "b", "", "language")
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
-   flag.Parse()
-   return nil
 }
 
 func (f *flag_set) do_address() error {
