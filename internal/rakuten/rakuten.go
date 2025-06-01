@@ -2,14 +2,9 @@ package main
 
 import (
    "41.neocities.org/media/rakuten"
-   "41.neocities.org/net"
-   "errors"
-   "flag"
    "fmt"
-   "log"
    "net/http"
    "os"
-   "path/filepath"
 )
 
 // print movie
@@ -34,7 +29,7 @@ func (f *flag_set) do_show() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media + "/rakuten/Address", []byte(f.show))
+   err = write_file(f.media+"/rakuten/Address", []byte(f.show))
    if err != nil {
       return err
    }
@@ -58,7 +53,7 @@ func (f *flag_set) do_season() error {
       return err
    }
    var address rakuten.Address
-   err := address.Set(string(data))
+   err = address.Set(string(data))
    if err != nil {
       return err
    }
@@ -82,14 +77,11 @@ func (f *flag_set) do_content() error {
       return err
    }
    var address rakuten.Address
-   err := address.Set(string(data))
+   err = address.Set(string(data))
    if err != nil {
       return err
    }
-   // FIXME
-   streaming := content.Streamings()
-   streaming.Fhd()
-   info, err := streaming.Info(f.language, class)
+   info, err := address.Info(f.content, f.language, rakuten.Fhd)
    if err != nil {
       return err
    }
@@ -97,8 +89,7 @@ func (f *flag_set) do_content() error {
    if err != nil {
       return err
    }
-   streaming.Hd()
-   info, err = streaming.Info(f.language, class)
+   info, err = address.Info(f.content, f.language, rakuten.Hd)
    if err != nil {
       return err
    }

@@ -11,6 +11,41 @@ import (
    "strings"
 )
 
+func (c *Content) String() string {
+   var b strings.Builder
+   b.WriteString("title = ")
+   b.WriteString(c.Title)
+   b.WriteString("\ncontent id = ")
+   b.WriteString(c.Id)
+   for _, stream := range c.ViewOptions.Private.Streams {
+      for _, language := range stream.AudioLanguages {
+         b.WriteString("\naudio language = ")
+         b.WriteString(language.Id)
+      }
+   }
+   return b.String()
+}
+
+func (s *Season) String() string {
+   var b strings.Builder
+   b.WriteString("show title = ")
+   b.WriteString(s.TvShowTitle)
+   b.WriteString("\nseason id = ")
+   b.WriteString(s.Id)
+   return b.String()
+}
+
+func (s *StreamInfo) License(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 const (
    Fhd Quality = "FHD"
    Hd  Quality = "HD"
@@ -85,15 +120,6 @@ const device_identifier = "atvui40"
 
 type Quality string
 
-func (s *Season) String() string {
-   var b strings.Builder
-   b.WriteString("show title = ")
-   b.WriteString(s.TvShowTitle)
-   b.WriteString("\nid = ")
-   b.WriteString(s.Id)
-   return b.String()
-}
-
 func (a *Address) Seasons() ([]Season, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/tv_shows/" + a.TvShowId
@@ -163,38 +189,12 @@ type StreamInfo struct {
    Url        string // MPD
 }
 
-func (s *StreamInfo) License(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 // rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees
 // rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink
 type Address struct {
    ContentId  string
    MarketCode string
    TvShowId  string
-}
-
-func (c *Content) String() string {
-   var b strings.Builder
-   b.WriteString("title = ")
-   b.WriteString(c.Title)
-   for _, stream := range c.ViewOptions.Private.Streams {
-      for _, language := range stream.AudioLanguages {
-         b.WriteString("\nlanguage = ")
-         b.WriteString(language.Id)
-      }
-   }
-   b.WriteString("\nid = ")
-   b.WriteString(c.Id)
-   return b.String()
 }
 
 func (a *Address) Set(data string) error {
