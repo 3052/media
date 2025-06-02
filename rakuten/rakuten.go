@@ -11,6 +11,40 @@ import (
    "strings"
 )
 
+func (c *Content) String() string {
+   var b strings.Builder
+   b.WriteString("title = ")
+   b.WriteString(c.Title)
+   b.WriteString("\ncontent id = ")
+   b.WriteString(c.Id)
+   id := map[string]struct{}{}
+   for _, stream := range c.ViewOptions.Private.Streams {
+      for _, language := range stream.AudioLanguages {
+         _, ok := id[language.Id]
+         if !ok {
+            b.WriteString("\naudio language = ")
+            b.WriteString(language.Id)
+            id[language.Id] = struct{}{}
+         }
+      }
+   }
+   return b.String()
+}
+
+type Content struct {
+   Id          string
+   Title       string
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string
+            } `json:"audio_languages"`
+         }
+      }
+   } `json:"view_options"`
+}
+
 // geo block
 func (a *Address) Info(
    content_id, audio_language string, play Player, video Quality,
@@ -31,15 +65,10 @@ func (a *Address) Info(
    if err != nil {
       return nil, err
    }
-   req, err := http.NewRequest(
-      "POST", "https://gizmo.rakuten.tv/v3/avod/streamings",
-      bytes.NewReader(data),
+   resp, err := http.Post(
+      "https://gizmo.rakuten.tv/v3/avod/streamings",
+      "application/json", bytes.NewReader(data),
    )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
@@ -151,20 +180,6 @@ type Address struct {
    MarketCode  string
    TvShowId    string
 }
-func (c *Content) String() string {
-   var b strings.Builder
-   b.WriteString("title = ")
-   b.WriteString(c.Title)
-   b.WriteString("\ncontent id = ")
-   b.WriteString(c.Id)
-   for _, stream := range c.ViewOptions.Private.Streams {
-      for _, language := range stream.AudioLanguages {
-         b.WriteString("\naudio language = ")
-         b.WriteString(language.Id)
-      }
-   }
-   return b.String()
-}
 
 func (s *Season) String() string {
    var b strings.Builder
@@ -215,20 +230,6 @@ const (
    Fhd Quality = "FHD"
    Hd  Quality = "HD"
 )
-
-type Content struct {
-   Id          string
-   Title       string
-   ViewOptions struct {
-      Private struct {
-         Streams []struct {
-            AudioLanguages []struct {
-               Id string
-            } `json:"audio_languages"`
-         }
-      }
-   } `json:"view_options"`
-}
 
 func (a *Address) Seasons() ([]Season, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)

@@ -9,6 +9,37 @@ import (
    "path/filepath"
 )
 
+func main() {
+   // geo blocked segments
+   http.DefaultTransport = net.Transport(nil)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.movie != "" {
+      err = set.do_movie()
+   } else if set.show != "" {
+      err = set.do_show()
+   } else if set.season != "" {
+      err = set.do_season()
+   } else if set.content != "" {
+      if set.language != "" {
+         err = set.do_content()
+      }
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -43,35 +74,4 @@ type flag_set struct {
    movie    string
    season   string
    show     string
-}
-
-func main() {
-   // geo blocked segments
-   http.DefaultTransport = net.Transport(nil)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.movie != "" {
-      err = set.do_movie()
-   } else if set.show != "" {
-      err = set.do_show()
-   } else if set.season != "" {
-      err = set.do_season()
-   } else if set.content != "" {
-      if set.language != "" {
-         err = set.do_content()
-      }
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
