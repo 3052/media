@@ -5,18 +5,18 @@ import (
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
 
 func main() {
-   // geo blocked segments
-   http.DefaultTransport = net.Transport(nil)
    var set flag_set
    err := set.New()
    if err != nil {
       panic(err)
    }
+   http.DefaultTransport = net.Transport(set.proxy)
    if set.movie != "" {
       err = set.do_movie()
    } else if set.show != "" {
@@ -61,6 +61,11 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.movie, "m", "", "movie URL")
    flag.StringVar(&f.show, "s", "", "TV show URL")
+   flag.Func("x", "proxy", func(data string) error {
+      var err error
+      f.proxy, err = url.Parse(data)
+      return err
+   })
    flag.Parse()
    return nil
 }
@@ -74,4 +79,5 @@ type flag_set struct {
    movie    string
    season   string
    show     string
+   proxy *url.URL
 }

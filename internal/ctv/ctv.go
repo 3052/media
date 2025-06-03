@@ -84,4 +84,3 @@ type flag_set struct {
    filters net.Filters
    proxy   *url.URL
 }
-

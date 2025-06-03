@@ -16,6 +16,7 @@ func main() {
    if err != nil {
       panic(err)
    }
+   http.DefaultTransport = net.Transport(set.proxy)
    if set.paramount != "" {
       err = set.do_paramount()
       if err != nil {
@@ -26,6 +27,32 @@ func main() {
    }
 }
 
+func (f *flag_set) New() error {
+   media, err := os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   media = filepath.ToSlash(media) + "/media"
+   f.cdm.ClientId = media + "/client_id.bin"
+   f.cdm.PrivateKey = media + "/private_key.pem"
+   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   flag.StringVar(&f.paramount, "p", "", "paramount ID")
+   flag.IntVar(&net.Threads, "t", 2, "threads")
+   flag.Func("x", "proxy", func(data string) error {
+      var err error
+      f.proxy, err = url.Parse(data)
+      return err
+   })
+   f.filters = net.Filters{
+      {BitrateStart: 3_000_000, BitrateEnd: 5_000_000},
+      {BitrateStart: 100_000, BitrateEnd: 150_000, Role: "main"},
+   }
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.Parse()
+   return nil
+}
+
 type flag_set struct {
    cdm       net.Cdm
    filters   net.Filters
@@ -34,7 +61,6 @@ type flag_set struct {
 }
 
 func (f *flag_set) do_paramount() error {
-   http.DefaultTransport = paramount.Transport(f.proxy)
    // INTL does NOT allow anonymous key request, so if you are INTL you
    // will need to use US VPN until someone codes the INTL login
    secret := paramount.ComCbsApp
@@ -67,28 +93,3 @@ func (f *flag_set) do_paramount() error {
    return f.filters.Filter(resp, &f.cdm)
 }
 
-func (f *flag_set) New() error {
-   media, err := os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   media = filepath.ToSlash(media) + "/media"
-   f.cdm.ClientId = media + "/client_id.bin"
-   f.cdm.PrivateKey = media + "/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
-   flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
-   flag.Func("x", "proxy", func(data string) error {
-      var err error
-      f.proxy, err = url.Parse(data)
-      return err
-   })
-   f.filters = net.Filters{
-      {BitrateStart: 3_000_000, BitrateEnd: 5_000_000},
-      {BitrateStart: 100_000, BitrateEnd: 150_000, Role: "main"},
-   }
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.Parse()
-   return nil
-}
