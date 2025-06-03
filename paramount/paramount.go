@@ -15,25 +15,6 @@ import (
    "strings"
 )
 
-func (i *Item) Mpd() (*http.Response, error) {
-   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/s/")
-      b = append(b, i.CmsAccountId...)
-      b = append(b, "/media/guid/"...)
-      b = strconv.AppendInt(b, cms_account(i.CmsAccountId), 10)
-      b = append(b, '/')
-      b = append(b, i.ContentId...)
-      return string(b)
-   }()
-   req.URL.RawQuery = url.Values{
-      "assetTypes": {i.AssetType},
-      "formats":    {"MPEG-DASH"},
-   }.Encode()
-   req.Header.Set("proxy", "true")
-   return http.DefaultClient.Do(req)
-}
-
 func (a At) Item(cid string) (*Item, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
@@ -43,7 +24,7 @@ func (a At) Item(cid string) (*Item, error) {
       b.WriteString(".json")
       return b.String()
    }()
-   req.URL.RawQuery = "at=" + string(a)
+   req.URL.RawQuery = "at=" + url.QueryEscape(string(a))
    req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -71,6 +52,25 @@ func (a At) Item(cid string) (*Item, error) {
       return nil, errors.New(string(data))
    }
    return &value.ItemList[0], nil
+}
+
+func (i *Item) Mpd() (*http.Response, error) {
+   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/s/")
+      b = append(b, i.CmsAccountId...)
+      b = append(b, "/media/guid/"...)
+      b = strconv.AppendInt(b, cms_account(i.CmsAccountId), 10)
+      b = append(b, '/')
+      b = append(b, i.ContentId...)
+      return string(b)
+   }()
+   req.URL.RawQuery = url.Values{
+      "assetTypes": {i.AssetType},
+      "formats":    {"MPEG-DASH"},
+   }.Encode()
+   req.Header.Set("proxy", "true")
+   return http.DefaultClient.Do(req)
 }
 
 func (s *Session) License(data []byte) ([]byte, error) {
