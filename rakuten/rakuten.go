@@ -11,6 +11,13 @@ import (
    "strings"
 )
 
+type StreamInfo struct {
+   // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
+   LicenseUrl string `json:"license_url"`
+   // MPD
+   Url        string
+}
+
 func (c *Content) String() string {
    var b strings.Builder
    b.WriteString("title = ")
@@ -210,11 +217,6 @@ const (
 
 func (p Player) String() string {
    return device_identifier + ":DASH-CENC:" + string(p)
-}
-
-type StreamInfo struct {
-   LicenseUrl string `json:"license_url"`
-   Url        string // MPD
 }
 
 type Season struct {
