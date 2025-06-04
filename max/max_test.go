@@ -2,10 +2,14 @@ package max
 
 import (
    "fmt"
-   "os"
    "testing"
-   "time"
 )
+
+func Test(t *testing.T) {
+   for _, test1 := range tests {
+      fmt.Println(test1)
+   }
+}
 
 var tests = []struct {
    url      string
@@ -61,10 +65,4 @@ var tests = []struct {
          "Thailand",
       },
    },
-}
-
-func Test(t *testing.T) {
-   for _, test1 := range tests {
-      fmt.Println(test1)
-   }
 }

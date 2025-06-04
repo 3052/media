@@ -151,6 +151,7 @@ func (f *flag_set) do_dash() error {
    }
    return f.e.Download(f.media+"/Mpd", f.dash)
 }
+
 func (f *flag_set) do_edit() error {
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
