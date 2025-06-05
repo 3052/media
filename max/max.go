@@ -219,71 +219,6 @@ type Login struct {
    }
 }
 
-///
-
-func (v Login) Movie(id ShowId) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/routes/movie/" + id[0]
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "page[items.size]": {"1"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+v.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var movie Videos
-   err = json.NewDecoder(resp.Body).Decode(&movie)
-   if err != nil {
-      return nil, err
-   }
-   if movie.Error() != "" {
-      return nil, &movie
-   }
-   return &movie, nil
-}
-
-func (v Login) Season(id ShowId, number int) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
-   req.Header.Set("authorization", "Bearer "+v.Data.Attributes.Token)
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "pf[seasonNumber]": {strconv.Itoa(number)},
-      "pf[show.id]":      {id[0]},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   season := &Videos{}
-   err = json.NewDecoder(resp.Body).Decode(season)
-   if err != nil {
-      return nil, err
-   }
-   return season, nil
-}
-
-// max.com/movies/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/movies/heretic/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/shows/14f9834d-bc23-41a8-ab61-5c8abdbea505
-// max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
-func (s *ShowId) Set(data string) error {
-   switch {
-   case strings.Contains(data, "/movies/"):
-   case strings.Contains(data, "/shows/"):
-   default:
-      return errors.New("/movies/ or /shows/ not found")
-   }
-   s[0] = path.Base(data)
-   return nil
-}
-
-type ShowId [1]string
-
 type Playback struct {
    Drm struct {
       Schemes struct {
@@ -308,6 +243,7 @@ type Playback struct {
 func (p *Playback) Mpd() string {
    return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
 }
+
 func (v *Login) Playback(edit_id string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
@@ -355,9 +291,8 @@ func (v *Login) Playback(edit_id string) (Byte[Playback], error) {
       b.WriteString("/playbackInfo")
       return b.String()
    }()
-   // .Set to match .Get
-   req.Header.Set("content-type", "application/json")
    req.Header.Set("authorization", "Bearer "+v.Data.Attributes.Token)
+   req.Header.Set("content-type", "application/json")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -370,3 +305,61 @@ func (v *Login) Playback(edit_id string) (Byte[Playback], error) {
    return io.ReadAll(resp.Body)
 }
 
+func (v Login) Movie(show_id string) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/routes/movie/" + show_id
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "page[items.size]": {"1"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+v.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var movie Videos
+   err = json.NewDecoder(resp.Body).Decode(&movie)
+   if err != nil {
+      return nil, err
+   }
+   if movie.Error() != "" {
+      return nil, &movie
+   }
+   return &movie, nil
+}
+
+// max.com/movies/12199308-9afb-460b-9d79-9d54b5d2514c
+// max.com/movies/heretic/12199308-9afb-460b-9d79-9d54b5d2514c
+// max.com/shows/14f9834d-bc23-41a8-ab61-5c8abdbea505
+// max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
+func ShowId(data string) (string, error) {
+   if !strings.Contains(data, "/movies/") {
+      if !strings.Contains(data, "/shows/") {
+         return "", errors.New("/movies/ or /shows/ not found")
+      }
+   }
+   return path.Base(data), nil
+}
+
+func (v Login) Season(show_id string, number int) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
+   req.Header.Set("authorization", "Bearer "+v.Data.Attributes.Token)
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "pf[seasonNumber]": {strconv.Itoa(number)},
+      "pf[show.id]":      {show_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   season := &Videos{}
+   err = json.NewDecoder(resp.Body).Decode(season)
+   if err != nil {
+      return nil, err
+   }
+   return season, nil
+}

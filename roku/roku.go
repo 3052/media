@@ -12,7 +12,6 @@ import (
 func (a *AccountToken) Code(act *Activation) (Byte[Code], error) {
    req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
    req.URL.Path = "/api/v1/account/activation/" + act.Code
-   // .Get .Set
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-roku-content-token", a.AuthToken)
    resp, err := http.DefaultClient.Do(req)
@@ -35,7 +34,6 @@ func (a *AccountToken) Activation() (Byte[Activation], error) {
    if err != nil {
       return nil, err
    }
-   // .Get .Set
    req.Header.Set("content-type", "application/json")
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-roku-content-token", a.AuthToken)
@@ -63,7 +61,6 @@ func (a *AccountToken) Playback(roku_id string) (Byte[Playback], error) {
    if err != nil {
       return nil, err
    }
-   // .Set to match .Get
    req.Header.Set("content-type", "application/json")
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-roku-content-token", a.AuthToken)

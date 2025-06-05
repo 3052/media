@@ -12,6 +12,49 @@ import (
    "slices"
 )
 
+func (f *flag_set) do_initiate() error {
+   var st max.St
+   err := st.New()
+   if err != nil {
+      return err
+   }
+   log.Println("Create", f.media+"/max/St")
+   file, err := os.Create(f.media + "/max/St")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = fmt.Fprint(file, st)
+   if err != nil {
+      return err
+   }
+   initiate, err := st.Initiate()
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return nil
+}
+
+func (f *flag_set) do_login() error {
+   data, err := os.ReadFile(f.media + "/max/St")
+   if err != nil {
+      return err
+   }
+   var st max.St
+   err = st.Set(string(data))
+   if err != nil {
+      return err
+   }
+   data, err = st.Login()
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/max/Login", data)
+}
+
+///
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -57,47 +100,6 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) do_initiate() error {
-   var st max.St
-   err := st.New()
-   if err != nil {
-      return err
-   }
-   log.Println("Create", f.media+"/max/St")
-   file, err := os.Create(f.media + "/max/St")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = fmt.Fprint(file, st)
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate()
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return nil
-}
-
-func (f *flag_set) do_login() error {
-   data, err := os.ReadFile(f.media + "/max/St")
-   if err != nil {
-      return err
-   }
-   var st max.St
-   err = st.Set(string(data))
-   if err != nil {
-      return err
-   }
-   data, err = st.Login()
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/max/Login", data)
 }
 
 func (f *flag_set) do_address() error {

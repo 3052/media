@@ -17,7 +17,6 @@ func (n *Login) Widevine(m *Manifest, data []byte) ([]byte, error) {
       return nil, err
    }
    req.URL.Path = "/kapi/licenses/widevine/" + m.DrmLicenseId
-   // .Set to match .Get
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-version", x_version)
    req.Header.Set("authorization", "Bearer " + n.Jwt)
@@ -54,7 +53,6 @@ func NewLogin(email, password string) (Byte[Login], error) {
    if err != nil {
       return nil, err
    }
-   // .Set to match .Get
    req.Header.Set("content-type", "application/json")
    req.Header.Set("user-agent", user_agent)
    resp, err := http.DefaultClient.Do(req)
@@ -72,7 +70,6 @@ func (n *Login) Membership() (*Membership, error) {
    req, _ := http.NewRequest("", "https://www.kanopy.com", nil)
    req.URL.Path = "/kapi/memberships"
    req.URL.RawQuery = "userId=" + strconv.Itoa(n.UserId)
-   // .Set to match .Get
    req.Header.Set("authorization", "Bearer " + n.Jwt)
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-version", x_version)
@@ -154,7 +151,6 @@ func (n *Login) Plays(member *Membership, video_id int) (Byte[Plays], error) {
    if err != nil {
       return nil, err
    }
-   // .Set to match .Get
    req.Header.Set("authorization", "Bearer " + n.Jwt)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("user-agent", user_agent)
