@@ -14,6 +14,14 @@ import (
    "strings"
 )
 
+type Login struct {
+   Data struct {
+      Attributes struct {
+         Token string
+      }
+   }
+}
+
 func (p *Playback) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
@@ -207,14 +215,6 @@ func (v *Videos) Seq() iter.Seq[*Video] {
                }
             }
          }
-      }
-   }
-}
-
-type Login struct {
-   Data struct {
-      Attributes struct {
-         Token string
       }
    }
 }

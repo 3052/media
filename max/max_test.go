@@ -2,16 +2,34 @@ package max
 
 import (
    "fmt"
+   "os"
    "testing"
 )
 
-func Test(t *testing.T) {
-   for _, test1 := range tests {
-      fmt.Println(test1)
+func TestLogin(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(home + "/media/max/Login")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var login1 Login
+   err = login1.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Printf("%+v\n", login1)
+}
+
+func TestContent(t *testing.T) {
+   for _, test := range content_tests {
+      fmt.Println(test)
    }
 }
 
-var tests = []struct {
+var content_tests = []struct {
    url      string
    location []string
 }{
