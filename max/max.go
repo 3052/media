@@ -14,45 +14,6 @@ import (
    "strings"
 )
 
-type Scheme struct {
-   LicenseUrl string
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         PlayReady *Scheme
-         Widevine *Scheme
-      }
-   }
-   Errors []struct {
-      Detail string
-   }
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
-}
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
 func (l *Login) playback(edit_id, drm string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
@@ -139,8 +100,8 @@ func (l Login) Movie(show_id string) (*Videos, error) {
    if err != nil {
       return nil, err
    }
-   if movie.Error() != "" {
-      return nil, &movie
+   if len(movie.Errors) >= 1 {
+      return nil, &movie.Errors[0]
    }
    return &movie, nil
 }
@@ -156,6 +117,19 @@ func ShowId(data string) (string, error) {
       }
    }
    return path.Base(data), nil
+}
+
+type Videos struct {
+   Errors []Error
+   Included []Video
+}
+
+type Login struct {
+   Data struct {
+      Attributes struct {
+         Token string
+      }
+   }
 }
 
 func (l Login) Season(show_id string, number int) (*Videos, error) {
@@ -180,14 +154,6 @@ func (l Login) Season(show_id string, number int) (*Videos, error) {
    return season, nil
 }
 
-type Login struct {
-   Data struct {
-      Attributes struct {
-         Token string
-      }
-   }
-}
-
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
@@ -201,34 +167,6 @@ func (s St) Login() (Byte[Login], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func (s St) Initiate() (*Initiate, error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/initiate"
-   req.AddCookie(s[0])
-   req.Header.Set("x-device-info", device_info)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Attributes Initiate
-      }
-      Errors []struct {
-         Detail string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Detail)
-   }
-   return &value.Data.Attributes, nil
 }
 
 func (s *St) New() error {
@@ -277,14 +215,6 @@ type Initiate struct {
    TargetUrl   string
 }
 
-func (v *Videos) Error() string {
-   if len(v.Errors) >= 1 {
-      err := v.Errors[0]
-      return cmp.Or(err.Detail, err.Message)
-   }
-   return ""
-}
-
 func (i *Initiate) String() string {
    var b strings.Builder
    b.WriteString("target URL = ")
@@ -296,25 +226,6 @@ func (i *Initiate) String() string {
 
 func (l *Login) Unmarshal(data Byte[Login]) error {
    return json.Unmarshal(data, l)
-}
-
-func (p *Playback) Unmarshal(data Byte[Playback]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if len(p.Errors) >= 1 {
-      return errors.New(p.Errors[0].Detail)
-   }
-   return nil
-}
-
-type Videos struct {
-   Errors []struct {
-      Detail  string // show was filtered by validator
-      Message string // Token is missing or not valid
-   }
-   Included []Video
 }
 
 type Video struct {
@@ -380,4 +291,87 @@ func (l *Login) PlayReady(edit_id string) (Byte[Playback], error) {
 
 func (l *Login) Widevine(edit_id string) (Byte[Playback], error) {
    return l.playback(edit_id, "widevine")
+}
+
+type Scheme struct {
+   LicenseUrl string
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine *Scheme
+      }
+   }
+   Errors []Error
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
+type Error struct {
+   Detail  string // show was filtered by validator
+   Message string // Token is missing or not valid
+}
+
+func (e *Error) Error() string {
+   return cmp.Or(e.Detail, e.Message)
+}
+
+func (s St) Initiate() (*Initiate, error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/initiate"
+   req.AddCookie(s[0])
+   req.Header.Set("x-device-info", device_info)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Attributes Initiate
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, &value.Errors[0]
+   }
+   return &value.Data.Attributes, nil
+}
+
+func (p *Playback) Unmarshal(data Byte[Playback]) error {
+   err := json.Unmarshal(data, p)
+   if err != nil {
+      return err
+   }
+   if len(p.Errors) >= 1 {
+      return &p.Errors[0]
+   }
+   return nil
 }
