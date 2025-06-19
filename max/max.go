@@ -14,6 +14,45 @@ import (
    "strings"
 )
 
+type Scheme struct {
+   LicenseUrl string
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine *Scheme
+      }
+   }
+   Errors []struct {
+      Detail string
+   }
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 func (l *Login) playback(edit_id, drm string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
@@ -139,27 +178,6 @@ func (l Login) Season(show_id string, number int) (*Videos, error) {
       return nil, err
    }
    return season, nil
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         Widevine struct {
-            LicenseUrl string
-         }
-      }
-   }
-   Errors []struct {
-      Detail string
-   }
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
 }
 
 type Login struct {
@@ -354,21 +372,6 @@ func (v *Videos) Seq() iter.Seq[*Video] {
 
 func (p *Playback) Mpd() string {
    return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
-}
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 func (l *Login) PlayReady(edit_id string) (Byte[Playback], error) {

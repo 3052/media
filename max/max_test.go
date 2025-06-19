@@ -6,7 +6,7 @@ import (
    "testing"
 )
 
-func TestLogin(t *testing.T) {
+func TestPlayReady(t *testing.T) {
    home, err := os.UserHomeDir()
    if err != nil {
       t.Fatal(err)
@@ -20,8 +20,7 @@ func TestLogin(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n\n", login1)
-   data, err = login1.Playback("06a38397-862d-4419-be84-0641939825e7")
+   data, err = login1.PlayReady("06a38397-862d-4419-be84-0641939825e7")
    if err != nil {
       t.Fatal(err)
    }
@@ -30,7 +29,7 @@ func TestLogin(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(play.Drm.Schemes.Widevine.LicenseUrl)
+   fmt.Println(play.Drm.Schemes.PlayReady.LicenseUrl)
 }
 
 var content_tests = []struct {
