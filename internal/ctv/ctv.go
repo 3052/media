@@ -5,7 +5,6 @@ import (
    "41.neocities.org/net"
    "flag"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
@@ -27,11 +26,6 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
    flag.IntVar(&net.Threads, "t", 5, "threads")
-   flag.Func("x", "proxy", func(data string) error {
-      var err error
-      f.proxy, err = url.Parse(data)
-      return err
-   })
    flag.Parse()
    return nil
 }
@@ -42,7 +36,6 @@ func main() {
    if err != nil {
       panic(err)
    }
-   http.DefaultTransport = net.Transport(f.proxy)
    if set.address != "" {
       err = set.do_address()
       if err != nil {
@@ -82,5 +75,4 @@ type flag_set struct {
    address string
    cdm     net.Cdm
    filters net.Filters
-   proxy   *url.URL
 }
