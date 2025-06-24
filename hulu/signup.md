@@ -14,6 +14,6 @@
 11. expiration
 12. cvc
 13. zip code
-14. submit
+14. agree & subscribe
 
 no benefit from trying to cancel
