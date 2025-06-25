@@ -1,60 +1,19 @@
 package hulu
 
 import (
-   "41.neocities.org/net"
-   "flag"
    "fmt"
-   "log"
-   "net/http"
    "os"
-   "path/filepath"
    "testing"
 )
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.media + "/hulu/Authenticate")
-   if err != nil {
-      return err
-   }
-   var auth hulu.Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = auth.Refresh()
-   if err != nil {
-      return err
-   }
-   deep, err := auth.DeepLink(hulu.Id(f.address))
-   if err != nil {
-      return err
-   }
-   data, err = auth.Playlist(deep)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/hulu/Playlist", data)
-   if err != nil {
-      return err
-   }
-   var play hulu.Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.StreamUrl)
-   if err != nil {
-      return err
-   }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-
 var tests = []struct {
    content string
+   id      string
    url     string
 }{
    {
       content: "film",
+      id:      "EAB::f70dfd4d-dbfb-46b8-abb3-136c841bba11::61556664::101167038",
       url:     "hulu.com/watch/f70dfd4d-dbfb-46b8-abb3-136c841bba11",
    },
    {
@@ -63,6 +22,33 @@ var tests = []struct {
    },
 }
 
-func TestDeepLink(t *testing.T) {
+func TestPlayReady(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(home + "/media/hulu/Authenticate")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var auth Authenticate
+   err = auth.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   test := tests[0]
+   data, err = auth.Playlist(&DeepLink{EabId: test.id})
+   if err != nil {
+      t.Fatal(err)
+   }
+   var play Playlist
+   err = play.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(play.DashPrServer)
+}
+
+func TestWatch(t *testing.T) {
    fmt.Println(tests)
 }

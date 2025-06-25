@@ -11,18 +11,11 @@ import (
    "strings"
 )
 
-// this is old device that returns 4K MPD:
-// https://vodmanifest.hulustream.com
-// newer devices return 2K MPD:
-// https://dynamic-manifest.hulustream.com
-const (
-   deejay_device_id = 166
-   version          = 9999999
-)
-
-// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
-func Id(data string) string {
-   return path.Base(data)
+type Playlist struct {
+   DashPrServer string `json:"dash_pr_server"`
+   Message      string
+   StreamUrl    string `json:"stream_url"` // MPD
+   WvServer     string `json:"wv_server"`
 }
 
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
@@ -41,6 +34,11 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
                   "security_level": "L3",
                   "type":           "WIDEVINE",
                   "version":        "MODULAR",
+               },
+               map[string]string{
+                  "security_level": "SL2000",
+                  "type":           "PLAYREADY",
+                  "version":        "V2",
                },
             },
          },
@@ -100,7 +98,7 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + a.UserToken)
+   req.Header.Set("authorization", "Bearer "+a.UserToken)
    req.Header.Set("content-type", "application/json")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -181,12 +179,6 @@ type Authenticate struct {
    UserToken   string `json:"user_token"`
 }
 
-type Playlist struct {
-   Message   string
-   StreamUrl string `json:"stream_url"` // MPD
-   WvServer  string `json:"wv_server"`
-}
-
 func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
    err := json.Unmarshal(data, p)
    if err != nil {
@@ -220,4 +212,18 @@ func (a Authenticate) DeepLink(id string) (*DeepLink, error) {
       return nil, errors.New(deep.Message)
    }
    return &deep, nil
+}
+
+// this is old device that returns 4K MPD:
+// https://vodmanifest.hulustream.com
+// newer devices return 2K MPD:
+// https://dynamic-manifest.hulustream.com
+const (
+   deejay_device_id = 166
+   version          = 9999999
+)
+
+// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
+func Id(data string) string {
+   return path.Base(data)
 }
