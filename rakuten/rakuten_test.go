@@ -1,9 +1,9 @@
 package rakuten
 
 import (
-   "fmt"
    "net/http"
    "net/url"
+   "os"
    "os/exec"
    "strings"
    "testing"
@@ -32,7 +32,16 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(info.LicenseUrl)
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home + "/media/rakuten/Pr", []byte(info.LicenseUrl), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
 }
 
 var web_tests = []web_test{

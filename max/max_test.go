@@ -20,6 +20,7 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
+   // max.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7
    data, err = login1.PlayReady("06a38397-862d-4419-be84-0641939825e7")
    if err != nil {
       t.Fatal(err)
@@ -29,7 +30,10 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(play.Drm.Schemes.PlayReady.LicenseUrl)
+   err = os.WriteFile(
+      home + "/media/max/PlayReady",
+      []byte(play.Drm.Schemes.PlayReady.LicenseUrl), os.ModePerm,
+   )
 }
 
 var content_tests = []struct {
@@ -41,49 +45,49 @@ var content_tests = []struct {
       url:      "max.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7",
    },
    {
-      url: "play.max.com/show/14f9834d-bc23-41a8-ab61-5c8abdbea505",
+      url: "max.com/movies/despicable-me-4/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
       location: []string{
-         "Belgium",
-         "Brazil",
-         "Bulgaria",
-         "Chile",
-         "Colombia",
-         "Croatia",
-         "Czech Republic",
-         "Denmark",
-         "Finland",
-         "France",
-         "Hungary",
-         "Indonesia",
-         "Malaysia",
-         "Mexico",
-         "Netherlands",
-         "Norway",
-         "Peru",
-         "Philippines",
-         "Poland",
-         "Portugal",
-         "Romania",
-         "Singapore",
-         "Slovakia",
-         "Spain",
-         "Sweden",
-         "Thailand",
-         "United States",
+         "chile",
+         "colombia",
+         "indonesia",
+         "malaysia",
+         "mexico",
+         "peru",
+         "philippines",
+         "singapore",
+         "thailand",
       },
    },
    {
-      url: "play.max.com/movie/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
+      url: "max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505",
       location: []string{
-         "Chile",
-         "Colombia",
-         "Indonesia",
-         "Malaysia",
-         "Mexico",
-         "Peru",
-         "Philippines",
-         "Singapore",
-         "Thailand",
+         "belgium",
+         "brazil",
+         "bulgaria",
+         "chile",
+         "colombia",
+         "croatia",
+         "czech republic",
+         "denmark",
+         "finland",
+         "france",
+         "hungary",
+         "indonesia",
+         "malaysia",
+         "mexico",
+         "netherlands",
+         "norway",
+         "peru",
+         "philippines",
+         "poland",
+         "portugal",
+         "romania",
+         "singapore",
+         "slovakia",
+         "spain",
+         "sweden",
+         "thailand",
+         "united states",
       },
    },
 }

@@ -6,6 +6,47 @@ import (
    "testing"
 )
 
+func TestPlayReady(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(home + "/media/hulu/Authenticate")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var auth Authenticate
+   err = auth.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = auth.Refresh()
+   if err != nil {
+      t.Fatal(err)
+   }
+   test := tests[0]
+   data, err = auth.Playlist(&DeepLink{EabId: test.id})
+   if err != nil {
+      t.Fatal(err)
+   }
+   var play Playlist
+   err = play.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home + "/media/hulu/DashPrServer",
+      []byte(play.DashPrServer), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
+func TestWatch(t *testing.T) {
+   fmt.Println(tests)
+}
+
 var tests = []struct {
    content string
    id      string
@@ -22,33 +63,3 @@ var tests = []struct {
    },
 }
 
-func TestPlayReady(t *testing.T) {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(home + "/media/hulu/Authenticate")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var auth Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   test := tests[0]
-   data, err = auth.Playlist(&DeepLink{EabId: test.id})
-   if err != nil {
-      t.Fatal(err)
-   }
-   var play Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(play.DashPrServer)
-}
-
-func TestWatch(t *testing.T) {
-   fmt.Println(tests)
-}
