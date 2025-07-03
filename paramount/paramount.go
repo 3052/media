@@ -15,6 +15,41 @@ import (
    "strings"
 )
 
+func (a At) Session(content_id string) (*Session, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
+      b.WriteString("/anonymous-session-token.json")
+      return b.String()
+   }()
+   req.URL.RawQuery = url.Values{
+      "at":        {string(a)},
+      "contentId": {content_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var b strings.Builder
+      resp.Write(&b)
+      return nil, errors.New(b.String())
+   }
+   defer resp.Body.Close()
+   session1 := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(session1)
+   if err != nil {
+      return nil, err
+   }
+   return session1, nil
+}
+
+type Session struct {
+   LsSession string `json:"ls_session"`
+   Url       string
+}
+
 func (a At) Item(cid string) (*Item, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
@@ -133,11 +168,6 @@ func cms_account(id string) int64 {
    return int64(i)
 }
 
-type Session struct {
-   LsSession string `json:"ls_session"`
-   Url       string
-}
-
 type At string
 
 func (a AppSecret) At() (At, error) {
@@ -158,34 +188,4 @@ func (a AppSecret) At() (At, error) {
    data1 = append(data1, iv[:]...)
    data1 = append(data1, data...)
    return At(base64.StdEncoding.EncodeToString(data1)), nil
-}
-
-func (a At) Session(content_id string) (*Session, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
-      b.WriteString("/anonymous-session-token.json")
-      return b.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {string(a)},
-      "contentId": {content_id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var b strings.Builder
-      resp.Write(&b)
-      return nil, errors.New(b.String())
-   }
-   defer resp.Body.Close()
-   session1 := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(session1)
-   if err != nil {
-      return nil, err
-   }
-   return session1, nil
 }
