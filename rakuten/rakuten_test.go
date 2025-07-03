@@ -37,7 +37,8 @@ func Test(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      home + "/media/rakuten/Pr", []byte(info.LicenseUrl), os.ModePerm,
+      home + "/media/rakuten/PlayReady",
+      []byte(info.LicenseUrl), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)

@@ -15,13 +15,30 @@ import (
    "time"
 )
 
-const drm_proxy_secret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
+func playReady() *url.URL {
+   now := fmt.Sprint(time.Now().UnixMilli())
+   hash := func() string {
+      secret := hmac.New(sha256.New, []byte(drm_proxy_secret))
+      fmt.Fprint(secret, now, "playready")
+      return fmt.Sprintf("%x", secret.Sum(nil))
+   }()
+   return &url.URL{
+      Scheme: "https",
+      Host: "drmproxy.digitalsvc.apps.nbcuni.com",
+      Path: "/drm-proxy/license/playready",
+      RawQuery: url.Values{
+         "device": {"web"},
+         "hash":   {hash},
+         "time":   {now},
+      }.Encode(),
+   }
+}
 
 func Widevine(data []byte) ([]byte, error) {
-   time1 := fmt.Sprint(time.Now().UnixMilli())
+   now := fmt.Sprint(time.Now().UnixMilli())
    hash := func() string {
       hash1 := hmac.New(sha256.New, []byte(drm_proxy_secret))
-      fmt.Fprint(hash1, time1, "widevine")
+      fmt.Fprint(hash1, now, "widevine")
       return fmt.Sprintf("%x", hash1.Sum(nil))
    }()
    req, err := http.NewRequest(
@@ -35,7 +52,7 @@ func Widevine(data []byte) ([]byte, error) {
    req.URL.RawQuery = url.Values{
       "device": {"web"},
       "hash":   {hash},
-      "time":   {time1},
+      "time":   {now},
    }.Encode()
    req.Header.Set("content-type", "application/octet-stream")
    resp, err := http.DefaultClient.Do(req)
@@ -45,6 +62,8 @@ func Widevine(data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
+
+const drm_proxy_secret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
 
 type Vod struct {
    PlaybackUrl string // MPD

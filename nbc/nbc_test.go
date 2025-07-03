@@ -2,11 +2,29 @@ package nbc
 
 import (
    "fmt"
+   "os"
    "testing"
-   "time"
 )
 
-var tests = []struct {
+func TestPlayReady(t *testing.T) {
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home + "/media/nbc/PlayReady",
+      []byte(playReady().String()), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
+func TestVideo(t *testing.T) {
+   fmt.Println(video_tests)
+}
+
+var video_tests = []struct {
    url     string
    program string
    id      int
@@ -29,16 +47,4 @@ var tests = []struct {
       program: "episode",
       url:     "nbc.com/saturday-night-live/video/march-30-ramy-youssef/9000283435",
    },
-}
-
-func Test(t *testing.T) {
-   for _, test1 := range tests {
-      var meta Metadata
-      err := meta.New(test1.id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Println(meta)
-      time.Sleep(time.Second)
-   }
 }

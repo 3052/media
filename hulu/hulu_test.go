@@ -35,7 +35,7 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      home + "/media/hulu/DashPrServer",
+      home + "/media/hulu/PlayReady",
       []byte(play.DashPrServer), os.ModePerm,
    )
    if err != nil {
