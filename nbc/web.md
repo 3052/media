@@ -1,43 +1,16 @@
 # web client
 
-> SORRY! WE'RE HAVING SOME TROUBLE.
->
-> If the problem persists, please contact us and send us a note.
+## sign up
 
-if we enable, we get this:
+~~~py
+from mitmproxy import http
 
-https://lemonade.nbc.com/v1/vod/2410887629/9000283422?platform=web&browser=other&programmingType=Full+Episode
-
-if you change user agent:
-
+def response(f: http.HTTPFlow) -> None:
+   if f.request.path.startswith('/pontoon/verify'):
+      f.response.text = f.response.text.replace(
+         '"do_not_mail"', '"valid"'
+      )
 ~~~
-general.useragent.override
-~~~
-
-to:
-
-~~~
-Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15
-~~~
-
-you get this instead:
-
-https://lemonade.nbc.com/v1/vod/2410887629/9000283422?platform=web&browser=safari&programmingType=Full+Episode
-
-but it doesnt help:
-
-~~~
-#EXT-X-SESSION-KEY:
-   IV=0xfcf13caf41cb4ec7bcc918872de873b9,
-   KEYFORMAT="com.apple.streamingkeydelivery",
-   KEYFORMATVERSIONS="1",
-   METHOD=SAMPLE-AES,
-   URI="skd://fcf13caf41cb4ec7bcc918872de873b9"
-~~~
-
-also value is optional:
-
-https://lemonade.nbc.com/v1/vod/2410887629/9000283422?platform=web&programmingType=Full+Episode
 
 ## platform
 
