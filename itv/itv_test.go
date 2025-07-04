@@ -6,11 +6,9 @@ import (
 )
 
 func TestPlayReady(t *testing.T) {
-   titles, err := LegacyId{"10/5503/0001B"}.Titles()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := titles[0].Playlist()
+   var value Title
+   value.LatestAvailableVersion.PlaylistUrl = "https://magni.itv.com/playlist/itvonline/ITV/10_5503_0001.001"
+   data, err := value.Playlist()
    if err != nil {
       t.Fatal(err)
    }

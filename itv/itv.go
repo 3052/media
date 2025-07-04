@@ -12,47 +12,43 @@ import (
    "strings"
 )
 
-func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
+func (p *Playlist) playReady(playlist_url string) error {
+   data, err := json.Marshal(map[string]any{
+      "client": map[string]string{
+         "id": "browser",
+      },
+      "variantAvailability": map[string]any{
+         "drm": map[string]string{
+            "maxSupported": "L3",
+            "system":       "widevine",
+         },
+         "featureset": []string{ // need all these to get 720p
+            "hd",
+            "mpeg-dash",
+            "single-track",
+            "widevine",
+         },
+         "platformTag": "ctv", // 1080p
+      },
+   })
    if err != nil {
-      return nil, err
+      return err
+   }
+   req, err := http.NewRequest("POST", playlist_url, bytes.NewReader(data))
+   if err != nil {
+      return err
+   }
+   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   return json.NewDecoder(resp.Body).Decode(p)
 }
 
-type MediaFile struct {
-   Href          string
-   KeyServiceUrl string
-   Resolution    string
-}
-
-func (m *MediaFile) Mpd() (*http.Response, error) {
-   var err error
-   http.DefaultClient.Jar, err = cookiejar.New(nil)
-   if err != nil {
-      return nil, err
-   }
-   return http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
-}
-
-func (p *Playlist) FullHd() (*MediaFile, bool) {
-   for _, file := range p.Playlist.Video.MediaFiles {
-      if file.Resolution == "1080" {
-         return &file, true
-      }
-   }
-   return nil, false
-}
-
-type Playlist struct {
-   Playlist struct {
-      Video struct {
-         MediaFiles []MediaFile
-      }
-   }
+func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
+   return json.Unmarshal(data, p)
 }
 
 // hard geo block
@@ -94,6 +90,17 @@ func (t *Title) Playlist() (Byte[Playlist], error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
+}
+
+type Title struct {
+   LatestAvailableVersion struct {
+      PlaylistUrl string
+   }
+   Series *struct {
+      SeriesNumber int64
+   }
+   EpisodeNumber          int64
+   Title                  string
 }
 
 type LegacyId [1]string
@@ -148,10 +155,6 @@ func (t *Title) String() string {
 
 type Byte[T any] []byte
 
-func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
-   return json.Unmarshal(data, p)
-}
-
 // pass: https://www.itv.com/watch/joan/10a3918
 // fail: https://www.itv.com/watch/joan/10a3918/10a3918a0001
 func (v *LegacyId) Set(data string) error {
@@ -200,14 +203,46 @@ func (v LegacyId) Titles() ([]Title, error) {
    return value.Data.Titles, nil
 }
 
-type Title struct {
-   LatestAvailableVersion struct {
-      PlaylistUrl string
+func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
    }
-   Series *struct {
-      SeriesNumber int64
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type MediaFile struct {
+   Href          string
+   KeyServiceUrl string
+   Resolution    string
+}
+
+func (m *MediaFile) Mpd() (*http.Response, error) {
+   var err error
+   http.DefaultClient.Jar, err = cookiejar.New(nil)
+   if err != nil {
+      return nil, err
    }
-   EpisodeNumber          int64
-   Title                  string
+   return http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
+}
+
+func (p *Playlist) FullHd() (*MediaFile, bool) {
+   for _, file := range p.Playlist.Video.MediaFiles {
+      if file.Resolution == "1080" {
+         return &file, true
+      }
+   }
+   return nil, false
+}
+
+type Playlist struct {
+   Playlist struct {
+      Video struct {
+         MediaFiles []MediaFile
+      }
+   }
 }
 
