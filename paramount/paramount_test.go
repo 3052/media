@@ -2,11 +2,37 @@ package paramount
 
 import (
    "fmt"
+   "os"
    "testing"
-   "time"
 )
 
-var tests = []struct {
+func TestPlayReady(t *testing.T) {
+   token, err := ComCbsApp.At()
+   if err != nil {
+      t.Fatal(err)
+   }
+   sess, err := token.playReady("tOeI0WHG3icuPhCk5nkLXNmi5c4Jfx41")
+   if err != nil {
+      t.Fatal(err)
+   }
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home + "/media/paramount/PlayReady",
+      []byte(sess.LsSession), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
+func TestLocation(t *testing.T) {
+   fmt.Println(location_tests)
+}
+
+var location_tests = []struct {
    content_id string
    location   []string
    url        string
@@ -43,19 +69,4 @@ var tests = []struct {
       url:        "paramountplus.com/shows/video/WNujiS5PHkY5wN9doNY6MSo_7G8uBUcX",
       location:   []string{"Australia"},
    },
-}
-
-func Test(t *testing.T) {
-   for _, test1 := range tests {
-      at1, err := ComCbsApp.At()
-      if err != nil {
-         t.Fatal(err)
-      }
-      session1, err := at1.Session(test1.content_id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Println(session1)
-      time.Sleep(time.Second)
-   }
 }

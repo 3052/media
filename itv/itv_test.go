@@ -2,12 +2,35 @@ package itv
 
 import (
    "fmt"
-   "path"
    "testing"
-   "time"
 )
 
-var tests = []struct {
+func TestPlayReady(t *testing.T) {
+   titles, err := LegacyId{"10/5503/0001B"}.Titles()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := titles[0].Playlist()
+   if err != nil {
+      t.Fatal(err)
+   }
+   var play Playlist
+   err = play.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   hd, ok := play.FullHd()
+   if !ok {
+      t.Fatal(".FullHd()")
+   }
+   fmt.Println(hd.KeyServiceUrl)
+}
+
+func TestWatch(t *testing.T) {
+   fmt.Println(watch_tests)
+}
+
+var watch_tests = []struct {
    id  string
    url string
 }{
@@ -23,31 +46,4 @@ var tests = []struct {
       id:  "10/3918",
       url: "itv.com/watch/joan/10a3918",
    },
-}
-
-func TestTitle(t *testing.T) {
-   for i, test := range tests {
-      if i >= 1 {
-         fmt.Println("---------------------------------------------------------")
-      }
-      titles, err := LegacyId{test.id}.Titles()
-      if err != nil {
-         t.Fatal(err)
-      }
-      for i, title1 := range titles {
-         if i >= 1 {
-            fmt.Println()
-         }
-         fmt.Println(&title1)
-      }
-      time.Sleep(time.Second)
-   }
-}
-
-func TestLegacyId(t *testing.T) {
-   for _, test := range tests {
-      var id LegacyId
-      id.Set(path.Base(test.url))
-      fmt.Println(id)
-   }
 }

@@ -15,6 +15,31 @@ import (
    "strings"
 )
 
+func (a At) playReady(content_id string) (*Session, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
+      b.WriteString("/anonymous-session-token.json")
+      return b.String()
+   }()
+   req.URL.RawQuery = url.Values{
+      "at":        {string(a)},
+      "contentId": {content_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   session1 := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(session1)
+   if err != nil {
+      return nil, err
+   }
+   return session1, nil
+}
+
 func (a At) Session(content_id string) (*Session, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {

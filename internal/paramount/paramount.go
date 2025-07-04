@@ -4,6 +4,7 @@ import (
    "41.neocities.org/media/paramount"
    "41.neocities.org/net"
    "flag"
+   "log"
    "net/http"
    "net/url"
    "os"
@@ -16,7 +17,13 @@ func main() {
    if err != nil {
       panic(err)
    }
-   http.DefaultTransport = net.Transport(set.proxy)
+   // http.DefaultTransport = net.Transport(set.proxy)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return http.ProxyFromEnvironment(req)
+      },
+   }
    if set.paramount != "" {
       err = set.do_paramount()
       if err != nil {

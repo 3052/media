@@ -12,15 +12,47 @@ import (
    "strings"
 )
 
-type Title struct {
-   LatestAvailableVersion struct {
-      PlaylistUrl string
+func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
    }
-   Series *struct {
-      SeriesNumber int64
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type MediaFile struct {
+   Href          string
+   KeyServiceUrl string
+   Resolution    string
+}
+
+func (m *MediaFile) Mpd() (*http.Response, error) {
+   var err error
+   http.DefaultClient.Jar, err = cookiejar.New(nil)
+   if err != nil {
+      return nil, err
    }
-   EpisodeNumber          int64
-   Title                  string
+   return http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
+}
+
+func (p *Playlist) FullHd() (*MediaFile, bool) {
+   for _, file := range p.Playlist.Video.MediaFiles {
+      if file.Resolution == "1080" {
+         return &file, true
+      }
+   }
+   return nil, false
+}
+
+type Playlist struct {
+   Playlist struct {
+      Video struct {
+         MediaFiles []MediaFile
+      }
+   }
 }
 
 // hard geo block
@@ -64,59 +96,12 @@ func (t *Title) Playlist() (Byte[Playlist], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (v LegacyId) Titles() ([]Title, error) {
-   data, err := json.Marshal(map[string]string{
-      "brandLegacyId": v[0],
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = url.Values{
-      "query":     {graphql_compact(programme_page)},
-      "variables": {string(data)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Titles []Title
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.Data.Titles, nil
-}
-
 type LegacyId [1]string
-
-// pass: https://www.itv.com/watch/joan/10a3918
-// fail: https://www.itv.com/watch/joan/10a3918/10a3918a0001
-func (v *LegacyId) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "itv.com")
-   split := strings.SplitN(data, "/", 5)
-   if len(split) != 4 {
-      return errors.New("/watch/[programmeSlug]/[programmeId]")
-   }
-   v[0] = strings.ReplaceAll(split[3], "a", "/")
-   return nil
-}
 
 func (v LegacyId) String() string {
    return "/watch/!/" + strings.ReplaceAll(v[0], "/", "a")
 }
+
 const programme_page = `
 query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
    titles(
@@ -161,51 +146,68 @@ func (t *Title) String() string {
    return string(b)
 }
 
-type Playlist struct {
-   Playlist struct {
-      Video struct {
-         MediaFiles []MediaFile
-      }
-   }
-}
-
 type Byte[T any] []byte
 
 func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
    return json.Unmarshal(data, p)
 }
 
-func (p *Playlist) FullHd() (*MediaFile, bool) {
-   for _, file := range p.Playlist.Video.MediaFiles {
-      if file.Resolution == "1080" {
-         return &file, true
-      }
+// pass: https://www.itv.com/watch/joan/10a3918
+// fail: https://www.itv.com/watch/joan/10a3918/10a3918a0001
+func (v *LegacyId) Set(data string) error {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "www.")
+   data = strings.TrimPrefix(data, "itv.com")
+   split := strings.SplitN(data, "/", 5)
+   if len(split) != 4 {
+      return errors.New("/watch/[programmeSlug]/[programmeId]")
    }
-   return nil, false
+   v[0] = strings.ReplaceAll(split[3], "a", "/")
+   return nil
 }
 
-type MediaFile struct {
-   Href          string
-   KeyServiceUrl string
-   Resolution    string
-}
-
-func (m *MediaFile) Mpd() (*http.Response, error) {
-   var err error
-   http.DefaultClient.Jar, err = cookiejar.New(nil)
+func (v LegacyId) Titles() ([]Title, error) {
+   data, err := json.Marshal(map[string]string{
+      "brandLegacyId": v[0],
+   })
    if err != nil {
       return nil, err
    }
-   return http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
-}
-
-func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
+   req, err := http.NewRequest(
+      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
    )
    if err != nil {
       return nil, err
    }
+   req.URL.RawQuery = url.Values{
+      "query":     {graphql_compact(programme_page)},
+      "variables": {string(data)},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   var value struct {
+      Data struct {
+         Titles []Title
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.Data.Titles, nil
 }
+
+type Title struct {
+   LatestAvailableVersion struct {
+      PlaylistUrl string
+   }
+   Series *struct {
+      SeriesNumber int64
+   }
+   EpisodeNumber          int64
+   Title                  string
+}
+
