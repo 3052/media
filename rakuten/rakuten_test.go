@@ -9,7 +9,79 @@ import (
    "testing"
 )
 
-var web_tests = []struct{
+func TestWidevine(t *testing.T) {
+   data, err := exec.Command("password", "-i", "nordvpn.com").Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   username, password, _ := strings.Cut(string(data), ":")
+   http.DefaultTransport = &http.Transport{
+      Proxy: http.ProxyURL(&url.URL{
+         Scheme: "https",
+         User:   url.UserPassword(username, password),
+         Host:   "cz103.nordvpn.com:89",
+      }),
+   }
+   test := web_tests[0]
+   var web Address
+   err = web.Set(test.url)
+   if err != nil {
+      t.Fatal(err)
+   }
+   info, err := web.Info(web.ContentId, test.language, Wv, Hd)
+   if err != nil {
+      t.Fatal(err)
+   }
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home+"/media/rakuten/PlayReady",
+      []byte(info.LicenseUrl), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
+func TestPlayReady(t *testing.T) {
+   data, err := exec.Command("password", "-i", "nordvpn.com").Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   username, password, _ := strings.Cut(string(data), ":")
+   http.DefaultTransport = &http.Transport{
+      Proxy: http.ProxyURL(&url.URL{
+         Scheme: "https",
+         User:   url.UserPassword(username, password),
+         Host:   "cz103.nordvpn.com:89",
+      }),
+   }
+   test := web_tests[0]
+   var web Address
+   err = web.Set(test.url)
+   if err != nil {
+      t.Fatal(err)
+   }
+   info, err := web.Info(web.ContentId, test.language, Pr, Hd)
+   if err != nil {
+      t.Fatal(err)
+   }
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home+"/media/rakuten/PlayReady",
+      []byte(info.LicenseUrl), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
+var web_tests = []struct {
    language string
    url      string
 }{
@@ -33,40 +105,4 @@ var web_tests = []struct{
       language: "SPA",
       url:      "//rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
    },
-}
-
-func Test(t *testing.T) {
-   data, err := exec.Command("password", "-i", "nordvpn.com").Output()
-   if err != nil {
-      t.Fatal(err)
-   }
-   username, password, _ := strings.Cut(string(data), ":")
-   http.DefaultTransport = &http.Transport{
-      Proxy: http.ProxyURL(&url.URL{
-         Scheme: "https",
-         User: url.UserPassword(username, password),
-         Host: "cz103.nordvpn.com:89",
-      }),
-   }
-   test := web_tests[0]
-   var web Address
-   err = web.Set(test.url)
-   if err != nil {
-      t.Fatal(err)
-   }
-   info, err := web.Info(web.ContentId, test.language, Pr, Hd)
-   if err != nil {
-      t.Fatal(err)
-   }
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(
-      home + "/media/rakuten/PlayReady",
-      []byte(info.LicenseUrl), os.ModePerm,
-   )
-   if err != nil {
-      t.Fatal(err)
-   }
 }
