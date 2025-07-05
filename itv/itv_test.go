@@ -2,18 +2,29 @@ package itv
 
 import (
    "fmt"
+   "net/http"
+   "net/url"
+   "os"
+   "os/exec"
+   "strings"
    "testing"
 )
 
 func TestPlayReady(t *testing.T) {
-   var value Title
-   value.LatestAvailableVersion.PlaylistUrl = "https://magni.itv.com/playlist/itvonline/ITV/10_5503_0001.001"
-   data, err := value.Playlist()
+   data, err := exec.Command("password", "-i", "nordvpn.com").Output()
    if err != nil {
       t.Fatal(err)
    }
+   username, password, _ := strings.Cut(string(data), ":")
+   http.DefaultTransport = &http.Transport{
+      Proxy: http.ProxyURL(&url.URL{
+         Scheme: "https",
+         User: url.UserPassword(username, password),
+         Host: "uk871.nordvpn.com:89",
+      }),
+   }
    var play Playlist
-   err = play.Unmarshal(data)
+   err = play.playReady("10_5503_0001.001")
    if err != nil {
       t.Fatal(err)
    }
@@ -21,7 +32,17 @@ func TestPlayReady(t *testing.T) {
    if !ok {
       t.Fatal(".FullHd()")
    }
-   fmt.Println(hd.KeyServiceUrl)
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home + "/media/itv/PlayReady",
+      []byte(hd.KeyServiceUrl), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
 }
 
 func TestWatch(t *testing.T) {

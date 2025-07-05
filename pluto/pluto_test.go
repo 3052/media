@@ -10,8 +10,8 @@ var tests = []struct {
    url string
 }{
    {
-      id:  "623a01faef11000014cf41f7",
-      url: "pluto.tv/on-demand/movies/623a01faef11000014cf41f7",
+      id:  "5a9dd73dfb6f2f17481aff11",
+      url: "pluto.tv/us/on-demand/movies/5a9dd73dfb6f2f17481aff11",
    },
    {
       id:  "66d0bb64a1c89200137fb0e6",

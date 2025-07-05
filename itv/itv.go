@@ -12,21 +12,21 @@ import (
    "strings"
 )
 
-func (p *Playlist) playReady(playlist_url string) error {
+func (p *Playlist) playReady(id string) error {
    data, err := json.Marshal(map[string]any{
       "client": map[string]string{
          "id": "browser",
       },
       "variantAvailability": map[string]any{
          "drm": map[string]string{
-            "maxSupported": "L3",
-            "system":       "widevine",
+            "maxSupported": "SL3000",
+            "system":       "playready",
          },
-         "featureset": []string{ // need all these to get 720p
+         "featureset": []string{
             "hd",
             "mpeg-dash",
             "single-track",
-            "widevine",
+            "playready",
          },
          "platformTag": "ctv", // 1080p
       },
@@ -34,7 +34,10 @@ func (p *Playlist) playReady(playlist_url string) error {
    if err != nil {
       return err
    }
-   req, err := http.NewRequest("POST", playlist_url, bytes.NewReader(data))
+   req, err := http.NewRequest(
+      "POST", "https://magni.itv.com/playlist/itvonline/ITV/" + id,
+      bytes.NewReader(data),
+   )
    if err != nil {
       return err
    }
@@ -45,10 +48,6 @@ func (p *Playlist) playReady(playlist_url string) error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(p)
-}
-
-func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
-   return json.Unmarshal(data, p)
 }
 
 // hard geo block
@@ -90,6 +89,10 @@ func (t *Title) Playlist() (Byte[Playlist], error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
+}
+
+func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
+   return json.Unmarshal(data, p)
 }
 
 type Title struct {

@@ -10,6 +10,23 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_episode() error {
+   clips, err := pluto.NewClips(f.episode)
+   if err != nil {
+      return err
+   }
+   file, ok := clips.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := file.Mpd()
+   if err != nil {
+      return err
+   }
+   f.cdm.License = pluto.Widevine
+   return f.filters.Filter(resp, &f.cdm)
+}
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -17,22 +34,17 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.license.ClientId = f.media + "/client_id.bin"
-   f.license.PrivateKey = f.media + "/private_key.pem"
-   f.bitrate.Value = [][2]int{
-      {100_000, 200_000}, {3_000_000, 5_000_000},
-   }
-   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(
-      &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
+      &f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key",
    )
    flag.IntVar(&net.Threads, "t", 1, "threads")
    flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
-   ///////////////////////////////////////////////////////////////
    flag.StringVar(&f.show, "s", "", "show ID")
-   ///////////////////////////////////////////////////////
    flag.StringVar(&f.episode, "e", "", "episode/movie ID")
-   flag.Var(&f.bitrate, "b", "bitrate")
+   flag.Var(&f.filters, "f", net.FilterUsage)
    flag.Parse()
    return nil
 }
@@ -58,29 +70,10 @@ func main() {
 
 type flag_set struct {
    media   string
-   license net.License
-   ///////////////////
+   cdm net.Cdm
    show string
-   //////////////
    episode string
-   bitrate net.Bitrate
-}
-
-func (f *flag_set) do_episode() error {
-   clips, err := pluto.NewClips(f.episode)
-   if err != nil {
-      return err
-   }
-   file, ok := clips.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := file.Mpd()
-   if err != nil {
-      return err
-   }
-   f.license.Widevine = pluto.Widevine
-   return f.license.Bitrate(resp, &f.bitrate)
+   filters net.Filters
 }
 
 func (f *flag_set) do_show() error {

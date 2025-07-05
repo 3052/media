@@ -12,93 +12,6 @@ import (
    "path/filepath"
 )
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) do_refresh() error {
-   data, err := os.ReadFile(f.media + "/amc/Auth")
-   if err != nil {
-      return err
-   }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = auth.Refresh()
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/amc/Auth", data)
-}
-
-func (f *flag_set) do_email() error {
-   var auth amc.Auth
-   err := auth.Unauth()
-   if err != nil {
-      return err
-   }
-   data, err := auth.Login(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/amc/Auth", data)
-}
-
-func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.media + "/amc/Auth")
-   if err != nil {
-      return err
-   }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   season, err := auth.SeasonEpisodes(f.season)
-   if err != nil {
-      return err
-   }
-   var line bool
-   for episode := range season.Episodes() {
-      if line {
-         fmt.Println()
-      } else {
-         line = true
-      }
-      fmt.Println(&episode.Properties.Metadata)
-   }
-   return nil
-}
-
-func (f *flag_set) do_series() error {
-   data, err := os.ReadFile(f.media + "/amc/Auth")
-   if err != nil {
-      return err
-   }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   series, err := auth.SeriesDetail(f.series)
-   if err != nil {
-      return err
-   }
-   var line bool
-   for season := range series.Seasons() {
-      if line {
-         fmt.Println()
-      } else {
-         line = true
-      }
-      fmt.Println(&season.Properties.Metadata)
-   }
-   return nil
-}
-
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -205,3 +118,90 @@ func (f *flag_set) do_episode() error {
    }
    return f.filters.Filter(resp, &f.cdm)
 }
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) do_refresh() error {
+   data, err := os.ReadFile(f.media + "/amc/Auth")
+   if err != nil {
+      return err
+   }
+   var auth amc.Auth
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = auth.Refresh()
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/amc/Auth", data)
+}
+
+func (f *flag_set) do_email() error {
+   var auth amc.Auth
+   err := auth.Unauth()
+   if err != nil {
+      return err
+   }
+   data, err := auth.Login(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/amc/Auth", data)
+}
+
+func (f *flag_set) do_season() error {
+   data, err := os.ReadFile(f.media + "/amc/Auth")
+   if err != nil {
+      return err
+   }
+   var auth amc.Auth
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   season, err := auth.SeasonEpisodes(f.season)
+   if err != nil {
+      return err
+   }
+   var line bool
+   for episode := range season.Episodes() {
+      if line {
+         fmt.Println()
+      } else {
+         line = true
+      }
+      fmt.Println(&episode.Properties.Metadata)
+   }
+   return nil
+}
+
+func (f *flag_set) do_series() error {
+   data, err := os.ReadFile(f.media + "/amc/Auth")
+   if err != nil {
+      return err
+   }
+   var auth amc.Auth
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   series, err := auth.SeriesDetail(f.series)
+   if err != nil {
+      return err
+   }
+   var line bool
+   for season := range series.Seasons() {
+      if line {
+         fmt.Println()
+      } else {
+         line = true
+      }
+      fmt.Println(&season.Properties.Metadata)
+   }
+   return nil
+}
+
