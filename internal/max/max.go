@@ -7,9 +7,88 @@ import (
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
+
+func main() {
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.initiate:
+      err = set.do_initiate()
+   case set.login:
+      err = set.do_login()
+   case set.address != "":
+      err = set.do_address()
+   case set.edit != "":
+      err = set.do_edit()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   show_id, err := max.ShowId(f.address)
+   if err != nil {
+      return err
+   }
+   var videos *max.Videos
+   if f.season >= 1 {
+      videos, err = login.Season(show_id, f.season)
+   } else {
+      videos, err = login.Movie(show_id)
+   }
+   if err != nil {
+      return err
+   }
+   for video := range videos.Seq() {
+      fmt.Println(&video)
+   }
+   return nil
+}
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.edit, "e", "", "edit ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.BoolVar(&f.initiate, "i", false, "device initiate")
+   flag.BoolVar(&f.login, "l", false, "device login")
+   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
+   flag.IntVar(&f.season, "s", 0, "season")
+   flag.Parse()
+   return nil
+}
 
 func (f *flag_set) do_edit() error {
    data, err := os.ReadFile(f.media + "/max/Login")
@@ -95,76 +174,4 @@ func (f *flag_set) do_login() error {
       return err
    }
    return write_file(f.media+"/max/Login", data)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.edit, "e", "", "edit ID")
-   flag.BoolVar(&f.initiate, "i", false, "device initiate")
-   flag.BoolVar(&f.login, "l", false, "device login")
-   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
-   flag.IntVar(&f.season, "s", 0, "season")
-   flag.Parse()
-   return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.initiate:
-      err = set.do_initiate()
-   case set.login:
-      err = set.do_login()
-   case set.address != "":
-      err = set.do_address()
-   case set.edit != "":
-      err = set.do_edit()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   show_id, err := max.ShowId(f.address)
-   if err != nil {
-      return err
-   }
-   var videos *max.Videos
-   if f.season >= 1 {
-      videos, err = login.Season(show_id, f.season)
-   } else {
-      videos, err = login.Movie(show_id)
-   }
-   if err != nil {
-      return err
-   }
-   for video := range videos.Seq() {
-      fmt.Println(&video)
-   }
-   return nil
 }
