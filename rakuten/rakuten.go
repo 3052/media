@@ -209,24 +209,21 @@ const (
    Hd  Quality = "HD"
 )
 
-func (a *Address) Pr(
-   audio_language, content_id string, video Quality,
+func (a *Address) Wvm(
+   content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
-   return a.streamInfo(audio_language, content_id, ":DASH-CENC:PR", video)
+   return a.streamInfo(content_id, audio_language, ":DASH-CENC:WVM", video)
 }
 
-func (a *Address) Wvm(
-   audio_language, content_id string, video Quality,
+func (a *Address) Pr(
+   content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
-   return a.streamInfo(audio_language, content_id, ":DASH-CENC:WVM", video)
+   return a.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
 }
 
 // geo block
 func (a *Address) streamInfo(
-   audio_language string,
-   content_id string,
-   player string,
-   video Quality,
+   content_id, audio_language, player string, video Quality,
 ) (*StreamInfo, error) {
    data, err := json.Marshal(map[string]string{
       "audio_language":              audio_language,
