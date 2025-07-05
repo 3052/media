@@ -14,6 +14,29 @@ import (
    "strings"
 )
 
+func (p *Playback) License(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (l *Login) PlayReady(edit_id string) (Byte[Playback], error) {
+   return l.playback(edit_id, "playready")
+}
+
+func (l *Login) Widevine(edit_id string) (Byte[Playback], error) {
+   return l.playback(edit_id, "widevine")
+}
+
 func (l *Login) playback(edit_id, drm string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
@@ -285,31 +308,8 @@ func (p *Playback) Mpd() string {
    return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
 }
 
-func (l *Login) PlayReady(edit_id string) (Byte[Playback], error) {
-   return l.playback(edit_id, "playready")
-}
-
-func (l *Login) Widevine(edit_id string) (Byte[Playback], error) {
-   return l.playback(edit_id, "widevine")
-}
-
 type Scheme struct {
    LicenseUrl string
-}
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 type Playback struct {

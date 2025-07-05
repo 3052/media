@@ -11,51 +11,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   show_id, err := max.ShowId(f.address)
-   if err != nil {
-      return err
-   }
-   var videos *max.Videos
-   if f.season >= 1 {
-      videos, err = login.Season(show_id, f.season)
-   } else {
-      videos, err = login.Movie(show_id)
-   }
-   if err != nil {
-      return err
-   }
-   for video := range videos.Seq() {
-      fmt.Println(&video)
-   }
-   return nil
-}
-
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.media + "/max/Playback")
-   if err != nil {
-      return err
-   }
-   var play max.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
-}
-
 func (f *flag_set) do_edit() error {
    data, err := os.ReadFile(f.media + "/max/Login")
    if err != nil {
@@ -66,7 +21,7 @@ func (f *flag_set) do_edit() error {
    if err != nil {
       return err
    }
-   data, err = login.Playback(f.edit)
+   data, err = login.Widevine(f.edit)
    if err != nil {
       return err
    }
@@ -75,21 +30,20 @@ func (f *flag_set) do_edit() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/max/Playback", data)
-   if err != nil {
-      return err
-   }
    resp, err := http.Get(play.Mpd())
    if err != nil {
       return err
    }
-   return net.Mpd(f.media+"/Mpd", resp)
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return play.License(data)
+   }
+   return f.filters.Filter(resp, &f.cdm)
 }
 
 type flag_set struct {
    address  string
-   dash     string
-   e        net.License
+   cdm        net.Cdm
+   filters        net.Filters
    edit     string
    initiate bool
    login    bool
@@ -150,15 +104,14 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "d", "", "DASH ID")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.edit, "e", "", "edit ID")
    flag.BoolVar(&f.initiate, "i", false, "device initiate")
    flag.BoolVar(&f.login, "l", false, "device login")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
    flag.IntVar(&f.season, "s", 0, "season")
    flag.Parse()
    return nil
@@ -179,12 +132,39 @@ func main() {
       err = set.do_address()
    case set.edit != "":
       err = set.do_edit()
-   case set.dash != "":
-      err = set.do_dash()
    default:
       flag.Usage()
    }
    if err != nil {
       panic(err)
    }
+}
+
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   show_id, err := max.ShowId(f.address)
+   if err != nil {
+      return err
+   }
+   var videos *max.Videos
+   if f.season >= 1 {
+      videos, err = login.Season(show_id, f.season)
+   } else {
+      videos, err = login.Movie(show_id)
+   }
+   if err != nil {
+      return err
+   }
+   for video := range videos.Seq() {
+      fmt.Println(&video)
+   }
+   return nil
 }
