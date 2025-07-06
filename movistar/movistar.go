@@ -11,6 +11,27 @@ import (
    "strings"
 )
 
+func (s Session) License(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/TFAESP/wvls/contentlicenseservice/v1/licenses"
+   req.Header.Set("nv-authorizations", s.ResultData.Ctoken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 type Session struct {
    ResultData struct {
       Ctoken string // ONE TIME USE
@@ -63,26 +84,6 @@ func (d Device) Session(init1 *InitData, details1 *Details) (*Session, error) {
    return &value, nil
 }
 
-func (s Session) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/TFAESP/wvls/contentlicenseservice/v1/licenses"
-   req.Header.Set("nv-authorizations", s.ResultData.Ctoken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
 func NewDetails(id int64) (Byte[Details], error) {
    req, _ := http.NewRequest("", "https://ottcache.dof6.com", nil)
    req.URL.Path = func() string {
