@@ -11,6 +11,22 @@ import (
    "strings"
 )
 
+// EVEN THE CONTENT IS GEO BLOCKED
+func (d *Details) Mpd() (*http.Response, error) {
+   req, err := http.NewRequest("", d.VodItems[0].UrlVideo, nil)
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return resp, nil
+}
+
 func (s Session) License(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://wv-ottlic-f3.imagenio.telefonica.net",
@@ -118,22 +134,6 @@ type Details struct {
 
 func (d *Details) Unmarshal(data Byte[Details]) error {
    return json.Unmarshal(data, d)
-}
-
-// EVEN THE CONTENT IS GEO BLOCKED
-func (d *Details) Mpd() (*http.Response, error) {
-   req, err := http.NewRequest("", d.VodItems[0].UrlVideo, nil)
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return resp, nil
 }
 
 type Device string
