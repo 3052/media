@@ -14,16 +14,15 @@
 11. I agree to the terms
 12. continue
 13. see plans
-14. confirm selection
-15. add a payment method
-16. credit or debit card
-17. card number
-18. month
-19. year
-20. security code
-21. address
-22. city
-23. state
-24. zip
-25. save
-26. start free trial
+14. add a payment method
+15. credit or debit card
+16. card number
+17. month
+18. year
+19. security code
+20. address
+21. city
+22. state
+23. zip
+24. save
+25. start subscription

@@ -6,9 +6,37 @@ import (
    "errors"
    "flag"
    "fmt"
+   "log"
+   "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
+
+func main() {
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.show != "":
+      err = set.do_show()
+   case set.episode != "":
+      err = set.do_episode()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
 
 func (f *flag_set) do_episode() error {
    clips, err := pluto.NewClips(f.episode)
@@ -40,32 +68,12 @@ func (f *flag_set) New() error {
    flag.StringVar(
       &f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key",
    )
-   flag.IntVar(&net.Threads, "t", 1, "threads")
    flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
    flag.StringVar(&f.show, "s", "", "show ID")
    flag.StringVar(&f.episode, "e", "", "episode/movie ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.show != "":
-      err = set.do_show()
-   case set.episode != "":
-      err = set.do_episode()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }
 
 type flag_set struct {
