@@ -18,11 +18,6 @@
       <td>Molotov - TV en direct, replay</td>
       <td>March 27</td>
    </tr>
-   <tr>
-      <td>4</td>
-      <td>Movistar Plus+</td>
-      <td>April 15</td>
-   </tr>
 </table>
 
 ## 2024

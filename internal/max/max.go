@@ -10,14 +10,17 @@ import (
    "net/url"
    "os"
    "path/filepath"
+   "strings"
 )
 
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return nil, nil
+         if !strings.HasSuffix(req.URL.Path, ".mp4") {
+            log.Println(req.Method, req.URL)
+         }
+         return http.ProxyFromEnvironment(req)
       },
    }
    var set flag_set
@@ -66,7 +69,7 @@ func (f *flag_set) do_address() error {
       return err
    }
    for video := range videos.Seq() {
-      fmt.Println(&video)
+      fmt.Println(video)
    }
    return nil
 }
