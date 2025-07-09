@@ -16,6 +16,15 @@ import (
    "time"
 )
 
+func (p *Play) License(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (f Fields) AssetId() string {
    var key, value string
    for _, field := range f {
@@ -47,6 +56,7 @@ func (f *Fields) New(address string) error {
    })
    return nil
 }
+
 type Asset struct {
    Params struct {
       SeriesEpisode int64
@@ -257,8 +267,6 @@ type Session struct {
    Token    string // this last one hour
 }
 
-///
-
 // hard geo block
 func (s *Session) Play(asset_id string) (Byte[Play], error) {
    data, err := json.Marshal(map[string]any{
@@ -313,13 +321,3 @@ type Play struct {
    Message string
    Url     string // MPD
 }
-
-func (p *Play) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-

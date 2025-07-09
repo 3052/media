@@ -7,43 +7,25 @@ import (
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.license.ClientId = f.media + "/client_id.bin"
-   f.license.PrivateKey = f.media + "/private_key.pem"
-   f.bitrate.Value = [][2]int{
-      {300_000, 400_000}, {3_000_000, 4_000_000},
-   }
-   flag.StringVar(
-      &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
-   )
-   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
-   /////////////////////////////////////////////////////////////////////////
-   flag.StringVar(&f.email, "email", "", "email")
-   flag.StringVar(&f.password, "password", "", "password")
-   ///////////////////////////////////////////////////////
-   flag.BoolVar(&f.refresh, "r", false, "refresh")
-   ///////////////////////////////////////////////
-   flag.StringVar(&f.address, "a", "", "address")
-   //////////////////////////////////////////////
-   flag.Int64Var(&f.season, "s", 0, "season")
-   //////////////////////////////////////////
-   flag.StringVar(&f.asset, "asset", "", "asset ID")
-   flag.Var(&f.bitrate, "b", "bitrate")
-   flag.Parse()
-   return nil
-}
-
 func main() {
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         urlVar, err := http.ProxyFromEnvironment(req)
+         if err != nil {
+            return nil, err
+         }
+         if urlVar != nil {
+            log.Println("Proxy", urlVar)
+         }
+         log.Println(req.Method, req.URL)
+         return urlVar, nil
+      },
+   }
    var set flag_set
    err := set.New()
    if err != nil {
@@ -73,7 +55,7 @@ func main() {
 
 type flag_set struct {
    media   string
-   license net.License
+   cdm net.Cdm
    ///////////////////
    email    string
    password string
@@ -85,7 +67,7 @@ type flag_set struct {
    season int64
    ///////////////
    asset   string
-   bitrate net.Bitrate
+   filters net.Filters
 }
 
 func write_file(name string, data []byte) error {
@@ -133,10 +115,10 @@ func (f *flag_set) do_asset() error {
    if err != nil {
       return err
    }
-   f.license.Widevine = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return play.License(data)
    }
-   return f.license.Bitrate(resp, &f.bitrate)
+   return f.filters.Filter(resp, &f.cdm)
 }
 
 func (f *flag_set) do_refresh() error {
@@ -189,3 +171,26 @@ func (f *flag_set) do_season() error {
    return nil
 }
 
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.asset, "A", "", "asset ID")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.email, "email", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(
+      &f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key",
+   )
+   flag.StringVar(&f.password, "password", "", "password")
+   flag.BoolVar(&f.refresh, "r", false, "refresh")
+   flag.Int64Var(&f.season, "s", 0, "season")
+   flag.Parse()
+   return nil
+}

@@ -61,6 +61,7 @@ type flag_set struct {
    /////////////
    episode int64
 }
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
