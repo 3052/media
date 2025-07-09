@@ -8,10 +8,59 @@ import (
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
 
+func main() {
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.email != "" {
+      if set.password != "" {
+         err = set.do_email()
+      }
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else if set.series >= 1 {
+      err = set.do_series()
+   } else if set.season >= 1 {
+      err = set.do_season()
+   } else if set.episode >= 1 {
+      err = set.do_episode()
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+type flag_set struct {
+   cdm     net.Cdm
+   filters net.Filters
+   media   string
+   ///////////////////
+   email    string
+   password string
+   ///////////////
+   refresh bool
+   ////////////
+   series int64
+   ////////////
+   season int64
+   /////////////
+   episode int64
+}
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -162,47 +211,3 @@ func (f *flag_set) do_series() error {
    }
    return nil
 }
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.email != "" {
-      if set.password != "" {
-         err = set.do_email()
-      }
-   } else if set.refresh {
-      err = set.do_refresh()
-   } else if set.series >= 1 {
-      err = set.do_series()
-   } else if set.season >= 1 {
-      err = set.do_season()
-   } else if set.episode >= 1 {
-      err = set.do_episode()
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-type flag_set struct {
-   cdm     net.Cdm
-   filters net.Filters
-   media   string
-   ///////////////////
-   email    string
-   password string
-   ///////////////
-   refresh bool
-   ////////////
-   series int64
-   ////////////
-   season int64
-   /////////////
-   episode int64
-}
-

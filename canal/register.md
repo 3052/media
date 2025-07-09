@@ -1,23 +1,5 @@
 # register
 
-## mullvad
-
-~~~
-> mullvad status
-Connected to cz-prg-wg-201 in Prague, Czech Republic
-Your connection appears to be from: Czech Republic, Prague. IPv4: 178.249.209.172
-
-> curl -m 30 canalplus.cz
-curl: (28) Failed to connect to canalplus.cz port 80 after 21050 ms: Timed out
-~~~
-
-## nord
-
-~~~
-Secure Connection Failed
-An error occurred during a connection to www.canalplus.cz. PR_END_OF_FILE_ERROR
-~~~
-
 ## decodo
 
 https://canalplus.cz/en
@@ -47,3 +29,21 @@ https://canalplus.cz/en
 20. next
 
 you get no benefit from canceling
+
+## mullvad
+
+~~~
+> mullvad status
+Connected to cz-prg-wg-201 in Prague, Czech Republic
+Your connection appears to be from: Czech Republic, Prague. IPv4: 178.249.209.172
+
+> curl -m 30 canalplus.cz
+curl: (28) Failed to connect to canalplus.cz port 80 after 21050 ms: Timed out
+~~~
+
+## nord
+
+~~~
+Secure Connection Failed
+An error occurred during a connection to www.canalplus.cz. PR_END_OF_FILE_ERROR
+~~~
