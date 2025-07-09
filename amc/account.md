@@ -12,7 +12,6 @@
 9. expiration date
 10. cvc
 11. postal code
-12. I agree to the subscription terms
-13. start free trial
+12. start free trial
 
 no benefit from canceling

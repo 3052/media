@@ -5,6 +5,11 @@ import (
    "testing"
 )
 
+var movie = test{
+   id:  1061554,
+   url: "amcplus.com/movies/nocebo--1061554",
+}
+
 func Test(t *testing.T) {
    fmt.Println(series, season, movie)
 }
@@ -22,9 +27,4 @@ var series = test{
 var season = test{
    id:  1010638,
    url: "amcplus.com/shows/orphan-black/episodes--1010638",
-}
-
-var movie = test{
-   id:  1061554,
-   url: "amcplus.com/movies/nocebo--1061554",
 }
