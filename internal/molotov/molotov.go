@@ -6,10 +6,55 @@ import (
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.password != "":
+      err = set.authenticate()
+   case set.address.String() != "":
+      err = set.download()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) authenticate() error {
+   var login molotov.Login
+   err := login.New(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   data, err := login.Auth.Refresh()
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/molotov/Refresh", data)
+}
 func (f *flag_set) download() error {
    data, err := os.ReadFile(f.media + "/molotov/Refresh")
    if err != nil {
@@ -55,7 +100,7 @@ type flag_set struct {
    address  molotov.Address
    dash     string
    cdm      net.Cdm
-   filters net.Filters
+   filters  net.Filters
    email    string
    media    string
    password string
@@ -78,41 +123,4 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.password != "":
-      err = set.authenticate()
-   case set.address.String() != "":
-      err = set.download()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) authenticate() error {
-   var login molotov.Login
-   err := login.New(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   data, err := login.Auth.Refresh()
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/molotov/Refresh", data)
 }

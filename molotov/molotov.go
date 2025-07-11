@@ -10,6 +10,43 @@ import (
    "strings"
 )
 
+func (r *Refresh) View(web *Address) (*View, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = func() string {
+      b := []byte("/v2/channels/")
+      b = strconv.AppendInt(b, web.Channel, 10)
+      b = append(b, "/programs/"...)
+      b = strconv.AppendInt(b, web.Program, 10)
+      b = append(b, "/view"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "access_token=" + r.AccessToken
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var viewVar View
+   err = json.NewDecoder(resp.Body).Decode(&viewVar)
+   if err != nil {
+      return nil, err
+   }
+   if viewVar.Program.Actions.Play == nil {
+      return nil, errors.New("play == nil")
+   }
+   return &viewVar, nil
+}
+
+type View struct {
+   Program struct {
+      Actions struct {
+         Play *struct {
+            Url string
+         }
+      }
+   }
+}
 func (a *Asset) License(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
@@ -175,40 +212,4 @@ type Asset struct {
       }
    } `json:"up_drm"`
 }
-func (r *Refresh) View(web *Address) (*View, error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = func() string {
-      b := []byte("/v2/channels/")
-      b = strconv.AppendInt(b, web.Channel, 10)
-      b = append(b, "/programs/"...)
-      b = strconv.AppendInt(b, web.Program, 10)
-      b = append(b, "/view"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "access_token=" + r.AccessToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var view1 View
-   err = json.NewDecoder(resp.Body).Decode(&view1)
-   if err != nil {
-      return nil, err
-   }
-   if view1.Program.Actions.Play == nil {
-      return nil, errors.New("play == nil")
-   }
-   return &view1, nil
-}
 
-type View struct {
-   Program struct {
-      Actions struct {
-         Play *struct {
-            Url string
-         }
-      }
-   }
-}

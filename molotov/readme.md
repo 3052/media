@@ -3,17 +3,7 @@
 https://justwatch.com/fr/plateforme/molotov-tv
 
 ~~~
-> play -i tv.molotov.app
-details[8] = 0 USD
-details[13][1][4] = 4.21.4
-details[13][1][16] = Feb 24, 2025
-details[13][1][17] = APK APK APK APK
-details[13][1][82][1][1] = 5.0 and up
-details[15][18] = https://www.molotov.tv/legal/privacy
-downloads = 15.67 million
-name = Molotov - TV en direct, replay
-size = 70.35 megabyte
-version code = 8482
+tv.molotov.app
 ~~~
 
 480p:

@@ -5,10 +5,7 @@
 only requires Android 5:
 
 ~~~
-> play -a com.nbcuni.nbc
-requires: 5.0 and up
-version code: 2000004392
-version name: 9.4.1
+com.nbcuni.nbc
 ~~~
 
 which means we can install up to Android 6 and install user certificate. If we
