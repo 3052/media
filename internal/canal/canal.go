@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+   log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
          urlVar, err := http.ProxyFromEnvironment(req)

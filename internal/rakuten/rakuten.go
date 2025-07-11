@@ -16,8 +16,15 @@ func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
+         urlVar, err := http.ProxyFromEnvironment(req)
+         if err != nil {
+            return nil, err
+         }
+         if urlVar != nil {
+            log.Println("Proxy", urlVar)
+         }
          log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
+         return urlVar, nil
       },
    }
    var set flag_set
@@ -57,16 +64,11 @@ func (f *flag_set) New() error {
    f.media = filepath.ToSlash(f.media) + "/media"
    f.cdm.ClientId = f.media + "/client_id.bin"
    f.cdm.PrivateKey = f.media + "/private_key.pem"
-   f.filters = net.Filters{
-      {BitrateStart: 100_000, BitrateEnd: 300_000},
-      {BitrateStart: 3_000_000, BitrateEnd: 5_000_000},
-   }
    flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.season, "S", "", "season ID")
    flag.StringVar(&f.language, "a", "", "audio language")
    flag.StringVar(&f.content, "c", "", "content ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.movie, "m", "", "movie URL")
    flag.StringVar(&f.show, "s", "", "TV show URL")
    flag.Parse()

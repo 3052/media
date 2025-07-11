@@ -24,9 +24,9 @@ func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
    return nil
 }
 
-func (u User) Metadata(match1 *Match) (Byte[Metadata], error) {
+func (u User) Metadata(matchVar *Match) (Byte[Metadata], error) {
    req, _ := http.NewRequest("", "https://vod.provider.plex.tv", nil)
-   req.URL.Path = "/library/metadata/" + match1.RatingKey
+   req.URL.Path = "/library/metadata/" + matchVar.RatingKey
    req.Header.Set("accept", "application/json")
    req.Header.Set("x-plex-token", u.AuthToken)
    if ForwardedFor != "" {

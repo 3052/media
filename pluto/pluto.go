@@ -80,12 +80,12 @@ func NewClips(id string) (*Clips, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var clips1 []Clips
-   err = json.NewDecoder(resp.Body).Decode(&clips1)
+   var clipsVar []Clips
+   err = json.NewDecoder(resp.Body).Decode(&clipsVar)
    if err != nil {
       return nil, err
    }
-   return &clips1[0], nil
+   return &clipsVar[0], nil
 }
 
 func NewVod(id string) (*Vod, error) {

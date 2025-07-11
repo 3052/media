@@ -31,13 +31,13 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var user1 User
-   err = user1.Unmarshal(data)
+   var userVar User
+   err = userVar.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
    for _, test1 := range watch_tests {
-      match, err := user1.Match(Url{test1.path})
+      match, err := userVar.Match(Url{test1.path})
       if err != nil {
          t.Fatal(err)
       }

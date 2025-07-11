@@ -110,26 +110,26 @@ func (t *Ticket) Token(username, password string) (*Token, error) {
    if err != nil {
       return nil, err
    }
-   var client1 client
-   err = client1.New(req.URL, data)
+   var clientVar client
+   err = clientVar.New(req.URL, data)
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", client1.String())
+   req.Header.Set("authorization", clientVar.String())
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   var token1 Token
-   err = json.NewDecoder(resp.Body).Decode(&token1)
+   var tokenVar Token
+   err = json.NewDecoder(resp.Body).Decode(&tokenVar)
    if err != nil {
       return nil, err
    }
-   if token1.Label != "sg.ui.sso.success.login" {
-      return nil, errors.New(token1.Label)
+   if tokenVar.Label != "sg.ui.sso.success.login" {
+      return nil, errors.New(tokenVar.Label)
    }
-   return &token1, nil
+   return &tokenVar, nil
 }
 
 type Ticket struct {
@@ -157,12 +157,12 @@ func (t *Ticket) New() error {
    if err != nil {
       return err
    }
-   var client1 client
-   err = client1.New(req.URL, data)
+   var clientVar client
+   err = clientVar.New(req.URL, data)
    if err != nil {
       return err
    }
-   req.Header.Set("authorization", client1.String())
+   req.Header.Set("authorization", clientVar.String())
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err

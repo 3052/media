@@ -150,9 +150,9 @@ func (n *Login) Unmarshal(data Byte[Login]) error {
 }
 
 func (e *Entitlement) Dash() (*Format, bool) {
-   for _, format1 := range e.Formats {
-      if format1.Format == "DASH" {
-         return &format1, true
+   for _, formatVar := range e.Formats {
+      if formatVar.Format == "DASH" {
+         return &formatVar, true
       }
    }
    return nil, false

@@ -189,9 +189,9 @@ func (a *Auth) SeriesDetail(id int64) (*Child, error) {
    return &value.Data, nil
 }
 
-func (p *Playback) License(source1 *Source, data []byte) ([]byte, error) {
+func (p *Playback) License(sourceVar *Source, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
-      "POST", source1.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
+      "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
@@ -214,8 +214,6 @@ type Source struct {
    Src  string // MPD
    Type string
 }
-
-///
 
 type Byte[T any] []byte
 
@@ -288,9 +286,9 @@ type Playback struct {
 }
 
 func (p *Playback) Dash() (*Source, bool) {
-   for _, source1 := range p.Body.Data.PlaybackJsonData.Sources {
-      if source1.Type == "application/dash+xml" {
-         return &source1, true
+   for _, sourceVar := range p.Body.Data.PlaybackJsonData.Sources {
+      if sourceVar.Type == "application/dash+xml" {
+         return &sourceVar, true
       }
    }
    return nil, false
