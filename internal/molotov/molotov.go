@@ -48,13 +48,14 @@ func (f *flag_set) download() error {
    f.cdm.License = func(data []byte) ([]byte, error) {
       return asset.License(data)
    }
-   return f.cdm.Download(f.media+"/Mpd", f.dash)
+   return f.filters.Filter(resp, &f.cdm)
 }
 
 type flag_set struct {
    address  molotov.Address
    dash     string
-   cdm        net.Cdm
+   cdm      net.Cdm
+   filters net.Filters
    email    string
    media    string
    password string

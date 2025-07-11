@@ -132,6 +132,7 @@ func (f *flag_set) do_series() error {
    }
    return nil
 }
+
 func main() {
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
