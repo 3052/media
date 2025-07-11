@@ -4,20 +4,6 @@
 
 https://play.google.com/store/apps/details?id=ca.ctv.ctvgo
 
-~~~
-> play -i ca.ctv.ctvgo
-details[8] = 0 USD
-details[13][1][4] = 6.65.1
-details[13][1][16] = Sep 10, 2024
-details[13][1][17] = APK
-details[13][1][82][1][1] = 8.0 and up
-details[15][18] = http://www.bell.ca/privacy
-downloads = 2.72 million
-name = CTV
-size = 39.62 megabyte
-version code = 60000337
-~~~
-
 - https://apkmirror.com/apk/bell-media-inc/ctv
 - https://apkmirror.com/apk/bell-media-inc/ctv-android-tv
 
