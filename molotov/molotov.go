@@ -33,7 +33,7 @@ func (r *Refresh) View(web *Address) (*View, error) {
       return nil, err
    }
    if viewVar.Program.Actions.Play == nil {
-      return nil, errors.New("play == nil")
+      return nil, errors.New(".Program.Actions.Play == nil")
    }
    return &viewVar, nil
 }
