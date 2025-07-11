@@ -7,11 +7,59 @@ import (
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
 )
 
+func main() {
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.password != "":
+      err = set.authenticate()
+   case set.address != "":
+      err = set.download()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) authenticate() error {
+   data, err := criterion.NewToken(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/criterion/Token", data)
+}
+
+type flag_set struct {
+   address  string
+   dash     string
+   cdm        net.Cdm
+   email    string
+   media    string
+   password string
+   filters net.Filters
+}
 func (f *flag_set) download() error {
    data, err := os.ReadFile(f.media + "/criterion/Token")
    if err != nil {
@@ -58,7 +106,7 @@ func (f *flag_set) download() error {
    f.cdm.License = func(data []byte) ([]byte, error) {
       return file.License(data)
    }
-   return f.cdm.Download(f.media+"/Mpd", f.dash)
+   return f.filters.Filter(resp, &f.cdm)
 }
 
 func (f *flag_set) New() error {
@@ -78,45 +126,4 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.password != "":
-      err = set.authenticate()
-   case set.address != "":
-      err = set.download()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) authenticate() error {
-   data, err := criterion.NewToken(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/criterion/Token", data)
-}
-
-type flag_set struct {
-   address  string
-   dash     string
-   cdm        net.Cdm
-   email    string
-   media    string
-   password string
 }

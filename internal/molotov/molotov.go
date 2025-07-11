@@ -10,6 +10,56 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) download() error {
+   data, err := os.ReadFile(f.media + "/molotov/Refresh")
+   if err != nil {
+      return err
+   }
+   var refresh molotov.Refresh
+   err = refresh.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = refresh.Refresh()
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/molotov/Refresh", data)
+   if err != nil {
+      return err
+   }
+   view, err := refresh.View(&f.address)
+   if err != nil {
+      return err
+   }
+   data, err = refresh.Asset(view)
+   if err != nil {
+      return err
+   }
+   var asset molotov.Asset
+   err = asset.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(asset.FhdReady())
+   if err != nil {
+      return err
+   }
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return asset.License(data)
+   }
+   return f.cdm.Download(f.media+"/Mpd", f.dash)
+}
+
+type flag_set struct {
+   address  molotov.Address
+   dash     string
+   cdm        net.Cdm
+   email    string
+   media    string
+   password string
+}
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -17,15 +67,14 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
    flag.Var(&f.address, "a", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")
    flag.StringVar(&f.dash, "i", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }
@@ -65,70 +114,4 @@ func (f *flag_set) authenticate() error {
       return err
    }
    return write_file(f.media+"/molotov/Refresh", data)
-}
-
-func (f *flag_set) download() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/molotov/Asset")
-      if err != nil {
-         return err
-      }
-      var asset molotov.Asset
-      err = asset.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return asset.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   data, err := os.ReadFile(f.media + "/molotov/Refresh")
-   if err != nil {
-      return err
-   }
-   var refresh molotov.Refresh
-   err = refresh.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = refresh.Refresh()
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/molotov/Refresh", data)
-   if err != nil {
-      return err
-   }
-   view, err := refresh.View(&f.address)
-   if err != nil {
-      return err
-   }
-   data, err = refresh.Asset(view)
-   if err != nil {
-      return err
-   }
-   var asset molotov.Asset
-   err = asset.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/molotov/Asset", data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(asset.FhdReady())
-   if err != nil {
-      return err
-   }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-
-type flag_set struct {
-   address  molotov.Address
-   dash     string
-   e        net.License
-   email    string
-   media    string
-   password string
 }
