@@ -12,6 +12,55 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) download() error {
+   data, err := os.ReadFile(f.media + "/criterion/Token")
+   if err != nil {
+      return err
+   }
+   var token criterion.Token
+   err = token.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = token.Refresh()
+   if err != nil {
+      return err
+   }
+   err = token.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.media+"/criterion/Token", data)
+   if err != nil {
+      return err
+   }
+   video, err := token.Video(path.Base(f.address))
+   if err != nil {
+      return err
+   }
+   data, err = token.Files(video)
+   if err != nil {
+      return err
+   }
+   var files criterion.Files
+   err = files.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   file, ok := files.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(file.Links.Source.Href)
+   if err != nil {
+      return err
+   }
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return file.License(data)
+   }
+   return f.cdm.Download(f.media+"/Mpd", f.dash)
+}
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -19,15 +68,14 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")
    flag.StringVar(&f.dash, "i", "", "DASH ID")
-   flag.StringVar(&f.e.PrivateKey, "k", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }
@@ -64,76 +112,10 @@ func (f *flag_set) authenticate() error {
    return write_file(f.media+"/criterion/Token", data)
 }
 
-func (f *flag_set) download() error {
-   if f.dash != "" {
-      data, err := os.ReadFile(f.media + "/criterion/Files")
-      if err != nil {
-         return err
-      }
-      var files criterion.Files
-      err = files.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      file, _ := files.Dash()
-      f.e.Widevine = func(data []byte) ([]byte, error) {
-         return file.Widevine(data)
-      }
-      return f.e.Download(f.media+"/Mpd", f.dash)
-   }
-   data, err := os.ReadFile(f.media + "/criterion/Token")
-   if err != nil {
-      return err
-   }
-   var token criterion.Token
-   err = token.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = token.Refresh()
-   if err != nil {
-      return err
-   }
-   err = token.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/criterion/Token", data)
-   if err != nil {
-      return err
-   }
-   video, err := token.Video(path.Base(f.address))
-   if err != nil {
-      return err
-   }
-   data, err = token.Files(video)
-   if err != nil {
-      return err
-   }
-   var files criterion.Files
-   err = files.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.media+"/criterion/Files", data)
-   if err != nil {
-      return err
-   }
-   file, ok := files.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := http.Get(file.Links.Source.Href)
-   if err != nil {
-      return err
-   }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-
 type flag_set struct {
    address  string
    dash     string
-   e        net.License
+   cdm        net.Cdm
    email    string
    media    string
    password string
