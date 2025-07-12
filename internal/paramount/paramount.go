@@ -12,17 +12,17 @@ import (
 )
 
 func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   // http.DefaultTransport = net.Transport(set.proxy)
+   log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
          return http.ProxyFromEnvironment(req)
       },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
    }
    if set.paramount != "" {
       err = set.do_paramount()
@@ -45,16 +45,6 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
-   flag.Func("x", "proxy", func(data string) error {
-      var err error
-      f.proxy, err = url.Parse(data)
-      return err
-   })
-   f.filters = net.Filters{
-      {BitrateStart: 3_000_000, BitrateEnd: 5_000_000},
-      {BitrateStart: 100_000, BitrateEnd: 150_000, Role: "main"},
-   }
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.Parse()
    return nil
@@ -64,7 +54,6 @@ type flag_set struct {
    cdm       net.Cdm
    filters   net.Filters
    paramount string
-   proxy     *url.URL
 }
 
 func (f *flag_set) do_paramount() error {
@@ -82,9 +71,7 @@ func (f *flag_set) do_paramount() error {
    f.cdm.License = func(data []byte) ([]byte, error) {
       return session.License(data)
    }
-   if f.proxy != nil {
-      secret = paramount.ComCbsCa
-   }
+   // secret = paramount.ComCbsCa
    at, err = secret.At()
    if err != nil {
       return err
@@ -99,4 +86,3 @@ func (f *flag_set) do_paramount() error {
    }
    return f.filters.Filter(resp, &f.cdm)
 }
-

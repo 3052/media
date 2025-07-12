@@ -7,16 +7,19 @@ import (
 )
 
 var tests = []struct {
-   path string
-   url  string
+   category string
+   path     string
+   url      string
 }{
    {
-      path: "/emission/thelma-et-louise-29388",
-      url:  "auvio.rtbf.be/emission/thelma-et-louise-29388",
+      category: "films",
+      url: "auvio.rtbf.be/media/sibyl-avec-virginie-efira-et-adele-exarchopoulos-3355182",
+      path: "/media/sibyl-avec-virginie-efira-et-adele-exarchopoulos-3355182",
    },
    {
-      path: "/media/agatha-christie-pourquoi-pas-evans-agatha-christie-pourquoi-pas-evans-3280380",
-      url:  "auvio.rtbf.be/media/agatha-christie-pourquoi-pas-evans-agatha-christie-pourquoi-pas-evans-3280380",
+      category: "series",
+      path: "/media/the-durrells-une-famille-anglaise-a-corfou-the-durrells-une-famille-anglaise-a-corfou-s01-3351856",
+      url: "auvio.rtbf.be/media/the-durrells-une-famille-anglaise-a-corfou-the-durrells-une-famille-anglaise-a-corfou-s01-3351856",
    },
 }
 
