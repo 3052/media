@@ -36,8 +36,8 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   for _, test1 := range watch_tests {
-      match, err := userVar.Match(Url{test1.path})
+   for _, watch_test := range watch_tests {
+      match, err := userVar.Match(Url{watch_test.path})
       if err != nil {
          t.Fatal(err)
       }

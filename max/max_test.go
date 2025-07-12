@@ -77,13 +77,13 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var login1 Login
-   err = login1.Unmarshal(data)
+   var loginVar Login
+   err = loginVar.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
    // max.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7
-   data, err = login1.PlayReady("06a38397-862d-4419-be84-0641939825e7")
+   data, err = loginVar.PlayReady("06a38397-862d-4419-be84-0641939825e7")
    if err != nil {
       t.Fatal(err)
    }

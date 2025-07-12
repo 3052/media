@@ -70,8 +70,8 @@ func NewUser() (Byte[User], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (u User) Widevine(part1 *Part, data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", part1.License, bytes.NewReader(data))
+func (u User) Widevine(partVar *Part, data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", partVar.License, bytes.NewReader(data))
    if err != nil {
       return nil, err
    }
@@ -89,8 +89,8 @@ func (u User) Widevine(part1 *Part, data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (u User) Mpd(part1 *Part) (*http.Response, error) {
-   req, err := http.NewRequest("", part1.Key, nil)
+func (u User) Mpd(partVar *Part) (*http.Response, error) {
+   req, err := http.NewRequest("", partVar.Key, nil)
    if err != nil {
       return nil, err
    }

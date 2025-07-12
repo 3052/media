@@ -10,7 +10,7 @@ import (
    "strings"
 )
 
-func (a *AxisContent) Mpd(content1 *Content) (string, error) {
+func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
    req.URL.Path = func() string {
       b := []byte("/destinations/")
@@ -18,7 +18,7 @@ func (a *AxisContent) Mpd(content1 *Content) (string, error) {
       b = append(b, "/platforms/desktop/playback/contents/"...)
       b = strconv.AppendInt(b, a.AxisId, 10)
       b = append(b, "/contentPackages/"...)
-      b = strconv.AppendInt(b, content1.ContentPackages[0].Id, 10)
+      b = strconv.AppendInt(b, contentVar.ContentPackages[0].Id, 10)
       b = append(b, "/manifest.mpd"...)
       return string(b)
    }()
@@ -111,12 +111,12 @@ func (a *AxisContent) Content() (*Content, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   content1 := &Content{}
-   err = json.NewDecoder(resp.Body).Decode(content1)
+   contentVar := &Content{}
+   err = json.NewDecoder(resp.Body).Decode(contentVar)
    if err != nil {
       return nil, err
    }
-   return content1, nil
+   return contentVar, nil
 }
 
 type Content struct {

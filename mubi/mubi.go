@@ -76,11 +76,11 @@ const client = "web"
 
 // to get the MPD you have to call this or view video on the website. request
 // is hard geo blocked only the first time
-func (a *Authenticate) Viewing(film1 *Film) error {
+func (a *Authenticate) Viewing(filmVar *Film) error {
    req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
    req.URL.Path = func() string {
       b := []byte("/v3/films/")
-      b = strconv.AppendInt(b, film1.Id, 10)
+      b = strconv.AppendInt(b, filmVar.Id, 10)
       b = append(b, "/viewing"...)
       return string(b)
    }()
@@ -188,11 +188,11 @@ func (s *SecureUrl) Unmarshal(data Byte[SecureUrl]) error {
    }
    return nil
 }
-func (a *Authenticate) SecureUrl(film1 *Film) (Byte[SecureUrl], error) {
+func (a *Authenticate) SecureUrl(filmVar *Film) (Byte[SecureUrl], error) {
    req, _ := http.NewRequest("", "https://api.mubi.com", nil)
    req.URL.Path = func() string {
       b := []byte("/v3/films/")
-      b = strconv.AppendInt(b, film1.Id, 10)
+      b = strconv.AppendInt(b, filmVar.Id, 10)
       b = append(b, "/viewing/secure_url"...)
       return string(b)
    }()
@@ -239,10 +239,10 @@ func (s Slug) Film() (*Film, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   film1 := &Film{}
-   err = json.NewDecoder(resp.Body).Decode(film1)
+   filmVar := &Film{}
+   err = json.NewDecoder(resp.Body).Decode(filmVar)
    if err != nil {
       return nil, err
    }
-   return film1, nil
+   return filmVar, nil
 }

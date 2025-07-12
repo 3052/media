@@ -28,13 +28,13 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var token1 Token
-   err = token1.Unmarshal(data)
+   var tokenVar Token
+   err = tokenVar.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   for _, test1 := range tests {
-      _, err = token1.Video(test1.slug)
+   for _, testVar := range tests {
+      _, err = tokenVar.Video(testVar.slug)
       if err != nil {
          t.Fatal(err)
       }

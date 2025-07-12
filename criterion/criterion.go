@@ -42,9 +42,9 @@ type File struct {
 type Files []File
 
 func (f Files) Dash() (*File, bool) {
-   for _, file1 := range f {
-      if file1.Method == "dash" {
-         return &file1, true
+   for _, fileVar := range f {
+      if fileVar.Method == "dash" {
+         return &fileVar, true
       }
    }
    return nil, false
@@ -64,15 +64,15 @@ func (t *Token) Video(slug string) (*Video, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var video1 Video
-   err = json.NewDecoder(resp.Body).Decode(&video1)
+   var videoVar Video
+   err = json.NewDecoder(resp.Body).Decode(&videoVar)
    if err != nil {
       return nil, err
    }
-   if video1.Message != "" {
-      return nil, errors.New(video1.Message)
+   if videoVar.Message != "" {
+      return nil, errors.New(videoVar.Message)
    }
-   return &video1, nil
+   return &videoVar, nil
 }
 
 type Token struct {
@@ -111,8 +111,8 @@ func (t *Token) Unmarshal(data Byte[Token]) error {
    return json.Unmarshal(data, t)
 }
 
-func (t *Token) Files(video1 *Video) (Byte[Files], error) {
-   req, err := http.NewRequest("", video1.Links.Files.Href, nil)
+func (t *Token) Files(videoVar *Video) (Byte[Files], error) {
+   req, err := http.NewRequest("", videoVar.Links.Files.Href, nil)
    if err != nil {
       return nil, err
    }

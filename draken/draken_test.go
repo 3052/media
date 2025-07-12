@@ -20,9 +20,9 @@ var tests = []struct {
 }
 
 func Test(t *testing.T) {
-   for _, test1 := range tests {
-      var movie1 Movie
-      err := movie1.New(test1.custom_id)
+   for _, testVar := range tests {
+      var movieVar Movie
+      err := movieVar.New(testVar.custom_id)
       if err != nil {
          t.Fatal(err)
       }

@@ -60,8 +60,8 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   for _, test1 := range tests {
-      data, err := auth.SecureUrl(&Film{Id: test1.id})
+   for _, testVar := range tests {
+      data, err := auth.SecureUrl(&Film{Id: testVar.id})
       if err != nil {
          t.Fatal(err)
       }

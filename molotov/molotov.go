@@ -115,8 +115,8 @@ type Login struct {
    Auth Refresh
 }
 
-func (r *Refresh) Asset(view1 *View) (Byte[Asset], error) {
-   req, err := http.NewRequest("", view1.Program.Actions.Play.Url, nil)
+func (r *Refresh) Asset(viewVar *View) (Byte[Asset], error) {
+   req, err := http.NewRequest("", viewVar.Program.Actions.Play.Url, nil)
    if err != nil {
       return nil, err
    }

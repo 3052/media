@@ -48,9 +48,9 @@ query Article($articleUrlSlug: String) {
 ` // do not use `query(`
 
 func (a *Article) Film() (*Asset, bool) {
-   for _, asset1 := range a.Assets {
-      if asset1.LinkedType == "film" {
-         return &asset1, true
+   for _, assetVar := range a.Assets {
+      if assetVar.LinkedType == "film" {
+         return &assetVar, true
       }
    }
    return nil, false
@@ -157,12 +157,12 @@ type User struct {
 }
 
 // hard geo block
-func (u User) Play(article1 *Article, asset1 *Asset) (Byte[Play], error) {
+func (u User) Play(articleVar *Article, assetVar *Asset) (Byte[Play], error) {
    data, err := json.Marshal(map[string]any{
       "query": query_asset,
       "variables": map[string]int{
-         "article_id": article1.Id,
-         "asset_id": asset1.Id,
+         "article_id": articleVar.Id,
+         "asset_id": assetVar.Id,
       },
    })
    if err != nil {

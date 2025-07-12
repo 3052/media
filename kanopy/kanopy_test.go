@@ -31,17 +31,17 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var login1 Login
-   err = login1.Unmarshal(data)
+   var loginVar Login
+   err = loginVar.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   member, err := login1.Membership()
+   member, err := loginVar.Membership()
    if err != nil {
       t.Fatal(err)
    }
-   for _, test1 := range tests {
-      _, err = login1.Plays(member, test1.video_id)
+   for _, testVar := range tests {
+      _, err = loginVar.Plays(member, testVar.video_id)
       if err != nil {
          t.Fatal(err)
       }

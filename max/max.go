@@ -291,11 +291,11 @@ func (v *Video) String() string {
 
 func (v *Videos) Seq() iter.Seq[*Video] {
    return func(yield func(*Video) bool) {
-      for _, video1 := range v.Included {
-         if video1.Attributes != nil {
-            switch video1.Attributes.VideoType {
+      for _, videoVar := range v.Included {
+         if videoVar.Attributes != nil {
+            switch videoVar.Attributes.VideoType {
             case "EPISODE", "MOVIE":
-               if !yield(&video1) {
+               if !yield(&videoVar) {
                   return
                }
             }

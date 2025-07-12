@@ -23,8 +23,6 @@ var tests = []struct {
    },
 }
 
-func TestAssets(t *testing.T) {
-   for _, test1 := range tests {
-      fmt.Println(test1.url)
-   }
+func Test(t *testing.T) {
+   fmt.Println(tests)
 }

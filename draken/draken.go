@@ -64,10 +64,10 @@ func (n *Login) Unmarshal(data Byte[Login]) error {
 }
 
 func (n Login) Playback(
-   movie1 *Movie, title *Entitlement,
+   movieVar *Movie, title *Entitlement,
 ) (Byte[Playback], error) {
    req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
-   req.URL.Path = "/api/playback/v1/preflight/asset/" + movie1.Id
+   req.URL.Path = "/api/playback/v1/preflight/asset/" + movieVar.Id
    magine_accesstoken.set(req.Header)
    magine_play_devicemodel.set(req.Header)
    magine_play_deviceplatform.set(req.Header)
@@ -107,9 +107,9 @@ func (n Login) Widevine(play *Playback, data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (n Login) Entitlement(movie1 Movie) (*Entitlement, error) {
+func (n Login) Entitlement(movieVar Movie) (*Entitlement, error) {
    req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
-   req.URL.Path = "/api/entitlement/v2/asset/" + movie1.Id
+   req.URL.Path = "/api/entitlement/v2/asset/" + movieVar.Id
    req.Header.Set("authorization", "Bearer "+n.Token)
    magine_accesstoken.set(req.Header)
    resp, err := http.DefaultClient.Do(req)
