@@ -10,7 +10,44 @@ import (
    "strings"
 )
 
-func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
+type Entitlement struct {
+   AssetId   string
+   Formats   []Format
+   Message string
+   PlayToken string
+}
+
+func (e *Entitlement) Unmarshal(data Byte[Entitlement]) error {
+   err := json.Unmarshal(data, e)
+   if err != nil {
+      return err
+   }
+   if e.Message != "" {
+      return errors.New(e.Message)
+   }
+   return nil
+}
+
+func (g *GigyaLogin) Entitlement(c *Content) (Byte[Entitlement], error) {
+   req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v2/customer/RTBF/businessunit/Auvio/entitlement/")
+      data.WriteString(c.get_asset_id())
+      data.WriteString("/play")
+      return data.String()
+   }()
+   req.Header.Set("x-forwarded-for", "91.90.123.17")
+   req.Header.Set("authorization", "Bearer "+g.SessionToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (e *Entitlement) License(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
    )
@@ -158,36 +195,7 @@ func (e *Entitlement) Dash() (*Format, bool) {
    return nil, false
 }
 
-type Entitlement struct {
-   AssetId   string
-   PlayToken string
-   Formats   []Format
-}
-
 type Byte[T any] []byte
-
-func (e *Entitlement) Unmarshal(data Byte[Entitlement]) error {
-   return json.Unmarshal(data, e)
-}
-
-func (g *GigyaLogin) Entitlement(c *Content) (Byte[Entitlement], error) {
-   req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/v2/customer/RTBF/businessunit/Auvio/entitlement/")
-      data.WriteString(c.get_asset_id())
-      data.WriteString("/play")
-      return data.String()
-   }()
-   req.Header.Set("x-forwarded-for", "91.90.123.17")
-   req.Header.Set("authorization", "Bearer "+g.SessionToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
 
 type Address [1]string
 

@@ -23,13 +23,13 @@ var tests = []struct {
    },
 }
 
-func TestPage(t *testing.T) {
-   for _, test := range tests {
-      content1, err := Address{test.path}.Content()
+func Test(t *testing.T) {
+   for _, testVar := range tests {
+      contentVar, err := Address{testVar.path}.Content()
       if err != nil {
          t.Fatal(err)
       }
-      fmt.Printf("%+v\n", content1)
+      fmt.Printf("%+v\n", contentVar)
       time.Sleep(time.Second)
    }
 }
