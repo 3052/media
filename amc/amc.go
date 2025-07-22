@@ -189,6 +189,8 @@ func (a *Auth) SeriesDetail(id int64) (*Child, error) {
    return &value.Data, nil
 }
 
+type Byte[T any] []byte
+
 func (p *Playback) License(sourceVar *Source, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
@@ -215,7 +217,7 @@ type Source struct {
    Type string
 }
 
-type Byte[T any] []byte
+///
 
 type Child struct {
    Children   []Child
