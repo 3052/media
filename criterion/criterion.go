@@ -76,7 +76,7 @@ func (t *Token) Video(slug string) (*Video, error) {
 }
 
 type Token struct {
-   AccessToken string `json:"access_token"`
+   AccessToken  string `json:"access_token"`
    RefreshToken string `json:"refresh_token"`
 }
 
@@ -96,8 +96,8 @@ func NewToken(username, password string) (Byte[Token], error) {
 
 func (t *Token) Refresh() (Byte[Token], error) {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id": {client_id},
-      "grant_type": {"refresh_token"},
+      "client_id":     {client_id},
+      "grant_type":    {"refresh_token"},
       "refresh_token": {t.RefreshToken},
    })
    if err != nil {
