@@ -307,4 +307,3 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
    p.Header = resp.Header
    return json.NewDecoder(resp.Body).Decode(&p.Body)
 }
-
