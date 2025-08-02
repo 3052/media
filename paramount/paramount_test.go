@@ -6,6 +6,28 @@ import (
    "testing"
 )
 
+func TestPlayReady(t *testing.T) {
+   token, err := ComCbsApp.At()
+   if err != nil {
+      t.Fatal(err)
+   }
+   sessionVar, err := token.playReady("tOeI0WHG3icuPhCk5nkLXNmi5c4Jfx41")
+   if err != nil {
+      t.Fatal(err)
+   }
+   home, err := os.UserHomeDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      home + "/media/paramount/PlayReady",
+      []byte(sessionVar.LsSession), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
 var location_tests = []struct {
    content_id string
    location   []string
@@ -47,28 +69,6 @@ var location_tests = []struct {
       url:        "paramountplus.com/shows/video/esJvFlqdrcS_kFHnpxSuYp449E7tTexD",
       period: 1,
    },
-}
-
-func TestPlayReady(t *testing.T) {
-   token, err := ComCbsApp.At()
-   if err != nil {
-      t.Fatal(err)
-   }
-   sess, err := token.playReady("tOeI0WHG3icuPhCk5nkLXNmi5c4Jfx41")
-   if err != nil {
-      t.Fatal(err)
-   }
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(
-      home + "/media/paramount/PlayReady",
-      []byte(sess.LsSession), os.ModePerm,
-   )
-   if err != nil {
-      t.Fatal(err)
-   }
 }
 
 func TestLocation(t *testing.T) {
