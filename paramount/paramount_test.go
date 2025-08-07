@@ -11,7 +11,7 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   sessionVar, err := token.playReady("tOeI0WHG3icuPhCk5nkLXNmi5c4Jfx41")
+   sessionVar, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
    if err != nil {
       t.Fatal(err)
    }
@@ -35,6 +35,11 @@ var location_tests = []struct {
    period int
 }{
    {
+      location:   []string{"USA"},
+      url:        "paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q",
+      content_id: "wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q",
+   },
+   {
       content_id: "rZ59lcp4i2fU4dAaZJ_iEgKqVg_ogrIf",
       location:   []string{"USA"},
       url:        "cbs.com/shows/video/rZ59lcp4i2fU4dAaZJ_iEgKqVg_ogrIf",
@@ -56,12 +61,6 @@ var location_tests = []struct {
       content_id: "WNujiS5PHkY5wN9doNY6MSo_7G8uBUcX",
       url:        "paramountplus.com/shows/video/WNujiS5PHkY5wN9doNY6MSo_7G8uBUcX",
       location:   []string{"Australia"},
-   },
-   {
-      content_id: "tOeI0WHG3icuPhCk5nkLXNmi5c4Jfx41",
-      url:        "paramountplus.com/movies/video/tOeI0WHG3icuPhCk5nkLXNmi5c4Jfx41",
-      location:   []string{"USA"},
-      period: 1,
    },
    {
       content_id: "esJvFlqdrcS_kFHnpxSuYp449E7tTexD",

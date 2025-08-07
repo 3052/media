@@ -14,6 +14,7 @@ import (
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
+      Protocols: &http.Protocols{},
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
          return http.ProxyFromEnvironment(req)
