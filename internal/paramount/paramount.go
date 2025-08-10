@@ -9,6 +9,7 @@ import (
    "net/url"
    "os"
    "path/filepath"
+   "strings"
 )
 
 func main() {
@@ -17,6 +18,12 @@ func main() {
       Protocols: &http.Protocols{},
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
+         if strings.HasSuffix(req.URL.Path, "/anonymous-session-token.json") {
+            return nil, nil
+         }
+         if strings.HasSuffix(req.URL.Path, "/getlicense") {
+            return nil, nil
+         }
          return http.ProxyFromEnvironment(req)
       },
    }
@@ -45,16 +52,11 @@ func (f *flag_set) New() error {
    f.cdm.PrivateKey = media + "/private_key.pem"
    flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
-   flag.StringVar(&f.paramount, "p", "", "paramount ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.BoolVar(&f.intl, "i", false, "intl")
+   flag.StringVar(&f.paramount, "p", "", "paramount ID")
    flag.Parse()
    return nil
-}
-
-type flag_set struct {
-   cdm       net.Cdm
-   filters   net.Filters
-   paramount string
 }
 
 func (f *flag_set) do_paramount() error {
@@ -72,7 +74,9 @@ func (f *flag_set) do_paramount() error {
    f.cdm.License = func(data []byte) ([]byte, error) {
       return session.License(data)
    }
-   // secret = paramount.ComCbsCa
+   if f.intl {
+      secret = paramount.ComCbsCa
+   }
    at, err = secret.At()
    if err != nil {
       return err
@@ -87,3 +91,10 @@ func (f *flag_set) do_paramount() error {
    }
    return f.filters.Filter(resp, &f.cdm)
 }
+type flag_set struct {
+   cdm       net.Cdm
+   filters   net.Filters
+   paramount string
+   intl bool
+}
+
