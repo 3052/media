@@ -226,6 +226,28 @@ func (c *Child) Seasons() iter.Seq[*Child] {
    }
 }
 
+type Metadata struct {
+   EpisodeNumber int64
+   Nid           int64
+   Title         string
+}
+
+func (m *Metadata) String() string {
+   var b []byte
+   if m.EpisodeNumber >= 0 {
+      b = []byte("episode = ")
+      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "title = "...)
+   b = append(b, m.Title...)
+   b = append(b, "\nnid = "...)
+   b = strconv.AppendInt(b, m.Nid, 10)
+   return string(b)
+}
+
 func (p *Playback) License(sourceVar *Source, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
@@ -253,28 +275,6 @@ type Source struct {
 }
 
 ///
-
-type Metadata struct {
-   EpisodeNumber int64
-   Nid           int64
-   Title         string
-}
-
-func (m *Metadata) String() string {
-   var b []byte
-   if m.EpisodeNumber >= 0 {
-      b = []byte("episode = ")
-      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
-   }
-   if b != nil {
-      b = append(b, '\n')
-   }
-   b = append(b, "title = "...)
-   b = append(b, m.Title...)
-   b = append(b, "\nnid = "...)
-   b = strconv.AppendInt(b, m.Nid, 10)
-   return string(b)
-}
 
 type Playback struct {
    Header http.Header
