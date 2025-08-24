@@ -15,6 +15,28 @@ import (
    "strings"
 )
 
+func (s *Session) License(data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + s.LsSession)
+   req.Header.Set("content-type", "application/x-protobuf")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(string(data))
+   }
+   return data, nil
+}
+
 func (a At) Session(content_id string) (*Session, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
@@ -68,28 +90,6 @@ func (a At) playReady(content_id string) (*Session, error) {
       return nil, err
    }
    return sessionVar, nil
-}
-
-func (s *Session) License(data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer " + s.LsSession)
-   req.Header.Set("content-type", "application/x-protobuf")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(string(data))
-   }
-   return data, nil
 }
 
 // proxy
