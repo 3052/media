@@ -248,34 +248,6 @@ func (m *Metadata) String() string {
    return string(b)
 }
 
-func (p *Playback) License(sourceVar *Source, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("bcov-auth", p.Header.Get("x-amcn-bc-jwt"))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Source struct {
-   KeySystems *struct {
-      Widevine struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // MPD
-   Type string
-}
-
-///
-
 type Playback struct {
    Header http.Header
    Body   struct {
@@ -306,4 +278,30 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
    defer resp.Body.Close()
    p.Header = resp.Header
    return json.NewDecoder(resp.Body).Decode(&p.Body)
+}
+
+func (p *Playback) License(sourceVar *Source, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("bcov-auth", p.Header.Get("x-amcn-bc-jwt"))
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Source struct {
+   KeySystems *struct {
+      Widevine struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // MPD
+   Type string
 }
