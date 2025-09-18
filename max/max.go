@@ -14,7 +14,21 @@ import (
    "strings"
 )
 
-func (p *Playback) License(data []byte) ([]byte, error) {
+func (p *Playback) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
       bytes.NewReader(data),

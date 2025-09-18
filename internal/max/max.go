@@ -11,6 +11,46 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_edit() error {
+   data, err := os.ReadFile(f.media + "/max/Login")
+   if err != nil {
+      return err
+   }
+   var login max.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = login.PlayReady(f.edit)
+   if err != nil {
+      return err
+   }
+   var play max.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Mpd())
+   if err != nil {
+      return err
+   }
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return play.PlayReady(data)
+   }
+   return f.filters.Filter(resp, &f.cdm)
+}
+
+type flag_set struct {
+   address  string
+   cdm      net.Cdm
+   filters  net.Filters
+   edit     string
+   initiate bool
+   login    bool
+   media    string
+   season   int
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    var set flag_set
@@ -63,6 +103,7 @@ func (f *flag_set) do_address() error {
    }
    return nil
 }
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -70,58 +111,14 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.edit, "e", "", "edit ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.BoolVar(&f.initiate, "i", false, "device initiate")
    flag.BoolVar(&f.login, "l", false, "device login")
-   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
    flag.IntVar(&f.season, "s", 0, "season")
    flag.Parse()
    return nil
-}
-
-func (f *flag_set) do_edit() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
-   if err != nil {
-      return err
-   }
-   var login max.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = login.Widevine(f.edit)
-   if err != nil {
-      return err
-   }
-   var play max.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Mpd())
-   if err != nil {
-      return err
-   }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return play.License(data)
-   }
-   return f.filters.Filter(resp, &f.cdm)
-}
-
-type flag_set struct {
-   address  string
-   cdm        net.Cdm
-   filters        net.Filters
-   edit     string
-   initiate bool
-   login    bool
-   media    string
-   season   int
 }
 
 func write_file(name string, data []byte) error {
