@@ -7,22 +7,12 @@ import (
    "fmt"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
-   "strings"
 )
 
 func main() {
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         if !strings.HasSuffix(req.URL.Path, ".mp4") {
-            log.Println(req.Method, req.URL)
-         }
-         return http.ProxyFromEnvironment(req)
-      },
-   }
    var set flag_set
    err := set.New()
    if err != nil {
