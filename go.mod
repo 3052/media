@@ -3,7 +3,7 @@ module 41.neocities.org/media
 go 1.24.0
 
 require (
-	41.neocities.org/net v1.8.7
+	41.neocities.org/net v1.8.8
 	41.neocities.org/widevine v1.6.4
 )
 
