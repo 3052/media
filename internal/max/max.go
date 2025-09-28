@@ -7,9 +7,40 @@ import (
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
+
+func main() {
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.initiate:
+      err = set.do_initiate()
+   case set.login:
+      err = set.do_login()
+   case set.address != "":
+      err = set.do_address()
+   case set.edit != "":
+      err = set.do_edit()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
 
 func (f *flag_set) do_edit() error {
    data, err := os.ReadFile(f.media + "/max/Login")
@@ -49,30 +80,6 @@ type flag_set struct {
    login    bool
    media    string
    season   int
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.initiate:
-      err = set.do_initiate()
-   case set.login:
-      err = set.do_login()
-   case set.address != "":
-      err = set.do_address()
-   case set.edit != "":
-      err = set.do_edit()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }
 
 func (f *flag_set) do_address() error {
