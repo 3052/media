@@ -11,6 +11,11 @@ import (
    "strings"
 )
 
+type Authenticate struct {
+   DeviceToken string `json:"device_token"`
+   UserToken   string `json:"user_token"`
+}
+
 type Playlist struct {
    DashPrServer string `json:"dash_pr_server"`
    Message      string
@@ -172,11 +177,6 @@ func (a *Authenticate) Refresh() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(a)
-}
-
-type Authenticate struct {
-   DeviceToken string `json:"device_token"`
-   UserToken   string `json:"user_token"`
 }
 
 func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
