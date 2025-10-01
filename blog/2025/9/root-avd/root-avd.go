@@ -51,23 +51,22 @@ func main() {
    // Handle standalone commands
    if listAllAVDs {
       showHelpText()
-      os.Exit(0)
+      return
    }
    if installApps {
       if err = testADB(); err != nil {
          log.Fatalf("Cannot install apps without a working ADB connection: %v", err)
       }
       if err = installapps(); err != nil {
-         // Non-fatal errors can still use fmt or a different log level
          fmt.Printf("[!] ERROR: %v\n", err)
       }
-      os.Exit(0)
+      return
    }
 
    // From this point, a path to the ramdisk.img is required.
    if len(os.Args) < 2 {
       showHelpText()
-      os.Exit(0) // Not a fatal error, just showing help text
+      return
    }
 
    ramdiskArgPath := filepath.Join(androidHome, os.Args[1])
@@ -90,7 +89,7 @@ func main() {
       if err = restoreBackups(); err != nil {
          fmt.Printf("[!] ERROR during restore: %v\n", err)
       }
-      os.Exit(0)
+      return
    }
 
    if err = testADB(); err != nil {
