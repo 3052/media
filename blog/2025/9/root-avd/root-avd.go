@@ -3,6 +3,7 @@ package main
 import (
    "fmt"
    "io"
+   "log"
    "os"
    "os/exec"
    "path/filepath"
@@ -12,51 +13,52 @@ import (
 
 // Global variables hold the application's state, derived from arguments and environment.
 var (
+   adbBaseDir                   = ""
+   adbWorkdir                   = "/data/data/com.android.shell"
+   androidHome                  = ""
+   avdPath                      = ""
+   avdPathWithRdffile           = ""
+   bzFile                       = ""
    debug                        = false
-   patchFstab                   = false
-   getUSBHPmodZ                 = false
-   ramdiskImg                   = false
-   restore                      = false
+   installApps                  = false
    installKernelModules         = false
    installPrebuiltKernelModules = false
-   listAllAVDs                  = false
-   installApps                  = false
-   noParamsAtAll                = false
-   copyAsAdmin                  = false // Retained for logic, e.g., in testWritePerm
-   androidHome                  = ""
-   avdPathWithRdffile           = ""
-   avdPath                      = ""
-   rdfFile                      = ""
-   rootAVD                      = ""
-   magiskZip                    = ""
-   bzFile                       = ""
    krFile                       = "kernel-ranchu"
-   adbWorkdir                   = "/data/data/com.android.shell"
-   adbBaseDir                   = ""
+   listAllAVDs                  = false
+   magiskZip                    = ""
+   ramdiskImg                   = false
+   rdfFile                      = ""
+   restore                      = false
+   rootAVD                      = ""
 )
 
-// main is the application entry point. It orchestrates the workflow and handles all fatal errors.
 func main() {
-   var err error // Declare a single error variable to be reused.
+   // --- Configure the standard logger ---
+   // Remove the default timestamp and source file information.
+   log.SetFlags(0)
+   // Set a custom prefix to match the script's original style for fatal errors.
+   log.SetPrefix("[!] FATAL: ")
+   // --- End of logger configuration ---
+
+   var err error
 
    processArguments()
 
    if err = getANDROIDHOME(); err != nil {
-      fmt.Printf("[!] FATAL: %v\n", err)
-      os.Exit(1)
+      log.Fatalf("%v", err)
    }
 
-   // Handle standalone commands that don't require a ramdisk path.
+   // Handle standalone commands
    if listAllAVDs {
       showHelpText()
       os.Exit(0)
    }
    if installApps {
-      if err = testADB(); err != nil { // testADB is needed to install apps
-         fmt.Printf("[!] FATAL: Cannot install apps without a working ADB connection: %v\n", err)
-         os.Exit(1)
+      if err = testADB(); err != nil {
+         log.Fatalf("Cannot install apps without a working ADB connection: %v", err)
       }
       if err = installapps(); err != nil {
+         // Non-fatal errors can still use fmt or a different log level
          fmt.Printf("[!] ERROR: %v\n", err)
       }
       os.Exit(0)
@@ -65,25 +67,24 @@ func main() {
    // From this point, a path to the ramdisk.img is required.
    if len(os.Args) < 2 {
       showHelpText()
-      os.Exit(0)
+      os.Exit(0) // Not a fatal error, just showing help text
    }
 
-   if _, err := os.Stat(filepath.Join(androidHome, os.Args[1])); os.IsNotExist(err) {
-      fmt.Printf("[!] FATAL: File or directory not found: %s\n", os.Args[1])
-      os.Exit(1)
+   ramdiskArgPath := filepath.Join(androidHome, os.Args[1])
+   if _, err := os.Stat(ramdiskArgPath); os.IsNotExist(err) {
+      log.Fatalf("File or directory not found: %s", os.Args[1])
    }
 
    fmt.Println("[*] Setting Directories")
-   avdPathWithRdffile = filepath.Join(androidHome, os.Args[1])
+   avdPathWithRdffile = ramdiskArgPath
    avdPath = filepath.Dir(avdPathWithRdffile)
    rdfFile = filepath.Base(avdPathWithRdffile)
 
    if fi, err := os.Stat(avdPathWithRdffile); err == nil && fi.IsDir() {
-      fmt.Printf("[!] FATAL: The provided path is a directory, not a file: %s\n", avdPathWithRdffile)
-      os.Exit(1)
+      log.Fatalf("The provided path is a directory, not a file: %s", avdPathWithRdffile)
    }
 
-   testWritePerm(rdfFile) // This function informs the user, doesn't need to be fatal.
+   testWritePerm(rdfFile)
 
    if restore {
       if err = restoreBackups(); err != nil {
@@ -92,36 +93,30 @@ func main() {
       os.Exit(0)
    }
 
-   // From this point, a running AVD and working ADB connection are required.
    if err = testADB(); err != nil {
-      fmt.Printf("[!] FATAL: %v\n", err)
-      os.Exit(1)
+      log.Fatalf("%v", err)
    }
 
    rootAVD, err = os.Getwd()
    if err != nil {
-      fmt.Printf("[!] FATAL: Could not get current working directory: %v\n", err)
-      os.Exit(1)
+      log.Fatalf("Could not get current working directory: %v", err)
    }
    magiskZip = filepath.Join(rootAVD, "Magisk.zip")
    bzFile = filepath.Join(rootAVD, "bzImage")
    adbBaseDir = adbWorkdir + "/Magisk"
 
    if err = testADBWORKDIR(); err != nil {
-      fmt.Printf("[!] FATAL: %v\n", err)
-      os.Exit(1)
+      log.Fatalf("%v", err)
    }
 
    if err = os.Chdir(rootAVD); err != nil {
-      fmt.Printf("[!] FATAL: Could not change directory to %s: %v\n", rootAVD, err)
-      os.Exit(1)
+      log.Fatalf("Could not change directory to %s: %v", rootAVD, err)
    }
 
    fmt.Println("[*] Preparing ADB working space on AVD...")
-   _ = runADBCommand("shell", "rm", "-rf", adbBaseDir) // Ignore error, dir might not exist.
+   _ = runADBCommand("shell", "rm", "-rf", adbBaseDir)
    if err = runADBCommand("shell", "mkdir", adbBaseDir); err != nil {
-      fmt.Printf("[!] FATAL: Could not create ADB working directory on AVD: %v\n", err)
-      os.Exit(1)
+      log.Fatalf("Could not create ADB working directory on AVD: %v", err)
    }
 
    fmt.Println("[*] Looking for Magisk installer Zip...")
@@ -129,8 +124,7 @@ func main() {
       fmt.Println("[-] Warning: Magisk.zip not found. Please place it in the script directory to patch.")
    } else {
       if err = pushtoAVD(magiskZip, ""); err != nil {
-         fmt.Printf("[!] FATAL: %v\n", err)
-         os.Exit(1)
+         log.Fatalf("%v", err)
       }
    }
 
@@ -138,91 +132,70 @@ func main() {
 
    if ramdiskImg {
       if !strings.Contains(strings.ToLower(rdfFile), "ramdisk") || !strings.HasSuffix(strings.ToLower(rdfFile), ".img") {
-         fmt.Println("[!] FATAL: The provided file does not appear to be a ramdisk image.")
-         os.Exit(1)
+         log.Fatalf("The provided file does not appear to be a ramdisk image.")
       }
-
       if err = createBackup(rdfFile); err != nil {
-         fmt.Printf("[!] FATAL: %v\n", err)
-         os.Exit(1)
+         log.Fatalf("%v", err)
       }
       if err = pushtoAVD(avdPathWithRdffile, "ramdisk.img"); err != nil {
-         fmt.Printf("[!] FATAL: %v\n", err)
-         os.Exit(1)
+         log.Fatalf("%v", err)
       }
-
       if installKernelModules {
          if _, err = os.Stat(initramfs); err == nil {
             if err = pushtoAVD(initramfs, ""); err != nil {
-               fmt.Printf("[!] FATAL: %v\n", err)
-               os.Exit(1)
+               log.Fatalf("%v", err)
             }
          }
       }
    }
 
    if err = pushtoAVD("rootAVD.sh", ""); err != nil {
-      fmt.Printf("[!] FATAL: Could not push the rootAVD.sh script: %v\n", err)
-      os.Exit(1)
+      log.Fatalf("Could not push the rootAVD.sh script: %v", err)
    }
 
    fmt.Println("[-] Running the patch script on the AVD...")
    if err = runADBCommand("shell", "sh", adbBaseDir+"/rootAVD.sh", strings.Join(os.Args[1:], " ")); err != nil {
-      fmt.Printf("[!] FATAL: The patch script failed to execute on the AVD.\n")
-      os.Exit(1)
+      log.Fatalf("The patch script failed to execute on the AVD.")
    }
    fmt.Println("[+] Patch script executed successfully on the AVD.")
 
-   if !debug {
-      if ramdiskImg {
-         localPatchedRamdisk := filepath.Join(rootAVD, "ramdiskpatched4AVD.img")
-         if err = pullfromAVD("ramdiskpatched4AVD.img", localPatchedRamdisk); err != nil {
-            fmt.Printf("[!] FATAL: %v\n", err)
-            os.Exit(1)
-         }
+   if !debug && ramdiskImg {
+      localPatchedRamdisk := filepath.Join(rootAVD, "ramdiskpatched4AVD.img")
+      if err = pullfromAVD("ramdiskpatched4AVD.img", localPatchedRamdisk); err != nil {
+         log.Fatalf("%v", err)
+      }
+      if err = copyFile(localPatchedRamdisk, avdPathWithRdffile); err != nil {
+         log.Fatalf("Failed to copy patched ramdisk: %v\n[!] This is likely a permissions issue. Try running with administrator privileges.", err)
+      }
+      _ = os.Remove(localPatchedRamdisk)
 
-         if err = copyFile(localPatchedRamdisk, avdPathWithRdffile); err != nil {
-            fmt.Printf("[!] FATAL: Failed to copy patched ramdisk: %v\n", err)
-            fmt.Println("[!] This is likely a permissions issue. Try running with administrator privileges.")
-            os.Exit(1)
-         }
+      _ = pullfromAVD("Magisk.apk", filepath.Join(rootAVD, "Apps"))
+      _ = pullfromAVD("Magisk.zip", "")
 
-         if err = os.Remove(localPatchedRamdisk); err != nil {
-            fmt.Printf("[!] Warning: Could not remove temporary file %s: %v\n", localPatchedRamdisk, err)
-         }
-
-         // Non-fatal pulls
-         _ = pullfromAVD("Magisk.apk", filepath.Join(rootAVD, "Apps"))
-         _ = pullfromAVD("Magisk.zip", "")
-
-         if installPrebuiltKernelModules {
-            if err = pullfromAVD(bzFile, ""); err == nil {
-               if err = installKernelModulesFunc(); err != nil {
-                  fmt.Printf("[!] ERROR: %v\n", err)
-               }
-            }
-         }
-
-         if installKernelModules {
+      if installPrebuiltKernelModules {
+         if err = pullfromAVD(bzFile, ""); err == nil {
             if err = installKernelModulesFunc(); err != nil {
                fmt.Printf("[!] ERROR: %v\n", err)
             }
          }
-
-         fmt.Println("[-] Cleaning up ADB working space...")
-         _ = runADBCommand("shell", "rm", "-rf", adbBaseDir)
-
-         if err = installapps(); err != nil {
+      }
+      if installKernelModules {
+         if err = installKernelModulesFunc(); err != nil {
             fmt.Printf("[!] ERROR: %v\n", err)
          }
-
-         fmt.Println("[-] Shut-Down and Reboot [Cold Boot Now] the AVD to see if it worked.")
-         shutDownAVD()
       }
+
+      fmt.Println("[-] Cleaning up ADB working space...")
+      _ = runADBCommand("shell", "rm", "-rf", adbBaseDir)
+
+      if err = installapps(); err != nil {
+         fmt.Printf("[!] ERROR: %v\n", err)
+      }
+
+      fmt.Println("[-] Shut-Down and Reboot [Cold Boot Now] the AVD to see if it worked.")
+      shutDownAVD()
    }
 }
-
-// --- Helper Functions Returning `error` ---
 
 func getANDROIDHOME() error {
    var sdkPath string
@@ -476,9 +449,6 @@ func processArguments() {
    if len(os.Args) > 1 && !listAllAVDs && !installApps {
       ramdiskImg = true
    }
-   if len(os.Args) == 1 {
-      noParamsAtAll = true
-   }
 }
 
 func shutDownAVD() {
@@ -493,7 +463,6 @@ func testWritePerm(file string) {
    fmt.Println("[*] Testing for write permissions in AVD directory...")
    tempFile := filepath.Join(avdPath, file+".temp")
    if err := os.WriteFile(tempFile, []byte("test"), 0644); err != nil {
-      copyAsAdmin = true
       fmt.Println("[!] Elevated write permissions appear to be needed to access the Android SDK system images.")
    } else {
       fmt.Println("[+] Write permissions are sufficient.")
