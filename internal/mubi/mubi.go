@@ -11,29 +11,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   flag.Func("a", "address", func(data string) error {
-      return f.slug.Parse(data)
-   })
-   flag.BoolVar(&f.auth, "auth", false, "authenticate")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.BoolVar(&f.code, "code", false, "link code")
-   flag.StringVar(&f.dash, "d", "", "dash ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.BoolVar(&f.text, "text", false, "text track")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
-   flag.Parse()
-   return nil
-}
-
 func main() {
    var set flag_set
    err := set.New()
@@ -47,47 +24,12 @@ func main() {
       err = set.do_auth()
    case set.slug != "":
       err = set.do_slug()
-   case set.dash != "":
-      err = set.do_dash()
    default:
       flag.Usage()
    }
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) do_dash() error {
-   if f.text {
-      data, err := os.ReadFile(f.media + "/mubi/SecureUrl")
-      if err != nil {
-         return err
-      }
-      var secure mubi.SecureUrl
-      err = secure.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-      for _, text := range secure.TextTrackUrls {
-         err := get(&text)
-         if err != nil {
-            return err
-         }
-      }
-   }
-   data, err := os.ReadFile(f.media + "/mubi/Authenticate")
-   if err != nil {
-      return err
-   }
-   var auth mubi.Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
-      return auth.Widevine(data)
-   }
-   return f.e.Download(f.media+"/Mpd", f.dash)
 }
 
 func write_file(name string, data []byte) error {
@@ -128,12 +70,32 @@ func (f *flag_set) do_auth() error {
 
 type flag_set struct {
    auth    bool
+   cdm     net.Cdm
    code    bool
-   dash    string
-   e       net.License
+   filters net.Filters
    media   string
    slug    mubi.Slug
-   text    bool
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.Func("a", "address", func(data string) error {
+      return f.slug.Parse(data)
+   })
+   flag.BoolVar(&f.auth, "auth", false, "authenticate")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.BoolVar(&f.code, "code", false, "link code")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
+   flag.Parse()
+   return nil
 }
 
 func (f *flag_set) do_slug() error {
@@ -145,6 +107,9 @@ func (f *flag_set) do_slug() error {
    err = auth.Unmarshal(data)
    if err != nil {
       return err
+   }
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return auth.License(data)
    }
    film, err := f.slug.Film()
    if err != nil {
@@ -158,10 +123,6 @@ func (f *flag_set) do_slug() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/mubi/SecureUrl", data)
-   if err != nil {
-      return err
-   }
    var secure mubi.SecureUrl
    err = secure.Unmarshal(data)
    if err != nil {
@@ -171,23 +132,5 @@ func (f *flag_set) do_slug() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.media+"/Mpd", resp)
-}
-
-func get(text *mubi.Text) error {
-   resp, err := http.Get(text.Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   file, err := os.Create(text.Base())
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = file.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
+   return f.filters.Filter(resp, &f.cdm)
 }

@@ -2,34 +2,21 @@
 
 ## privacy.com
 
-~~~
-from:	Tana (Privacy Support) <support@privacy.com>
-date:	Nov 24, 2024, 10:38 AM
-subject:	Re: mubi.com
-
-Thanks for reaching out! I just increased the number of Privacy Cards you can
-use with this merchant. Another attempt with this card should be successful.
-
-For context into why you received this decline, we limit the number of Privacy
-Cards that users can create for a single merchant. We do this to reduce the
-risk of users violating merchant policies or terms, which could lead to the
-merchant banning Privacy Cards altogether.
-~~~
-
 1. mubi.com
-2. log in
-3. sign up now
-4. email
+2. enable javascript
+3. email address
    - tempmail.best
-5. sign up
-6. code
-7. watch, you will be charged $1 for your first 3 months
-8. cardholder
-9. card number
-10. expiry date
-11. CVV
-12. zip code
-13. start watching
+4. get started
+5. mubi
+6. next
+7. cardholder name
+8. card number
+9. expiry date
+10. CVV
+11. zip code
+12. I agree that after my first 7-days free, my membership will automatically
+   renew
+13. start free trial
 
 ## paypal.com
 
