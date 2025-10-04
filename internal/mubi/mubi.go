@@ -7,11 +7,19 @@ import (
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
 
 func main() {
+   http.DefaultTransport = &http.Transport{
+      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
    var set flag_set
    err := set.New()
    if err != nil {
