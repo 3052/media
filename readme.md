@@ -9,7 +9,7 @@ Download media or send API requests
 
 1. PlutoTV: Live TV & Free Movies
 2. Tubi: Free Movies & Live TV
-3. Max: Stream HBO, TV, & Movies
+3. HBO Max: Stream TV & Movies
 4. Hulu: Stream TV shows & movies
 5. Plex: Stream Movies & TV
 6. CANAL+, Live and catch-up TV

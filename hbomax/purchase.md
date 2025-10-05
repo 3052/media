@@ -1,6 +1,6 @@
 # purchase
 
-1. auth.max.com/product
+1. auth.hbomax.com/product
 2. monthly
 3. basic with ads
 4. continue
@@ -26,7 +26,7 @@ if you try to cancel they offer half price for three months
 ## paypal.com
 
 1. paypal.com/myaccount/autopay/connect
-2. max
+2. hbo max
 3. stop paying with paypal
 4. stop paying with paypal (again)
 5. stop paying with paypal (again, again)

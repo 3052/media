@@ -1,4 +1,4 @@
-package max
+package hbomax
 
 import (
    "fmt"
@@ -12,10 +12,10 @@ var content_tests = []struct {
 }{
    {
       location: []string{"united states"},
-      url:      "max.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7",
+      url:      "hbomax.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7",
    },
    {
-      url: "max.com/movies/despicable-me-4/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
+      url: "hbomax.com/movies/despicable-me-4/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
       location: []string{
          "chile",
          "colombia",
@@ -29,7 +29,7 @@ var content_tests = []struct {
       },
    },
    {
-      url: "max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505",
+      url: "hbomax.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505",
       location: []string{
          "belgium",
          "brazil",
@@ -73,7 +73,7 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(home + "/media/max/Login")
+   data, err := os.ReadFile(home + "/media/hbomax/Login")
    if err != nil {
       t.Fatal(err)
    }
@@ -82,7 +82,7 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   // max.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7
+   // hbomax.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7
    data, err = loginVar.PlayReady("06a38397-862d-4419-be84-0641939825e7")
    if err != nil {
       t.Fatal(err)
@@ -93,7 +93,7 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      home + "/media/max/PlayReady",
+      home + "/media/hbomax/PlayReady",
       []byte(play.Drm.Schemes.PlayReady.LicenseUrl), os.ModePerm,
    )
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-   "41.neocities.org/media/max"
+   "41.neocities.org/media/hbomax"
    "41.neocities.org/net"
    "flag"
    "fmt"
@@ -16,7 +16,7 @@ func main() {
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
-         return nil, nil
+         return http.ProxyFromEnvironment(req)
       },
    }
    log.SetFlags(log.Ltime)
@@ -43,11 +43,11 @@ func main() {
 }
 
 func (f *flag_set) do_edit() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
+   data, err := os.ReadFile(f.media + "/hbomax/Login")
    if err != nil {
       return err
    }
-   var login max.Login
+   var login hbomax.Login
    err = login.Unmarshal(data)
    if err != nil {
       return err
@@ -56,7 +56,7 @@ func (f *flag_set) do_edit() error {
    if err != nil {
       return err
    }
-   var play max.Playback
+   var play hbomax.Playback
    err = play.Unmarshal(data)
    if err != nil {
       return err
@@ -83,20 +83,20 @@ type flag_set struct {
 }
 
 func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.media + "/max/Login")
+   data, err := os.ReadFile(f.media + "/hbomax/Login")
    if err != nil {
       return err
    }
-   var login max.Login
+   var login hbomax.Login
    err = login.Unmarshal(data)
    if err != nil {
       return err
    }
-   show_id, err := max.ShowId(f.address)
+   show_id, err := hbomax.ShowId(f.address)
    if err != nil {
       return err
    }
-   var videos *max.Videos
+   var videos *hbomax.Videos
    if f.season >= 1 {
       videos, err = login.Season(show_id, f.season)
    } else {
@@ -134,13 +134,13 @@ func write_file(name string, data []byte) error {
 }
 
 func (f *flag_set) do_initiate() error {
-   var st max.St
+   var st hbomax.St
    err := st.New()
    if err != nil {
       return err
    }
-   log.Println("Create", f.media+"/max/St")
-   file, err := os.Create(f.media + "/max/St")
+   log.Println("Create", f.media+"/hbomax/St")
+   file, err := os.Create(f.media + "/hbomax/St")
    if err != nil {
       return err
    }
@@ -158,11 +158,11 @@ func (f *flag_set) do_initiate() error {
 }
 
 func (f *flag_set) do_login() error {
-   data, err := os.ReadFile(f.media + "/max/St")
+   data, err := os.ReadFile(f.media + "/hbomax/St")
    if err != nil {
       return err
    }
-   var st max.St
+   var st hbomax.St
    err = st.Set(string(data))
    if err != nil {
       return err
@@ -171,5 +171,5 @@ func (f *flag_set) do_login() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/max/Login", data)
+   return write_file(f.media+"/hbomax/Login", data)
 }

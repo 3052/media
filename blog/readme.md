@@ -75,7 +75,7 @@
    </tr>
    <tr>
       <td>11</td>
-      <td>Max: Stream HBO, TV, & Movies</td>
+      <td>HBO Max: Stream TV & Movies</td>
       <td>June 16</td>
    </tr>
    <tr>

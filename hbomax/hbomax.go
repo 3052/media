@@ -1,4 +1,4 @@
-package max
+package hbomax
 
 import (
    "bytes"
@@ -13,6 +13,15 @@ import (
    "strconv"
    "strings"
 )
+
+func ShowId(data string) (string, error) {
+   if !strings.Contains(data, "/movies/") {
+      if !strings.Contains(data, "/shows/") {
+         return "", errors.New("/movies/ or /shows/ not found")
+      }
+   }
+   return path.Base(data), nil
+}
 
 func (p *Playback) PlayReady(data []byte) ([]byte, error) {
    resp, err := http.Post(
@@ -141,19 +150,6 @@ func (l Login) Movie(show_id string) (*Videos, error) {
       return nil, &movie.Errors[0]
    }
    return &movie, nil
-}
-
-// max.com/movies/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/movies/heretic/12199308-9afb-460b-9d79-9d54b5d2514c
-// max.com/shows/14f9834d-bc23-41a8-ab61-5c8abdbea505
-// max.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
-func ShowId(data string) (string, error) {
-   if !strings.Contains(data, "/movies/") {
-      if !strings.Contains(data, "/shows/") {
-         return "", errors.New("/movies/ or /shows/ not found")
-      }
-   }
-   return path.Base(data), nil
 }
 
 type Videos struct {
