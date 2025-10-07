@@ -1,7 +1,6 @@
 package rakuten
 
 import (
-   "41.neocities.org/widevine"
    "bytes"
    "encoding/hex"
    "fmt"

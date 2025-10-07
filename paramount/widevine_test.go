@@ -1,7 +1,7 @@
 package paramount
 
 import (
-   "41.neocities.org/widevine"
+   "41.neocities.org/drm/widevine"
    "bytes"
    "encoding/hex"
    "net/http"
