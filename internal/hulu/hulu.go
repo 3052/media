@@ -17,13 +17,13 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.StringVar(&f.email, "email", "", "email")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.password, "password", "", "password")
    flag.Parse()
    return nil
@@ -54,7 +54,7 @@ func main() {
 type flag_set struct {
    address  string
    dash     string
-   e        net.License
+   cdm        net.License
    email    string
    media    string
    password string
@@ -116,10 +116,10 @@ func (f *flag_set) do_dash() error {
    if err != nil {
       return err
    }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
+   f.cdm.Widevine = func(data []byte) ([]byte, error) {
       return play.Widevine(data)
    }
-   return f.e.Download(f.media+"/Mpd", f.dash)
+   return f.cdm.Download(f.media+"/Mpd", f.dash)
 }
 
 func write_file(name string, data []byte) error {
