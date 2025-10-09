@@ -11,6 +11,25 @@ import (
    "path/filepath"
 )
 
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_email()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
 type flag_set struct {
    address  string
    cdm      net.Cdm
@@ -19,8 +38,6 @@ type flag_set struct {
    media    string
    password string
 }
-
-///
 
 func (f *flag_set) New() error {
    var err error
@@ -60,24 +77,6 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      err = set.do_address()
-   } else if set.email_password() {
-      err = set.do_email()
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }
 
 func (f *flag_set) do_address() error {
