@@ -10,6 +10,15 @@ import (
    "path/filepath"
 )
 
+type flag_set struct {
+   cdm      net.Cdm
+   email    string
+   filters  net.Filters
+   kanopy   int
+   media    string
+   password string
+}
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -17,17 +26,19 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "d", "", "DASH ID")
-   flag.StringVar(&f.email, "email", "", "email")
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
    flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.StringVar(&f.password, "password", "", "password")
+   flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    return nil
 }
+
+///
 
 func main() {
    var set flag_set
@@ -35,17 +46,21 @@ func main() {
    if err != nil {
       panic(err)
    }
-   if set.email != "" {
-      if set.password != "" {
-         err = set.do_email()
+   func() {
+      if set.email != "" {
+         if set.password != "" {
+            err = set.do_email()
+            return
+         }
       }
-   } else if set.kanopy >= 1 {
-      err = set.do_kanopy()
-   } else if set.dash != "" {
-      err = set.do_dash()
-   } else {
-      flag.Usage()
-   }
+      if set.kanopy >= 1 {
+         err = set.do_kanopy()
+      } else if set.dash != "" {
+         err = set.do_dash()
+      } else {
+         flag.Usage()
+      }
+   }()
    if err != nil {
       panic(err)
    }
@@ -57,15 +72,6 @@ func (f *flag_set) do_email() error {
       return err
    }
    return write_file(f.media+"/kanopy/Login", data)
-}
-
-type flag_set struct {
-   dash     string
-   e        net.License
-   email    string
-   kanopy   int
-   media    string
-   password string
 }
 
 func (f *flag_set) do_kanopy() error {
@@ -126,13 +132,13 @@ func (f *flag_set) do_dash() error {
       return err
    }
    manifest, _ := plays.Dash()
-   f.e.Widevine = func(data []byte) ([]byte, error) {
+   f.cdm.Widevine = func(data []byte) ([]byte, error) {
       return login.Widevine(manifest, data)
    }
-   return f.e.Download(f.media+"/Mpd", f.dash)
+   return f.cdm.Download(f.media+"/Mpd", f.dash)
 }
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
-

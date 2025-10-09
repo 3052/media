@@ -25,15 +25,19 @@ func main() {
    if err != nil {
       panic(err)
    }
-   if set.email != "" {
-      if set.password != "" {
-         err = set.do_password()
+   func() {
+      if set.email != "" {
+         if set.password != "" {
+            err = set.do_password()
+            return
+         }
       }
-   } else if set.address != "" {
-      err = set.do_address()
-   } else {
-      flag.Usage()
-   }
+      if set.address != "" {
+         err = set.do_address()
+      } else {
+         flag.Usage()
+      }
+   }()
    if err != nil {
       panic(err)
    }

@@ -25,17 +25,32 @@ func main() {
    if err != nil {
       panic(err)
    }
-   switch {
-   case set.password != "":
-      err = set.authenticate()
-   case set.address.String() != "":
-      err = set.download()
-   default:
-      flag.Usage()
-   }
+   func() {
+      if set.email != "" {
+         if set.password != "" {
+            err = set.authenticate()
+            return
+         }
+      }
+      if set.address.String() != "" {
+         err = set.download()
+      } else {
+         flag.Usage()
+      }
+   }()
    if err != nil {
       panic(err)
    }
+}
+
+type flag_set struct {
+   address  molotov.Address
+   dash     string
+   cdm      net.Cdm
+   filters  net.Filters
+   email    string
+   media    string
+   password string
 }
 
 func write_file(name string, data []byte) error {
@@ -55,6 +70,7 @@ func (f *flag_set) authenticate() error {
    }
    return write_file(f.media+"/molotov/Refresh", data)
 }
+
 func (f *flag_set) download() error {
    data, err := os.ReadFile(f.media + "/molotov/Refresh")
    if err != nil {
@@ -94,16 +110,6 @@ func (f *flag_set) download() error {
       return asset.License(data)
    }
    return f.filters.Filter(resp, &f.cdm)
-}
-
-type flag_set struct {
-   address  molotov.Address
-   dash     string
-   cdm      net.Cdm
-   filters  net.Filters
-   email    string
-   media    string
-   password string
 }
 
 func (f *flag_set) New() error {
