@@ -38,6 +38,14 @@ func (f *flag_set) New() error {
    return nil
 }
 
+func (f *flag_set) do_email() error {
+   data, err := kanopy.NewLogin(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.media+"/kanopy/Login", data)
+}
+
 ///
 
 func main() {
@@ -55,8 +63,6 @@ func main() {
       }
       if set.kanopy >= 1 {
          err = set.do_kanopy()
-      } else if set.dash != "" {
-         err = set.do_dash()
       } else {
          flag.Usage()
       }
@@ -64,14 +70,6 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) do_email() error {
-   data, err := kanopy.NewLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.media+"/kanopy/Login", data)
 }
 
 func (f *flag_set) do_kanopy() error {

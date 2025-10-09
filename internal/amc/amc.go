@@ -51,42 +51,6 @@ func (f *flag_set) New() error {
    return nil
 }
 
-func main() {
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return nil, nil
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   func() {
-      if set.email != "" {
-         if set.password != "" {
-            err = set.do_email()
-            return
-         }
-      }
-      if set.episode >= 1 {
-         err = set.do_episode()
-      } else if set.refresh {
-         err = set.do_refresh()
-      } else if set.season >= 1 {
-         err = set.do_season()
-      } else if set.series >= 1 {
-         err = set.do_series()
-      } else {
-         flag.Usage()
-      }
-   }()
-   if err != nil {
-      panic(err)
-   }
-}
-
 func (f *flag_set) do_episode() error {
    data, err := os.ReadFile(f.media + "/amc/Auth")
    if err != nil {
@@ -205,4 +169,43 @@ func (f *flag_set) do_series() error {
       fmt.Println(&season.Properties.Metadata)
    }
    return nil
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
+func main() {
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.email_password() {
+      err = set.do_email()
+   } else if set.episode >= 1 {
+      err = set.do_episode()
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else if set.season >= 1 {
+      err = set.do_season()
+   } else if set.series >= 1 {
+      err = set.do_series()
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
 }

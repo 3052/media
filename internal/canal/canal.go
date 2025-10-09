@@ -12,67 +12,16 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         urlVar, err := http.ProxyFromEnvironment(req)
-         if err != nil {
-            return nil, err
-         }
-         if urlVar != nil {
-            log.Println("Proxy", urlVar)
-         }
-         log.Println(req.Method, req.URL)
-         return urlVar, nil
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   func() {
-      if set.email != "" {
-         if set.password != "" {
-            err = set.do_email()
-            return
-         }
-      }
-      if set.refresh {
-         err = set.do_refresh()
-      } else if set.address != "" {
-         err = set.do_address()
-      } else if set.asset != "" {
-         if set.season >= 1 {
-            err = set.do_season()
-         } else {
-            err = set.do_asset()
-         }
-      } else {
-         flag.Usage()
-      }
-   }()
-   if err != nil {
-      panic(err)
-   }
-}
-
 type flag_set struct {
-   media   string
-   cdm net.Cdm
-   ///////////////////
+   address  string
+   asset    string
+   cdm      net.Cdm
    email    string
+   filters  net.Filters
+   media    string
    password string
-   ///////////////
-   refresh bool
-   /////////////
-   address string
-   ///////////////
-   season int64
-   ///////////////
-   asset   string
-   filters net.Filters
+   refresh  bool
+   season   int64
 }
 
 func write_file(name string, data []byte) error {
@@ -198,4 +147,53 @@ func (f *flag_set) New() error {
    flag.Int64Var(&f.season, "s", 0, "season")
    flag.Parse()
    return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         urlVar, err := http.ProxyFromEnvironment(req)
+         if err != nil {
+            return nil, err
+         }
+         if urlVar != nil {
+            log.Println("Proxy", urlVar)
+         }
+         log.Println(req.Method, req.URL)
+         return urlVar, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      err = set.do_address()
+   } else if set.asset != "" {
+      if set.season >= 1 {
+         err = set.do_season()
+      } else {
+         err = set.do_asset()
+      }
+   } else if set.email_password() {
+      err = set.do_email()
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
 }
