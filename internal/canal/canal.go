@@ -32,23 +32,27 @@ func main() {
    if err != nil {
       panic(err)
    }
-   if set.email != "" {
-      if set.password != "" {
-         err = set.do_email()
+   func() {
+      if set.email != "" {
+         if set.password != "" {
+            err = set.do_email()
+            return
+         }
       }
-   } else if set.refresh {
-      err = set.do_refresh()
-   } else if set.address != "" {
-      err = set.do_address()
-   } else if set.asset != "" {
-      if set.season >= 1 {
-         err = set.do_season()
+      if set.refresh {
+         err = set.do_refresh()
+      } else if set.address != "" {
+         err = set.do_address()
+      } else if set.asset != "" {
+         if set.season >= 1 {
+            err = set.do_season()
+         } else {
+            err = set.do_asset()
+         }
       } else {
-         err = set.do_asset()
+         flag.Usage()
       }
-   } else {
-      flag.Usage()
-   }
+   }()
    if err != nil {
       panic(err)
    }
