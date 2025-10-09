@@ -27,7 +27,7 @@ type Playlist struct {
    WvServer     string `json:"wv_server"`
 }
 
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+func (p *Playlist) License(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.WvServer, "application/x-protobuf", bytes.NewReader(data),
    )
