@@ -13,27 +13,27 @@ import (
 )
 
 func main() {
+   log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
          return http.ProxyFromEnvironment(req)
       },
    }
-   log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()
    if err != nil {
       panic(err)
    }
    switch {
-   case set.initiate:
-      err = set.do_initiate()
-   case set.login:
-      err = set.do_login()
    case set.address != "":
       err = set.do_address()
    case set.edit != "":
       err = set.do_edit()
+   case set.initiate:
+      err = set.do_initiate()
+   case set.login:
+      err = set.do_login()
    default:
       flag.Usage()
    }
@@ -74,8 +74,8 @@ func (f *flag_set) do_edit() error {
 type flag_set struct {
    address  string
    cdm      net.Cdm
-   filters  net.Filters
    edit     string
+   filters  net.Filters
    initiate bool
    login    bool
    media    string

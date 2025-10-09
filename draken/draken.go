@@ -9,6 +9,27 @@ import (
    "strings"
 )
 
+func (l Login) License(play *Playback, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   magine_accesstoken.set(req.Header)
+   for key, value := range play.Headers {
+      req.Header.Set(key, value)
+   }
+   req.Header.Set("authorization", "Bearer " + l.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 const get_custom_id = `
 query GetCustomIdFullMovie($customId: ID!) {
    viewer {
@@ -59,11 +80,11 @@ func NewLogin(identity, key string) (Byte[Login], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (n *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, n)
+func (l *Login) Unmarshal(data Byte[Login]) error {
+   return json.Unmarshal(data, l)
 }
 
-func (n Login) Playback(
+func (l Login) Playback(
    movieVar *Movie, title *Entitlement,
 ) (Byte[Playback], error) {
    req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
@@ -74,7 +95,7 @@ func (n Login) Playback(
    magine_play_devicetype.set(req.Header)
    magine_play_drm.set(req.Header)
    magine_play_protocol.set(req.Header)
-   req.Header.Set("authorization", "Bearer "+n.Token)
+   req.Header.Set("authorization", "Bearer "+l.Token)
    req.Header.Set("magine-play-deviceid", "!")
    req.Header.Set("magine-play-entitlementid", title.Token)
    x_forwarded_for.set(req.Header)
@@ -86,31 +107,10 @@ func (n Login) Playback(
    return io.ReadAll(resp.Body)
 }
 
-func (n Login) Widevine(play *Playback, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   magine_accesstoken.set(req.Header)
-   for key, value := range play.Headers {
-      req.Header.Set(key, value)
-   }
-   req.Header.Set("authorization", "Bearer " + n.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (n Login) Entitlement(movieVar Movie) (*Entitlement, error) {
+func (l Login) Entitlement(movieVar Movie) (*Entitlement, error) {
    req, _ := http.NewRequest("POST", "https://client-api.magine.com", nil)
    req.URL.Path = "/api/entitlement/v2/asset/" + movieVar.Id
-   req.Header.Set("authorization", "Bearer "+n.Token)
+   req.Header.Set("authorization", "Bearer "+l.Token)
    magine_accesstoken.set(req.Header)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {

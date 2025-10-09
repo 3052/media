@@ -9,6 +9,12 @@ import (
    "path/filepath"
 )
 
+type flag_set struct {
+   address string
+   cdm     net.Cdm
+   filters net.Filters
+}
+
 func (f *flag_set) New() error {
    media, err := os.UserHomeDir()
    if err != nil {
@@ -17,15 +23,10 @@ func (f *flag_set) New() error {
    media = filepath.ToSlash(media) + "/media"
    f.cdm.ClientId = media + "/client_id.bin"
    f.cdm.PrivateKey = media + "/private_key.pem"
-   f.filters = net.Filters{
-      {BitrateStart: 100_000, BitrateEnd: 200_000},
-      {BitrateStart: 2_000_000, BitrateEnd: 7_000_000},
-   }
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
-   flag.IntVar(&net.Threads, "t", 5, "threads")
    flag.Parse()
    return nil
 }
@@ -69,10 +70,4 @@ func (f *flag_set) do_address() error {
    }
    f.cdm.License = ctv.License
    return f.filters.Filter(resp, &f.cdm)
-}
-
-type flag_set struct {
-   address string
-   cdm     net.Cdm
-   filters net.Filters
 }

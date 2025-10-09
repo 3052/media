@@ -124,11 +124,12 @@ func main() {
    if err != nil {
       panic(err)
    }
-   if set.address != "" {
+   switch {
+   case set.address != "":
       err = set.download()
-   } else if set.email_password() {
+   case set.email_password():
       err = set.authenticate()
-   } else {
+   default:
       flag.Usage()
    }
    if err != nil {
