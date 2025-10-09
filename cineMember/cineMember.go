@@ -9,6 +9,17 @@ import (
    "strings"
 )
 
+func (e *Entitlement) License(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      e.KeyDeliveryUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 const query_user = `
 mutation UserAuthenticate($email: String, $password: String) {
    UserAuthenticate(email: $email, password: $password) {
@@ -67,17 +78,6 @@ type Asset struct {
 }
 
 type Byte[T any] []byte
-
-func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      e.KeyDeliveryUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
 
 type Entitlement struct {
    KeyDeliveryUrl string `json:"key_delivery_url"`

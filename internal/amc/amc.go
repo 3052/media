@@ -13,6 +13,39 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_episode() error {
+   data, err := os.ReadFile(f.media + "/amc/Auth")
+   if err != nil {
+      return err
+   }
+   var auth amc.Auth
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = auth.Playback(f.episode)
+   if err != nil {
+      return err
+   }
+   var play amc.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   source, ok := play.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(source.Src)
+   if err != nil {
+      return err
+   }
+   f.cdm.License = func(data []byte) ([]byte, error) {
+      return play.License(source, data)
+   }
+   return f.filters.Filter(resp, &f.cdm)
+}
+
 type flag_set struct {
    cdm      net.Cdm
    email    string
@@ -49,39 +82,6 @@ func (f *flag_set) New() error {
    flag.Int64Var(&f.episode, "e", 0, "episode or movie ID")
    flag.Parse()
    return nil
-}
-
-func (f *flag_set) do_episode() error {
-   data, err := os.ReadFile(f.media + "/amc/Auth")
-   if err != nil {
-      return err
-   }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = auth.Playback(f.episode)
-   if err != nil {
-      return err
-   }
-   var play amc.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   source, ok := play.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := http.Get(source.Src)
-   if err != nil {
-      return err
-   }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return play.License(source, data)
-   }
-   return f.filters.Filter(resp, &f.cdm)
 }
 
 func write_file(name string, data []byte) error {
