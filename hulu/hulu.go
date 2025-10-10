@@ -48,10 +48,17 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    data, err := json.Marshal(map[string]any{
       "content_eab_id":   deep.EabId,
       "deejay_device_id": deejay_device_id,
+      "unencrypted": true,
+      "version":     version,
       "playback": map[string]any{
-         "version": 2, // needs to be exactly 2 for 1080p
-         "manifest": map[string]string{
-            "type": "DASH",
+         "audio": map[string]any{
+            "codecs": map[string]any{
+               "selection_mode": "ALL",
+               "values": []any{
+                  map[string]string{"type": "AAC"},
+                  map[string]string{"type": "EC3"},
+               },
+            },
          },
          "drm": map[string]any{
             "selection_mode": "ALL",
@@ -68,6 +75,10 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
                },
             },
          },
+         "version": 2, // needs to be exactly 2 for 1080p
+         "manifest": map[string]string{
+            "type": "DASH",
+         },
          "segments": map[string]any{
             "selection_mode": "ALL",
             "values": []any{
@@ -77,15 +88,6 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
                      "mode": "CENC",
                      "type": "CENC",
                   },
-               },
-            },
-         },
-         "audio": map[string]any{
-            "codecs": map[string]any{
-               "selection_mode": "ALL",
-               "values": []any{
-                  map[string]string{"type": "AAC"},
-                  map[string]string{"type": "EC3"},
                },
             },
          },
@@ -112,8 +114,6 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
             },
          },
       },
-      "unencrypted": true,
-      "version":     version,
    })
    if err != nil {
       return nil, err
