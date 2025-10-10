@@ -1,27 +1,6 @@
-# Hulu
+# phone
 
-1. signup.hulu.com
-2. select
-3. email
-   - mailsac.com
-4. password
-5. name
-6. birthdate
-7. gender
-8. agree & continue
-9. name on card
-10. card number
-11. expiration
-12. cvc
-13. zip code
-14. agree & subscribe
-
-no benefit from trying to cancel
-
-## Android
-
-- https://play.google.com/store/apps/details?id=com.hulu.livingroomplus
-- https://play.google.com/store/apps/details?id=com.hulu.plus
+https://play.google.com/store/apps/details?id=com.hulu.plus
 
 Create Android 6 device. Install user certificate. after entering password, if
 you click LOG IN you get this:

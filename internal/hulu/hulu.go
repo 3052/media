@@ -93,7 +93,11 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   deep, err := auth.DeepLink(hulu.Id(f.address))
+   id, err := hulu.Id(f.address)
+   if err != nil {
+      return err
+   }
+   deep, err := auth.DeepLink(id)
    if err != nil {
       return err
    }

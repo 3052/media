@@ -7,9 +7,26 @@ import (
    "io"
    "net/http"
    "net/url"
-   "path"
    "strings"
 )
+
+// hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+// hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+func Id(raw_url string) (string, error) {
+   last_slash := strings.LastIndex(raw_url, "/")
+   if last_slash == -1 {
+      return "", errors.New("no slash found in URL")
+   }
+   last_part := raw_url[last_slash+1:]
+   len_last := len(last_part)
+   const len_uuid = 36
+   if len_last > len_uuid {
+      if last_part[len_last-len_uuid-1] == '-' {
+         return last_part[len_last-len_uuid:], nil
+      }
+   }
+   return last_part, nil
+}
 
 // this is old device that returns 4K MPD:
 // https://vodmanifest.hulustream.com
@@ -221,9 +238,4 @@ func (a Authenticate) DeepLink(id string) (*DeepLink, error) {
       return nil, errors.New(deep.Message)
    }
    return &deep, nil
-}
-
-// hulu.com/watch/023c49bf-6a99-4c67-851c-4c9e7609cc1d
-func Id(data string) string {
-   return path.Base(data)
 }
