@@ -22,25 +22,9 @@ const (
 
 type Playlist struct {
    DashPrServer string `json:"dash_pr_server"`
+   WvServer     string `json:"wv_server"`
    Message      string
    StreamUrl    string `json:"stream_url"` // MPD
-   WvServer     string `json:"wv_server"`
-}
-
-func (p *Playlist) License(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Authenticate struct {
-   DeviceToken string `json:"device_token"`
-   UserToken   string `json:"user_token"`
 }
 
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
@@ -131,6 +115,22 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+func (p *Playlist) License(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Authenticate struct {
+   DeviceToken string `json:"device_token"`
+   UserToken   string `json:"user_token"`
 }
 
 type Byte[T any] []byte
