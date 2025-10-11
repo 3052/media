@@ -7,9 +7,36 @@ import (
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return http.ProxyFromEnvironment(req)
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_user()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
 
 func (f *flag_set) email_password() bool {
    if f.email != "" {
@@ -59,25 +86,6 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_user()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }
 
 func (f *flag_set) do_address() error {
