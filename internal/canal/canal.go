@@ -12,24 +12,12 @@ import (
    "path/filepath"
 )
 
-type flag_set struct {
-   address  string
-   asset    string
-   cdm      net.Cdm
-   email    string
-   filters  net.Filters
-   media    string
-   password string
-   refresh  bool
-   season   int64
-}
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flag_set) do_email() error {
+func (f *flag_set) do_session() error {
    var ticket canal.Ticket
    err := ticket.New()
    if err != nil {
@@ -43,40 +31,11 @@ func (f *flag_set) do_email() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/canal/Session", data)
-}
-
-func (f *flag_set) do_asset() error {
-   data, err := os.ReadFile(f.media + "/canal/Session")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = session.Play(f.asset)
-   if err != nil {
-      return err
-   }
-   var play canal.Play
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Url)
-   if err != nil {
-      return err
-   }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return play.License(data)
-   }
-   return f.filters.Filter(resp, &f.cdm)
+   return write_file(f.cache+"/canal/Session", data)
 }
 
 func (f *flag_set) do_refresh() error {
-   data, err := os.ReadFile(f.media + "/canal/Session")
+   data, err := os.ReadFile(f.cache + "/canal/Session")
    if err != nil {
       return err
    }
@@ -89,7 +48,7 @@ func (f *flag_set) do_refresh() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/canal/Session", data)
+   return write_file(f.cache+"/canal/Session", data)
 }
 
 func (f *flag_set) do_address() error {
@@ -103,7 +62,7 @@ func (f *flag_set) do_address() error {
 }
 
 func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.media + "/canal/Session")
+   data, err := os.ReadFile(f.cache + "/canal/Session")
    if err != nil {
       return err
    }
@@ -127,22 +86,20 @@ func (f *flag_set) do_season() error {
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.address, "a", "", "address")
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.asset, "A", "", "asset ID")
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.email, "email", "", "email")
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(
-      &f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key",
-   )
-   flag.StringVar(&f.password, "password", "", "password")
+   flag.StringVar(&f.password, "p", "", "password")
    flag.BoolVar(&f.refresh, "r", false, "refresh")
    flag.Int64Var(&f.season, "s", 0, "season")
    flag.Parse()
@@ -153,15 +110,8 @@ func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
-         urlVar, err := http.ProxyFromEnvironment(req)
-         if err != nil {
-            return nil, err
-         }
-         if urlVar != nil {
-            log.Println("Proxy", urlVar)
-         }
          log.Println(req.Method, req.URL)
-         return urlVar, nil
+         return http.ProxyFromEnvironment(req)
       },
    }
    var set flag_set
@@ -178,7 +128,7 @@ func main() {
          err = set.do_asset()
       }
    } else if set.email_password() {
-      err = set.do_email()
+      err = set.do_session()
    } else if set.refresh {
       err = set.do_refresh()
    } else {
@@ -196,4 +146,45 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
+}
+
+type flag_set struct {
+   address  string
+   asset    string
+   cache    string
+   config   net.Config
+   email    string
+   filters  net.Filters
+   password string
+   refresh  bool
+   season   int64
+}
+
+func (f *flag_set) do_asset() error {
+   data, err := os.ReadFile(f.cache + "/canal/Session")
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = session.Play(f.asset)
+   if err != nil {
+      return err
+   }
+   var play canal.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Url)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return play.Send(data)
+   }
+   return f.filters.Filter(resp, &f.config)
 }
