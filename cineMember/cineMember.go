@@ -1,237 +1,131 @@
 package cineMember
 
 import (
-   "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
+   "net/url"
    "strings"
 )
 
-func NewUser(email, password string) (Byte[User], error) {
-   value := map[string]any{
-      "query": query_user,
-      "variables": map[string]string{
-         "email": email,
-         "password": password,
-      },
-   }
-   data, err := json.MarshalIndent(value, "", " ")
+func id(address string) (int, error) {
+   resp, err := http.Get(address)
    if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://api.audienceplayer.com/graphql/2/user",
-      "application/json", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
+      return 0, err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (u *User) Unmarshal(data Byte[User]) error {
-   var value struct {
-      Data struct {
-         UserAuthenticate User
-      }
-      Errors []struct {
-         Message string
-      }
-   }
-   err := json.Unmarshal(data, &value)
+   data, err := io.ReadAll(resp.Body)
    if err != nil {
-      return err
+      return 0, err
    }
-   if len(value.Errors) >= 1 {
-      return errors.New(value.Errors[0].Message)
+   _, afterMarker, found := strings.Cut(string(data), "app.play('")
+   if !found {
+      return 0, errors.New("could not find the start marker")
    }
-   *u = value.Data.UserAuthenticate
-   return nil
-}
-
-type User struct {
-   AccessToken string `json:"access_token"`
-}
-
-// hard geo block
-func (u User) Play(articleVar *Article, assetVar *Asset) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "query": query_asset,
-      "variables": map[string]int{
-         "article_id": articleVar.Id,
-         "asset_id": assetVar.Id,
-      },
-   })
+   var id int
+   _, err = fmt.Sscan(afterMarker, &id)
    if err != nil {
-      return nil, err
+      return 0, err
    }
+   return id, nil
+}
+
+// must run session.login first
+func (s session) stream(id int) (*stream, error) {
    req, err := http.NewRequest(
-      "POST", "https://api.audienceplayer.com/graphql/2/user",
-      bytes.NewReader(data),
+      "", "https://www.cinemember.nl/elements/films/stream.php", nil,
    )
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + u.AccessToken)
-   req.Header.Set("content-type", "application/json")
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s[0])
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Address [1]string
-
-func (a *Address) Parse(data string) error {
-   if !strings.HasPrefix(data, "https://") {
-      return errors.New("must start with https://")
-   }
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "cinemember.nl")
-   data = strings.TrimPrefix(data, "/nl")
-   a[0] = strings.TrimPrefix(data, "/")
-   return nil
-}
-
-func (a Address) Article() (*Article, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": query_article,
-      "variables": map[string]string{
-         "articleUrlSlug": a[0],
-      },
-   })
+   var streamVar stream
+   err = json.NewDecoder(resp.Body).Decode(&streamVar)
    if err != nil {
       return nil, err
    }
-   resp, err := http.Post(
-      "https://api.audienceplayer.com/graphql/2/user",
-      "application/json", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
+   if streamVar.Error != "" {
+      return nil, errors.New(streamVar.Error)
    }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Article Article
+   return &streamVar, nil
+}
+
+type stream struct {
+   Error string
+   Links []struct {
+      Protocol string
+      Url      string
+   }
+}
+
+func (s stream) mpd() (string, bool) {
+   for _, link := range s.Links {
+      if link.Protocol == "mpd" {
+         return link.Url, true
       }
    }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data.Article, nil
+   return "", false
 }
 
-func (e *Entitlement) Send(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      e.KeyDeliveryUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-const query_user = `
-mutation UserAuthenticate($email: String, $password: String) {
-   UserAuthenticate(email: $email, password: $password) {
-      access_token
-   }
-}
-`
-
-const query_asset = `
-mutation ArticleAssetPlay($article_id: Int, $asset_id: Int) {
-   ArticleAssetPlay(article_id: $article_id asset_id: $asset_id) {
-      entitlements {
-         ... on ArticleAssetPlayEntitlement {
-            key_delivery_url
-            manifest
-            protocol
-         }
-      }
-   }
-}
-`
-
-const query_article = `
-query Article($articleUrlSlug: String) {
-   Article(full_url_slug: $articleUrlSlug) {
-      ... on Article {
-         assets {
-            ... on Asset {
-               id
-               linked_type
-            }
-         }
-         id
-      }
-   }
-}
-` // do not use `query(`
-
-func (a *Article) Film() (*Asset, bool) {
-   for _, assetVar := range a.Assets {
-      if assetVar.LinkedType == "film" {
-         return &assetVar, true
-      }
-   }
-   return nil, false
-}
-
-type Article struct {
-   Assets []Asset
-   Id     int
-}
-
-type Asset struct {
-   Id         int
-   LinkedType string `json:"linked_type"`
-}
-
-type Byte[T any] []byte
-
-type Entitlement struct {
-   KeyDeliveryUrl string `json:"key_delivery_url"`
-   Manifest string // MPD
-   Protocol string
-}
-
-func (p *Play) Dash() (*Entitlement, bool) {
-   for _, title := range p.Data.ArticleAssetPlay.Entitlements {
-      if title.Protocol == "dash" {
-         return &title, true
-      }
-   }
-   return nil, false
-}
-
-func (p *Play) Unmarshal(data Byte[Play]) error {
-   err := json.Unmarshal(data, p)
+func (s *session) New() error {
+   resp, err := http.Head("https://www.cinemember.nl/nl")
    if err != nil {
       return err
    }
-   if len(p.Errors) >= 1 {
-      return errors.New(p.Errors[0].Message)
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "PHPSESSID" {
+         s[0] = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
+func (s session) String() string {
+   return s[0].String()
+}
+
+func (s *session) Set(data string) error {
+   var err error
+   s[0], err = http.ParseSetCookie(data)
+   if err != nil {
+      return err
    }
    return nil
 }
 
-type Play struct {
-   Data struct {
-      ArticleAssetPlay struct {
-         Entitlements []Entitlement
-      }
+func (s session) login(email, password string) error {
+   data := url.Values{
+      "emaillogin": {email},
+      "password":   {password},
+   }.Encode()
+   req, err := http.NewRequest(
+      "POST", "https://www.cinemember.nl/elements/overlays/account/login.php",
+      strings.NewReader(data),
+   )
+   if err != nil {
+      return err
    }
-   Errors []struct {
-      Message string
+   req.AddCookie(s[0])
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
    }
+   defer resp.Body.Close()
+   _, err = io.Copy(io.Discard, resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
 }
+
+type session [1]*http.Cookie
