@@ -11,6 +11,22 @@ import (
    "strconv"
 )
 
+func (p *Playback) License(sourceVar *Source, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("bcov-auth", p.Header.Get("x-amcn-bc-jwt"))
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 type Auth struct {
    Data struct {
       AccessToken  string `json:"access_token"`
@@ -278,22 +294,6 @@ func (p *Playback) Unmarshal(data Byte[Playback]) error {
    defer resp.Body.Close()
    p.Header = resp.Header
    return json.NewDecoder(resp.Body).Decode(&p.Body)
-}
-
-func (p *Playback) License(sourceVar *Source, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("bcov-auth", p.Header.Get("x-amcn-bc-jwt"))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type Source struct {

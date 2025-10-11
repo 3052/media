@@ -10,6 +10,18 @@ import (
    "strings"
 )
 
+// this is old device that returns 4K MPD:
+// https://vodmanifest.hulustream.com
+// newer devices return 2K MPD:
+// https://dynamic-manifest.hulustream.com
+const (
+   //deejay_device_id = 166
+   //version          = 9999999
+   
+   deejay_device_id = 204
+   version          = 4
+)
+
 // hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
 // hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
 func Id(raw_url string) (string, error) {
@@ -27,15 +39,6 @@ func Id(raw_url string) (string, error) {
    }
    return last_part, nil
 }
-
-// this is old device that returns 4K MPD:
-// https://vodmanifest.hulustream.com
-// newer devices return 2K MPD:
-// https://dynamic-manifest.hulustream.com
-const (
-   deejay_device_id = 166
-   version          = 9999999
-)
 
 type Playlist struct {
    DashPrServer string `json:"dash_pr_server"`
@@ -61,6 +64,10 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
             },
          },
          "drm": map[string]any{
+            // 1080p (FHD) L3
+            // 1440p (QHD) L1
+            // 2160p (UHD) L1
+            "multi_key": true,
             "selection_mode": "ALL",
             "values": []any{
                map[string]string{

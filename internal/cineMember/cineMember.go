@@ -11,6 +11,25 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.media, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   return nil
+}
+
 func main() {
    var set flag_set
    err := set.New()
@@ -37,24 +56,6 @@ type flag_set struct {
    filters  net.Filters
    media    string
    password string
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.media, err = os.UserHomeDir()
-   if err != nil {
-      return err
-   }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
 }
 
 func write_file(name string, data []byte) error {

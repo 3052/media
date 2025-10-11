@@ -1,8 +1,9 @@
 # Hulu
 
-1. signup.hulu.com
-2. select
-3. email
+1. hulu.com
+2. change plan to Hulu
+3. with ads has free trial, but I think no ads has more UHD
+4. email
    - mailsac.com
 4. password
 5. name
@@ -15,8 +16,6 @@
 12. cvc
 13. zip code
 14. agree & subscribe
-
-no benefit from trying to cancel
 
 ## Android
 

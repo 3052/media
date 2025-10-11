@@ -13,6 +13,24 @@ import (
    "path/filepath"
 )
 
+C:\Users\Steven\.cache\amc\Auth
+
+
+
+
+
+type flag_set struct {
+   cdm      net.Cdm
+   email    string
+   episode  int64
+   filters  net.Filters
+   media    string
+   password string
+   refresh  bool
+   season   int64
+   series   int64
+}
+
 func main() {
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
@@ -75,18 +93,6 @@ func (f *flag_set) do_episode() error {
       return play.License(source, data)
    }
    return f.filters.Filter(resp, &f.cdm)
-}
-
-type flag_set struct {
-   cdm      net.Cdm
-   email    string
-   episode  int64
-   filters  net.Filters
-   media    string
-   password string
-   refresh  bool
-   season   int64
-   series   int64
 }
 
 func (f *flag_set) New() error {

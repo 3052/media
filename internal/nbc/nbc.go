@@ -9,6 +9,13 @@ import (
    "path/filepath"
 )
 
+type flag_set struct {
+   nbc   int
+   cdm     net.License
+   media string
+   dash  string
+}
+
 func (f *flag_set) New() error {
    var err error
    f.media, err = os.UserHomeDir()
@@ -16,12 +23,12 @@ func (f *flag_set) New() error {
       return err
    }
    f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
+   f.cdm.ClientId = f.media + "/client_id.bin"
+   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.IntVar(&f.nbc, "n", 0, "NBC ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
    flag.IntVar(&net.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
@@ -64,14 +71,6 @@ func (f *flag_set) do_nbc() error {
 }
 
 func (f *flag_set) do_dash() error {
-   f.e.Widevine = nbc.Widevine
-   return f.e.Download(f.media+"/Mpd", f.dash)
+   f.cdm.Widevine = nbc.Widevine
+   return f.cdm.Download(f.media+"/Mpd", f.dash)
 }
-
-type flag_set struct {
-   dash  string
-   e     net.License
-   media string
-   nbc   int
-}
-
