@@ -56,11 +56,11 @@ func (f *flag_set) do_code() error {
       return err
    }
    fmt.Println(&code)
-   return write_file(f.media+"/mubi/LinkCode", data)
+   return write_file(f.cache+"/mubi/LinkCode", data)
 }
 
 func (f *flag_set) do_auth() error {
-   data, err := os.ReadFile(f.media + "/mubi/LinkCode")
+   data, err := os.ReadFile(f.cache + "/mubi/LinkCode")
    if err != nil {
       return err
    }
@@ -73,7 +73,7 @@ func (f *flag_set) do_auth() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/mubi/Authenticate", data)
+   return write_file(f.cache+"/mubi/Authenticate", data)
 }
 
 type flag_set struct {
@@ -81,19 +81,19 @@ type flag_set struct {
    cdm     net.Cdm
    code    bool
    filters net.Filters
-   media   string
+   cache   string
    slug    mubi.Slug
 }
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.Func("a", "address", func(data string) error {
       return f.slug.Parse(data)
    })
@@ -107,7 +107,7 @@ func (f *flag_set) New() error {
 }
 
 func (f *flag_set) do_slug() error {
-   data, err := os.ReadFile(f.media + "/mubi/Authenticate")
+   data, err := os.ReadFile(f.cache + "/mubi/Authenticate")
    if err != nil {
       return err
    }

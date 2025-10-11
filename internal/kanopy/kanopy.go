@@ -15,19 +15,19 @@ type flag_set struct {
    email    string
    filters  net.Filters
    kanopy   int
-   media    string
+   cache    string
    password string
 }
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.email, "e", "", "email")
@@ -43,7 +43,7 @@ func (f *flag_set) do_email() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/kanopy/Login", data)
+   return write_file(f.cache+"/kanopy/Login", data)
 }
 
 ///
@@ -73,7 +73,7 @@ func main() {
 }
 
 func (f *flag_set) do_kanopy() error {
-   data, err := os.ReadFile(f.media + "/kanopy/Login")
+   data, err := os.ReadFile(f.cache + "/kanopy/Login")
    if err != nil {
       return err
    }
@@ -95,7 +95,7 @@ func (f *flag_set) do_kanopy() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/kanopy/Plays", data)
+   err = write_file(f.cache+"/kanopy/Plays", data)
    if err != nil {
       return err
    }
@@ -107,11 +107,11 @@ func (f *flag_set) do_kanopy() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.media+"/Mpd", resp)
+   return net.Mpd(f.cache+"/Mpd", resp)
 }
 
 func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.media + "/kanopy/Login")
+   data, err := os.ReadFile(f.cache + "/kanopy/Login")
    if err != nil {
       return err
    }
@@ -120,7 +120,7 @@ func (f *flag_set) do_dash() error {
    if err != nil {
       return err
    }
-   data, err = os.ReadFile(f.media + "/kanopy/Plays")
+   data, err = os.ReadFile(f.cache + "/kanopy/Plays")
    if err != nil {
       return err
    }
@@ -133,7 +133,7 @@ func (f *flag_set) do_dash() error {
    f.cdm.Widevine = func(data []byte) ([]byte, error) {
       return login.Widevine(manifest, data)
    }
-   return f.cdm.Download(f.media+"/Mpd", f.dash)
+   return f.cdm.Download(f.cache+"/Mpd", f.dash)
 }
 
 func write_file(name string, data []byte) error {

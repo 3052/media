@@ -43,7 +43,7 @@ func main() {
 }
 
 func (f *flag_set) do_edit() error {
-   data, err := os.ReadFile(f.media + "/hbomax/Login")
+   data, err := os.ReadFile(f.cache + "/hbomax/Login")
    if err != nil {
       return err
    }
@@ -78,12 +78,12 @@ type flag_set struct {
    filters  net.Filters
    initiate bool
    login    bool
-   media    string
+   cache    string
    season   int
 }
 
 func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.media + "/hbomax/Login")
+   data, err := os.ReadFile(f.cache + "/hbomax/Login")
    if err != nil {
       return err
    }
@@ -113,11 +113,11 @@ func (f *flag_set) do_address() error {
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
+   f.cache = filepath.ToSlash(f.cache)
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.edit, "e", "", "edit ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
@@ -139,8 +139,8 @@ func (f *flag_set) do_initiate() error {
    if err != nil {
       return err
    }
-   log.Println("Create", f.media+"/hbomax/St")
-   file, err := os.Create(f.media + "/hbomax/St")
+   log.Println("Create", f.cache+"/hbomax/St")
+   file, err := os.Create(f.cache + "/hbomax/St")
    if err != nil {
       return err
    }
@@ -158,7 +158,7 @@ func (f *flag_set) do_initiate() error {
 }
 
 func (f *flag_set) do_login() error {
-   data, err := os.ReadFile(f.media + "/hbomax/St")
+   data, err := os.ReadFile(f.cache + "/hbomax/St")
    if err != nil {
       return err
    }
@@ -171,5 +171,5 @@ func (f *flag_set) do_login() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/hbomax/Login", data)
+   return write_file(f.cache+"/hbomax/Login", data)
 }

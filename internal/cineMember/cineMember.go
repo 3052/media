@@ -11,6 +11,15 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -25,17 +34,23 @@ type flag_set struct {
    password string
 }
 
-///
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserHomeDir()
+func (f *flag_set) do_user() error {
+   data, err := cineMember.NewUser(f.email, f.password)
    if err != nil {
       return err
    }
-   f.cache = filepath.ToSlash(f.cache) + "/media"
-   f.config.ClientId = f.cache + "/client_id.bin"
-   f.config.PrivateKey = f.cache + "/private_key.pem"
+   return write_file(f.cache+"/cineMember/User", data)
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
@@ -56,30 +71,13 @@ func main() {
    case set.address != "":
       err = set.do_address()
    case set.email_password():
-      err = set.do_email()
+      err = set.do_user()
    default:
       flag.Usage()
    }
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) do_email() error {
-   data, err := cineMember.NewUser(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/cineMember/User", data)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
 }
 
 func (f *flag_set) do_address() error {
@@ -122,8 +120,8 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.config.License = func(data []byte) ([]byte, error) {
-      return title.License(data)
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return title.Send(data)
    }
    return f.filters.Filter(resp, &f.config)
 }

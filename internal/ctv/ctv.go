@@ -16,13 +16,13 @@ type flag_set struct {
 }
 
 func (f *flag_set) New() error {
-   media, err := os.UserHomeDir()
+   cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   media = filepath.ToSlash(media) + "/media"
-   f.cdm.ClientId = media + "/client_id.bin"
-   f.cdm.PrivateKey = media + "/private_key.pem"
+   cache = filepath.ToSlash(cache)
+   f.cdm.ClientId = cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = cache + "/L3/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.Var(&f.filters, "f", net.FilterUsage)

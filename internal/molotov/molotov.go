@@ -49,7 +49,7 @@ type flag_set struct {
    cdm      net.Cdm
    filters  net.Filters
    email    string
-   media    string
+   cache    string
    password string
 }
 
@@ -68,11 +68,11 @@ func (f *flag_set) authenticate() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/molotov/Refresh", data)
+   return write_file(f.cache+"/molotov/Refresh", data)
 }
 
 func (f *flag_set) download() error {
-   data, err := os.ReadFile(f.media + "/molotov/Refresh")
+   data, err := os.ReadFile(f.cache + "/molotov/Refresh")
    if err != nil {
       return err
    }
@@ -85,7 +85,7 @@ func (f *flag_set) download() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/molotov/Refresh", data)
+   err = write_file(f.cache+"/molotov/Refresh", data)
    if err != nil {
       return err
    }
@@ -114,13 +114,13 @@ func (f *flag_set) download() error {
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.Var(&f.address, "a", "address")
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")

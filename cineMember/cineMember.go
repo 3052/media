@@ -9,7 +9,7 @@ import (
    "strings"
 )
 
-func (e *Entitlement) License(data []byte) ([]byte, error) {
+func (e *Entitlement) Send(data []byte) ([]byte, error) {
    resp, err := http.Post(
       e.KeyDeliveryUrl, "application/x-protobuf", bytes.NewReader(data),
    )

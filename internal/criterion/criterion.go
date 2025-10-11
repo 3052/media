@@ -23,18 +23,18 @@ func (f *flag_set) authenticate() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/criterion/Token", data)
+   return write_file(f.cache+"/criterion/Token", data)
 }
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
@@ -46,7 +46,7 @@ func (f *flag_set) New() error {
 }
 
 func (f *flag_set) download() error {
-   data, err := os.ReadFile(f.media + "/criterion/Token")
+   data, err := os.ReadFile(f.cache + "/criterion/Token")
    if err != nil {
       return err
    }
@@ -63,7 +63,7 @@ func (f *flag_set) download() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/criterion/Token", data)
+   err = write_file(f.cache+"/criterion/Token", data)
    if err != nil {
       return err
    }
@@ -99,7 +99,7 @@ type flag_set struct {
    cdm      net.Cdm
    email    string
    filters  net.Filters
-   media    string
+   cache    string
    password string
 }
 
