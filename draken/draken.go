@@ -9,7 +9,7 @@ import (
    "strings"
 )
 
-func (l Login) License(play *Playback, data []byte) ([]byte, error) {
+func (l Login) Send(play *Playback, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
       bytes.NewReader(data),

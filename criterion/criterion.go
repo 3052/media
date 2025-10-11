@@ -9,7 +9,7 @@ import (
    "net/url"
 )
 
-func (f *File) License(data []byte) ([]byte, error) {
+func (f *File) Send(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
    )

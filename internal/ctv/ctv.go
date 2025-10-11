@@ -11,7 +11,7 @@ import (
 
 type flag_set struct {
    address string
-   cdm     net.Cdm
+   config  net.Config
    filters net.Filters
 }
 
@@ -21,12 +21,12 @@ func (f *flag_set) New() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   f.cdm.ClientId = cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = cache + "/L3/private_key.pem"
+   f.config.ClientId = cache + "/L3/client_id.bin"
+   f.config.PrivateKey = cache + "/L3/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
+   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
+   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.Parse()
    return nil
 }
@@ -68,6 +68,6 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.cdm.License = ctv.License
-   return f.filters.Filter(resp, &f.cdm)
+   f.config.Send = ctv.Send
+   return f.filters.Filter(resp, &f.config)
 }
