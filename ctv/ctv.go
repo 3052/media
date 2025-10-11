@@ -10,6 +10,11 @@ import (
    "strings"
 )
 
+// this is better than strings.Replace and strings.ReplaceAll
+func graphql_compact(data string) string {
+   return strings.Join(strings.Fields(data), " ")
+}
+
 func Send(data []byte) ([]byte, error) {
    resp, err := http.Post(
       "https://license.9c9media.ca/widevine", "application/x-protobuf",
@@ -83,11 +88,6 @@ query axisContent($id: ID!) {
    }
 }
 ` // do not use `query(`
-
-// this is better than strings.Replace and strings.ReplaceAll
-func graphql_compact(data string) string {
-   return strings.Join(strings.Fields(data), " ")
-}
 
 type AxisContent struct {
    AxisId                int64

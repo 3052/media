@@ -9,6 +9,29 @@ import (
    "strings"
 )
 
+func NewUser(email, password string) (Byte[User], error) {
+   value := map[string]any{
+      "query": query_user,
+      "variables": map[string]string{
+         "email": email,
+         "password": password,
+      },
+   }
+   data, err := json.MarshalIndent(value, "", " ")
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://api.audienceplayer.com/graphql/2/user",
+      "application/json", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (u *User) Unmarshal(data Byte[User]) error {
    var value struct {
       Data struct {
@@ -27,28 +50,6 @@ func (u *User) Unmarshal(data Byte[User]) error {
    }
    *u = value.Data.UserAuthenticate
    return nil
-}
-
-func NewUser(email, password string) (Byte[User], error) {
-   data, err := json.Marshal(map[string]any{
-      "query": query_user,
-      "variables": map[string]string{
-         "email": email,
-         "password": password,
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://api.audienceplayer.com/graphql/2/user",
-      "application/json", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type User struct {
@@ -127,6 +128,7 @@ func (a Address) Article() (*Article, error) {
    }
    return &value.Data.Article, nil
 }
+
 func (e *Entitlement) Send(data []byte) ([]byte, error) {
    resp, err := http.Post(
       e.KeyDeliveryUrl, "application/x-protobuf", bytes.NewReader(data),
