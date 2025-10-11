@@ -10,16 +10,27 @@ import (
    "strings"
 )
 
+func (p *Playlist) Send(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 // this is old device that returns 4K MPD:
 // https://vodmanifest.hulustream.com
 // newer devices return 2K MPD:
 // https://dynamic-manifest.hulustream.com
 const (
-   //deejay_device_id = 166
-   //version          = 9999999
+   deejay_device_id = 166
+   version          = 9999999
    
-   deejay_device_id = 204
-   version          = 4
+   //deejay_device_id = 204
+   //version          = 4
 )
 
 // hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
@@ -134,17 +145,6 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    req.Header.Set("authorization", "Bearer "+a.UserToken)
    req.Header.Set("content-type", "application/json")
    resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playlist) License(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
    if err != nil {
       return nil, err
    }

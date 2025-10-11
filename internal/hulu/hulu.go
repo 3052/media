@@ -11,6 +11,56 @@ import (
    "path/filepath"
 )
 
+type flag_set struct {
+   address  string
+   cache    string
+   config   net.Config
+   email    string
+   filters  net.Filters
+   password string
+}
+
+func (f *flag_set) do_authenticate() error {
+   data, err := hulu.NewAuthenticate(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/hulu/Authenticate", data)
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
@@ -28,63 +78,13 @@ func main() {
    case set.address != "":
       err = set.do_address()
    case set.email_password():
-      err = set.do_email()
+      err = set.do_authenticate()
    default:
       flag.Usage()
    }
    if err != nil {
       panic(err)
    }
-}
-
-type flag_set struct {
-   address  string
-   cdm      net.Cdm
-   email    string
-   filters  net.Filters
-   cache    string
-   password string
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
-func (f *flag_set) do_email() error {
-   data, err := hulu.NewAuthenticate(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/hulu/Authenticate", data)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flag_set) do_address() error {
@@ -122,8 +122,8 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return play.License(data)
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return play.Send(data)
    }
-   return f.filters.Filter(resp, &f.cdm)
+   return f.filters.Filter(resp, &f.config)
 }
