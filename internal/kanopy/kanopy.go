@@ -11,11 +11,11 @@ import (
 )
 
 type flag_set struct {
-   cdm      net.Cdm
+   cache    string
+   config   net.Config
    email    string
    filters  net.Filters
    kanopy   int
-   cache    string
    password string
 }
 
@@ -26,10 +26,10 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
@@ -38,7 +38,16 @@ func (f *flag_set) New() error {
    return nil
 }
 
-func (f *flag_set) do_email() error {
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
+func (f *flag_set) do_login() error {
    data, err := kanopy.NewLogin(f.email, f.password)
    if err != nil {
       return err
@@ -46,30 +55,28 @@ func (f *flag_set) do_email() error {
    return write_file(f.cache+"/kanopy/Login", data)
 }
 
-///
-
 func main() {
    var set flag_set
    err := set.New()
    if err != nil {
       panic(err)
    }
-   func() {
-      if set.email != "" {
-         if set.password != "" {
-            err = set.do_email()
-            return
-         }
-      }
-      if set.kanopy >= 1 {
-         err = set.do_kanopy()
-      } else {
-         flag.Usage()
-      }
-   }()
+   switch {
+   case set.email_password():
+      err = set.do_login()
+   case set.kanopy >= 1:
+      err = set.do_kanopy()
+   default:
+      flag.Usage()
+   }
    if err != nil {
       panic(err)
    }
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flag_set) do_kanopy() error {
@@ -95,10 +102,6 @@ func (f *flag_set) do_kanopy() error {
    if err != nil {
       return err
    }
-   err = write_file(f.cache+"/kanopy/Plays", data)
-   if err != nil {
-      return err
-   }
    manifest, ok := plays.Dash()
    if !ok {
       return errors.New(".Dash()")
@@ -107,36 +110,8 @@ func (f *flag_set) do_kanopy() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.cache+"/Mpd", resp)
-}
-
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.cache + "/kanopy/Login")
-   if err != nil {
-      return err
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return login.Send(manifest, data)
    }
-   var login kanopy.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = os.ReadFile(f.cache + "/kanopy/Plays")
-   if err != nil {
-      return err
-   }
-   var plays kanopy.Plays
-   err = plays.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   manifest, _ := plays.Dash()
-   f.cdm.Widevine = func(data []byte) ([]byte, error) {
-      return login.Widevine(manifest, data)
-   }
-   return f.cdm.Download(f.cache+"/Mpd", f.dash)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+   return f.filters.Filter(resp, &f.config)
 }

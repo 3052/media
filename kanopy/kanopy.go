@@ -9,7 +9,7 @@ import (
    "strconv"
 )
 
-func (n *Login) Widevine(m *Manifest, data []byte) ([]byte, error) {
+func (l *Login) Send(m *Manifest, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://www.kanopy.com", bytes.NewReader(data),
    )
@@ -19,7 +19,7 @@ func (n *Login) Widevine(m *Manifest, data []byte) ([]byte, error) {
    req.URL.Path = "/kapi/licenses/widevine/" + m.DrmLicenseId
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-version", x_version)
-   req.Header.Set("authorization", "Bearer " + n.Jwt)
+   req.Header.Set("authorization", "Bearer " + l.Jwt)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -66,11 +66,11 @@ func NewLogin(email, password string) (Byte[Login], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (n *Login) Membership() (*Membership, error) {
+func (l *Login) Membership() (*Membership, error) {
    req, _ := http.NewRequest("", "https://www.kanopy.com", nil)
    req.URL.Path = "/kapi/memberships"
-   req.URL.RawQuery = "userId=" + strconv.Itoa(n.UserId)
-   req.Header.Set("authorization", "Bearer " + n.Jwt)
+   req.URL.RawQuery = "userId=" + strconv.Itoa(l.UserId)
+   req.Header.Set("authorization", "Bearer " + l.Jwt)
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-version", x_version)
    resp, err := http.DefaultClient.Do(req)
@@ -106,8 +106,8 @@ type Membership struct {
 
 type Byte[T any] []byte
 
-func (n *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, n)
+func (l *Login) Unmarshal(data Byte[Login]) error {
+   return json.Unmarshal(data, l)
 }
 
 type Manifest struct {
@@ -136,10 +136,10 @@ type Plays struct {
    Manifests []Manifest
 }
 
-func (n *Login) Plays(member *Membership, video_id int) (Byte[Plays], error) {
+func (l *Login) Plays(member *Membership, video_id int) (Byte[Plays], error) {
    data, err := json.Marshal(map[string]int{
       "domainId": member.DomainId,
-      "userId":   n.UserId,
+      "userId":   l.UserId,
       "videoId":  video_id,
    })
    if err != nil {
@@ -151,7 +151,7 @@ func (n *Login) Plays(member *Membership, video_id int) (Byte[Plays], error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + n.Jwt)
+   req.Header.Set("authorization", "Bearer " + l.Jwt)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-version", x_version)

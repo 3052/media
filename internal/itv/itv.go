@@ -18,9 +18,9 @@ func write_file(name string, data []byte) error {
 
 type flag_set struct {
    address  string
-   cdm      net.Cdm
-   filters  net.Filters
    cache    string
+   config   net.Config
+   filters  net.Filters
    playlist string
 }
 
@@ -50,10 +50,10 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.playlist, "p", "", "playlist URL")
@@ -100,8 +100,8 @@ func (f *flag_set) do_playlist() error {
    if err != nil {
       return err
    }
-   f.cdm.License = func(data []byte) ([]byte, error) {
+   f.config.Send = func(data []byte) ([]byte, error) {
       return file.Widevine(data)
    }
-   return f.filters.Filter(resp, &f.cdm)
+   return f.filters.Filter(resp, &f.config)
 }

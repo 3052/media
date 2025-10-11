@@ -12,6 +12,66 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         if filepath.Ext(req.URL.Path) != ".mp4" {
+            log.Println(req.Method, req.URL)
+         }
+         return http.ProxyFromEnvironment(req)
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.edit != "":
+      err = set.do_edit()
+   case set.initiate:
+      err = set.do_initiate()
+   case set.login:
+      err = set.do_login()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flag_set) do_edit() error {
+   data, err := os.ReadFile(f.cache + "/hbomax/Login")
+   if err != nil {
+      return err
+   }
+   var login hbomax.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = login.PlayReady(f.edit)
+   if err != nil {
+      return err
+   }
+   var play hbomax.Playback
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Mpd())
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return play.PlayReady(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
 type flag_set struct {
    address  string
    cache    string
@@ -117,63 +177,4 @@ func (f *flag_set) do_address() error {
       fmt.Println(video)
    }
    return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.edit != "":
-      err = set.do_edit()
-   case set.initiate:
-      err = set.do_initiate()
-   case set.login:
-      err = set.do_login()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func (f *flag_set) do_edit() error {
-   data, err := os.ReadFile(f.cache + "/hbomax/Login")
-   if err != nil {
-      return err
-   }
-   var login hbomax.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = login.PlayReady(f.edit)
-   if err != nil {
-      return err
-   }
-   var play hbomax.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Mpd())
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return play.PlayReady(data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }
