@@ -1,0 +1,56 @@
+{
+  "ID": 917398,
+  "OFFSET": "5",
+  "STREAMTOKEN": "26ef2a6def007c3bc077cc04ea205d35",
+  "LINKS": [
+    {
+      "PROTOCOL": "hls",
+      "TYPE": "MP4",
+      "EXTENSION": "MP4",
+      "BANDWIDTH": "6192",
+      "ASPECTRATIO": "16:9",
+      "LANGUAGE": "ov",
+      "LABEL": "Stereo",
+      "WIDTH": "1920",
+      "HEIGHT": "1080",
+      "URL": "https://ms10.mx-cd.net/rstonip/332/fs/f5b5cd0debc453b7f94e60fa7a1c53dc-0-0-6192.smil/playlist.m3u8?mxtendtime=1760233228&mxtstarttime=0&mxthash=phGDrAvWQMH_wefmr2TriucdguyrFbAWcdX20KipdiA=&serps=LY7BbsMgEET$ZT$A2l0SMNuTpRxzS34A8EZCSlvLWG2kqv8esLnNvIWZCeLlr8hJYLpcJ$goYgVum6763Yyp5n5tigW-nh2lPDflBMgx8QmbGwVm$clJjyMJYP-Xlx1U5XigkQayg6edocBneMW8rWHTRuoQS5570XJk1UmenPFjM17gV2PJWy-qz4zhvqBoKrouZY-q4Wg4KWLEOdqEjn0gwhDHM5$dQyMxKyVja$X$Gw",
+      "MIMETYPE": "application/x-mpegurl"
+    },
+    {
+      "PROTOCOL": "mpd",
+      "TYPE": "MP4",
+      "EXTENSION": "MP4",
+      "BANDWIDTH": "6192",
+      "ASPECTRATIO": "16:9",
+      "LANGUAGE": "ov",
+      "LABEL": "Stereo",
+      "WIDTH": "1920",
+      "HEIGHT": "1080",
+      "URL": "https://ms1.mx-cd.net/rstonip/332/fs/f5b5cd0debc453b7f94e60fa7a1c53dc-0-0-6192.smil/manifest.mpd?mxtendtime=1760233228&mxtstarttime=0&mxthash=phGDrAvWQMH_wefmr2TriucdguyrFbAWcdX20KipdiA=&serps=LY7BbsMgEET$ZT$A2l0SMNuTpRxzS34A8EZCSlvLWG2kqv8esLnNvIWZCeLlr8hJYLpcJ$goYgVum6763Yyp5n5tigW-nh2lPDflBMgx8QmbGwVm$clJjyMJYP-Xlx1U5XigkQayg6edocBneMW8rWHTRuoQS5570XJk1UmenPFjM17gV2PJWy-qz4zhvqBoKrouZY-q4Wg4KWLEOdqEjn0gwhDHM5$dQyMxKyVja$X$Gw",
+      "MIMETYPE": "application/dash+xml"
+    }
+  ],
+  "URLEXPIRETIME": "2025-10-12 03:40:28",
+  "LICENSEPERIOD": "0",
+  "DRM": false,
+  "STARTDATELICENSE": "2025-10-11 23:40:28",
+  "ENDDATELICENSE": "2025-10-24 23:59:59",
+  "CHROMECAST": {
+    "LINKS": [
+      {
+        "PROTOCOL": "mpd",
+        "TYPE": "MP4",
+        "EXTENSION": "MP4",
+        "BANDWIDTH": "6192",
+        "ASPECTRATIO": "16:9",
+        "LANGUAGE": "ov",
+        "LABEL": "Stereo",
+        "WIDTH": "1920",
+        "HEIGHT": "1080",
+        "URL": "https://ms10.mx-cd.net/rstonip/332/fs/f5b5cd0debc453b7f94e60fa7a1c53dc-142-0-6192.smil/manifest.mpd?mxtendtime=1760233228&mxtstarttime=0&mxthash=V6J1zAT4hwj4IiGPSO6g89RbgvTQHqI1ivu1fYpDIuk=&serps=RY5NisMwDIXvogOEyHZsS1kFZtld5wKKq4BhfkIcpoUyd6$dBrp770n69ISJ74Udw$RxmmAs7BnOu27624yt5vPUlGH4-TqilC9NBQYMBo3rm4sMF$3LSV$DuobOHJd5bQKrCqbDiB36jvCZ9QzfcpvzvsmuLalVPJI5GOuLVksRBkuxGWK46lzy$n5lrTk6FE1Ft7U8URU-p0CyiJCKlWEJxoU4eIopSFrm3g29i94Lwfj$AA&s_t=26ef2a6def007c3bc077cc04ea205d35",
+        "MIMETYPE": "application/dash+xml"
+      }
+    ],
+    "DRM": "0"
+  }
+}

@@ -6,7 +6,7 @@ import (
    "testing"
 )
 
-func Test(t *testing.T) {
+func TestWrite(t *testing.T) {
    user, err := output("credential", "-h", "cinemember.nl", "-k", "user")
    if err != nil {
       t.Fatal(err)
@@ -15,15 +15,42 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   cookie, err := session()
+   var sessionVar session
+   err = sessionVar.New()
    if err != nil {
       t.Fatal(err)
    }
-   err = login(cookie, user, password)
+   err = sessionVar.login(user, password)
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := stream(cookie)
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      cache + "/cineMember/session", []byte(sessionVar.String()), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
+func TestRead(t *testing.T) {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(cache + "/cineMember/session")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var sessionVar session
+   err = sessionVar.Set(string(data))
+   if err != nil {
+      t.Fatal(err)
+   }
+   resp, err := sessionVar.stream()
    if err != nil {
       t.Fatal(err)
    }

@@ -14,6 +14,39 @@ import (
    "strings"
 )
 
+type St [1]*http.Cookie
+
+func (s *St) New() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s[0] = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
+func (s *St) Set(data string) error {
+   var err error
+   s[0], err = http.ParseSetCookie(data)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (s St) String() string {
+   return s[0].String()
+}
+
 func ShowId(data string) (string, error) {
    if !strings.Contains(data, "/movies/") {
       if !strings.Contains(data, "/shows/") {
@@ -202,37 +235,6 @@ func (s St) Login() (Byte[Login], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (s *St) New() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
-
-func (s *St) Set(data string) error {
-   var err error
-   s[0], err = http.ParseSetCookie(data)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (s St) String() string {
-   return s[0].String()
-}
-
 const (
    device_info  = "!/!(!/!;!/!;!/!)"
    disco_client = "!:!:beam:!"
@@ -240,8 +242,6 @@ const (
 )
 
 type Byte[T any] []byte
-
-type St [1]*http.Cookie
 
 type Initiate struct {
    LinkingCode string
