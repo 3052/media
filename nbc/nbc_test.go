@@ -7,13 +7,12 @@ import (
 )
 
 func TestPlayReady(t *testing.T) {
-   home, err := os.UserHomeDir()
+   cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      home + "/media/nbc/PlayReady",
-      []byte(playReady().String()), os.ModePerm,
+      cache + "/nbc/PlayReady", []byte(playReady().String()), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)

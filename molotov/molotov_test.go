@@ -6,11 +6,11 @@ import (
 )
 
 func TestWidevine(t *testing.T) {
-   home, err := os.UserHomeDir()
+   cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(home + "/media/molotov/refresh")
+   data, err := os.ReadFile(cache + "/molotov/refresh")
    if err != nil {
       t.Fatal(err)
    }

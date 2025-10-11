@@ -11,17 +11,33 @@ import (
    "path/filepath"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type flag_set struct {
+   address  string
+   cache    string
+   config   net.Config
+   email    string
+   filters  net.Filters
+   password string
+}
+
+///
+
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserHomeDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   f.cache = filepath.ToSlash(f.cache) + "/media"
+   f.config.ClientId = f.cache + "/client_id.bin"
+   f.config.PrivateKey = f.cache + "/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
@@ -49,26 +65,12 @@ func main() {
    }
 }
 
-type flag_set struct {
-   address  string
-   cdm      net.Cdm
-   email    string
-   filters  net.Filters
-   media    string
-   password string
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (f *flag_set) do_email() error {
    data, err := cineMember.NewUser(f.email, f.password)
    if err != nil {
       return err
    }
-   return write_file(f.media+"/cineMember/User", data)
+   return write_file(f.cache+"/cineMember/User", data)
 }
 
 func (f *flag_set) email_password() bool {
@@ -81,7 +83,7 @@ func (f *flag_set) email_password() bool {
 }
 
 func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.media + "/cineMember/User")
+   data, err := os.ReadFile(f.cache + "/cineMember/User")
    if err != nil {
       return err
    }
@@ -120,8 +122,8 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.cdm.License = func(data []byte) ([]byte, error) {
+   f.config.License = func(data []byte) ([]byte, error) {
       return title.License(data)
    }
-   return f.filters.Filter(resp, &f.cdm)
+   return f.filters.Filter(resp, &f.config)
 }

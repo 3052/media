@@ -61,13 +61,12 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   home, err := os.UserHomeDir()
+   cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      home+"/media/rakuten/PlayReady",
-      []byte(info.LicenseUrl), os.ModePerm,
+      cache+"/rakuten/PlayReady", []byte(info.LicenseUrl), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)

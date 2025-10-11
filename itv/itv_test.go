@@ -32,13 +32,12 @@ func TestPlayReady(t *testing.T) {
    if !ok {
       t.Fatal(".FullHd()")
    }
-   home, err := os.UserHomeDir()
+   cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      home + "/media/itv/PlayReady",
-      []byte(hd.KeyServiceUrl), os.ModePerm,
+      cache + "/itv/PlayReady", []byte(hd.KeyServiceUrl), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)
