@@ -12,6 +12,21 @@ import (
    "path/filepath"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type flags struct {
+   address  string
+   cdm      net.Cdm
+   dash     string
+   email    string
+   filters  net.Filters
+   cache    string
+   password string
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
@@ -44,7 +59,7 @@ func main() {
 }
 
 func (f *flags) do_address() error {
-   data, err := os.ReadFile(f.media + "/rtbf/Login")
+   data, err := os.ReadFile(f.cache + "/rtbf/Login")
    if err != nil {
       return err
    }
@@ -89,25 +104,16 @@ func (f *flags) do_address() error {
    }
    return f.filters.Filter(resp, &f.cdm)
 }
-type flags struct {
-   address  string
-   cdm      net.Cdm
-   dash     string
-   email    string
-   filters  net.Filters
-   media    string
-   password string
-}
 
 func (f *flags) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.email, "e", "", "email")
    flag.StringVar(&f.cdm.PrivateKey, "k", f.cdm.PrivateKey, "private key")
@@ -118,15 +124,10 @@ func (f *flags) New() error {
    return nil
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (f *flags) do_password() error {
    data, err := rtbf.NewLogin(f.email, f.password)
    if err != nil {
       return err
    }
-   return write_file(f.media+"/rtbf/Login", data)
+   return write_file(f.cache+"/rtbf/Login", data)
 }

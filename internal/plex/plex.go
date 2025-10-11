@@ -11,22 +11,16 @@ import (
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.license.ClientId = f.media + "/client_id.bin"
-   f.license.PrivateKey = f.media + "/private_key.pem"
-   f.bitrate.Value = [][2]int{
-      {128_000, 256_000}, {3_000_000, 4_000_000},
-   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.license.ClientId = f.cache + "/L3/client_id.bin"
+   f.license.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
-   flag.StringVar(
-      &f.license.PrivateKey, "p", f.license.PrivateKey, "private key",
-   )
+   flag.StringVar(&f.license.PrivateKey, "p", f.license.PrivateKey, "private key")
    flag.StringVar(&plex.ForwardedFor, "x", "", "x-forwarded-for")
-   /////////////////////////////////////////////////////////////////////////
    flag.StringVar(&f.address, "a", "", "address")
    flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
@@ -50,9 +44,8 @@ func main() {
 }
 
 type flag_set struct {
-   media   string
+   cache   string
    license net.License
-   ////////////////////////////////
    address string
    bitrate net.Bitrate
 }

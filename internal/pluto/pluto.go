@@ -26,10 +26,10 @@ func main() {
       panic(err)
    }
    switch {
-   case set.show != "":
-      err = set.do_show()
    case set.episode != "":
       err = set.do_episode()
+   case set.show != "":
+      err = set.do_show()
    default:
       flag.Usage()
    }
@@ -57,13 +57,13 @@ func (f *flag_set) do_episode() error {
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(
       &f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key",
@@ -77,7 +77,7 @@ func (f *flag_set) New() error {
 }
 
 type flag_set struct {
-   media   string
+   cache   string
    cdm net.Cdm
    show string
    episode string

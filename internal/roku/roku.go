@@ -13,13 +13,13 @@ import (
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.e.ClientId = f.media + "/client_id.bin"
-   f.e.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.e.ClientId = f.cache + "/L3/client_id.bin"
+   f.e.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.BoolVar(&f.code_write, "code", false, "write code")
@@ -64,7 +64,7 @@ func (f *flag_set) do_code() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/roku/AccountToken", data)
+   err = write_file(f.cache+"/roku/AccountToken", data)
    if err != nil {
       return err
    }
@@ -78,11 +78,11 @@ func (f *flag_set) do_code() error {
       return err
    }
    fmt.Println(&activation)
-   return write_file(f.media+"/roku/Activation", data1)
+   return write_file(f.cache+"/roku/Activation", data1)
 }
 
 func (f *flag_set) do_token() error {
-   data, err := os.ReadFile(f.media + "/roku/AccountToken")
+   data, err := os.ReadFile(f.cache + "/roku/AccountToken")
    if err != nil {
       return err
    }
@@ -91,7 +91,7 @@ func (f *flag_set) do_token() error {
    if err != nil {
       return err
    }
-   data, err = os.ReadFile(f.media + "/roku/Activation")
+   data, err = os.ReadFile(f.cache + "/roku/Activation")
    if err != nil {
       return err
    }
@@ -104,12 +104,12 @@ func (f *flag_set) do_token() error {
    if err != nil {
       return err
    }
-   return write_file(f.media+"/roku/Code", data)
+   return write_file(f.cache+"/roku/Code", data)
 }
 
 type flag_set struct {
    e          net.License
-   media      string
+   cache      string
    token_read bool
    code_write  bool
    token_write bool
@@ -120,7 +120,7 @@ type flag_set struct {
 func (f *flag_set) do_roku() error {
    var code *roku.Code
    if f.token_read {
-      data, err := os.ReadFile(f.media + "/roku/Code")
+      data, err := os.ReadFile(f.cache + "/roku/Code")
       if err != nil {
          return err
       }
@@ -143,7 +143,7 @@ func (f *flag_set) do_roku() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/roku/Playback", data1)
+   err = write_file(f.cache+"/roku/Playback", data1)
    if err != nil {
       return err
    }
@@ -156,11 +156,11 @@ func (f *flag_set) do_roku() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.media+"/Mpd", resp)
+   return net.Mpd(f.cache+"/Mpd", resp)
 }
 
 func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.media + "/roku/Playback")
+   data, err := os.ReadFile(f.cache + "/roku/Playback")
    if err != nil {
       return err
    }
@@ -172,10 +172,10 @@ func (f *flag_set) do_dash() error {
    f.e.Widevine = func(data []byte) ([]byte, error) {
       return play.Widevine(data)
    }
-   return f.e.Download(f.media+"/Mpd", f.dash)
+   return f.e.Download(f.cache+"/Mpd", f.dash)
 }
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
-

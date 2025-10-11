@@ -12,19 +12,19 @@ import (
 type flag_set struct {
    nbc   int
    cdm     net.License
-   media string
+   cache string
    dash  string
 }
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.dash, "d", "", "dash ID")
    flag.IntVar(&f.nbc, "n", 0, "NBC ID")
@@ -67,10 +67,10 @@ func (f *flag_set) do_nbc() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.media+"/Mpd", resp)
+   return net.Mpd(f.cache+"/Mpd", resp)
 }
 
 func (f *flag_set) do_dash() error {
    f.cdm.Widevine = nbc.Widevine
-   return f.cdm.Download(f.media+"/Mpd", f.dash)
+   return f.cdm.Download(f.cache+"/Mpd", f.dash)
 }

@@ -16,15 +16,8 @@ func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
-         urlVar, err := http.ProxyFromEnvironment(req)
-         if err != nil {
-            return nil, err
-         }
-         if urlVar != nil {
-            log.Println("Proxy", urlVar)
-         }
          log.Println(req.Method, req.URL)
-         return urlVar, nil
+         return http.ProxyFromEnvironment(req)
       },
    }
    var set flag_set
@@ -57,13 +50,13 @@ func write_file(name string, data []byte) error {
 
 func (f *flag_set) New() error {
    var err error
-   f.media, err = os.UserHomeDir()
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.media = filepath.ToSlash(f.media) + "/media"
-   f.cdm.ClientId = f.media + "/client_id.bin"
-   f.cdm.PrivateKey = f.media + "/private_key.pem"
+   f.cache = filepath.ToSlash(f.cache)
+   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
+   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
    flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
    flag.StringVar(&f.season, "S", "", "season ID")
@@ -80,13 +73,13 @@ type flag_set struct {
    content  string
    filters  net.Filters
    language string
-   media    string
+   cache    string
    movie    string
    season   string
    show     string
 }
 func (f *flag_set) do_content() error {
-   data, err := os.ReadFile(f.media + "/rakuten/Address")
+   data, err := os.ReadFile(f.cache + "/rakuten/Address")
    if err != nil {
       return err
    }
@@ -115,7 +108,7 @@ func (f *flag_set) do_content() error {
 
 // print episodes
 func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.media + "/rakuten/Address")
+   data, err := os.ReadFile(f.cache + "/rakuten/Address")
    if err != nil {
       return err
    }
@@ -143,7 +136,7 @@ func (f *flag_set) do_show() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/rakuten/Address", []byte(f.show))
+   err = write_file(f.cache+"/rakuten/Address", []byte(f.show))
    if err != nil {
       return err
    }
@@ -166,7 +159,7 @@ func (f *flag_set) do_movie() error {
    if err != nil {
       return err
    }
-   err = write_file(f.media+"/rakuten/Address", []byte(f.movie))
+   err = write_file(f.cache+"/rakuten/Address", []byte(f.movie))
    if err != nil {
       return err
    }
