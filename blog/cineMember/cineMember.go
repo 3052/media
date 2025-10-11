@@ -1,11 +1,71 @@
 package cineMember
 
 import (
+   "encoding/json"
+   "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
    "strings"
 )
+
+// must run session.login first
+func (s session) stream(id int) (*stream, error) {
+   req, err := http.NewRequest(
+      "", "https://www.cinemember.nl/elements/films/stream.php", nil,
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var streamVar stream
+   err = json.NewDecoder(resp.Body).Decode(&streamVar)
+   if err != nil {
+      return nil, err
+   }
+   if streamVar.Error != "" {
+      return nil, errors.New(streamVar.Error)
+   }
+   return &streamVar, nil
+}
+
+type stream struct {
+   Error string
+   Links []struct {
+      Protocol string
+      Url string
+   }
+}
+
+// https://cinemember.nl/nl/title/469991/knives-out
+func Id(address string) (int, error) {
+   _, after, found := strings.Cut(address, "/title/")
+   if !found {
+      return 0, errors.New("marker '/title/' not found in URL")
+   }
+   var id int
+   _, err := fmt.Sscan(after, &id)
+   if err != nil {
+      return 0, err
+   }
+   return id, nil
+}
+
+func (s stream) mpd() (string, bool) {
+   for _, link := range s.Links {
+      if link.Protocol == "mpd" {
+         return link.Url, true
+      }
+   }
+   return "", false
+}
 
 func (s *session) New() error {
    resp, err := http.Head("https://www.cinemember.nl/nl")
@@ -61,15 +121,3 @@ func (s session) login(email, password string) error {
 }
 
 type session [1]*http.Cookie
-
-// must run session.login first
-func (s session) stream() (*http.Response, error) {
-   req, err := http.NewRequest(
-      "", "https://www.cinemember.nl/elements/films/stream.php?id=917398", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.AddCookie(s[0])
-   return http.DefaultClient.Do(req)
-}

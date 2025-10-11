@@ -1,10 +1,50 @@
 package cineMember
 
 import (
+   "fmt"
    "os"
    "os/exec"
    "testing"
 )
+
+var tests = []struct{
+   stream string
+   title string
+}{
+   {
+      stream: "https://cinemember.nl/nl/title/906945/american-hustle/play",
+      title: "https://cinemember.nl/nl/title/468545/american-hustle",
+   },
+   { // buffer too small
+      stream: "https://cinemember.nl/nl/title/904309/knives-out/play",
+      title: "https://cinemember.nl/nl/title/469991/knives-out",
+   },
+}
+
+func TestRead(t *testing.T) {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(cache + "/cineMember/session")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var sessionVar session
+   err = sessionVar.Set(string(data))
+   if err != nil {
+      t.Fatal(err)
+   }
+   idVar, err := Id(tests[0])
+   if err != nil {
+      t.Fatal(err)
+   }
+   streamVar, err := sessionVar.stream(idVar)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(streamVar.mpd())
+}
 
 func TestWrite(t *testing.T) {
    user, err := output("credential", "-h", "cinemember.nl", "-k", "user")
@@ -31,30 +71,6 @@ func TestWrite(t *testing.T) {
    err = os.WriteFile(
       cache + "/cineMember/session", []byte(sessionVar.String()), os.ModePerm,
    )
-   if err != nil {
-      t.Fatal(err)
-   }
-}
-
-func TestRead(t *testing.T) {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(cache + "/cineMember/session")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var sessionVar session
-   err = sessionVar.Set(string(data))
-   if err != nil {
-      t.Fatal(err)
-   }
-   resp, err := sessionVar.stream()
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = resp.Write(os.Stdout)
    if err != nil {
       t.Fatal(err)
    }
