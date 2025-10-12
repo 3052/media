@@ -12,34 +12,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   http.DefaultTransport = &http.Transport{
-      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return nil, nil
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.code:
-      err = set.do_code()
-   case set.auth:
-      err = set.do_auth()
-   case set.slug != "":
-      err = set.do_slug()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -76,13 +48,41 @@ func (f *flag_set) do_auth() error {
    return write_file(f.cache+"/mubi/Authenticate", data)
 }
 
+func main() {
+   http.DefaultTransport = &http.Transport{
+      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.auth:
+      err = set.do_auth()
+   case set.code:
+      err = set.do_code()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
 type flag_set struct {
+   address string
    auth    bool
-   cdm     net.Cdm
-   code    bool
-   filters net.Filters
    cache   string
-   slug    mubi.Slug
+   code    bool
+   config  net.Config
+   filters net.Filters
 }
 
 func (f *flag_set) New() error {
@@ -92,21 +92,19 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.Func("a", "address", func(data string) error {
-      return f.slug.Parse(data)
-   })
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
    flag.BoolVar(&f.auth, "auth", false, "authenticate")
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
    flag.BoolVar(&f.code, "code", false, "link code")
    flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
    flag.Parse()
    return nil
 }
 
-func (f *flag_set) do_slug() error {
+func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/mubi/Authenticate")
    if err != nil {
       return err
@@ -116,18 +114,19 @@ func (f *flag_set) do_slug() error {
    if err != nil {
       return err
    }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return auth.License(data)
-   }
-   film, err := f.slug.Film()
+   slug, err := mubi.FilmSlug(f.address)
    if err != nil {
       return err
    }
-   err = auth.Viewing(film)
+   film_id, err := mubi.FilmId(slug)
    if err != nil {
       return err
    }
-   data, err = auth.SecureUrl(film)
+   err = auth.Viewing(film_id)
+   if err != nil {
+      return err
+   }
+   data, err = auth.SecureUrl(film_id)
    if err != nil {
       return err
    }
@@ -140,5 +139,8 @@ func (f *flag_set) do_slug() error {
    if err != nil {
       return err
    }
-   return f.filters.Filter(resp, &f.cdm)
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return auth.Send(data)
+   }
+   return f.filters.Filter(resp, &f.config)
 }
