@@ -10,6 +10,12 @@ import (
    "strings"
 )
 
+func Path(data string) string {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "watch.plex.tv")
+   return strings.TrimPrefix(data, "/watch")
+}
+
 func (u User) Match(path string) (*Match, error) {
    req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
    req.URL.Path = "/library/metadata/matches"
@@ -41,11 +47,6 @@ func (u User) Match(path string) (*Match, error) {
    return &value.MediaContainer.Metadata[0], nil
 }
 
-func Path(data string) string {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "watch.plex.tv")
-   return strings.TrimPrefix(data, "/watch")
-}
 func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
    var value struct {
       MediaContainer struct {

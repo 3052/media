@@ -17,7 +17,7 @@ var tests = []struct {
 
 func Test(t *testing.T) {
    for _, testVar := range tests {
-      _, err := Address(testVar.path).Resolve()
+      _, err := Resolve(Path(testVar.url))
       if err != nil {
          t.Fatal(err)
       }
