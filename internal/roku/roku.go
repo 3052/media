@@ -18,15 +18,15 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.e.ClientId = f.cache + "/L3/client_id.bin"
-   f.e.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.dash, "d", "", "dash ID")
-   flag.BoolVar(&f.code_write, "code", false, "write code")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.BoolVar(&f.token_write, "T", false, "write token")
+   flag.BoolVar(&f.code_write, "c", false, "write code")
+   flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.roku, "r", "", "Roku ID")
    flag.BoolVar(&f.token_read, "t", false, "read token")
-   flag.BoolVar(&f.token_write, "token", false, "write token")
    flag.Parse()
    return nil
 }
@@ -40,12 +40,10 @@ func main() {
    switch {
    case set.code_write:
       err = set.do_code()
-   case set.token_write:
-      err = set.do_token()
    case set.roku != "":
       err = set.do_roku()
-   case set.dash != "":
-      err = set.do_dash()
+   case set.token_write:
+      err = set.do_token()
    default:
       flag.Usage()
    }
@@ -108,13 +106,18 @@ func (f *flag_set) do_token() error {
 }
 
 type flag_set struct {
-   e          net.License
-   cache      string
-   token_read bool
+   cache       string
    code_write  bool
-   token_write bool
+   config      net.Config
+   filters     net.Filters
    roku        string
-   dash        string
+   token_read  bool
+   token_write bool
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flag_set) do_roku() error {
@@ -143,10 +146,6 @@ func (f *flag_set) do_roku() error {
    if err != nil {
       return err
    }
-   err = write_file(f.cache+"/roku/Playback", data1)
-   if err != nil {
-      return err
-   }
    var play roku.Playback
    err = play.Unmarshal(data1)
    if err != nil {
@@ -156,26 +155,8 @@ func (f *flag_set) do_roku() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.cache+"/Mpd", resp)
-}
-
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.cache + "/roku/Playback")
-   if err != nil {
-      return err
-   }
-   var play roku.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
+   f.config.Send = func(data []byte) ([]byte, error) {
       return play.Widevine(data)
    }
-   return f.e.Download(f.cache+"/Mpd", f.dash)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+   return f.filters.Filter(resp, &f.config)
 }

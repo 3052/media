@@ -68,6 +68,6 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.config.Send = ctv.Send
+   f.config.Send = ctv.Widevine
    return f.filters.Filter(resp, &f.config)
 }

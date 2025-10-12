@@ -10,10 +10,31 @@ import (
    "strings"
 )
 
+func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/licenseServer/widevine/v1/rbm-rtbf/license"
+   req.URL.RawQuery = url.Values{
+      "contentId":  {e.AssetId},
+      "ls_session": {e.PlayToken},
+   }.Encode()
+   req.Header.Set("content-type", "application/x-protobuf")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 type Entitlement struct {
    AssetId   string
    Formats   []Format
-   Message string
+   Message   string
    PlayToken string
 }
 
@@ -39,27 +60,6 @@ func (g *GigyaLogin) Entitlement(c *Content) (Byte[Entitlement], error) {
    }()
    req.Header.Set("x-forwarded-for", "91.90.123.17")
    req.Header.Set("authorization", "Bearer "+g.SessionToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (e *Entitlement) License(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/licenseServer/widevine/v1/rbm-rtbf/license"
-   req.URL.RawQuery = url.Values{
-      "contentId":  {e.AssetId},
-      "ls_session": {e.PlayToken},
-   }.Encode()
-   req.Header.Set("content-type", "application/x-protobuf")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err

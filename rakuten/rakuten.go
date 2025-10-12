@@ -11,6 +11,17 @@ import (
    "strings"
 )
 
+func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 // geo block
 func (a *Address) streamInfo(
    content_id, audio_language, player string, video Quality,
@@ -55,16 +66,6 @@ func (a *Address) streamInfo(
       return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.StreamInfos[0], nil
-}
-func (s *StreamInfo) License(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type StreamInfo struct {

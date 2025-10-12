@@ -12,6 +12,15 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) content_language() bool {
+   if f.content != "" {
+      if f.language != "" {
+         return true
+      }
+   }
+   return false
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
@@ -25,17 +34,16 @@ func main() {
    if err != nil {
       panic(err)
    }
-   if set.movie != "" {
+   switch {
+   case set.content_language():
+      err = set.do_send()
+   case set.movie != "":
       err = set.do_movie()
-   } else if set.show != "" {
-      err = set.do_show()
-   } else if set.season != "" {
+   case set.season != "":
       err = set.do_season()
-   } else if set.content != "" {
-      if set.language != "" {
-         err = set.do_content()
-      }
-   } else {
+   case set.show != "":
+      err = set.do_show()
+   default:
       flag.Usage()
    }
    if err != nil {
@@ -55,10 +63,10 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.season, "S", "", "season ID")
    flag.StringVar(&f.language, "a", "", "audio language")
    flag.StringVar(&f.content, "c", "", "content ID")
@@ -69,41 +77,14 @@ func (f *flag_set) New() error {
 }
 
 type flag_set struct {
-   cdm      net.Cdm
+   cache    string
+   config   net.Config
    content  string
    filters  net.Filters
    language string
-   cache    string
    movie    string
    season   string
    show     string
-}
-func (f *flag_set) do_content() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Address")
-   if err != nil {
-      return err
-   }
-   var address rakuten.Address
-   err = address.Set(string(data))
-   if err != nil {
-      return err
-   }
-   info, err := address.Wvm(f.content, f.language, rakuten.Fhd)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(info.Url)
-   if err != nil {
-      return err
-   }
-   info, err = address.Wvm(f.content, f.language, rakuten.Hd)
-   if err != nil {
-      return err
-   }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return info.License(data)
-   }
-   return f.filters.Filter(resp, &f.cdm)
 }
 
 // print episodes
@@ -169,4 +150,32 @@ func (f *flag_set) do_movie() error {
    }
    fmt.Println(content)
    return nil
+}
+
+func (f *flag_set) do_send() error {
+   data, err := os.ReadFile(f.cache + "/rakuten/Address")
+   if err != nil {
+      return err
+   }
+   var address rakuten.Address
+   err = address.Set(string(data))
+   if err != nil {
+      return err
+   }
+   info, err := address.Wvm(f.content, f.language, rakuten.Fhd)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(info.Url)
+   if err != nil {
+      return err
+   }
+   info, err = address.Wvm(f.content, f.language, rakuten.Hd)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return info.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
 }
