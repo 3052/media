@@ -5,7 +5,7 @@ import (
    "testing"
 )
 
-func TestWidevine(t *testing.T) {
+func Test(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
@@ -20,7 +20,7 @@ func TestWidevine(t *testing.T) {
       t.Fatal(err)
    }
    var web Address
-   err = web.Set("molotov.tv/fr_fr/p/15082-531")
+   err = web.Parse("molotov.tv/fr_fr/p/15082-531")
    if err != nil {
       t.Fatal(err)
    }

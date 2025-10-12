@@ -11,6 +11,29 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return http.ProxyFromEnvironment(req)
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.nbc >= 1 {
+      err = set.do_nbc()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
+
 type flag_set struct {
    cache   string
    config  net.Config
@@ -33,29 +56,6 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.Parse()
    return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return nil, nil
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.nbc >= 1 {
-      err = set.do_nbc()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }
 
 func (f *flag_set) do_nbc() error {

@@ -10,44 +10,7 @@ import (
    "strings"
 )
 
-func (r *Refresh) View(web *Address) (*View, error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = func() string {
-      b := []byte("/v2/channels/")
-      b = strconv.AppendInt(b, web.Channel, 10)
-      b = append(b, "/programs/"...)
-      b = strconv.AppendInt(b, web.Program, 10)
-      b = append(b, "/view"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "access_token=" + r.AccessToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var viewVar View
-   err = json.NewDecoder(resp.Body).Decode(&viewVar)
-   if err != nil {
-      return nil, err
-   }
-   if viewVar.Program.Actions.Play == nil {
-      return nil, errors.New(".Program.Actions.Play == nil")
-   }
-   return &viewVar, nil
-}
-
-type View struct {
-   Program struct {
-      Actions struct {
-         Play *struct {
-            Url string
-         }
-      }
-   }
-}
-func (a *Asset) License(data []byte) ([]byte, error) {
+func (a *Asset) Send(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
       bytes.NewReader(data),
@@ -152,56 +115,6 @@ func (r *Refresh) Unmarshal(data Byte[Refresh]) error {
    return json.Unmarshal(data, r)
 }
 
-type Refresh struct {
-   AccessToken string `json:"access_token"`
-   RefreshToken string `json:"refresh_token"`
-}
-
-const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
-
-// https://www.molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-type Address struct {
-   Channel int64
-   Program int64
-}
-
-func (a *Address) String() string {
-   var b []byte
-   if a.Program >= 1 {
-      b = append(b, "/fr_fr/p/"...)
-      b = strconv.AppendInt(b, a.Program, 10)
-   }
-   if a.Channel >= 1 {
-      b = append(b, '-')
-      b = strconv.AppendInt(b, a.Channel, 10)
-   }
-   return string(b)
-}
-
-func (a *Address) Set(data string) error {
-   var found bool
-   _, data, found = strings.Cut(data, "/p/")
-   if !found {
-      return errors.New("/p/ not found")
-   }
-   var data1 string
-   data1, data, found = strings.Cut(data, "-")
-   if !found {
-      return errors.New(`"-" not found`)
-   }
-   var err error
-   a.Program, err = strconv.ParseInt(data1, 10, 64)
-   if err != nil {
-      return err
-   }
-   data, _, _ = strings.Cut(data, "/")
-   a.Channel, err = strconv.ParseInt(data, 10, 64)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
 type Asset struct {
    Stream struct {
       Url string // MPD
@@ -212,4 +125,76 @@ type Asset struct {
       }
    } `json:"up_drm"`
 }
+type Address struct {
+   Channel int64
+   Program int64
+}
 
+// https://molotov.tv/fr_fr/p/15082-531
+// https://molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
+func (a *Address) Parse(raw_url string) error {
+   _, after, found := strings.Cut(raw_url, "/p/")
+   if !found {
+      return errors.New("URL does not contain the '/p/' segment")
+   }
+   id, _, _ := strings.Cut(after, "/")
+   program, channel, found := strings.Cut(id, "-")
+   if !found {
+      return errors.New("ID segment: missing '-' separator")
+   }
+   var err error
+   a.Program, err = strconv.ParseInt(program, 10, 64)
+   if err != nil {
+      return err
+   }
+   a.Channel, err = strconv.ParseInt(channel, 10, 64)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (r *Refresh) View(web *Address) (*View, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = func() string {
+      b := []byte("/v2/channels/")
+      b = strconv.AppendInt(b, web.Channel, 10)
+      b = append(b, "/programs/"...)
+      b = strconv.AppendInt(b, web.Program, 10)
+      b = append(b, "/view"...)
+      return string(b)
+   }()
+   req.URL.RawQuery = "access_token=" + r.AccessToken
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var viewVar View
+   err = json.NewDecoder(resp.Body).Decode(&viewVar)
+   if err != nil {
+      return nil, err
+   }
+   if viewVar.Program.Actions.Play == nil {
+      return nil, errors.New(".Program.Actions.Play == nil")
+   }
+   return &viewVar, nil
+}
+
+type View struct {
+   Program struct {
+      Actions struct {
+         Play *struct {
+            Url string
+         }
+      }
+   }
+}
+
+type Refresh struct {
+   AccessToken string `json:"access_token"`
+   RefreshToken string `json:"refresh_token"`
+}
+
+const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
