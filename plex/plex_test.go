@@ -6,26 +6,6 @@ import (
    "time"
 )
 
-var watch_tests = []struct {
-   drm  bool
-   path string
-   url  string
-}{
-   {
-      drm:  true,
-      path: "/movie/ghost-in-the-shell",
-      url:  "watch.plex.tv/watch/movie/ghost-in-the-shell",
-   },
-   {
-      url:  "watch.plex.tv/movie/limitless",
-      path: "/movie/limitless",
-   },
-   {
-      path: "/show/broadchurch/season/3/episode/5",
-      url:  "watch.plex.tv/show/broadchurch/season/3/episode/5",
-   },
-}
-
 func Test(t *testing.T) {
    data, err := NewUser()
    if err != nil {
@@ -44,4 +24,24 @@ func Test(t *testing.T) {
       fmt.Println(match)
       time.Sleep(time.Second)
    }
+}
+
+var watch_tests = []struct {
+   drm  bool
+   path string
+   url  string
+}{
+   {
+      drm:  true,
+      path: "/movie/ghost-in-the-shell",
+      url:  "watch.plex.tv/watch/movie/ghost-in-the-shell",
+   },
+   {
+      url:  "watch.plex.tv/movie/limitless",
+      path: "/movie/limitless",
+   },
+   {
+      path: "/show/broadchurch/season/3/episode/5",
+      url:  "watch.plex.tv/show/broadchurch/season/3/episode/5",
+   },
 }

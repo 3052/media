@@ -6,15 +6,9 @@ import (
    "errors"
    "flag"
    "fmt"
-   "log"
    "os"
    "path/filepath"
 )
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
 
 type flag_set struct {
    address  string

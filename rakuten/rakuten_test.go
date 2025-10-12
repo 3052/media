@@ -1,9 +1,6 @@
 package rakuten
 
 import (
-   "bytes"
-   "encoding/hex"
-   "fmt"
    "net/http"
    "net/url"
    "os"

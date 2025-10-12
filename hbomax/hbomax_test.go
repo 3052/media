@@ -34,6 +34,9 @@ func TestPlayReady(t *testing.T) {
       cache + "/hbomax/PlayReady",
       []byte(play.Drm.Schemes.PlayReady.LicenseUrl), os.ModePerm,
    )
+   if err != nil {
+      t.Fatal(err)
+   }
 }
 
 var content_tests = []struct {

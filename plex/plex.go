@@ -10,6 +10,42 @@ import (
    "strings"
 )
 
+func (u User) Match(path string) (*Match, error) {
+   req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
+   req.URL.Path = "/library/metadata/matches"
+   req.URL.RawQuery = url.Values{
+      "url":          {path},
+      "x-plex-token": {u.AuthToken},
+   }.Encode()
+   req.Header.Set("accept", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Error struct {
+         Message string
+      }
+      MediaContainer struct {
+         Metadata []Match
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Error.Message != "" {
+      return nil, errors.New(value.Error.Message)
+   }
+   return &value.MediaContainer.Metadata[0], nil
+}
+
+func Path(data string) string {
+   data = strings.TrimPrefix(data, "https://")
+   data = strings.TrimPrefix(data, "watch.plex.tv")
+   return strings.TrimPrefix(data, "/watch")
+}
 func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
    var value struct {
       MediaContainer struct {
@@ -126,41 +162,4 @@ type Part struct {
 
 type User struct {
    AuthToken string
-}
-
-func (u User) Match(path string) (*Match, error) {
-   req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
-   req.URL.Path = "/library/metadata/matches"
-   req.URL.RawQuery = url.Values{
-      "url":          {path},
-      "x-plex-token": {u.AuthToken},
-   }.Encode()
-   req.Header.Set("accept", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Error struct {
-         Message string
-      }
-      MediaContainer struct {
-         Metadata []Match
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if value.Error.Message != "" {
-      return nil, errors.New(value.Error.Message)
-   }
-   return &value.MediaContainer.Metadata[0], nil
-}
-
-func Path(data string) string {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "watch.plex.tv")
-   return strings.TrimPrefix(data, "/watch")
 }

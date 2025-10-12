@@ -1,9 +1,6 @@
 package ctv
 
-import (
-   "testing"
-   "time"
-)
+import "testing"
 
 var tests = []struct {
    path string
@@ -24,6 +21,5 @@ func Test(t *testing.T) {
       if err != nil {
          t.Fatal(err)
       }
-      time.Sleep(time.Second)
    }
 }

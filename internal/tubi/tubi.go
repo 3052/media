@@ -4,11 +4,17 @@ import (
    "41.neocities.org/media/tubi"
    "41.neocities.org/net"
    "flag"
-   "log"
    "net/http"
    "os"
    "path/filepath"
 )
+
+type flag_set struct {
+   cache   string
+   config  net.Config
+   filters net.Filters
+   tubi    int
+}
 
 func (f *flag_set) New() error {
    var err error
@@ -17,21 +23,14 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.e.ClientId = f.cache + "/L3/client_id.bin"
-   f.e.PrivateKey = f.cache + "/L3/private_key.pem"
-   f.bitrate.Value = [][2]int{{100_000, 200_000}, {2_200_000, 4_000_000}}
-   flag.StringVar(&f.e.ClientId, "c", f.e.ClientId, "client ID")
-   flag.StringVar(&f.e.PrivateKey, "p", f.e.PrivateKey, "private key")
-   flag.IntVar(&net.Threads, "threads", 1, "threads")
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.IntVar(&f.tubi, "t", 0, "Tubi ID")
-   flag.Var(&f.bitrate, "b", "bitrate")
    flag.Parse()
    return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func main() {
@@ -50,13 +49,6 @@ func main() {
    }
 }
 
-type flag_set struct {
-   e     net.License
-   cache string
-   tubi    int
-   bitrate net.Bitrate
-}
-
 func (f *flag_set) do_tubi() error {
    data, err := tubi.NewContent(f.tubi)
    if err != nil {
@@ -71,8 +63,8 @@ func (f *flag_set) do_tubi() error {
    if err != nil {
       return err
    }
-   f.e.Widevine = func(data []byte) ([]byte, error) {
+   f.config.Send = func(data []byte) ([]byte, error) {
       return content.VideoResources[0].Widevine(data)
    }
-   return f.e.Bitrate(resp, &f.bitrate)
+   return f.filters.Filter(resp, &f.config)
 }
