@@ -12,6 +12,90 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         if filepath.Ext(req.URL.Path) != ".dash" {
+            log.Println(req.Method, req.URL)
+         }
+         return http.ProxyFromEnvironment(req)
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      err = set.do_address()
+   } else if set.asset != "" {
+      if set.season >= 1 {
+         err = set.do_season()
+      } else {
+         err = set.do_asset()
+      }
+   } else if set.email_password() {
+      err = set.do_session()
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
+type flag_set struct {
+   address  string
+   asset    string
+   cache    string
+   config   net.Config
+   email    string
+   filters  net.Filters
+   password string
+   refresh  bool
+   season   int64
+}
+
+func (f *flag_set) do_asset() error {
+   data, err := os.ReadFile(f.cache + "/canal/Session")
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = session.Play(f.asset)
+   if err != nil {
+      return err
+   }
+   var play canal.Play
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Url)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return play.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -104,87 +188,4 @@ func (f *flag_set) New() error {
    flag.Int64Var(&f.season, "s", 0, "season")
    flag.Parse()
    return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      err = set.do_address()
-   } else if set.asset != "" {
-      if set.season >= 1 {
-         err = set.do_season()
-      } else {
-         err = set.do_asset()
-      }
-   } else if set.email_password() {
-      err = set.do_session()
-   } else if set.refresh {
-      err = set.do_refresh()
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
-type flag_set struct {
-   address  string
-   asset    string
-   cache    string
-   config   net.Config
-   email    string
-   filters  net.Filters
-   password string
-   refresh  bool
-   season   int64
-}
-
-func (f *flag_set) do_asset() error {
-   data, err := os.ReadFile(f.cache + "/canal/Session")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = session.Play(f.asset)
-   if err != nil {
-      return err
-   }
-   var play canal.Play
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Url)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }

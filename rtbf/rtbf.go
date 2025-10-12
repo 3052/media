@@ -17,29 +17,6 @@ func (a *Address) New(data string) {
    a[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
 }
 
-func (a Address) Content() (*Content, error) {
-   resp, err := http.Get(
-      "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      Data struct {
-         Content Content
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data.Content, nil
-}
-
 func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
@@ -79,25 +56,6 @@ func (e *Entitlement) Unmarshal(data Byte[Entitlement]) error {
    return nil
 }
 
-func (g *GigyaLogin) Entitlement(c *Content) (Byte[Entitlement], error) {
-   req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/v2/customer/RTBF/businessunit/Auvio/entitlement/")
-      data.WriteString(c.get_asset_id())
-      data.WriteString("/play")
-      return data.String()
-   }()
-   req.Header.Set("x-forwarded-for", "91.90.123.17")
-   req.Header.Set("authorization", "Bearer "+g.SessionToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 type Format struct {
    Format       string
    MediaLocator string // MPD
@@ -121,20 +79,6 @@ type Login struct {
 
 // hard coded in JavaScript
 const api_key = "4_Ml_fJ47GnBAW6FrPzMxh0w"
-
-type Content struct {
-   AssetId string
-   Media   *struct {
-      AssetId string
-   }
-}
-
-func (c *Content) get_asset_id() string {
-   if c.AssetId != "" {
-      return c.AssetId
-   }
-   return c.Media.AssetId
-}
 
 func (j *Jwt) Login() (*GigyaLogin, error) {
    data, err := json.Marshal(map[string]any{
@@ -226,3 +170,57 @@ func (e *Entitlement) Dash() (*Format, bool) {
 }
 
 type Byte[T any] []byte
+
+func (a Address) AssetId() (string, error) {
+   resp, err := http.Get(
+      "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
+   )
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   var page struct {
+      Data struct {
+         Content struct {
+            AssetId string
+            Media   *struct {
+               AssetId string
+            }
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&page)
+   if err != nil {
+      return "", err
+   }
+   content := page.Data.Content
+   if content.AssetId != "" {
+      return content.AssetId, nil
+   }
+   if content.Media != nil {
+      return content.Media.AssetId, nil
+   }
+   return "", errors.New("assetId not found")
+}
+
+func (g *GigyaLogin) Entitlement(asset_id string) (Byte[Entitlement], error) {
+   req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v2/customer/RTBF/businessunit/Auvio/entitlement/")
+      data.WriteString(asset_id)
+      data.WriteString("/play")
+      return data.String()
+   }()
+   req.Header.Set("x-forwarded-for", "91.90.123.17")
+   req.Header.Set("authorization", "Bearer "+g.SessionToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}

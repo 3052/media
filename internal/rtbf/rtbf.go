@@ -32,11 +32,11 @@ func (f *flag_set) do_address() error {
    }
    var address rtbf.Address
    address.New(f.address)
-   content, err := address.Content()
+   asset_id, err := address.AssetId()
    if err != nil {
       return err
    }
-   data, err = gigya.Entitlement(content)
+   data, err = gigya.Entitlement(asset_id)
    if err != nil {
       return err
    }
