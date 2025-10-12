@@ -202,7 +202,7 @@ func (f *flag_set) do_episode() error {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return play.Send(source, data)
+      return play.Widevine(source, data)
    }
    return f.filters.Filter(resp, &f.config)
 }

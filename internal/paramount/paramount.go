@@ -9,7 +9,6 @@ import (
    "net/url"
    "os"
    "path/filepath"
-   "strings"
 )
 
 func main() {
@@ -18,12 +17,6 @@ func main() {
       Protocols: &http.Protocols{},
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
-         if strings.HasSuffix(req.URL.Path, "/anonymous-session-token.json") {
-            return nil, nil
-         }
-         if strings.HasSuffix(req.URL.Path, "/getlicense") {
-            return nil, nil
-         }
          return http.ProxyFromEnvironment(req)
       },
    }
@@ -48,15 +41,22 @@ func (f *flag_set) New() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   f.cdm.ClientId = cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = cache + "/L3/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "C", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.cdm.PrivateKey, "P", f.cdm.PrivateKey, "private key")
+   f.config.ClientId = cache + "/L3/client_id.bin"
+   f.config.PrivateKey = cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.BoolVar(&f.intl, "i", false, "intl")
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
    flag.Parse()
    return nil
+}
+
+type flag_set struct {
+   config    net.Config
+   filters   net.Filters
+   intl      bool
+   paramount string
 }
 
 func (f *flag_set) do_paramount() error {
@@ -70,9 +70,6 @@ func (f *flag_set) do_paramount() error {
    session, err := at.Session(f.paramount)
    if err != nil {
       return err
-   }
-   f.cdm.License = func(data []byte) ([]byte, error) {
-      return session.License(data)
    }
    if f.intl {
       secret = paramount.ComCbsCa
@@ -89,12 +86,8 @@ func (f *flag_set) do_paramount() error {
    if err != nil {
       return err
    }
-   return f.filters.Filter(resp, &f.cdm)
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return session.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
 }
-type flag_set struct {
-   cdm       net.Cdm
-   filters   net.Filters
-   paramount string
-   intl bool
-}
-

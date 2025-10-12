@@ -10,7 +10,7 @@ import (
    "strings"
 )
 
-func (p *Playlist) Send(data []byte) ([]byte, error) {
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.WvServer, "application/x-protobuf", bytes.NewReader(data),
    )

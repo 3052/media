@@ -10,7 +10,7 @@ import (
    "strings"
 )
 
-func (a *Asset) Send(data []byte) ([]byte, error) {
+func (a *Asset) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
       bytes.NewReader(data),

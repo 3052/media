@@ -9,7 +9,7 @@ import (
    "strconv"
 )
 
-func (l *Login) Send(m *Manifest, data []byte) ([]byte, error) {
+func (l *Login) Widevine(m *Manifest, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://www.kanopy.com", bytes.NewReader(data),
    )

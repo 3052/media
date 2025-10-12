@@ -15,7 +15,7 @@ import (
    "strings"
 )
 
-func (s *Session) License(data []byte) ([]byte, error) {
+func (s *Session) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
    if err != nil {
       return nil, err
@@ -35,6 +35,31 @@ func (s *Session) License(data []byte) ([]byte, error) {
       return nil, errors.New(string(data))
    }
    return data, nil
+}
+
+func (a At) playReady(content_id string) (*Session, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
+      b.WriteString("/anonymous-session-token.json")
+      return b.String()
+   }()
+   req.URL.RawQuery = url.Values{
+      "at":        {string(a)},
+      "contentId": {content_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   sessionVar := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(sessionVar)
+   if err != nil {
+      return nil, err
+   }
+   return sessionVar, nil
 }
 
 func (a At) Session(content_id string) (*Session, error) {
@@ -57,31 +82,6 @@ func (a At) Session(content_id string) (*Session, error) {
       var b strings.Builder
       resp.Write(&b)
       return nil, errors.New(b.String())
-   }
-   defer resp.Body.Close()
-   sessionVar := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(sessionVar)
-   if err != nil {
-      return nil, err
-   }
-   return sessionVar, nil
-}
-
-func (a At) playReady(content_id string) (*Session, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
-      b.WriteString("/anonymous-session-token.json")
-      return b.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {string(a)},
-      "contentId": {content_id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
    }
    defer resp.Body.Close()
    sessionVar := &Session{}

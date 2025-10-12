@@ -15,7 +15,7 @@ func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
 }
 
-func Send(data []byte) ([]byte, error) {
+func Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       "https://license.9c9media.ca/widevine", "application/x-protobuf",
       bytes.NewReader(data),

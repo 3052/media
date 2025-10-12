@@ -120,7 +120,7 @@ func (f *flag_set) do_kanopy() error {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return login.Send(manifest, data)
+      return login.Widevine(manifest, data)
    }
    return f.filters.Filter(resp, &f.config)
 }

@@ -11,7 +11,7 @@ import (
    "strconv"
 )
 
-func (p *Playback) Send(sourceVar *Source, data []byte) ([]byte, error) {
+func (p *Playback) Widevine(sourceVar *Source, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
    )

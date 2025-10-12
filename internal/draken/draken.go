@@ -113,7 +113,7 @@ func (f *flag_set) do_address() error {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return login.Send(&play, data)
+      return login.Widevine(&play, data)
    }
    return f.filters.Filter(resp, &f.config)
 }

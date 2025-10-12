@@ -9,6 +9,13 @@ import (
    "path/filepath"
 )
 
+type flag_set struct {
+   address string
+   cache   string
+   config  net.Config
+   filters net.Filters
+}
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -16,13 +23,13 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.license.ClientId = f.cache + "/L3/client_id.bin"
-   f.license.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.license.ClientId, "c", f.license.ClientId, "client ID")
-   flag.StringVar(&f.license.PrivateKey, "p", f.license.PrivateKey, "private key")
-   flag.StringVar(&plex.ForwardedFor, "x", "", "x-forwarded-for")
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
-   flag.Var(&f.bitrate, "b", "bitrate")
+   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
+   flag.StringVar(&plex.ForwardedFor, "x", "", "x-forwarded-for")
    flag.Parse()
    return nil
 }
@@ -41,13 +48,6 @@ func main() {
    } else {
       flag.Usage()
    }
-}
-
-type flag_set struct {
-   cache   string
-   license net.License
-   address string
-   bitrate net.Bitrate
 }
 
 func (f *flag_set) do_address() error {
@@ -81,8 +81,8 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.license.Widevine = func(data []byte) ([]byte, error) {
+   f.config.Send = func(data []byte) ([]byte, error) {
       return user.Widevine(part, data)
    }
-   return f.license.Bitrate(resp, &f.bitrate)
+   return f.filters.Filter(resp, &f.config)
 }

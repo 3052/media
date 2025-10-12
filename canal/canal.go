@@ -16,7 +16,7 @@ import (
    "time"
 )
 
-func (p *Play) Send(data []byte) ([]byte, error) {
+func (p *Play) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
    if err != nil {
       return nil, err

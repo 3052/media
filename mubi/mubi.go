@@ -12,7 +12,7 @@ import (
    "strings"
 )
 
-func (a *Authenticate) Send(data []byte) ([]byte, error) {
+func (a *Authenticate) Widevine(data []byte) ([]byte, error) {
    // final slash is needed
    req, err := http.NewRequest(
       "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
