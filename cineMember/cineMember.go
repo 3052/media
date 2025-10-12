@@ -10,55 +10,7 @@ import (
    "strings"
 )
 
-func id(address string) (int, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return 0, err
-   }
-   _, afterMarker, found := strings.Cut(string(data), "app.play('")
-   if !found {
-      return 0, errors.New("could not find the start marker")
-   }
-   var id int
-   _, err = fmt.Sscan(afterMarker, &id)
-   if err != nil {
-      return 0, err
-   }
-   return id, nil
-}
-
-// must run session.login first
-func (s session) stream(id int) (*stream, error) {
-   req, err := http.NewRequest(
-      "", "https://www.cinemember.nl/elements/films/stream.php", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = "id=" + fmt.Sprint(id)
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var streamVar stream
-   err = json.NewDecoder(resp.Body).Decode(&streamVar)
-   if err != nil {
-      return nil, err
-   }
-   if streamVar.Error != "" {
-      return nil, errors.New(streamVar.Error)
-   }
-   return &streamVar, nil
-}
-
-type stream struct {
+type Stream struct {
    Error string
    Links []struct {
       Protocol string
@@ -66,16 +18,9 @@ type stream struct {
    }
 }
 
-func (s stream) mpd() (string, bool) {
-   for _, link := range s.Links {
-      if link.Protocol == "mpd" {
-         return link.Url, true
-      }
-   }
-   return "", false
-}
+type Session [1]*http.Cookie
 
-func (s *session) New() error {
+func (s *Session) New() error {
    resp, err := http.Head("https://www.cinemember.nl/nl")
    if err != nil {
       return err
@@ -89,20 +34,7 @@ func (s *session) New() error {
    return http.ErrNoCookie
 }
 
-func (s session) String() string {
-   return s[0].String()
-}
-
-func (s *session) Set(data string) error {
-   var err error
-   s[0], err = http.ParseSetCookie(data)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (s session) login(email, password string) error {
+func (s Session) Login(email, password string) error {
    data := url.Values{
       "emaillogin": {email},
       "password":   {password},
@@ -128,4 +60,73 @@ func (s session) login(email, password string) error {
    return nil
 }
 
-type session [1]*http.Cookie
+func (s Session) String() string {
+   return s[0].String()
+}
+
+func (s *Session) Set(data string) error {
+   var err error
+   s[0], err = http.ParseSetCookie(data)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func Id(address string) (int, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return 0, err
+   }
+   _, afterMarker, found := strings.Cut(string(data), "app.play('")
+   if !found {
+      return 0, errors.New("could not find the start marker")
+   }
+   var id int
+   _, err = fmt.Sscan(afterMarker, &id)
+   if err != nil {
+      return 0, err
+   }
+   return id, nil
+}
+
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   req, err := http.NewRequest(
+      "", "https://www.cinemember.nl/elements/films/stream.php", nil,
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var streamVar Stream
+   err = json.NewDecoder(resp.Body).Decode(&streamVar)
+   if err != nil {
+      return nil, err
+   }
+   if streamVar.Error != "" {
+      return nil, errors.New(streamVar.Error)
+   }
+   return &streamVar, nil
+}
+
+func (s Stream) Mpd() (string, bool) {
+   for _, link := range s.Links {
+      if link.Protocol == "mpd" {
+         return link.Url, true
+      }
+   }
+   return "", false
+}
+
