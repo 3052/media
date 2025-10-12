@@ -4,16 +4,18 @@ import (
    "41.neocities.org/media/nbc"
    "41.neocities.org/net"
    "flag"
+   "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
 
 type flag_set struct {
-   nbc   int
-   cdm     net.License
-   cache string
-   dash  string
+   cache   string
+   config  net.Config
+   filters net.Filters
+   nbc     int
 }
 
 func (f *flag_set) New() error {
@@ -23,33 +25,36 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.cdm.ClientId = f.cache + "/L3/client_id.bin"
-   f.cdm.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.cdm.ClientId, "c", f.cdm.ClientId, "client ID")
-   flag.StringVar(&f.dash, "d", "", "dash ID")
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
    flag.IntVar(&f.nbc, "n", 0, "NBC ID")
-   flag.StringVar(&f.cdm.PrivateKey, "p", f.cdm.PrivateKey, "private key")
-   flag.IntVar(&net.Threads, "t", 2, "threads")
+   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.Parse()
    return nil
 }
 
 func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         log.Println(req.Method, req.URL)
+         return nil, nil
+      },
+   }
    var set flag_set
    err := set.New()
    if err != nil {
       panic(err)
    }
-   switch {
-   case set.nbc >= 1:
+   if set.nbc >= 1 {
       err = set.do_nbc()
-   case set.dash != "":
-      err = set.do_dash()
-   default:
+      if err != nil {
+         panic(err)
+      }
+   } else {
       flag.Usage()
-   }
-   if err != nil {
-      panic(err)
    }
 }
 
@@ -67,10 +72,6 @@ func (f *flag_set) do_nbc() error {
    if err != nil {
       return err
    }
-   return net.Mpd(f.cache+"/Mpd", resp)
-}
-
-func (f *flag_set) do_dash() error {
-   f.cdm.Widevine = nbc.Widevine
-   return f.cdm.Download(f.cache+"/Mpd", f.dash)
+   f.config.Send = nbc.Widevine
+   return f.filters.Filter(resp, &f.config)
 }
