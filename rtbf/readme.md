@@ -1,23 +1,23 @@
 # RTBF
 
-1. rtbf.be/auvio
-2. Se connecter (login)
-3. Démarrer mon inscription (start my registration)
-4. email
-   - mailsac.com
-5. password
-6. confirm password
-7. first name
-8. last name
-9. Date de naissance (date of birth)
-10. gender
-11. postal code
-12. country
-   - États-Unis
-13. J'accepte le Contrat d’utilisation Mon RTBF (I accept the mon RTBF user
-   agreement)
-14. Je m'inscris (I want to register)
-15. To validate your RTBF account, please access your email address. Receive an
+1. auvio.rtbf.be
+2. log in
+3. start my registration
+4. enable JavaScript
+5. email
+   - tempmail.best
+6. password
+7. password confirmation
+8. first name
+9. last name
+10. date of birth
+11. gender
+12. postal code
+13. country
+   - United States (etats-unis)
+14. I accept it
+15. Je m'inscris (I want to register)
+16. To validate your RTBF account, please access your email address. Receive an
    email with the latest information.
 
 ## android

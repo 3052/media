@@ -12,43 +12,28 @@ import (
    "path/filepath"
 )
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) do_code() error {
-   data, err := mubi.NewLinkCode()
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   var code mubi.LinkCode
-   err = code.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   fmt.Println(&code)
-   return write_file(f.cache+"/mubi/LinkCode", data)
-}
-
-func (f *flag_set) do_auth() error {
-   data, err := os.ReadFile(f.cache + "/mubi/LinkCode")
-   if err != nil {
-      return err
-   }
-   var code mubi.LinkCode
-   err = code.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = code.Authenticate()
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/mubi/Authenticate", data)
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.BoolVar(&f.auth, "auth", false, "authenticate")
+   flag.BoolVar(&f.code, "code", false, "link code")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.IntVar(&net.Threads, "t", 12, "threads")
+   flag.Parse()
+   return nil
 }
 
 func main() {
+   log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
       Proxy: func(req *http.Request) (*url.URL, error) {
@@ -83,25 +68,6 @@ type flag_set struct {
    code    bool
    config  net.Config
    filters net.Filters
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.BoolVar(&f.auth, "auth", false, "authenticate")
-   flag.BoolVar(&f.code, "code", false, "link code")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.Parse()
-   return nil
 }
 
 func (f *flag_set) do_address() error {
@@ -144,3 +110,39 @@ func (f *flag_set) do_address() error {
    }
    return f.filters.Filter(resp, &f.config)
 }
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) do_code() error {
+   data, err := mubi.NewLinkCode()
+   if err != nil {
+      return err
+   }
+   var code mubi.LinkCode
+   err = code.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   fmt.Println(&code)
+   return write_file(f.cache+"/mubi/LinkCode", data)
+}
+
+func (f *flag_set) do_auth() error {
+   data, err := os.ReadFile(f.cache + "/mubi/LinkCode")
+   if err != nil {
+      return err
+   }
+   var code mubi.LinkCode
+   err = code.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = code.Authenticate()
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/mubi/Authenticate", data)
+}
+

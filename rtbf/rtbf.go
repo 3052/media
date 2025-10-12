@@ -10,6 +10,36 @@ import (
    "strings"
 )
 
+type Address [1]string
+
+func (a *Address) New(data string) {
+   data = strings.TrimPrefix(data, "https://")
+   a[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
+}
+
+func (a Address) Content() (*Content, error) {
+   resp, err := http.Get(
+      "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      Data struct {
+         Content Content
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data.Content, nil
+}
+
 func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
@@ -138,11 +168,11 @@ func (j *Jwt) Login() (*GigyaLogin, error) {
    return gigya, nil
 }
 
-func (n *Login) Jwt() (*Jwt, error) {
+func (l *Login) Jwt() (*Jwt, error) {
    resp, err := http.PostForm(
       "https://login.auvio.rtbf.be/accounts.getJWT", url.Values{
          "APIKey":      {api_key},
-         "login_token": {n.SessionInfo.CookieValue},
+         "login_token": {l.SessionInfo.CookieValue},
       },
    )
    if err != nil {
@@ -175,13 +205,13 @@ func NewLogin(id, password string) (Byte[Login], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (n *Login) Unmarshal(data Byte[Login]) error {
-   err := json.Unmarshal(data, n)
+func (l *Login) Unmarshal(data Byte[Login]) error {
+   err := json.Unmarshal(data, l)
    if err != nil {
       return err
    }
-   if n.ErrorMessage != "" {
-      return errors.New(n.ErrorMessage)
+   if l.ErrorMessage != "" {
+      return errors.New(l.ErrorMessage)
    }
    return nil
 }
@@ -196,33 +226,3 @@ func (e *Entitlement) Dash() (*Format, bool) {
 }
 
 type Byte[T any] []byte
-
-type Address [1]string
-
-func (a *Address) New(data string) {
-   data = strings.TrimPrefix(data, "https://")
-   a[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
-}
-
-func (a Address) Content() (*Content, error) {
-   resp, err := http.Get(
-      "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      Data struct {
-         Content Content
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data.Content, nil
-}

@@ -12,6 +12,53 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/rtbf/Login")
+   if err != nil {
+      return err
+   }
+   var login rtbf.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   jwt, err := login.Jwt()
+   if err != nil {
+      return err
+   }
+   gigya, err := jwt.Login()
+   if err != nil {
+      return err
+   }
+   var address rtbf.Address
+   address.New(f.address)
+   content, err := address.Content()
+   if err != nil {
+      return err
+   }
+   data, err = gigya.Entitlement(content)
+   if err != nil {
+      return err
+   }
+   var title rtbf.Entitlement
+   err = title.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   format, ok := title.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(format.MediaLocator)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return title.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -86,51 +133,4 @@ func (f *flag_set) do_login() error {
       return err
    }
    return write_file(f.cache+"/rtbf/Login", data)
-}
-
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/rtbf/Login")
-   if err != nil {
-      return err
-   }
-   var login rtbf.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   jwt, err := login.Jwt()
-   if err != nil {
-      return err
-   }
-   gigya, err := jwt.Login()
-   if err != nil {
-      return err
-   }
-   var address rtbf.Address
-   address.New(f.address)
-   content, err := address.Content()
-   if err != nil {
-      return err
-   }
-   data, err = gigya.Entitlement(content)
-   if err != nil {
-      return err
-   }
-   var title rtbf.Entitlement
-   err = title.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   format, ok := title.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := http.Get(format.MediaLocator)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return title.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }
