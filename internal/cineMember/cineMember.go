@@ -12,27 +12,49 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/cineMember/Session")
+   if err != nil {
+      return err
    }
-   return false
+   var session cineMember.Session
+   err = session.Set(string(data))
+   if err != nil {
+      return err
+   }
+   id, err := cineMember.Id(f.address)
+   if err != nil {
+      return err
+   }
+   stream, err := session.Stream(id)
+   if err != nil {
+      return err
+   }
+   dash, ok := stream.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(dash)
+   if err != nil {
+      return err
+   }
+   return f.filters.Filter(resp, &f.config)
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   filters  net.Filters
-   email    string
-   password string
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&net.Threads, "t", 12, "threads")
+   flag.Parse()
+   return nil
 }
 
 func main() {
@@ -61,19 +83,27 @@ func main() {
    }
 }
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
    }
-   f.cache = filepath.ToSlash(f.cache)
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
+   return false
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type flag_set struct {
+   address  string
+   cache    string
+   config   net.Config
+   filters  net.Filters
+   email    string
+   password string
 }
 
 func (f *flag_set) do_user() error {
@@ -89,33 +119,4 @@ func (f *flag_set) do_user() error {
    return write_file(
       f.cache + "/cineMember/Session", []byte(session.String()),
    )
-}
-
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/cineMember/Session")
-   if err != nil {
-      return err
-   }
-   var session cineMember.Session
-   err = session.Set(string(data))
-   if err != nil {
-      return err
-   }
-   id, err := cineMember.Id(f.address)
-   if err != nil {
-      return err
-   }
-   stream, err := session.Stream(id)
-   if err != nil {
-      return err
-   }
-   mpd, ok := stream.Mpd()
-   if !ok {
-      return errors.New(".Mpd()")
-   }
-   resp, err := http.Get(mpd)
-   if err != nil {
-      return err
-   }
-   return f.filters.Filter(resp, &f.config)
 }

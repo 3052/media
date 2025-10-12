@@ -10,18 +10,28 @@ import (
    "strings"
 )
 
+func (s Stream) Dash() (string, bool) {
+   for _, link := range s.Links {
+      if link.MimeType == "application/dash+xml" {
+         return link.Url, true
+      }
+   }
+   return "", false
+}
+
 type Stream struct {
    Error string
    Links []struct {
-      Protocol string
+      MimeType string
       Url      string
    }
 }
 
-type Session [1]*http.Cookie
-
 func (s *Session) New() error {
-   resp, err := http.Head("https://www.cinemember.nl/nl")
+   req, _ := http.NewRequest("HEAD", "https://www.cinemember.nl/nl", nil)
+   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
+   req.Header.Add("user-agent", "Windows")
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
    }
@@ -33,6 +43,8 @@ func (s *Session) New() error {
    }
    return http.ErrNoCookie
 }
+
+type Session [1]*http.Cookie
 
 func (s Session) Login(email, password string) error {
    data := url.Values{
@@ -119,14 +131,5 @@ func (s Session) Stream(id int) (*Stream, error) {
       return nil, errors.New(streamVar.Error)
    }
    return &streamVar, nil
-}
-
-func (s Stream) Mpd() (string, bool) {
-   for _, link := range s.Links {
-      if link.Protocol == "mpd" {
-         return link.Url, true
-      }
-   }
-   return "", false
 }
 

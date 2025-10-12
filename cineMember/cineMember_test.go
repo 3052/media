@@ -7,18 +7,9 @@ import (
    "testing"
 )
 
-var tests = []struct {
-   play  string
-   title string
-}{
-   {
-      play:  "https://cinemember.nl/nl/title/906945/american-hustle/play",
-      title: "https://cinemember.nl/nl/title/468545/american-hustle",
-   },
-   { // buffer too small
-      play:  "https://cinemember.nl/nl/title/904309/knives-out/play",
-      title: "https://cinemember.nl/nl/title/469991/knives-out",
-   },
+var tests = []string{
+   "https://cinemember.nl/nl/title/468845/the-worst-person-in-the-world",
+   "https://cinemember.nl/nl/title/469991/knives-out", // buffer too small
 }
 
 func TestRead(t *testing.T) {
@@ -30,20 +21,22 @@ func TestRead(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var sessionVar session
+   var sessionVar Session
    err = sessionVar.Set(string(data))
    if err != nil {
       t.Fatal(err)
    }
-   idVar, err := id(tests[0].title)
+   idVar, err := Id(tests[0])
    if err != nil {
       t.Fatal(err)
    }
-   streamVar, err := sessionVar.stream(idVar)
+   streamVar, err := sessionVar.Stream(idVar)
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(streamVar.mpd())
+   for _, link := range streamVar.Links {
+      fmt.Printf("%+v\n", link)
+   }
 }
 
 func TestWrite(t *testing.T) {
@@ -55,12 +48,12 @@ func TestWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var sessionVar session
+   var sessionVar Session
    err = sessionVar.New()
    if err != nil {
       t.Fatal(err)
    }
-   err = sessionVar.login(user, password)
+   err = sessionVar.Login(user, password)
    if err != nil {
       t.Fatal(err)
    }
