@@ -10,6 +10,28 @@ import (
    "strings"
 )
 
+func Id(address string) (int, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return 0, err
+   }
+   _, afterMarker, found := strings.Cut(string(data), "app.play('")
+   if !found {
+      return 0, errors.New("could not find the start marker")
+   }
+   var id int
+   _, err = fmt.Sscan(afterMarker, &id)
+   if err != nil {
+      return 0, err
+   }
+   return id, nil
+}
+
 func (s *Session) New() error {
    req, _ := http.NewRequest("HEAD", "https://www.cinemember.nl/nl", nil)
    // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
@@ -68,6 +90,28 @@ func (s *Session) Set(data string) error {
    return nil
 }
 
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
+   req.URL.Path = "/elements/films/stream.php"
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var streamVar Stream
+   err = json.NewDecoder(resp.Body).Decode(&streamVar)
+   if err != nil {
+      return nil, err
+   }
+   if streamVar.Error != "" {
+      return nil, errors.New(streamVar.Error)
+   }
+   return &streamVar, nil
+}
+
 func (s *Stream) Vtt() (string, bool) {
    for _, link := range s.Links {
       if link.MimeType == "text/vtt" {
@@ -93,54 +137,3 @@ type Stream struct {
       Url      string
    }
 }
-
-///
-
-func Id(address string) (int, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return 0, err
-   }
-   _, afterMarker, found := strings.Cut(string(data), "app.play('")
-   if !found {
-      return 0, errors.New("could not find the start marker")
-   }
-   var id int
-   _, err = fmt.Sscan(afterMarker, &id)
-   if err != nil {
-      return 0, err
-   }
-   return id, nil
-}
-
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   req, err := http.NewRequest(
-      "", "https://www.cinemember.nl/elements/films/stream.php", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = "id=" + fmt.Sprint(id)
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var streamVar Stream
-   err = json.NewDecoder(resp.Body).Decode(&streamVar)
-   if err != nil {
-      return nil, err
-   }
-   if streamVar.Error != "" {
-      return nil, errors.New(streamVar.Error)
-   }
-   return &streamVar, nil
-}
-
