@@ -10,23 +10,6 @@ import (
    "strings"
 )
 
-func (s Stream) Dash() (string, bool) {
-   for _, link := range s.Links {
-      if link.MimeType == "application/dash+xml" {
-         return link.Url, true
-      }
-   }
-   return "", false
-}
-
-type Stream struct {
-   Error string
-   Links []struct {
-      MimeType string
-      Url      string
-   }
-}
-
 func (s *Session) New() error {
    req, _ := http.NewRequest("HEAD", "https://www.cinemember.nl/nl", nil)
    // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
@@ -84,6 +67,34 @@ func (s *Session) Set(data string) error {
    }
    return nil
 }
+
+func (s *Stream) Vtt() (string, bool) {
+   for _, link := range s.Links {
+      if link.MimeType == "text/vtt" {
+         return link.Url, true
+      }
+   }
+   return "", false
+}
+
+func (s *Stream) Dash() (string, bool) {
+   for _, link := range s.Links {
+      if link.MimeType == "application/dash+xml" {
+         return link.Url, true
+      }
+   }
+   return "", false
+}
+
+type Stream struct {
+   Error string
+   Links []struct {
+      MimeType string
+      Url      string
+   }
+}
+
+///
 
 func Id(address string) (int, error) {
    resp, err := http.Get(address)

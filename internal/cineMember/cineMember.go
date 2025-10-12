@@ -12,33 +12,33 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/cineMember/Session")
-   if err != nil {
-      return err
-   }
+func (f *flag_set) do_user() error {
    var session cineMember.Session
-   err = session.Set(string(data))
+   err := session.New()
    if err != nil {
       return err
    }
-   id, err := cineMember.Id(f.address)
+   err = session.Login(f.email, f.password)
    if err != nil {
       return err
    }
-   stream, err := session.Stream(id)
-   if err != nil {
-      return err
+   return write_file(
+      f.cache+"/cineMember/Session", []byte(session.String()),
+   )
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
    }
-   dash, ok := stream.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := http.Get(dash)
-   if err != nil {
-      return err
-   }
-   return f.filters.Filter(resp, &f.config)
+   return false
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flag_set) New() error {
@@ -53,6 +53,7 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
    flag.IntVar(&net.Threads, "t", 12, "threads")
+   flag.BoolVar(&f.vtt, "v", false, "VTT")
    flag.Parse()
    return nil
 }
@@ -83,18 +84,58 @@ func main() {
    }
 }
 
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/cineMember/Session")
+   if err != nil {
+      return err
    }
-   return false
+   var session cineMember.Session
+   err = session.Set(string(data))
+   if err != nil {
+      return err
+   }
+   id, err := cineMember.Id(f.address)
+   if err != nil {
+      return err
+   }
+   stream, err := session.Stream(id)
+   if err != nil {
+      return err
+   }
+   if f.vtt {
+      return vtt(stream)
+   }
+   address, ok := stream.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   return f.filters.Filter(resp, &f.config)
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+func vtt(stream *cineMember.Stream) error {
+   address, ok := stream.Vtt()
+   if !ok {
+      return errors.New(".Vtt()")
+   }
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   file, err := os.Create(filepath.Base(address))
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
 }
 
 type flag_set struct {
@@ -104,19 +145,18 @@ type flag_set struct {
    filters  net.Filters
    email    string
    password string
+   vtt      bool
 }
 
-func (f *flag_set) do_user() error {
-   var session cineMember.Session
-   err := session.New()
-   if err != nil {
-      return err
-   }
-   err = session.Login(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(
-      f.cache + "/cineMember/Session", []byte(session.String()),
-   )
-}
+
+
+
+
+
+
+
+
+
+
+
+
