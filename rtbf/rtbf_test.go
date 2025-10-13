@@ -1,7 +1,7 @@
 package rtbf
 
 import (
-   "fmt"
+   "log"
    "testing"
    "time"
 )
@@ -25,11 +25,11 @@ var tests = []struct {
 
 func Test(t *testing.T) {
    for _, testVar := range tests {
-      contentVar, err := Address{testVar.path}.Content()
+      asset_id, err := Address{testVar.path}.AssetId()
       if err != nil {
          t.Fatal(err)
       }
-      fmt.Printf("%+v\n", contentVar)
+      log.Print(asset_id)
       time.Sleep(time.Second)
    }
 }
