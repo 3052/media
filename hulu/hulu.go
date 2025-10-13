@@ -10,17 +10,6 @@ import (
    "strings"
 )
 
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 // this is old device that returns 4K MPD:
 // https://vodmanifest.hulustream.com
 // newer devices return 2K MPD:
@@ -32,6 +21,17 @@ const (
    //deejay_device_id = 204
    //version          = 4
 )
+
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
 
 // hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
 // hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871

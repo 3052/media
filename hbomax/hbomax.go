@@ -6,13 +6,49 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "iter"
    "net/http"
    "net/url"
    "path"
+   "slices"
    "strconv"
    "strings"
 )
+
+func (v *Videos) EpisodeMovie() {
+   v.Included = slices.DeleteFunc(v.Included, func(a *Video) bool {
+      if a.Attributes != nil {
+         switch a.Attributes.VideoType {
+         case "EPISODE", "MOVIE":
+            return false
+         }
+      }
+      return true
+   })
+   slices.SortFunc(v.Included, func(a, b *Video) int {
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+}
+
+type Videos struct {
+   Errors []Error
+   Included []*Video
+}
+
+type Video struct {
+   Attributes *struct {
+      SeasonNumber  int
+      EpisodeNumber int
+      Name          string
+      VideoType     string
+   }
+   Relationships *struct {
+      Edit *struct {
+         Data struct {
+            Id string
+         }
+      }
+   }
+}
 
 func (p *Playback) PlayReady(data []byte) ([]byte, error) {
    resp, err := http.Post(
@@ -186,11 +222,6 @@ func (l Login) Movie(show_id string) (*Videos, error) {
    return &movie, nil
 }
 
-type Videos struct {
-   Errors []Error
-   Included []Video
-}
-
 type Login struct {
    Data struct {
       Attributes struct {
@@ -262,22 +293,6 @@ func (l *Login) Unmarshal(data Byte[Login]) error {
    return json.Unmarshal(data, l)
 }
 
-type Video struct {
-   Attributes *struct {
-      SeasonNumber  int
-      EpisodeNumber int
-      Name          string
-      VideoType     string
-   }
-   Relationships *struct {
-      Edit *struct {
-         Data struct {
-            Id string
-         }
-      }
-   }
-}
-
 func (v *Video) String() string {
    var b []byte
    if v.Attributes.SeasonNumber >= 1 {
@@ -298,21 +313,6 @@ func (v *Video) String() string {
    b = append(b, "\nedit id = "...)
    b = append(b, v.Relationships.Edit.Data.Id...)
    return string(b)
-}
-
-func (v *Videos) Seq() iter.Seq[*Video] {
-   return func(yield func(*Video) bool) {
-      for _, videoVar := range v.Included {
-         if videoVar.Attributes != nil {
-            switch videoVar.Attributes.VideoType {
-            case "EPISODE", "MOVIE":
-               if !yield(&videoVar) {
-                  return
-               }
-            }
-         }
-      }
-   }
 }
 
 func (p *Playback) Mpd() string {
