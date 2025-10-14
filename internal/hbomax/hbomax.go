@@ -18,15 +18,22 @@ func (f *flag_set) New() error {
    if err != nil {
       return err
    }
-   f.filters = net.Filters{
+   f.filters.Values = []net.Filter{
       {
-         BitrateStart: 8_000_000,
-         BitrateEnd: 10_999_999,
+         MinBandwidth: 8_000_000,
+         MaxBandwidth: 10_999_999,
          Height: 1080,
+         Codecs: "hvc1",
       },
       {
-         BitrateStart: 200_000,
-         BitrateEnd: 299_999,
+         MinBandwidth: 7_000_000,
+         MaxBandwidth: 9_999_000,
+         Height: 1080,
+         Codecs: "avc1",
+      },
+      {
+         MinBandwidth: 200_000,
+         MaxBandwidth: 299_999,
       },
    }
    f.cache = filepath.ToSlash(f.cache)
