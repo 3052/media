@@ -20,21 +20,10 @@ func (f *flag_set) New() error {
    }
    f.filters.Values = []net.Filter{
       {
-         MinBandwidth: 8_000_000,
-         MaxBandwidth: 10_999_999,
          Height: 1080,
-         Codecs: "hvc1",
+         Bandwidth: 7_000_000,
       },
-      {
-         MinBandwidth: 7_000_000,
-         MaxBandwidth: 9_999_000,
-         Height: 1080,
-         Codecs: "avc1",
-      },
-      {
-         MinBandwidth: 200_000,
-         MaxBandwidth: 299_999,
-      },
+      {Bandwidth: 200_000},
    }
    f.cache = filepath.ToSlash(f.cache)
    f.config.CertificateChain = f.cache + "/SL3000/CertificateChain"
