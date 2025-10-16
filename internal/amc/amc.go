@@ -20,8 +20,8 @@ func (f *flag_set) New() error {
       return err
    }
    f.filters.Values = []net.Filter{
-      {Height: 1080, BitrateStart: 3_000_000},
-      {Language: "en"},
+      {Height: 1080, Bandwidth: 3_000_000},
+      {Lang: "en"},
    }
    f.cache = filepath.ToSlash(f.cache)
    f.config.ClientId = f.cache + "/L3/client_id.bin"
