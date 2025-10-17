@@ -34,11 +34,9 @@ Download media or send API requests
 
 <dl>
    <dt>email</dt>
-      <dd>367@tuta.io</dd>
+      <dd>27@riseup.net</dd>
    <dt>Discord username</dt>
       <dd>10308</dd>
-   <dt>Discord invite</dt>
-      <dd>https://discord.com/invite/rMFzDRQhSx</dd>
    <dt>PayPal</dt>
       <dd>https://paypal.com/donate?hosted_button_id=59UKABTT2F8LS</dd>
 </dl>
