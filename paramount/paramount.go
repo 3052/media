@@ -15,84 +15,6 @@ import (
    "strings"
 )
 
-func (s *Session) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer " + s.LsSession)
-   req.Header.Set("content-type", "application/x-protobuf")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(string(data))
-   }
-   return data, nil
-}
-
-func (a At) playReady(content_id string) (*Session, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
-      b.WriteString("/anonymous-session-token.json")
-      return b.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {string(a)},
-      "contentId": {content_id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   sessionVar := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(sessionVar)
-   if err != nil {
-      return nil, err
-   }
-   return sessionVar, nil
-}
-
-func (a At) Session(content_id string) (*Session, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
-      b.WriteString("/anonymous-session-token.json")
-      return b.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {string(a)},
-      "contentId": {content_id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var b strings.Builder
-      resp.Write(&b)
-      return nil, errors.New(b.String())
-   }
-   defer resp.Body.Close()
-   sessionVar := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(sessionVar)
-   if err != nil {
-      return nil, err
-   }
-   return sessionVar, nil
-}
-
-// proxy
 func (i *Item) Mpd() (*http.Response, error) {
    req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
    req.URL.Path = func() string {
@@ -109,50 +31,6 @@ func (i *Item) Mpd() (*http.Response, error) {
       "formats":    {"MPEG-DASH"},
    }.Encode()
    return http.DefaultClient.Do(req)
-}
-
-type Session struct {
-   LsSession string `json:"ls_session"`
-   Url       string
-}
-
-// proxy
-func (a At) Item(cid string) (*Item, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v2.0/androidphone/video/cid/")
-      b.WriteString(cid)
-      b.WriteString(".json")
-      return b.String()
-   }()
-   req.URL.RawQuery = "at=" + url.QueryEscape(string(a))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK { // error 403 406
-      if len(data) >= 1 {
-         return nil, errors.New(string(data))
-      }
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.ItemList) == 0 { // error 200
-      return nil, errors.New(string(data))
-   }
-   return &value.ItemList[0], nil
 }
 
 func pad(data []byte) []byte {
@@ -213,4 +91,127 @@ func (a AppSecret) At() (At, error) {
    data1 = append(data1, iv[:]...)
    data1 = append(data1, data...)
    return At(base64.StdEncoding.EncodeToString(data1)), nil
+}
+
+func (s *Session) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + s.LsSession)
+   req.Header.Set("content-type", "application/x-protobuf")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(string(data))
+   }
+   return data, nil
+}
+
+func (a At) playReady(content_id string) (*Session, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
+      b.WriteString("/anonymous-session-token.json")
+      return b.String()
+   }()
+   req.URL.RawQuery = url.Values{
+      "at":        {string(a)},
+      "contentId": {content_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   sessionVar := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(sessionVar)
+   if err != nil {
+      return nil, err
+   }
+   return sessionVar, nil
+}
+
+type Session struct {
+   LsSession string `json:"ls_session"`
+   Url       string
+}
+
+// proxy
+func (a At) Item(cid string) (*Item, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v2.0/androidphone/video/cid/")
+      b.WriteString(cid)
+      b.WriteString(".json")
+      return b.String()
+   }()
+   req.URL.RawQuery = "at=" + url.QueryEscape(string(a))
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK { // error 403 406
+      if len(data) >= 1 {
+         return nil, errors.New(string(data))
+      }
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.ItemList) == 0 { // error 200
+      return nil, errors.New(string(data))
+   }
+   return &value.ItemList[0], nil
+}
+
+///
+
+func (a At) Session(content_id string) (*Session, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var b strings.Builder
+      b.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
+      b.WriteString("/anonymous-session-token.json")
+      return b.String()
+   }()
+   req.URL.RawQuery = url.Values{
+      "at":        {string(a)},
+      "contentId": {content_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var b strings.Builder
+      resp.Write(&b)
+      return nil, errors.New(b.String())
+   }
+   defer resp.Body.Close()
+   sessionVar := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(sessionVar)
+   if err != nil {
+      return nil, err
+   }
+   return sessionVar, nil
 }

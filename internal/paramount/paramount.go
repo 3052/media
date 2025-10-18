@@ -11,6 +11,32 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   f.config.ClientId = cache + "/L3/client_id.bin"
+   f.config.PrivateKey = cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.BoolVar(&f.intl, "i", false, "intl")
+   flag.StringVar(&f.paramount, "p", "", "paramount ID")
+   flag.BoolVar(&f.token, "t", false, "token")
+   flag.Parse()
+   return nil
+}
+
+type flag_set struct {
+   paramount string
+   config    net.Config
+   filters   net.Filters
+   intl      bool
+   token     bool
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
@@ -25,38 +51,33 @@ func main() {
    if err != nil {
       panic(err)
    }
-   if set.paramount != "" {
+   switch {
+   case set.paramount != "":
       err = set.do_paramount()
-      if err != nil {
-         panic(err)
-      }
-   } else {
+   case set.token:
+      err = set.do_token()
+   default:
       flag.Usage()
+   }
+   if err != nil {
+      panic(err)
    }
 }
 
-func (f *flag_set) New() error {
-   cache, err := os.UserCacheDir()
+///
+
+// INTL does NOT allow anonymous key request, so if you are INTL you
+// will need to use US VPN until someone codes the INTL login
+func (f *flag_set) do_token() error {
+   secret := paramount.ComCbsApp
+   at, err := secret.At()
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   f.config.ClientId = cache + "/L3/client_id.bin"
-   f.config.PrivateKey = cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.BoolVar(&f.intl, "i", false, "intl")
-   flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.Parse()
-   return nil
-}
-
-type flag_set struct {
-   config    net.Config
-   filters   net.Filters
-   intl      bool
-   paramount string
+   session, err := at.Session(f.paramount)
+   if err != nil {
+      return err
+   }
 }
 
 func (f *flag_set) do_paramount() error {
