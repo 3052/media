@@ -20,8 +20,8 @@ func (f *flag_set) New() error {
    }
    f.filters.Values = []net.Filter{
       {
-         Height: 1080,
-         Bandwidth: 7_000_000,
+         Bandwidth: 6_000_000,
+         Codecs: "hvc1",
       },
       {Bandwidth: 200_000},
    }
