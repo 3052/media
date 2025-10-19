@@ -15,6 +15,12 @@ import (
    "strings"
 )
 
+// 15.0.52
+const ComCbsApp AppSecret = "4fb47ec1f5c17caa"
+
+// 15.0.52
+const ComCbsCa AppSecret = "e55edaeb8451f737"
+
 func (i *Item) Mpd() (*http.Response, error) {
    req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
    req.URL.Path = func() string {
@@ -48,12 +54,6 @@ type Item struct {
 }
 
 type AppSecret string
-
-// 15.0.52
-const ComCbsApp AppSecret = "4fb47ec1f5c17caa"
-
-// 15.0.52
-const ComCbsCa AppSecret = "e55edaeb8451f737"
 
 const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
 
@@ -184,9 +184,7 @@ func (a At) Item(cid string) (*Item, error) {
    return &value.ItemList[0], nil
 }
 
-///
-
-func (a At) Session(content_id string) (*Session, error) {
+func (a At) Session(content_id string) (Byte[Session], error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
       var b strings.Builder
@@ -204,14 +202,18 @@ func (a At) Session(content_id string) (*Session, error) {
    }
    if resp.StatusCode != http.StatusOK {
       var b strings.Builder
-      resp.Write(&b)
+      err = resp.Write(&b)
+      if err != nil {
+         return nil, err
+      }
       return nil, errors.New(b.String())
    }
    defer resp.Body.Close()
-   sessionVar := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(sessionVar)
-   if err != nil {
-      return nil, err
-   }
-   return sessionVar, nil
+   return io.ReadAll(resp.Body)
+}
+
+type Byte[T any] []byte
+
+func (s *Session) Unmarshal(data Byte[Session]) error {
+   return json.Unmarshal(data, s)
 }
