@@ -15,7 +15,9 @@ func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
+         if filepath.Ext(req.URL.Path) != ".mp4" {
+            log.Println(req.Method, req.URL)
+         }
          return http.ProxyFromEnvironment(req)
       },
    }

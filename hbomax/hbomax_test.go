@@ -1,4 +1,4 @@
-package hbomax
+package hboMax
 
 import (
    "fmt"
@@ -11,7 +11,7 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(cache + "/hbomax/Login")
+   data, err := os.ReadFile(cache + "/hboMax/Login")
    if err != nil {
       t.Fatal(err)
    }
@@ -31,7 +31,7 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      cache + "/hbomax/PlayReady",
+      cache + "/hboMax/PlayReady",
       []byte(play.Drm.Schemes.PlayReady.LicenseUrl), os.ModePerm,
    )
    if err != nil {

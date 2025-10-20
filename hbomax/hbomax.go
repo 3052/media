@@ -1,4 +1,4 @@
-package hbomax
+package hboMax
 
 import (
    "bytes"
