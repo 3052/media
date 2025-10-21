@@ -6,6 +6,7 @@ import (
    "errors"
    "flag"
    "fmt"
+   "io"
    "log"
    "net/http"
    "net/url"
@@ -13,15 +14,22 @@ import (
    "path/filepath"
 )
 
-type flag_set struct {
-   cache   string
-   config  net.Config
-   episode string
-   filters net.Filters
-   show    string
+func do_ip() error {
+   resp, err := http.Get("http://whatismyip.akamai.com")
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   fmt.Println(string(data))
+   return nil
 }
 
 func main() {
+   log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
@@ -36,6 +44,8 @@ func main() {
    switch {
    case set.episode != "":
       err = set.do_episode()
+   case set.ip:
+      err = do_ip()
    case set.show != "":
       err = set.do_show()
    default:
@@ -44,25 +54,6 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.StringVar(&f.episode, "e", "", "episode/movie ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.show, "s", "", "show ID")
-   flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
-   flag.Parse()
-   return nil
 }
 
 func (f *flag_set) do_show() error {
@@ -90,3 +81,33 @@ func (f *flag_set) do_episode() error {
    f.config.Send = pluto.Widevine
    return f.filters.Filter(resp, &f.config)
 }
+
+type flag_set struct {
+   cache   string
+   config  net.Config
+   episode string
+   filters net.Filters
+   ip      bool
+   show    string
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
+   flag.StringVar(&f.episode, "e", "", "episode/movie ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.BoolVar(&f.ip, "i", false, "IP")
+   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.show, "s", "", "show ID")
+   flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
+   flag.Parse()
+   return nil
+}
+

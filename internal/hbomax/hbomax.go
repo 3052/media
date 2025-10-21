@@ -19,7 +19,7 @@ func (f *flag_set) New() error {
       return err
    }
    f.filters.Values = []net.Filter{
-      { Bandwidth: 8_000_000, Codecs: "hvc1" },
+      { Bandwidth: 7_000_000 },
       { Bandwidth: 200_000 },
    }
    f.cache = filepath.ToSlash(f.cache)

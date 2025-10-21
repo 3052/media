@@ -16,11 +16,17 @@ func main() {
    http.DefaultTransport = &http.Transport{
       Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
       Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         switch filepath.Base(req.URL.Path) {
-         case "anonymous-session-token.json", "getlicense":
+         switch {
+         case filepath.Base(req.URL.Path) == "anonymous-session-token.json":
+            log.Println(req.Method, req.URL)
+            return nil, nil
+         case filepath.Base(req.URL.Path) == "getlicense":
+            log.Println(req.Method, req.URL)
+            return nil, nil
+         case filepath.Ext(req.URL.Path) == ".m4s":
             return nil, nil
          }
+         log.Println(req.Method, req.URL)
          return http.ProxyFromEnvironment(req)
       },
    }
