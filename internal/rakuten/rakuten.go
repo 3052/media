@@ -29,6 +29,8 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.movie, "m", "", "movie URL")
    flag.StringVar(&f.show, "s", "", "TV show URL")
+   // panic: SegmentBase Threads
+   // flag.IntVar(&net.Threads, "t", 12, "threads")
    flag.Parse()
    return nil
 }
@@ -42,6 +44,114 @@ func (f *flag_set) content_language() bool {
    return false
 }
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type flag_set struct {
+   cache    string
+   config   net.Config
+   content  string
+   filters  net.Filters
+   language string
+   movie    string
+   season   string
+   show     string
+}
+
+// print episodes
+func (f *flag_set) do_season() error {
+   data, err := os.ReadFile(f.cache + "/rakuten/Address")
+   if err != nil {
+      return err
+   }
+   var address rakuten.Address
+   err = address.Parse(string(data))
+   if err != nil {
+      return err
+   }
+   contents, err := address.Episodes(f.season)
+   if err != nil {
+      return err
+   }
+   for i, content := range contents {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&content)
+   }
+   return nil
+}
+
+func (f *flag_set) do_show() error {
+   var address rakuten.Address
+   err := address.Parse(f.show)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache+"/rakuten/Address", []byte(f.show))
+   if err != nil {
+      return err
+   }
+   seasons, err := address.Seasons()
+   if err != nil {
+      return err
+   }
+   for i, season := range seasons {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&season)
+   }
+   return nil
+}
+
+func (f *flag_set) do_movie() error {
+   var address rakuten.Address
+   err := address.Parse(f.movie)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache+"/rakuten/Address", []byte(f.movie))
+   if err != nil {
+      return err
+   }
+   content, err := address.Movie()
+   if err != nil {
+      return err
+   }
+   fmt.Println(content)
+   return nil
+}
+
+func (f *flag_set) do_send() error {
+   data, err := os.ReadFile(f.cache + "/rakuten/Address")
+   if err != nil {
+      return err
+   }
+   var address rakuten.Address
+   err = address.Parse(string(data))
+   if err != nil {
+      return err
+   }
+   info, err := address.Wvm(f.content, f.language, rakuten.Fhd)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(info.Url)
+   if err != nil {
+      return err
+   }
+   info, err = address.Wvm(f.content, f.language, rakuten.Hd)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return info.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
@@ -72,111 +182,3 @@ func main() {
    }
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-type flag_set struct {
-   cache    string
-   config   net.Config
-   content  string
-   filters  net.Filters
-   language string
-   movie    string
-   season   string
-   show     string
-}
-
-// print episodes
-func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Address")
-   if err != nil {
-      return err
-   }
-   var address rakuten.Address
-   err = address.Set(string(data))
-   if err != nil {
-      return err
-   }
-   contents, err := address.Episodes(f.season)
-   if err != nil {
-      return err
-   }
-   for i, content := range contents {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&content)
-   }
-   return nil
-}
-
-func (f *flag_set) do_show() error {
-   var address rakuten.Address
-   err := address.Set(f.show)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.cache+"/rakuten/Address", []byte(f.show))
-   if err != nil {
-      return err
-   }
-   seasons, err := address.Seasons()
-   if err != nil {
-      return err
-   }
-   for i, season := range seasons {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&season)
-   }
-   return nil
-}
-
-func (f *flag_set) do_movie() error {
-   var address rakuten.Address
-   err := address.Set(f.movie)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.cache+"/rakuten/Address", []byte(f.movie))
-   if err != nil {
-      return err
-   }
-   content, err := address.Movie()
-   if err != nil {
-      return err
-   }
-   fmt.Println(content)
-   return nil
-}
-
-func (f *flag_set) do_send() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Address")
-   if err != nil {
-      return err
-   }
-   var address rakuten.Address
-   err = address.Set(string(data))
-   if err != nil {
-      return err
-   }
-   info, err := address.Wvm(f.content, f.language, rakuten.Fhd)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(info.Url)
-   if err != nil {
-      return err
-   }
-   info, err = address.Wvm(f.content, f.language, rakuten.Hd)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return info.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
-}

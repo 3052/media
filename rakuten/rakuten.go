@@ -4,7 +4,6 @@ import (
    "bytes"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -267,7 +266,7 @@ type Address struct {
 func (a *Address) Parse(data string) error {
    parsed, err := url.Parse(data)
    if err != nil {
-      return fmt.Errorf("failed to parse URL: %w", err)
+      return err
    }
    path := strings.Split(strings.Trim(parsed.Path, "/"), "/")
    query := parsed.Query()
