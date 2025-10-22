@@ -4,12 +4,77 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
    "strconv"
    "strings"
 )
+
+func (a *Address) Seasons() ([]Season, error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/tv_shows/" + a.TvShowId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(a.classification_id()),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {a.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Seasons []Season
+      }
+      Errors []struct {
+         Code string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Code)
+   }
+   return value.Data.Seasons, nil
+}
+
+func (a *Address) Movie() (*Content, error) {
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/movies/" + a.ContentId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(a.classification_id()),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {a.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data Content
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
+   }
+   return &value.Data, nil
+}
 
 func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
@@ -126,43 +191,6 @@ func (a *Address) classification_id() int {
    return 0
 }
 
-func (a *Address) Set(data string) error {
-   web, err := url.Parse(data)
-   if err != nil {
-      return err
-   }
-   a.ContentId = web.Query().Get("content_id")
-   a.ContentType = web.Query().Get("content_type")
-   a.MarketCode = strings.TrimPrefix(web.Path, "/")
-   a.TvShowId = web.Query().Get("tv_show_id")
-   return nil
-}
-
-func (a *Address) Movie() (*Content, error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/movies/" + a.ContentId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(a.classification_id()),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {a.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data Content
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data, nil
-}
-
 func (a *Address) Episodes(season_id string) ([]Content, error) {
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/seasons/" + season_id
@@ -190,15 +218,6 @@ func (a *Address) Episodes(season_id string) ([]Content, error) {
    return value.Data.Episodes, nil
 }
 
-// rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees
-// rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink
-type Address struct {
-   ContentId   string
-   ContentType string
-   MarketCode  string
-   TvShowId    string
-}
-
 func (s *Season) String() string {
    var b strings.Builder
    b.WriteString("show title = ")
@@ -214,39 +233,6 @@ type Season struct {
 }
 
 const device_identifier = "atvui40"
-
-func (a *Address) Seasons() ([]Season, error) {
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/tv_shows/" + a.TvShowId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(a.classification_id()),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {a.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Seasons []Season
-      }
-      Errors []struct {
-         Code string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Code)
-   }
-   return value.Data.Seasons, nil
-}
 
 type Quality string
 
@@ -265,4 +251,44 @@ func (a *Address) Pr(
    content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
    return a.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
+}
+
+// https://rakuten.tv/fr/movies/michael-clayton
+// https://rakuten.tv/fr/tv_shows/une-femme-d-honneur
+// https://rakuten.tv/fr?content_type=movies&content_id=michael-clayton
+// https://rakuten.tv/fr?content_type=tv_shows&tv_show_id=une-femme-d-honneur&content_id=une-femme-d-honneur-1
+type Address struct {
+   ContentId   string
+   ContentType string
+   MarketCode  string
+   TvShowId    string
+}
+
+func (a *Address) Parse(data string) error {
+   parsed, err := url.Parse(data)
+   if err != nil {
+      return fmt.Errorf("failed to parse URL: %w", err)
+   }
+   path := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+   query := parsed.Query()
+   if len(path) > 0 {
+      a.MarketCode = path[0]
+   }
+   if content_type := query.Get("content_type"); content_type != "" {
+      a.ContentType = content_type
+      a.ContentId = query.Get("content_id")
+      a.TvShowId = query.Get("tv_show_id")
+   } else {
+      if len(path) > 1 {
+         a.ContentType = path[1]
+      }
+      if len(path) > 2 {
+         if a.ContentType == "tv_shows" {
+            a.TvShowId = path[2]
+         } else {
+            a.ContentId = path[2]
+         }
+      }
+   }
+   return nil
 }

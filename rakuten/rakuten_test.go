@@ -1,6 +1,7 @@
 package rakuten
 
 import (
+   "fmt"
    "net/http"
    "net/url"
    "os"
@@ -8,6 +9,24 @@ import (
    "strings"
    "testing"
 )
+
+var address_tests = []string{
+   "https://www.rakuten.tv/fr/movies/michael-clayton",
+   "https://www.rakuten.tv/fr/tv_shows/une-femme-d-honneur",
+   "https://www.rakuten.tv/fr?content_type=movies&content_id=michael-clayton",
+   "https://www.rakuten.tv/fr?content_type=tv_shows&tv_show_id=une-femme-d-honneur&content_id=une-femme-d-honneur-1",
+}
+
+func TestAddress(t *testing.T) {
+   for _, test := range address_tests {
+      var info Address
+      err := info.Parse(test)
+      if err != nil {
+         t.Fatal(err)
+      }
+      fmt.Printf("%+v\n", info)
+   }
+}
 
 var web_tests = []struct {
    language string
@@ -50,7 +69,7 @@ func TestPlayReady(t *testing.T) {
    }
    test := web_tests[0]
    var web Address
-   err = web.Set(test.url)
+   err = web.Parse(test.url)
    if err != nil {
       t.Fatal(err)
    }
