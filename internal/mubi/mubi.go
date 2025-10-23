@@ -27,7 +27,7 @@ func (f *flag_set) New() error {
    flag.BoolVar(&f.auth, "auth", false, "authenticate")
    flag.BoolVar(&f.code, "code", false, "link code")
    flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.IntVar(&net.Threads, "t", 12, "threads")
+   flag.IntVar(&f.config.Threads, "t", 12, "threads")
    flag.Parse()
    return nil
 }

@@ -12,6 +12,41 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         switch filepath.Ext(req.URL.Path) {
+         case ".isma", ".ismv":
+         default:
+            log.Println(req.Method, req.URL)
+         }
+         return http.ProxyFromEnvironment(req)
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.content_language():
+      err = set.do_send()
+   case set.movie != "":
+      err = set.do_movie()
+   case set.season != "":
+      err = set.do_season()
+   case set.show != "":
+      err = set.do_show()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -29,8 +64,7 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.movie, "m", "", "movie URL")
    flag.StringVar(&f.show, "s", "", "TV show URL")
-   // panic: SegmentBase Threads
-   // flag.IntVar(&net.Threads, "t", 12, "threads")
+   flag.IntVar(&f.config.Threads, "t", 12, "threads")
    flag.Parse()
    return nil
 }
@@ -152,33 +186,3 @@ func (f *flag_set) do_send() error {
    }
    return f.filters.Filter(resp, &f.config)
 }
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.content_language():
-      err = set.do_send()
-   case set.movie != "":
-      err = set.do_movie()
-   case set.season != "":
-      err = set.do_season()
-   case set.show != "":
-      err = set.do_show()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-

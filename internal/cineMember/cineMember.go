@@ -12,33 +12,13 @@ import (
    "path/filepath"
 )
 
-func vtt(stream *cineMember.Stream) error {
-   address, ok := stream.Vtt()
-   if !ok {
-      return errors.New(".Vtt()")
-   }
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   file, err := os.Create(filepath.Base(address))
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = file.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
+         if filepath.Ext(req.URL.Path) != ".m4s" {
+            log.Println(req.Method, req.URL)
+         }
          return http.ProxyFromEnvironment(req)
       },
    }
@@ -98,7 +78,6 @@ func (f *flag_set) email_password() bool {
    }
    return false
 }
-
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -110,7 +89,7 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&net.Threads, "t", 12, "threads")
+   flag.IntVar(&f.config.Threads, "t", 12, "threads")
    flag.BoolVar(&f.vtt, "v", false, "VTT")
    flag.Parse()
    return nil
@@ -146,4 +125,26 @@ func (f *flag_set) do_address() error {
       return err
    }
    return f.filters.Filter(resp, &f.config)
+}
+
+func vtt(stream *cineMember.Stream) error {
+   address, ok := stream.Vtt()
+   if !ok {
+      return errors.New(".Vtt()")
+   }
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   file, err := os.Create(filepath.Base(address))
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
 }
