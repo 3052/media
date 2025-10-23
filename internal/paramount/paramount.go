@@ -11,6 +11,40 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_paramount() error {
+   // INTL does NOT allow anonymous key request, so if you are INTL you
+   // will need to use US VPN until someone codes the INTL login
+   at, err := paramount.ComCbsApp.At()
+   if err != nil {
+      return err
+   }
+   data, err := at.Session(f.paramount)
+   if err != nil {
+      return err
+   }
+   var session paramount.Session
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   at, err = f.secret().At()
+   if err != nil {
+      return err
+   }
+   item, err := at.Item(f.paramount)
+   if err != nil {
+      return err
+   }
+   resp, err := item.Mpd()
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return session.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    http.DefaultTransport = &http.Transport{
@@ -45,39 +79,6 @@ func main() {
    }
 }
 
-func (f *flag_set) do_paramount() error {
-   // INTL does NOT allow anonymous key request, so if you are INTL you
-   // will need to use US VPN until someone codes the INTL login
-   at, err := paramount.ComCbsApp.At()
-   if err != nil {
-      return err
-   }
-   data, err := at.Session(f.paramount)
-   if err != nil {
-      return err
-   }
-   var session paramount.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   at, err = f.secret().At()
-   if err != nil {
-      return err
-   }
-   item, err := at.Item(f.paramount)
-   if err != nil {
-      return err
-   }
-   resp, err := item.Mpd()
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return session.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
-}
 func (f *flag_set) secret() paramount.AppSecret {
    if f.intl {
       return paramount.ComCbsCa
