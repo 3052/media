@@ -9,6 +9,25 @@ import (
    "strconv"
 )
 
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+func (a *Address) classification_id() (int, error) {
+   switch a.MarketCode {
+   case "cz":
+      return 272, nil
+   case "dk":
+      return 283, nil
+   case "fr":
+      return 23, nil
+   case "pl":
+      return 277, nil
+   case "se":
+      return 282, nil
+   case "uk":
+      return 18, nil
+   }
+   return 0, errors.New("unknown market code")
+}
+
 type StreamInfo struct {
    // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
    LicenseUrl string `json:"license_url"`
@@ -50,29 +69,16 @@ type Address struct {
    TvShowId    string
 }
 
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-func (a *Address) classification_id() int {
-   switch a.MarketCode {
-   case "cz":
-      return 272
-   case "fr":
-      return 23
-   case "pl":
-      return 277
-   case "se":
-      return 282
-   case "uk":
-      return 18
-   }
-   return 0
-}
-
 func (a *Address) Seasons() ([]Season, error) {
+   classificationID, err := a.classification_id()
+   if err != nil {
+      return nil, err
+   }
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/tv_shows/" + a.TvShowId
    req.URL.RawQuery = url.Values{
       "classification_id": {
-         strconv.Itoa(a.classification_id()),
+         strconv.Itoa(classificationID),
       },
       "device_identifier": {device_identifier},
       "market_code":       {a.MarketCode},
@@ -101,11 +107,15 @@ func (a *Address) Seasons() ([]Season, error) {
 }
 
 func (a *Address) Movie() (*Content, error) {
+   classificationID, err := a.classification_id()
+   if err != nil {
+      return nil, err
+   }
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/movies/" + a.ContentId
    req.URL.RawQuery = url.Values{
       "classification_id": {
-         strconv.Itoa(a.classification_id()),
+         strconv.Itoa(classificationID),
       },
       "device_identifier": {device_identifier},
       "market_code":       {a.MarketCode},
@@ -116,7 +126,7 @@ func (a *Address) Movie() (*Content, error) {
    }
    defer resp.Body.Close()
    var value struct {
-      Data Content
+      Data   Content
       Errors []struct {
          Message string
       }
@@ -134,6 +144,10 @@ func (a *Address) Movie() (*Content, error) {
 func (a *Address) streamInfo(
    content_id, audio_language, player string, video Quality,
 ) (*StreamInfo, error) {
+   classificationID, err := a.classification_id()
+   if err != nil {
+      return nil, err
+   }
    data, err := json.Marshal(map[string]string{
       "audio_language":              audio_language,
       "audio_quality":               "2.0",
@@ -144,7 +158,7 @@ func (a *Address) streamInfo(
       "content_id":                  content_id,
       "device_stream_video_quality": string(video),
       "player":                      device_identifier + player,
-      "classification_id":           strconv.Itoa(a.classification_id()),
+      "classification_id":           strconv.Itoa(classificationID),
       "content_type":                a.ContentType,
    })
    if err != nil {
@@ -177,11 +191,15 @@ func (a *Address) streamInfo(
 }
 
 func (a *Address) Episodes(season_id string) ([]Content, error) {
+   classificationID, err := a.classification_id()
+   if err != nil {
+      return nil, err
+   }
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
    req.URL.Path = "/v3/seasons/" + season_id
    req.URL.RawQuery = url.Values{
       "classification_id": {
-         strconv.Itoa(a.classification_id()),
+         strconv.Itoa(classificationID),
       },
       "device_identifier": {device_identifier},
       "market_code":       {a.MarketCode},

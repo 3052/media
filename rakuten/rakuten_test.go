@@ -10,6 +10,36 @@ import (
    "testing"
 )
 
+var web_tests = []struct {
+   language string
+   url      string
+}{
+   {
+      language: "SPA",
+      url:      "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
+   },
+   {
+      language: "ENG",
+      url: "http://rakuten.tv/dk/movies/a-time-to-kill",
+   },
+   {
+      language: "ENG",
+      url:      "http://rakuten.tv/fr?content_type=movies&content_id=infidele",
+   },
+   {
+      language: "ENG",
+      url:      "http://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
+   },
+   {
+      language: "ENG",
+      url:      "http://rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
+   },
+   {
+      language: "ENG",
+      url:      "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+   },
+}
+
 var address_tests = []string{
    "https://www.rakuten.tv/fr/movies/michael-clayton",
    "https://www.rakuten.tv/fr/tv_shows/une-femme-d-honneur",
@@ -26,32 +56,6 @@ func TestAddress(t *testing.T) {
       }
       fmt.Printf("%+v\n", info)
    }
-}
-
-var web_tests = []struct {
-   language string
-   url      string
-}{
-   {
-      language: "SPA",
-      url:      "//rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
-   },
-   {
-      language: "ENG",
-      url:      "//rakuten.tv/fr?content_type=movies&content_id=infidele",
-   },
-   {
-      language: "ENG",
-      url:      "//rakuten.tv/pl?content_type=movies&content_id=ad-astra",
-   },
-   {
-      language: "ENG",
-      url:      "//rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
-   },
-   {
-      language: "ENG",
-      url:      "//rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
-   },
 }
 
 func TestPlayReady(t *testing.T) {
