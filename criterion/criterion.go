@@ -9,6 +9,10 @@ import (
    "net/url"
 )
 
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+
+type Byte[T any] []byte
+
 func (f *File) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
@@ -24,10 +28,6 @@ func (f *File) Widevine(data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
-
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
-
-type Byte[T any] []byte
 
 type File struct {
    DrmAuthorizationToken string `json:"drm_authorization_token"`

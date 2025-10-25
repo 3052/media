@@ -10,40 +10,6 @@ import (
    "strings"
 )
 
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
-   req.URL.Path = "/elements/films/stream.php"
-   req.URL.RawQuery = "id=" + fmt.Sprint(id)
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var streamVar Stream
-   err = json.NewDecoder(resp.Body).Decode(&streamVar)
-   if err != nil {
-      return nil, err
-   }
-   if streamVar.Error != "" {
-      return nil, errors.New(streamVar.Error)
-   }
-   if streamVar.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &streamVar, nil
-}
-
-type Stream struct {
-   Error string
-   Links []struct {
-      MimeType string
-      Url      string
-   }
-   NoAccess bool
-}
-
 func Id(address string) (int, error) {
    resp, err := http.Get(address)
    if err != nil {
@@ -124,6 +90,40 @@ func (s *Session) Set(data string) error {
    return nil
 }
 
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
+   req.URL.Path = "/elements/films/stream.php"
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var streamVar Stream
+   err = json.NewDecoder(resp.Body).Decode(&streamVar)
+   if err != nil {
+      return nil, err
+   }
+   if streamVar.Error != "" {
+      return nil, errors.New(streamVar.Error)
+   }
+   if streamVar.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &streamVar, nil
+}
+
+type Stream struct {
+   Error string
+   Links []struct {
+      MimeType string
+      Url      string
+   }
+   NoAccess bool
+}
+
 func (s *Stream) Vtt() (string, bool) {
    for _, link := range s.Links {
       if link.MimeType == "text/vtt" {
@@ -141,4 +141,3 @@ func (s *Stream) Dash() (string, bool) {
    }
    return "", false
 }
-

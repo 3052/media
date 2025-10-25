@@ -17,11 +17,10 @@ import (
 )
 
 const (
+   device_serial = "!!!!"
    key    = "web.NhFyz4KsZ54"
    secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
 )
-
-const device_serial = "!!!!"
 
 func (a *Asset) String() string {
    b := []byte("episode = ")

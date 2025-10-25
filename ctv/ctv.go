@@ -10,6 +10,38 @@ import (
    "strings"
 )
 
+const query_resolve = `
+query resolvePath($path: String!) {
+   resolvedPath(path: $path) {
+      lastSegment {
+         content {
+            ... on AxisObject {
+               id
+               ... on AxisMedia {
+                  firstPlayableContent {
+                     id
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+`
+
+const query_axis = `
+query axisContent($id: ID!) {
+   axisContent(id: $id) {
+      axisId
+      axisPlaybackLanguages {
+         ... on AxisPlayback {
+            destinationCode
+         }
+      }
+   }
+}
+` // do not use `query(`
+
 // this is better than strings.Replace and strings.ReplaceAll
 func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
@@ -57,37 +89,54 @@ func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
    return strings.Replace(data1, "/best/", "/ultimate/", 1), nil
 }
 
-const query_resolve = `
-query resolvePath($path: String!) {
-   resolvedPath(path: $path) {
-      lastSegment {
-         content {
-            ... on AxisObject {
-               id
-               ... on AxisMedia {
-                  firstPlayableContent {
-                     id
-                  }
-               }
+func Resolve(path string) (*ResolvedPath, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": graphql_compact(query_resolve),
+      "variables": map[string]string{
+         "path": path,
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // you need this for the first request, then can omit
+   req.Header.Set("graphql-client-platform", "entpay_web")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   var value struct {
+      Data struct {
+         ResolvedPath *struct {
+            LastSegment struct {
+               Content ResolvedPath
             }
          }
       }
    }
-}
-`
-
-const query_axis = `
-query axisContent($id: ID!) {
-   axisContent(id: $id) {
-      axisId
-      axisPlaybackLanguages {
-         ... on AxisPlayback {
-            destinationCode
-         }
-      }
+   err = json.Unmarshal(data, &value)
+   if err != nil {
+      return nil, err
    }
+   if value.Data.ResolvedPath == nil {
+      return nil, errors.New(string(data))
+   }
+   return &value.Data.ResolvedPath.LastSegment.Content, nil
 }
-` // do not use `query(`
+
+///
 
 type AxisContent struct {
    AxisId                int64
@@ -186,51 +235,4 @@ func Path(data string) string {
    data = strings.TrimPrefix(data, "https://")
    data = strings.TrimPrefix(data, "www.")
    return strings.TrimPrefix(data, "ctv.ca")
-}
-
-func Resolve(path string) (*ResolvedPath, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": graphql_compact(query_resolve),
-      "variables": map[string]string{
-         "path": path,
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // you need this for the first request, then can omit
-   req.Header.Set("graphql-client-platform", "entpay_web")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   var value struct {
-      Data struct {
-         ResolvedPath *struct {
-            LastSegment struct {
-               Content ResolvedPath
-            }
-         }
-      }
-   }
-   err = json.Unmarshal(data, &value)
-   if err != nil {
-      return nil, err
-   }
-   if value.Data.ResolvedPath == nil {
-      return nil, errors.New(string(data))
-   }
-   return &value.Data.ResolvedPath.LastSegment.Content, nil
 }
