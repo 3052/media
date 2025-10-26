@@ -10,21 +10,14 @@ import (
    "strings"
 )
 
-type Address [1]string
-
-func (a *Address) New(data string) {
-   data = strings.TrimPrefix(data, "https://")
-   a[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
-}
-
 func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
-      "POST", "https://rbm-rtbf.live.ott.irdeto.com", bytes.NewReader(data),
+      "POST", "https://exposure.api.redbee.live", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
    }
-   req.URL.Path = "/licenseServer/widevine/v1/rbm-rtbf/license"
+   req.URL.Path = "/v2/license/customer/RTBF/businessunit/Auvio/widevine"
    req.URL.RawQuery = url.Values{
       "contentId":  {e.AssetId},
       "ls_session": {e.PlayToken},
@@ -35,7 +28,24 @@ func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
       return nil, err
    }
    defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         Message string
+      }
+      err = json.NewDecoder(resp.Body).Decode(&value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.Message)
+   }
    return io.ReadAll(resp.Body)
+}
+
+type Address [1]string
+
+func (a *Address) New(data string) {
+   data = strings.TrimPrefix(data, "https://")
+   a[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
 }
 
 type Entitlement struct {

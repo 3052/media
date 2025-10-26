@@ -12,14 +12,14 @@ var tests = []struct {
    url      string
 }{
    {
-      category: "films",
-      url:      "auvio.rtbf.be/media/sibyl-avec-virginie-efira-et-adele-exarchopoulos-3355182",
-      path:     "/media/sibyl-avec-virginie-efira-et-adele-exarchopoulos-3355182",
-   },
-   {
       category: "series",
       path:     "/media/the-durrells-une-famille-anglaise-a-corfou-the-durrells-une-famille-anglaise-a-corfou-s01-3351856",
       url:      "auvio.rtbf.be/media/the-durrells-une-famille-anglaise-a-corfou-the-durrells-une-famille-anglaise-a-corfou-s01-3351856",
+   },
+   {
+      category: "films",
+      path: "/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
+      url: "auvio.rtbf.be/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
    },
 }
 
