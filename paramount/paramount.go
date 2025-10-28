@@ -98,7 +98,7 @@ func (s *Session) Widevine(data []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + s.LsSession)
+   req.Header.Set("authorization", "Bearer "+s.LsSession)
    req.Header.Set("content-type", "application/x-protobuf")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
