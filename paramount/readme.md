@@ -1,35 +1,7 @@
 # Paramount+
 
-## paramount phone us
-
-https://apkmirror.com/apk/cbs-interactive-inc/paramount
-
-com.cbs.app 16.0.0
-
-sources/com/cbs/app/dagger/DataLayerModule.java
-
-~~~
-return new w60.e(apiEnvironmentTypeA, "9fc14cb03691c342", strInvoke,
-"9ab70ef0883049829a6e3c01a62ca547", "1e8ce303a2f647d4b842bce77c3e713b", null,
-zB, true, false, false, zB2, packageName, strB, 800, null);
-~~~
-
-## paramount tv intl
-
-https://apkmirror.com/apk/viacomcbs-streaming/paramount-android-tv
-
-com.cbs.ca 15.5.0
-
-sources/com/cbs/app/config/DefaultAppSecretProvider.java
-
-~~~
-public final class DefaultAppSecretProvider implements g {
-    @Override // q60.g
-    public String invoke() {
-        return "4a81a3c936f63cd5";
-    }
-}
-~~~
+create Android 6 device. install user certificate. start video. after the
+commercial you might get an error, try again
 
 ## try paramount+
 
@@ -75,8 +47,3 @@ https://www.intl.paramountplus.com/apps-api/v2.0/androidtv/video/cid/Y8sKvb2bIoe
 https://www.intl.paramountplus.com/apps-api/v3.0/androidtv/movies/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ.json?includeTrailerInfo=true&includeContentInfo=true&locale=en-us&at=ABDSbrWqqlbSWOrrXk8u9NaNdokPC88YiXcPvIFhPobM3a%2FJWNOSwiCMklwJDDJq4c0%3D
 
 <https://www.intl.paramountplus.com/apps-api/v3.1/androidtv/irdeto-control/session-token.json?contentId=Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ&model=sdk_google_atv_x86&firmwareVersion=9&version=15.0.28&platform=PPINTL_AndroidTV&locale=en-us&at=ABBoPFHuygkRnnCKELRhypuq5uEAJvSiVATsY9xOASH88ibse11WuoLrFnSDf0Bv7EY%3D>
-
-## apps
-
-create Android 6 device. install user certificate. start video. after the
-commercial you might get an error, try again.
