@@ -15,11 +15,11 @@ import (
    "strings"
 )
 
-// 15.0.52
-const ComCbsApp AppSecret = "4fb47ec1f5c17caa"
+// 16.0.0
+const ComCbsApp AppSecret = "9fc14cb03691c342"
 
-// 15.0.52
-const ComCbsCa AppSecret = "e55edaeb8451f737"
+// 15.5.0
+const ComCbsCa AppSecret = "4a81a3c936f63cd5"
 
 func (i *Item) Mpd() (*http.Response, error) {
    req, _ := http.NewRequest("", "https://link.theplatform.com", nil)

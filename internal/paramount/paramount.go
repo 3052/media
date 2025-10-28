@@ -45,45 +45,16 @@ func (f *flag_set) do_paramount() error {
    return f.filters.Filter(resp, &f.config)
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         switch {
-         case filepath.Base(req.URL.Path) == "anonymous-session-token.json":
-            log.Println(req.Method, req.URL)
-            return nil, nil
-         case filepath.Base(req.URL.Path) == "getlicense":
-            log.Println(req.Method, req.URL)
-            return nil, nil
-         case filepath.Ext(req.URL.Path) == ".m4s":
-            return nil, nil
-         }
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.paramount != "" {
-      err := set.do_paramount()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
-}
-
 func (f *flag_set) secret() paramount.AppSecret {
    if f.intl {
       return paramount.ComCbsCa
    }
    return paramount.ComCbsApp
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
 type flag_set struct {
@@ -92,11 +63,7 @@ type flag_set struct {
    filters   net.Filters
    intl      bool
    paramount string
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+   localhost bool
 }
 
 func (f *flag_set) New() error {
@@ -112,7 +79,44 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.BoolVar(&f.intl, "i", false, "intl")
+   flag.BoolVar(&f.localhost, "l", false, "localhost")
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
    flag.Parse()
    return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if !set.localhost {
+      http.DefaultTransport = &http.Transport{
+         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+         Proxy: func(req *http.Request) (*url.URL, error) {
+            switch {
+            case filepath.Base(req.URL.Path) == "anonymous-session-token.json":
+               log.Println(req.Method, req.URL)
+               return nil, nil 
+            case filepath.Base(req.URL.Path) == "getlicense":
+               log.Println(req.Method, req.URL)
+               return nil, nil 
+            case filepath.Ext(req.URL.Path) == ".m4s":
+               return nil, nil 
+            }
+            log.Println(req.Method, req.URL)
+            return http.ProxyFromEnvironment(req)
+         },
+      }
+   }
+   if set.paramount != "" {
+      err := set.do_paramount()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
 }
