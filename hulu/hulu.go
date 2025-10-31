@@ -10,58 +10,6 @@ import (
    "strings"
 )
 
-var deejay = []struct {
-   resolution  string
-   device_id   int
-   key_version int
-}{
-   {
-      resolution:  "2160p",
-      device_id:   210,
-      key_version: 1,
-   },
-   {
-      resolution:  "2160p",
-      device_id:   208,
-      key_version: 1,
-   },
-   {
-      resolution:  "2160p",
-      device_id:   204,
-      key_version: 4,
-   },
-   {
-      resolution:  "2160p",
-      device_id:   188,
-      key_version: 17,
-   },
-   {
-      resolution:  "720p",
-      device_id:   214,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   191,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   190,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   142,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   109,
-      key_version: 1,
-   },
-}
-
 // 1080p (FHD) L3
 // 1440p (QHD) L1
 // 2160p (UHD) L1
@@ -310,4 +258,55 @@ func (p *Playlist) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(value.HciCode)
    }
    return data, nil
+}
+var deejay = []struct {
+   resolution  string
+   device_id   int
+   key_version int
+}{
+   {
+      resolution:  "2160p",
+      device_id:   210,
+      key_version: 1,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   208,
+      key_version: 1,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   204,
+      key_version: 4,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   188,
+      key_version: 17,
+   },
+   {
+      resolution:  "720p",
+      device_id:   214,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   191,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   190,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   142,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   109,
+      key_version: 1,
+   },
 }
