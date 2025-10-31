@@ -6,7 +6,6 @@ import (
    "errors"
    "flag"
    "fmt"
-   "io"
    "log"
    "net/http"
    "net/url"
@@ -14,17 +13,12 @@ import (
    "path/filepath"
 )
 
-func do_ip() error {
-   resp, err := http.Get("http://whatismyip.akamai.com")
+func (f *flag_set) do_show() error {
+   vod, err := pluto.NewVod(f.show)
    if err != nil {
       return err
    }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   fmt.Println(string(data))
+   fmt.Println(vod)
    return nil
 }
 
@@ -33,7 +27,7 @@ func main() {
    http.DefaultTransport = &http.Transport{
       Proxy: func(req *http.Request) (*url.URL, error) {
          log.Println(req.Method, req.URL)
-         return nil, nil
+         return http.ProxyFromEnvironment(req)
       },
    }
    var set flag_set
@@ -44,8 +38,6 @@ func main() {
    switch {
    case set.episode != "":
       err = set.do_episode()
-   case set.ip:
-      err = do_ip()
    case set.show != "":
       err = set.do_show()
    default:
@@ -54,15 +46,6 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) do_show() error {
-   vod, err := pluto.NewVod(f.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(vod)
-   return nil
 }
 
 func (f *flag_set) do_episode() error {
@@ -87,7 +70,6 @@ type flag_set struct {
    config  net.Config
    episode string
    filters net.Filters
-   ip      bool
    show    string
 }
 
@@ -103,11 +85,8 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
    flag.StringVar(&f.episode, "e", "", "episode/movie ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.BoolVar(&f.ip, "i", false, "IP")
    flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.StringVar(&f.show, "s", "", "show ID")
-   flag.StringVar(&pluto.ForwardedFor, "x", "", "x-forwarded-for")
    flag.Parse()
    return nil
 }
-

@@ -10,6 +10,17 @@ import (
    "strings"
 )
 
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.DashPrServer, "", bytes.NewReader(data),
@@ -33,17 +44,6 @@ func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
       return nil, errors.New(value.Message)
    }
    return data, nil
-}
-
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 // hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871

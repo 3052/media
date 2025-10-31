@@ -10,6 +10,67 @@ import (
    "strings"
 )
 
+type Vod struct {
+   Seasons []struct {
+      Number   int64
+      Episodes []struct {
+         Number int64
+         Name   string
+         Id     string `json:"_id"`
+      }
+   }
+}
+
+func NewVod(id string) (*Vod, error) {
+   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
+   req.URL.RawQuery = url.Values{
+      "appName":           {"web"},
+      "appVersion":        {"9"},
+      "clientID":          {"9"},
+      "clientModelNumber": {"9"},
+      "drmCapabilities":   {"widevine:L3"},
+      "seriesIDs":         {id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Vod []Vod
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Vod[0], nil
+}
+
+func (v *Vod) String() string {
+   var (
+      b     []byte
+      lines bool
+   )
+   for _, season := range v.Seasons {
+      for _, episode := range season.Episodes {
+         if lines {
+            b = append(b, "\n\n"...)
+         } else {
+            lines = true
+         }
+         b = append(b, "season = "...)
+         b = strconv.AppendInt(b, season.Number, 10)
+         b = append(b, "\nepisode = "...)
+         b = strconv.AppendInt(b, episode.Number, 10)
+         b = append(b, "\nname = "...)
+         b = append(b, episode.Name...)
+         b = append(b, "\nid = "...)
+         b = append(b, episode.Id...)
+      }
+   }
+   return string(b)
+}
+
 func Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
@@ -21,8 +82,6 @@ func Widevine(data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
-
-var ForwardedFor string
 
 type Clips struct {
    Sources []struct {
@@ -86,68 +145,4 @@ func NewClips(id string) (*Clips, error) {
       return nil, err
    }
    return &clipsVar[0], nil
-}
-
-func NewVod(id string) (*Vod, error) {
-   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
-   req.URL.RawQuery = url.Values{
-      "appName":           {"web"},
-      "appVersion":        {"9"},
-      "clientID":          {"9"},
-      "clientModelNumber": {"9"},
-      "drmCapabilities":   {"widevine:L3"},
-      "seriesIDs":         {id},
-   }.Encode()
-   if ForwardedFor != "" {
-      req.Header.Set("x-forwarded-for", ForwardedFor)
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Vod []Vod
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Vod[0], nil
-}
-
-func (v *Vod) String() string {
-   var (
-      b     []byte
-      lines bool
-   )
-   for _, season := range v.Seasons {
-      for _, episode := range season.Episodes {
-         if lines {
-            b = append(b, "\n\n"...)
-         } else {
-            lines = true
-         }
-         b = append(b, "season = "...)
-         b = strconv.AppendInt(b, season.Number, 10)
-         b = append(b, "\nepisode = "...)
-         b = strconv.AppendInt(b, episode.Number, 10)
-         b = append(b, "\nname = "...)
-         b = append(b, episode.Name...)
-         b = append(b, "\nid = "...)
-         b = append(b, episode.Id...)
-      }
-   }
-   return string(b)
-}
-
-type Vod struct {
-   Seasons []struct {
-      Number   int64
-      Episodes []struct {
-         Number int64
-         Name   string
-         Id     string `json:"_id"`
-      }
-   }
 }
