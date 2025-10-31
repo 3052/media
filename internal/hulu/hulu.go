@@ -18,17 +18,65 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   
+   //f.config.ClientId = f.cache + "/L3/client_id.bin"
+   //f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   //flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   //flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   
+   f.config.CertificateChain = f.cache + "/SL2000/CertificateChain"
+   f.config.EncryptSignKey = f.cache + "/SL2000/EncryptSignKey"
+   flag.StringVar(&f.config.CertificateChain, "C", f.config.CertificateChain, "certificate chain")
+   flag.StringVar(&f.config.EncryptSignKey, "E", f.config.EncryptSignKey, "encrypt sign key")
+   
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&f.config.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
+}
+
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/hulu/Authenticate")
+   if err != nil {
+      return err
+   }
+   var auth hulu.Authenticate
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = auth.Refresh()
+   if err != nil {
+      return err
+   }
+   id, err := hulu.Id(f.address)
+   if err != nil {
+      return err
+   }
+   deep, err := auth.DeepLink(id)
+   if err != nil {
+      return err
+   }
+   data, err = auth.Playlist(deep)
+   if err != nil {
+      return err
+   }
+   var play hulu.Playlist
+   err = play.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.StreamUrl)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      //return play.Widevine(data)
+      return play.PlayReady(data)
+   }
+   return f.filters.Filter(resp, &f.config)
 }
 
 func main() {
@@ -88,45 +136,4 @@ func (f *flag_set) email_password() bool {
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/hulu/Authenticate")
-   if err != nil {
-      return err
-   }
-   var auth hulu.Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = auth.Refresh()
-   if err != nil {
-      return err
-   }
-   id, err := hulu.Id(f.address)
-   if err != nil {
-      return err
-   }
-   deep, err := auth.DeepLink(id)
-   if err != nil {
-      return err
-   }
-   data, err = auth.Playlist(deep)
-   if err != nil {
-      return err
-   }
-   var play hulu.Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.StreamUrl)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }

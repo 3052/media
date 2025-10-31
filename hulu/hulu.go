@@ -10,17 +10,67 @@ import (
    "strings"
 )
 
-const (
-   deejay_device_id = 214
-   version          = 1
-)
+var deejay = []struct {
+   resolution  string
+   device_id   int
+   key_version int
+}{
+   {
+      resolution:  "2160p",
+      device_id:   210,
+      key_version: 1,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   208,
+      key_version: 1,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   204,
+      key_version: 4,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   188,
+      key_version: 17,
+   },
+   {
+      resolution:  "720p",
+      device_id:   214,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   191,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   190,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   142,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   109,
+      key_version: 1,
+   },
+}
 
+// 1080p (FHD) L3
+// 1440p (QHD) L1
+// 2160p (UHD) L1
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    data, err := json.Marshal(map[string]any{
+      "deejay_device_id": deejay[0].device_id,
+      "version":          deejay[0].key_version,
       "content_eab_id":   deep.EabId,
-      "deejay_device_id": deejay_device_id,
-      "unencrypted": true,
-      "version":     version,
+      "unencrypted":      true,
       "playback": map[string]any{
          "audio": map[string]any{
             "codecs": map[string]any{
@@ -32,10 +82,7 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
             },
          },
          "drm": map[string]any{
-            // 1080p (FHD) L3
-            // 1440p (QHD) L1
-            // 2160p (UHD) L1
-            "multi_key": true,
+            "multi_key":      true, // NEED THIS FOR 4K UHD
             "selection_mode": "ALL",
             "values": []any{
                map[string]string{
@@ -107,31 +154,6 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var value struct {
-         HciCode string `json:"hci_code"`
-      }
-      err = json.Unmarshal(data, &value)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(value.HciCode)
-   }
-   return data, nil
 }
 
 // hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
@@ -252,4 +274,40 @@ func (a Authenticate) DeepLink(id string) (*DeepLink, error) {
       return nil, errors.New(deep.Message)
    }
    return &deep, nil
+}
+
+func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.DashPrServer, "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         HciCode string `json:"hci_code"`
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.HciCode)
+   }
+   return data, nil
 }
