@@ -10,93 +10,35 @@ import (
    "strings"
 )
 
-// 1080p (FHD) L3
-// 1440p (QHD) L1
-// 2160p (UHD) L1
-func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
-   data, err := json.Marshal(map[string]any{
-      "deejay_device_id": deejay[0].device_id,
-      "version":          deejay[0].key_version,
-      "content_eab_id":   deep.EabId,
-      "unencrypted":      true,
-      "playback": map[string]any{
-         "audio": map[string]any{
-            "codecs": map[string]any{
-               "selection_mode": "ALL",
-               "values": []any{
-                  map[string]string{"type": "AAC"},
-                  map[string]string{"type": "EC3"},
-               },
-            },
-         },
-         "drm": map[string]any{
-            "multi_key":      true, // NEED THIS FOR 4K UHD
-            "selection_mode": "ALL",
-            "values": []any{
-               map[string]string{
-                  "security_level": "L3",
-                  "type":           "WIDEVINE",
-                  "version":        "MODULAR",
-               },
-               map[string]string{
-                  "security_level": "SL2000",
-                  "type":           "PLAYREADY",
-                  "version":        "V2",
-               },
-            },
-         },
-         "version": 2, // needs to be exactly 2 for 1080p
-         "manifest": map[string]string{
-            "type": "DASH",
-         },
-         "segments": map[string]any{
-            "selection_mode": "ALL",
-            "values": []any{
-               map[string]any{
-                  "type": "FMP4",
-                  "encryption": map[string]string{
-                     "mode": "CENC",
-                     "type": "CENC",
-                  },
-               },
-            },
-         },
-         "video": map[string]any{
-            "codecs": map[string]any{
-               "selection_mode": "ALL",
-               "values": []any{
-                  map[string]any{
-                     "height":  9999,
-                     "level":   "9",
-                     "profile": "HIGH",
-                     "type":    "H264",
-                     "width":   9999,
-                  },
-                  map[string]any{
-                     "height":  9999,
-                     "level":   "9",
-                     "profile": "MAIN_10",
-                     "tier":    "MAIN",
-                     "type":    "H265",
-                     "width":   9999,
-                  },
-               },
-            },
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://play.hulu.com/v6/playlist", bytes.NewReader(data),
+func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.DashPrServer, "", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer "+a.UserToken)
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         Message string
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.Message)
+   }
+   return data, nil
+}
+
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
    if err != nil {
       return nil, err
    }
@@ -134,44 +76,9 @@ type Authenticate struct {
    UserToken   string `json:"user_token"`
 }
 
-type Byte[T any] []byte
-
 type DeepLink struct {
    EabId   string `json:"eab_id"`
    Message string
-}
-
-func NewAuthenticate(email, password string) (Byte[Authenticate], error) {
-   resp, err := http.PostForm(
-      "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
-         "friendly_name": {"!"},
-         "password":      {password},
-         "serial_number": {"!"},
-         "user_email":    {email},
-      },
-   )
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var data strings.Builder
-      resp.Write(&data)
-      return nil, errors.New(data.String())
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (a *Authenticate) Unmarshal(data Byte[Authenticate]) error {
-   var value struct {
-      Data Authenticate
-   }
-   err := json.Unmarshal(data, &value)
-   if err != nil {
-      return err
-   }
-   *a = value.Data
-   return nil
 }
 
 // returns user_token only
@@ -187,17 +94,6 @@ func (a *Authenticate) Refresh() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(a)
-}
-
-func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
 }
 
 func (a Authenticate) DeepLink(id string) (*DeepLink, error) {
@@ -224,41 +120,6 @@ func (a Authenticate) DeepLink(id string) (*DeepLink, error) {
    return &deep, nil
 }
 
-func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.DashPrServer, "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var value struct {
-         HciCode string `json:"hci_code"`
-      }
-      err = json.Unmarshal(data, &value)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(value.HciCode)
-   }
-   return data, nil
-}
 var deejay = []struct {
    resolution  string
    device_id   int

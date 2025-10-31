@@ -18,17 +18,10 @@ func (f *flag_set) New() error {
       return err
    }
    f.cache = filepath.ToSlash(f.cache)
-   
-   //f.config.ClientId = f.cache + "/L3/client_id.bin"
-   //f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   //flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   //flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   
-   f.config.CertificateChain = f.cache + "/SL2000/CertificateChain"
-   f.config.EncryptSignKey = f.cache + "/SL2000/EncryptSignKey"
-   flag.StringVar(&f.config.CertificateChain, "C", f.config.CertificateChain, "certificate chain")
-   flag.StringVar(&f.config.EncryptSignKey, "E", f.config.EncryptSignKey, "encrypt sign key")
-   
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
