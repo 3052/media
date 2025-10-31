@@ -52,11 +52,6 @@ func (f *flag_set) secret() paramount.AppSecret {
    return paramount.ComCbsApp
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 type flag_set struct {
    cache     string
    config    net.Config

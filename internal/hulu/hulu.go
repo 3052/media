@@ -11,6 +11,54 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = &http.Transport{
+      Proxy: func(req *http.Request) (*url.URL, error) {
+         if filepath.Ext(req.URL.Path) != ".mp4" {
+            log.Println(req.Method, req.URL)
+         }
+         return http.ProxyFromEnvironment(req)
+      },
+   }
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_authenticate()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
 type flag_set struct {
    address  string
    cache    string
@@ -37,54 +85,9 @@ func (f *flag_set) email_password() bool {
    return false
 }
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      },
-   }
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_authenticate()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }
 
 func (f *flag_set) do_address() error {

@@ -10,53 +10,10 @@ import (
    "strings"
 )
 
-// this is old device that returns 4K MPD:
-// https://vodmanifest.hulustream.com
-// newer devices return 2K MPD:
-// https://dynamic-manifest.hulustream.com
 const (
-   deejay_device_id = 166
-   version          = 9999999
-   
-   //deejay_device_id = 204
-   //version          = 4
+   deejay_device_id = 214
+   version          = 1
 )
-
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-// hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
-// hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
-func Id(raw_url string) (string, error) {
-   last_slash := strings.LastIndex(raw_url, "/")
-   if last_slash == -1 {
-      return "", errors.New("no slash found in URL")
-   }
-   last_part := raw_url[last_slash+1:]
-   len_last := len(last_part)
-   const len_uuid = 36
-   if len_last > len_uuid {
-      if last_part[len_last-len_uuid-1] == '-' {
-         return last_part[len_last-len_uuid:], nil
-      }
-   }
-   return last_part, nil
-}
-
-type Playlist struct {
-   DashPrServer string `json:"dash_pr_server"`
-   WvServer     string `json:"wv_server"`
-   Message      string
-   StreamUrl    string `json:"stream_url"` // MPD
-}
 
 func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    data, err := json.Marshal(map[string]any{
@@ -150,6 +107,56 @@ func (a Authenticate) Playlist(deep *DeepLink) (Byte[Playlist], error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         HciCode string `json:"hci_code"`
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.HciCode)
+   }
+   return data, nil
+}
+
+// hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+// hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+func Id(raw_url string) (string, error) {
+   last_slash := strings.LastIndex(raw_url, "/")
+   if last_slash == -1 {
+      return "", errors.New("no slash found in URL")
+   }
+   last_part := raw_url[last_slash+1:]
+   len_last := len(last_part)
+   const len_uuid = 36
+   if len_last > len_uuid {
+      if last_part[len_last-len_uuid-1] == '-' {
+         return last_part[len_last-len_uuid:], nil
+      }
+   }
+   return last_part, nil
+}
+
+type Playlist struct {
+   DashPrServer string `json:"dash_pr_server"`
+   WvServer     string `json:"wv_server"`
+   Message      string
+   StreamUrl    string `json:"stream_url"` // MPD
 }
 
 type Authenticate struct {

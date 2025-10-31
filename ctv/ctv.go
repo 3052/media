@@ -59,6 +59,36 @@ func Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
+type AxisContent struct {
+   AxisId                int64
+   AxisPlaybackLanguages []struct {
+      DestinationCode string
+   }
+}
+
+func (a *AxisContent) Content() (*Content, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/destinations/")
+      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
+      b = append(b, "/platforms/desktop/contents/"...)
+      b = strconv.AppendInt(b, a.AxisId, 10)
+      return string(b)
+   }()
+   req.URL.RawQuery = "$include=[ContentPackages]"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   contentVar := &Content{}
+   err = json.NewDecoder(resp.Body).Decode(contentVar)
+   if err != nil {
+      return nil, err
+   }
+   return contentVar, nil
+}
+
 func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
    req.URL.Path = func() string {
@@ -137,36 +167,6 @@ func Resolve(path string) (*ResolvedPath, error) {
 }
 
 ///
-
-type AxisContent struct {
-   AxisId                int64
-   AxisPlaybackLanguages []struct {
-      DestinationCode string
-   }
-}
-
-func (a *AxisContent) Content() (*Content, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/destinations/")
-      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
-      b = append(b, "/platforms/desktop/contents/"...)
-      b = strconv.AppendInt(b, a.AxisId, 10)
-      return string(b)
-   }()
-   req.URL.RawQuery = "$include=[ContentPackages]"
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   contentVar := &Content{}
-   err = json.NewDecoder(resp.Body).Decode(contentVar)
-   if err != nil {
-      return nil, err
-   }
-   return contentVar, nil
-}
 
 type Content struct {
    ContentPackages []struct {
