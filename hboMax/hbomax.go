@@ -6,6 +6,7 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
    "net/url"
    "path"
@@ -13,6 +14,13 @@ import (
    "strconv"
    "strings"
 )
+
+func Proxy(req *http.Request) (*url.URL, error) {
+   if path.Ext(req.URL.Path) != ".mp4" {
+      log.Println(req.Method, req.URL)
+   }
+   return http.ProxyFromEnvironment(req)
+}
 
 func (v *Videos) EpisodeMovie() {
    v.Included = slices.DeleteFunc(v.Included, func(a *Video) bool {

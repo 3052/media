@@ -9,12 +9,21 @@ import (
    "errors"
    "fmt"
    "io"
+   "log"
    "net/http"
    "net/url"
+   "path"
    "strconv"
    "strings"
    "time"
 )
+
+func Proxy(req *http.Request) (*url.URL, error) {
+   if path.Ext(req.URL.Path) != ".dash" {
+      log.Println(req.Method, req.URL)
+   }
+   return http.ProxyFromEnvironment(req)
+}
 
 const (
    device_serial = "!!!!"

@@ -8,28 +8,13 @@ import (
    "fmt"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
 
-func (f *flag_set) do_show() error {
-   vod, err := pluto.NewVod(f.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(vod)
-   return nil
-}
-
 func main() {
+   http.DefaultTransport = &http.Transport{Proxy: pluto.Proxy}
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      },
-   }
    var set flag_set
    err := set.New()
    if err != nil {
@@ -88,5 +73,13 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.StringVar(&f.show, "s", "", "show ID")
    flag.Parse()
+   return nil
+}
+func (f *flag_set) do_show() error {
+   vod, err := pluto.NewVod(f.show)
+   if err != nil {
+      return err
+   }
+   fmt.Println(vod)
    return nil
 }

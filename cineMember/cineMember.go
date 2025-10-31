@@ -5,10 +5,19 @@ import (
    "errors"
    "fmt"
    "io"
+   "log"
    "net/http"
    "net/url"
+   "path"
    "strings"
 )
+
+func Proxy(req *http.Request) (*url.URL, error) {
+   if path.Ext(req.URL.Path) != ".m4s" {
+      log.Println(req.Method, req.URL)
+   }
+   return http.ProxyFromEnvironment(req)
+}
 
 func Id(address string) (int, error) {
    resp, err := http.Get(address)

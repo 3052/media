@@ -7,21 +7,13 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
 
 func main() {
+   http.DefaultTransport = &http.Transport{Proxy: cineMember.Proxy}
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         if filepath.Ext(req.URL.Path) != ".m4s" {
-            log.Println(req.Method, req.URL)
-         }
-         return http.ProxyFromEnvironment(req)
-      },
-   }
    var set flag_set
    err := set.New()
    if err != nil {

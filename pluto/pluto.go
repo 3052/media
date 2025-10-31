@@ -3,22 +3,21 @@ package pluto
 import (
    "bytes"
    "encoding/json"
+   "errors"
    "io"
+   "log"
    "net/http"
    "net/url"
+   "path"
    "strconv"
    "strings"
 )
 
-type Vod struct {
-   Seasons []struct {
-      Number   int64
-      Episodes []struct {
-         Number int64
-         Name   string
-         Id     string `json:"_id"`
-      }
+func Proxy(req *http.Request) (*url.URL, error) {
+   if path.Ext(req.URL.Path) != ".m4s" {
+      log.Println(req.Method, req.URL)
    }
+   return http.ProxyFromEnvironment(req)
 }
 
 func NewVod(id string) (*Vod, error) {
@@ -43,7 +42,22 @@ func NewVod(id string) (*Vod, error) {
    if err != nil {
       return nil, err
    }
+   if value.Vod[0].Id != id {
+      return nil, errors.New("id mismatch")
+   }
    return &value.Vod[0], nil
+}
+
+type Vod struct {
+   Id string
+   Seasons []struct {
+      Number   int64
+      Episodes []struct {
+         Number int64
+         Name   string
+         Id     string `json:"_id"`
+      }
+   }
 }
 
 func (v *Vod) String() string {
