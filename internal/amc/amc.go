@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &http.Transport{Proxy: amc.Proxy}
+   http.DefaultTransport = &amc.Transport
    var set flag_set
    err := set.New()
    if err != nil {

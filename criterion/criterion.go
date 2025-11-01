@@ -10,9 +10,11 @@ import (
    "net/url"
 )
 
-func Proxy(req *http.Request) (*url.URL, error) {
-   log.Println(req.Method, req.URL)
-   return http.ProxyFromEnvironment(req)
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
 }
 
 const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"

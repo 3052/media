@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &http.Transport{Proxy: canal.Proxy}
+   http.DefaultTransport = &canal.Transport
    log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()
