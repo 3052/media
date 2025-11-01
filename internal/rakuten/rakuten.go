@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &http.Transport{Proxy: rakuten.Proxy}
+   http.DefaultTransport = &rakuten.Transport
    log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()

@@ -10,6 +10,26 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.BoolVar(&f.intl, "i", false, "intl")
+   flag.BoolVar(&f.localhost, "l", false, "localhost")
+   flag.StringVar(&f.paramount, "p", "", "paramount ID")
+   flag.IntVar(&f.config.Threads, "t", 9, "threads")
+   flag.Parse()
+   return nil
+}
+
 func main() {
    var set flag_set
    err := set.New()
@@ -78,23 +98,4 @@ type flag_set struct {
    intl      bool
    paramount string
    localhost bool
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.BoolVar(&f.intl, "i", false, "intl")
-   flag.BoolVar(&f.localhost, "l", false, "localhost")
-   flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.Parse()
-   return nil
 }

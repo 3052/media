@@ -13,13 +13,15 @@ import (
    "strings"
 )
 
-func Proxy(req *http.Request) (*url.URL, error) {
-   switch path.Ext(req.URL.Path) {
-   case ".isma", ".ismv":
-   default:
-      log.Println(req.Method, req.URL)
-   }
-   return http.ProxyFromEnvironment(req)
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+      default:
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
 }
 
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py

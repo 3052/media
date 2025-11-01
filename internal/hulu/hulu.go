@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &http.Transport{Proxy: hulu.Proxy}
+   http.DefaultTransport = &hulu.Transport
    log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()

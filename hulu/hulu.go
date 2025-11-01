@@ -12,11 +12,13 @@ import (
    "strings"
 )
 
-func Proxy(req *http.Request) (*url.URL, error) {
-   if path.Ext(req.URL.Path) != ".mp4" {
-      log.Println(req.Method, req.URL)
-   }
-   return http.ProxyFromEnvironment(req)
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".mp4" {
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
 }
 
 // 1080p (FHD) L3, SL2000

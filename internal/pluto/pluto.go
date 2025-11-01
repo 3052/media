@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &http.Transport{Proxy: pluto.Proxy}
+   http.DefaultTransport = &pluto.Transport
    log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()

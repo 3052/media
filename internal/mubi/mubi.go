@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &http.Transport{Proxy: mubi.Proxy}
+   http.DefaultTransport = &mubi.Transport
    log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()

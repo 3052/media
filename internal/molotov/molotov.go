@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &http.Transport{Proxy: molotov.Proxy}
+   http.DefaultTransport = &molotov.Transport
    log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()

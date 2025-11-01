@@ -14,9 +14,11 @@ import (
    "strings"
 )
 
-func Proxy(req *http.Request) (*url.URL, error) {
-   log.Println(req.Method, req.URL)
-   return nil, nil
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return nil, nil
+   },
 }
 
 func (a *Authenticate) Widevine(data []byte) ([]byte, error) {

@@ -12,9 +12,11 @@ import (
    "strings"
 )
 
-func Proxy(req *http.Request) (*url.URL, error) {
-   log.Println(req.Method, req.URL)
-   return http.ProxyFromEnvironment(req)
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
 }
 
 func (a *Asset) Widevine(data []byte) ([]byte, error) {
