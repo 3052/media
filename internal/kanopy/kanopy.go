@@ -7,19 +7,13 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
 
 func main() {
+   http.DefaultTransport = &http.Transport{Proxy: kanopy.Proxy}
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return nil, nil
-      },
-   }
    var set flag_set
    err := set.New()
    if err != nil {

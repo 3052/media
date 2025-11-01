@@ -6,75 +6,13 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) do_refresh() error {
-   var login molotov.Login
-   err := login.New(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   data, err := login.Auth.Refresh()
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/molotov/Refresh", data)
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   email    string
-   filters  net.Filters
-   password string
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
 func main() {
+   http.DefaultTransport = &http.Transport{Proxy: molotov.Proxy}
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      },
-   }
    var set flag_set
    err := set.New()
    if err != nil {
@@ -137,4 +75,58 @@ func (f *flag_set) do_address() error {
       return asset.Widevine(data)
    }
    return f.filters.Filter(resp, &f.config)
+}
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) do_refresh() error {
+   var login molotov.Login
+   err := login.New(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   data, err := login.Auth.Refresh()
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/molotov/Refresh", data)
+}
+
+type flag_set struct {
+   address  string
+   cache    string
+   config   net.Config
+   email    string
+   filters  net.Filters
+   password string
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
 }

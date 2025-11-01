@@ -6,11 +6,18 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
+   "net/url"
    "path"
    "strconv"
    "strings"
 )
+
+func Proxy(req *http.Request) (*url.URL, error) {
+   log.Println(req.Method, req.URL)
+   return nil, nil
+}
 
 func (a *Authenticate) Widevine(data []byte) ([]byte, error) {
    // final slash is needed

@@ -8,12 +8,21 @@ import (
    "errors"
    "fmt"
    "io"
+   "log"
    "net/http"
    "net/url"
+   "path"
    "strconv"
    "strings"
    "time"
 )
+
+func Proxy(req *http.Request) (*url.URL, error) {
+   if path.Ext(req.URL.Path) != ".mp4" {
+      log.Println(req.Method, req.URL)
+   }
+   return http.ProxyFromEnvironment(req)
+}
 
 func playReady() *url.URL {
    now := fmt.Sprint(time.Now().UnixMilli())

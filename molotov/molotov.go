@@ -5,10 +5,17 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
+   "net/url"
    "strconv"
    "strings"
 )
+
+func Proxy(req *http.Request) (*url.URL, error) {
+   log.Println(req.Method, req.URL)
+   return http.ProxyFromEnvironment(req)
+}
 
 func (a *Asset) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(

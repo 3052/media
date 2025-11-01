@@ -7,40 +7,13 @@ import (
    "fmt"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.BoolVar(&f.auth, "auth", false, "authenticate")
-   flag.BoolVar(&f.code, "code", false, "link code")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.IntVar(&f.config.Threads, "t", 12, "threads")
-   flag.Parse()
-   return nil
-}
-
 func main() {
+   http.DefaultTransport = &http.Transport{Proxy: mubi.Proxy}
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         log.Println(req.Method, req.URL)
-         return nil, nil
-      },
-   }
    var set flag_set
    err := set.New()
    if err != nil {
@@ -146,3 +119,22 @@ func (f *flag_set) do_auth() error {
    return write_file(f.cache+"/mubi/Authenticate", data)
 }
 
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.BoolVar(&f.auth, "auth", false, "authenticate")
+   flag.BoolVar(&f.code, "code", false, "link code")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.IntVar(&f.config.Threads, "t", 12, "threads")
+   flag.Parse()
+   return nil
+}
