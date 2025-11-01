@@ -5,10 +5,22 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
    "net/url"
+   "path"
    "strconv"
 )
+
+var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".mp4" {
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
+}
 
 func (c *Content) Unmarshal(data Byte[Content]) error {
    err := json.Unmarshal(data, c)

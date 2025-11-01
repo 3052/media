@@ -6,10 +6,29 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if !set.localhost {
+      http.DefaultTransport = &paramount.Transport
+      log.SetFlags(log.Ltime)
+   }
+   if set.paramount != "" {
+      err := set.do_paramount()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
 
 func (f *flag_set) do_paramount() error {
    // INTL does NOT allow anonymous key request, so if you are INTL you
@@ -78,40 +97,4 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
    flag.Parse()
    return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if !set.localhost {
-      http.DefaultTransport = &http.Transport{
-         Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-         Proxy: func(req *http.Request) (*url.URL, error) {
-            switch {
-            case filepath.Base(req.URL.Path) == "anonymous-session-token.json":
-               log.Println(req.Method, req.URL)
-               return nil, nil 
-            case filepath.Base(req.URL.Path) == "getlicense":
-               log.Println(req.Method, req.URL)
-               return nil, nil 
-            case filepath.Ext(req.URL.Path) == ".m4s":
-               return nil, nil 
-            }
-            log.Println(req.Method, req.URL)
-            return http.ProxyFromEnvironment(req)
-         },
-      }
-   }
-   if set.paramount != "" {
-      err := set.do_paramount()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }

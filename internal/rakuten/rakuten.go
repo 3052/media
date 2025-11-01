@@ -7,24 +7,13 @@ import (
    "fmt"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path/filepath"
 )
 
 func main() {
+   http.DefaultTransport = &http.Transport{Proxy: rakuten.Proxy}
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = &http.Transport{
-      Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-      Proxy: func(req *http.Request) (*url.URL, error) {
-         switch filepath.Ext(req.URL.Path) {
-         case ".isma", ".ismv":
-         default:
-            log.Println(req.Method, req.URL)
-         }
-         return http.ProxyFromEnvironment(req)
-      },
-   }
    var set flag_set
    err := set.New()
    if err != nil {

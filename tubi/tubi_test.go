@@ -8,21 +8,25 @@ import (
 
 var tests = []struct {
    content_id int
+   drm        bool
    location   string
    url        string
 }{
    {
-      content_id: 684884,
-      url: "tubitv.com/movies/684884",
+      content_id: 667315,
+      url:        "tubitv.com/movies/667315",
+      drm:        false,
    },
    {
       content_id: 200042567,
       url:        "tubitv.com/tv-shows/200042567",
+      drm:        true,
    },
    {
       content_id: 643397,
       location:   "Australia",
       url:        "tubitv.com/movies/643397",
+      drm:        false,
    },
 }
 

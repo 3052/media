@@ -4,17 +4,11 @@ import (
    "41.neocities.org/media/tubi"
    "41.neocities.org/net"
    "flag"
+   "log"
    "net/http"
    "os"
    "path/filepath"
 )
-
-type flag_set struct {
-   cache   string
-   config  net.Config
-   filters net.Filters
-   tubi    int
-}
 
 func (f *flag_set) New() error {
    var err error
@@ -25,6 +19,7 @@ func (f *flag_set) New() error {
    f.cache = filepath.ToSlash(f.cache)
    f.config.ClientId = f.cache + "/L3/client_id.bin"
    f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.IntVar(&f.config.Threads, "T", 2, "threads")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
    flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
@@ -34,6 +29,8 @@ func (f *flag_set) New() error {
 }
 
 func main() {
+   http.DefaultTransport = &tubi.Transport
+   log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()
    if err != nil {
@@ -47,6 +44,13 @@ func main() {
    } else {
       flag.Usage()
    }
+}
+
+type flag_set struct {
+   cache   string
+   config  net.Config
+   filters net.Filters
+   tubi    int
 }
 
 func (f *flag_set) do_tubi() error {
