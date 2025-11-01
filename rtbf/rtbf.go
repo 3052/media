@@ -5,10 +5,18 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
    "net/url"
    "strings"
 )
+
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
 
 func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
