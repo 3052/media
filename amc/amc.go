@@ -12,11 +12,17 @@ import (
    "strconv"
 )
 
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
+type Child struct {
+   Children   []Child
+   Properties struct {
+      Metadata Metadata
+   }
+}
+
+type Metadata struct {
+   EpisodeNumber int64
+   Nid           int64
+   Title         string
 }
 
 func (c *Client) SeriesDetail(id int64) (*Child, error) {
@@ -47,6 +53,13 @@ func (c *Client) SeriesDetail(id int64) (*Child, error) {
       return nil, err
    }
    return &value.Data, nil
+}
+
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
 }
 
 func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
@@ -152,12 +165,6 @@ func (c *Client) Unauth() error {
    return json.NewDecoder(resp.Body).Decode(c)
 }
 
-type Metadata struct {
-   EpisodeNumber int64
-   Nid           int64
-   Title         string
-}
-
 func (m *Metadata) String() string {
    var b []byte
    if m.EpisodeNumber >= 0 {
@@ -193,13 +200,6 @@ func (p *Playback) Dash() (*Source, bool) {
       }
    }
    return nil, false
-}
-
-type Child struct {
-   Children   []Child
-   Properties struct {
-      Metadata Metadata
-   }
 }
 
 func (c *Child) Episodes() iter.Seq[*Child] {
