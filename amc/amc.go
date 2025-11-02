@@ -1,7 +1,6 @@
 package amc
 
 import (
-   "bufio"
    "bytes"
    "encoding/json"
    "errors"
@@ -257,9 +256,7 @@ func (a *Auth) Unmarshal(data Byte[Auth]) error {
    return json.Unmarshal(data, a)
 }
 
-///
-
-func (a *Auth) Playback(id int64) (Byte[Playback], error) {
+func (a *Auth) Playback(id int64) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
          "lat":          0,
@@ -293,25 +290,15 @@ func (a *Auth) Playback(id int64) (Byte[Playback], error) {
    if err != nil {
       return nil, err
    }
+   defer resp.Body.Close()
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   var buf bytes.Buffer
-   err = resp.Write(&buf)
+   var play Playback
+   err = json.NewDecoder(resp.Body).Decode(&play.Body)
    if err != nil {
       return nil, err
    }
-   return buf.Bytes(), nil
-}
-
-func (p *Playback) Unmarshal(data Byte[Playback]) error {
-   resp, err := http.ReadResponse(
-      bufio.NewReader(bytes.NewReader(data)), nil,
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   p.Header = resp.Header
-   return json.NewDecoder(resp.Body).Decode(&p.Body)
+   play.Header = resp.Header
+   return &play, nil
 }
