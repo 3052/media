@@ -12,6 +12,58 @@ import (
    "strings"
 )
 
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         Errors []struct {
+            Description string
+         }
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.Errors[0].Description)
+   }
+   return data, nil
+}
+
+func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.DashPrServer, "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         Message string
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.Message)
+   }
+   return data, nil
+}
+
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       if path.Ext(req.URL.Path) != ".mp4" {
@@ -159,41 +211,6 @@ func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
       return errors.New(p.Message)
    }
    return nil
-}
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.DashPrServer, "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var value struct {
-         Message string
-      }
-      err = json.Unmarshal(data, &value)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(value.Message)
-   }
-   return data, nil
 }
 
 // hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871

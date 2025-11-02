@@ -10,6 +10,34 @@ import (
    "strconv"
 )
 
+type Source struct {
+   KeySystems *struct {
+      Widevine struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // MPD
+   Type string
+}
+
+type Playback struct {
+   Header http.Header
+   Body   struct {
+      Data struct {
+         PlaybackJsonData struct {
+            Sources []Source
+         }
+      }
+   }
+}
+
+type Auth struct {
+   Data struct {
+      AccessToken  string `json:"access_token"`
+      RefreshToken string `json:"refresh_token"`
+   }
+}
+
 func (a *Auth) Refresh() (Byte[Auth], error) {
    req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
    req.URL.Path = "/auth-orchestration-id/api/v1/refresh"

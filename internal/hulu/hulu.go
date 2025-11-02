@@ -10,57 +10,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   http.DefaultTransport = &hulu.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_authenticate()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   email    string
-   filters  net.Filters
-   password string
-}
-
-func (f *flag_set) do_authenticate() error {
-   data, err := hulu.NewAuthenticate(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/hulu/Authenticate", data)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -116,8 +65,59 @@ func (f *flag_set) do_address() error {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      //return play.Widevine(data)
-      return play.PlayReady(data)
+      return play.Widevine(data)
    }
    return f.filters.Filter(resp, &f.config)
+}
+
+func main() {
+   http.DefaultTransport = &hulu.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_authenticate()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+type flag_set struct {
+   address  string
+   cache    string
+   config   net.Config
+   email    string
+   filters  net.Filters
+   password string
+}
+
+func (f *flag_set) do_authenticate() error {
+   data, err := hulu.NewAuthenticate(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/hulu/Authenticate", data)
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }

@@ -19,13 +19,6 @@ var Transport = http.Transport{
    },
 }
 
-type Auth struct {
-   Data struct {
-      AccessToken  string `json:"access_token"`
-      RefreshToken string `json:"refresh_token"`
-   }
-}
-
 func (a *Auth) Unauth() error {
    req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
    req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
@@ -159,17 +152,6 @@ func (m *Metadata) String() string {
    return string(b)
 }
 
-type Playback struct {
-   Header http.Header
-   Body   struct {
-      Data struct {
-         PlaybackJsonData struct {
-            Sources []Source
-         }
-      }
-   }
-}
-
 func (p *Playback) Dash() (*Source, bool) {
    for _, sourceVar := range p.Body.Data.PlaybackJsonData.Sources {
       if sourceVar.Type == "application/dash+xml" {
@@ -193,14 +175,4 @@ func (p *Playback) Widevine(sourceVar *Source, data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-type Source struct {
-   KeySystems *struct {
-      Widevine struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // MPD
-   Type string
 }
