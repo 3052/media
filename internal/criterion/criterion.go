@@ -12,6 +12,58 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_token() error {
+   data, err := criterion.GetToken(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/criterion/Token", data)
+}
+
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/criterion/Token")
+   if err != nil {
+      return err
+   }
+   var token criterion.Token
+   err = token.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = token.Refresh()
+   if err != nil {
+      return err
+   }
+   err = token.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache+"/criterion/Token", data)
+   if err != nil {
+      return err
+   }
+   video, err := token.Video(path.Base(f.address))
+   if err != nil {
+      return err
+   }
+   files, err := token.Files(video)
+   if err != nil {
+      return err
+   }
+   file, ok := files.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := http.Get(file.Links.Source.Href)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return file.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -73,63 +125,4 @@ func main() {
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-///
-
-func (f *flag_set) do_token() error {
-   data, err := criterion.NewToken(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/criterion/Token", data)
-}
-
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/criterion/Token")
-   if err != nil {
-      return err
-   }
-   var token criterion.Token
-   err = token.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = token.Refresh()
-   if err != nil {
-      return err
-   }
-   err = token.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.cache+"/criterion/Token", data)
-   if err != nil {
-      return err
-   }
-   video, err := token.Video(path.Base(f.address))
-   if err != nil {
-      return err
-   }
-   data, err = token.Files(video)
-   if err != nil {
-      return err
-   }
-   var files criterion.Files
-   err = files.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   file, ok := files.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := http.Get(file.Links.Source.Href)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return file.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }
