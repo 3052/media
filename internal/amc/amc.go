@@ -26,14 +26,15 @@ func (f *flag_set) do_season() error {
    if err != nil {
       return err
    }
-   var line bool
-   for episode := range season.Episodes() {
-      if line {
+   episodes, err := season.ExtractEpisodes()
+   if err != nil {
+      return err
+   }
+   for i, episode := range episodes {
+      if i >= 1 {
          fmt.Println()
-      } else {
-         line = true
       }
-      fmt.Println(episode.Properties.Metadata)
+      fmt.Println(episode)
    }
    return nil
 }
