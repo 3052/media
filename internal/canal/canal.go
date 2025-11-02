@@ -11,55 +11,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   http.DefaultTransport = &canal.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      err = set.do_address()
-   } else if set.asset != "" {
-      if set.season >= 1 {
-         err = set.do_season()
-      } else {
-         err = set.do_asset()
-      }
-   } else if set.email_password() {
-      err = set.do_session()
-   } else if set.refresh {
-      err = set.do_refresh()
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
-type flag_set struct {
-   address  string
-   asset    string
-   cache    string
-   config   net.Config
-   email    string
-   filters  net.Filters
-   password string
-   refresh  bool
-   season   int64
-}
-
 func (f *flag_set) do_asset() error {
    data, err := os.ReadFile(f.cache + "/canal/Session")
    if err != nil {
@@ -70,21 +21,16 @@ func (f *flag_set) do_asset() error {
    if err != nil {
       return err
    }
-   data, err = session.Play(f.asset)
+   player, err := session.Player(f.asset)
    if err != nil {
       return err
    }
-   var play canal.Play
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Url)
+   resp, err := http.Get(player.Url)
    if err != nil {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
+      return player.Widevine(data)
    }
    return f.filters.Filter(resp, &f.config)
 }
@@ -181,4 +127,52 @@ func (f *flag_set) do_refresh() error {
       return err
    }
    return write_file(f.cache+"/canal/Session", data)
+}
+func main() {
+   http.DefaultTransport = &canal.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      err = set.do_address()
+   } else if set.asset != "" {
+      if set.season >= 1 {
+         err = set.do_season()
+      } else {
+         err = set.do_asset()
+      }
+   } else if set.email_password() {
+      err = set.do_session()
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
+type flag_set struct {
+   address  string
+   asset    string
+   cache    string
+   config   net.Config
+   email    string
+   filters  net.Filters
+   password string
+   refresh  bool
+   season   int64
 }

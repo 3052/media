@@ -18,6 +18,56 @@ import (
    "time"
 )
 
+func (s *Session) Player(asset_id string) (*Player, error) {
+   data, err := json.Marshal(map[string]any{
+      "player": map[string]any{
+         "capabilities": map[string]any{
+            "drmSystems": []string{"Widevine"},
+            "mediaTypes": []string{"DASH"},
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v1/assets/")
+      data.WriteString(asset_id)
+      data.WriteString("/play")
+      return data.String()
+   }()
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var play Player
+   err = json.NewDecoder(resp.Body).Decode(&play)
+   if err != nil {
+      return nil, err
+   }
+   if play.Message != "" {
+      return nil, errors.New(play.Message)
+   }
+   return &play, nil
+}
+
+type Player struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       if path.Ext(req.URL.Path) != ".dash" {
@@ -80,15 +130,7 @@ func (f *Fields) New(address string) error {
    return nil
 }
 
-type Play struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-
-func (p *Play) Widevine(data []byte) ([]byte, error) {
+func (p *Player) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
    if err != nil {
       return nil, err
@@ -107,11 +149,11 @@ func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
    req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
    req.Header.Set("authorization", "Bearer "+s.Token)
    req.URL.RawQuery = func() string {
-      b := []byte("limit=99&query=episodes,")
-      b = append(b, series_id...)
-      b = append(b, ",season,"...)
-      b = strconv.AppendInt(b, season, 10)
-      return string(b)
+      data := []byte("limit=99&query=episodes,")
+      data = append(data, series_id...)
+      data = append(data, ",season,"...)
+      data = strconv.AppendInt(data, season, 10)
+      return string(data)
    }()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -243,29 +285,16 @@ func (c *client) New(ref *url.URL, body []byte) error {
 }
 
 func (c *client) String() string {
-   b := []byte("Client key=")
-   b = append(b, key...)
-   b = append(b, ",time="...)
-   b = fmt.Append(b, c.time)
-   b = append(b, ",sig="...)
-   b = base64.RawURLEncoding.AppendEncode(b, c.sig)
-   return string(b)
+   data := []byte("Client key=")
+   data = append(data, key...)
+   data = append(data, ",time="...)
+   data = fmt.Append(data, c.time)
+   data = append(data, ",sig="...)
+   data = base64.RawURLEncoding.AppendEncode(data, c.sig)
+   return string(data)
 }
-
-///
 
 type Byte[T any] []byte
-
-func (p *Play) Unmarshal(data Byte[Play]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if p.Message != "" {
-      return errors.New(p.Message)
-   }
-   return nil
-}
 
 func NewSession(sso_token string) (Byte[Session], error) {
    data, err := json.Marshal(map[string]string{
@@ -296,40 +325,4 @@ func (s *Session) Unmarshal(data Byte[Session]) error {
       return errors.New(s.Message)
    }
    return nil
-}
-
-// hard geo block
-func (s *Session) Play(asset_id string) (Byte[Play], error) {
-   data, err := json.Marshal(map[string]any{
-      "player": map[string]any{
-         "capabilities": map[string]any{
-            "drmSystems": []string{"Widevine"},
-            "mediaTypes": []string{"DASH"},
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v1/assets/")
-      b.WriteString(asset_id)
-      b.WriteString("/play")
-      return b.String()
-   }()
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
