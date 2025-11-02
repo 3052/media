@@ -5,75 +5,62 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "iter"
    "log"
    "net/http"
    "net/url"
    "strconv"
 )
 
-// FIXME
-func (n *Node) Episodes() iter.Seq[*Node] {
-   return func(yield func(*Node) bool) {
-      for _, child1 := range n.Children {
-         for _, child2 := range child1.Children {
-            if !yield(child2) {
-               return
-            }
-         }
-      }
-   }
-}
-
-type Node struct {
-   Type       string
-   Children   []*Node
-   Properties *struct {
-      Text *struct {
-         Title struct {
-            Title string
-         }
-      }
-      Metadata *Metadata
-   }
+type Metadata struct {
+   EpisodeNumber int64
+   Nid           int64
+   Title         string
 }
 
 func (m *Metadata) String() string {
-   var b []byte
+   var data []byte
    if m.EpisodeNumber >= 0 {
-      b = []byte("episodeNumber = ")
-      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
+      data = []byte("episodeNumber = ")
+      data = strconv.AppendInt(data, m.EpisodeNumber, 10)
    }
-   if b != nil {
-      b = append(b, '\n')
+   if data != nil {
+      data = append(data, '\n')
    }
-   b = append(b, "title = "...)
-   b = append(b, m.Title...)
-   b = append(b, "\nnid = "...)
-   b = strconv.AppendInt(b, m.Nid, 10)
-   return string(b)
+   data = append(data, "title = "...)
+   data = append(data, m.Title...)
+   data = append(data, "\nnid = "...)
+   data = strconv.AppendInt(data, m.Nid, 10)
+   return string(data)
 }
 
-func (n *Node) ExtractSeasons() ([]*Metadata, error) {
-   seasonsTabNode, found := n.findSeasonsTabNode()
-   if !found {
-      return nil, errors.New("could not find the 'Seasons' tab in the JSON data")
+func (c *Client) SeriesDetail(id int64) (*Node, error) {
+   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
+      b = append(b, "type/series-detail/id/"...)
+      b = strconv.AppendInt(b, id, 10)
+      return string(b)
+   }()
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
    }
-   for _, childNode := range seasonsTabNode.Children {
-      if childNode.Type == "tab_bar" {
-         seasonsList := childNode.Children
-         extractedMetadata := make([]*Metadata, 0, len(seasonsList))
-         for _, seasonNode := range seasonsList {
-            if seasonNode.Properties != nil {
-               if seasonNode.Properties.Metadata != nil {
-                  extractedMetadata = append(extractedMetadata, seasonNode.Properties.Metadata)
-               }
-            }
-         }
-         return extractedMetadata, nil
-      }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
    }
-   return nil, errors.New("could not find the list of seasons inside the 'Seasons' tab")
+   var value struct {
+      Data Node
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data, nil
 }
 
 var Transport = http.Transport{
@@ -251,40 +238,83 @@ func (c *Client) Playback(id int64) (*Playback, error) {
    return &play, nil
 }
 
-type Metadata struct {
-   EpisodeNumber int64
-   Nid           int64
-   Title         string
+// Node represents any element in the AMC JSON manifest tree, including the root.
+type Node struct {
+   Type     string `json:"type"`
+   Children   []*Node `json:"children,omitempty"`
+   Properties struct {
+      ManifestType string `json:"manifestType,omitempty"`
+      Text *struct {
+         Title struct {
+            Title string `json:"title"`
+         } `json:"title"`
+      } `json:"text,omitempty"`
+      Metadata *Metadata `json:"metadata,omitempty"`
+   } `json:"properties"`
 }
 
-func (c *Client) SeriesDetail(id int64) (*Node, error) {
-   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
-      b = append(b, "type/series-detail/id/"...)
-      b = strconv.AppendInt(b, id, 10)
-      return string(b)
-   }()
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "android")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
+func (n *Node) ExtractSeasons() ([]*Metadata, error) {
+   for _, child := range n.Children {
+      // Guard: Skip any root child that is not a tab_bar.
+      if child.Type != "tab_bar" {
+         continue
+      }
+
+      for _, tabItem := range child.Children {
+         // Guard: Skip any tab that isn't the "Seasons" tab.
+         if tabItem.Type != "tab_bar_item" {
+            continue
+         }
+         if tabItem.Properties.Text == nil {
+            continue
+         }
+         if tabItem.Properties.Text.Title.Title != "Seasons" {
+            continue
+         }
+
+         // We've found the "Seasons" tab item. Now find the list inside it.
+         for _, seasonListContainer := range tabItem.Children {
+            // Guard: Skip any child that is not the tab_bar list container.
+            if seasonListContainer.Type != "tab_bar" {
+               continue
+            }
+
+            // Success: We found the list. Extract and return.
+            seasonList := seasonListContainer.Children
+            extractedMetadata := make([]*Metadata, 0, len(seasonList))
+            for _, seasonNode := range seasonList {
+               if seasonNode.Properties.Metadata != nil {
+                  extractedMetadata = append(extractedMetadata, seasonNode.Properties.Metadata)
+               }
+            }
+            return extractedMetadata, nil
+         }
+      }
    }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
+
+   // If all loops complete without returning, the target was not found.
+   return nil, errors.New("could not find the seasons list within the manifest")
+}
+
+// ExtractEpisodes contains the logic for parsing a "season-episodes" manifest.
+func (n *Node) ExtractEpisodes() ([]*Metadata, error) {
+   for _, listNode := range n.Children {
+      // Guard: Skip any child that is not the main list container.
+      if listNode.Type != "list" {
+         continue
+      }
+
+      // Success: We found the list. Extract and return.
+      list := listNode.Children
+      extractedMetadata := make([]*Metadata, 0, len(list))
+      for _, cardNode := range list {
+         if cardNode.Type == "card" && cardNode.Properties.Metadata != nil {
+            extractedMetadata = append(extractedMetadata, cardNode.Properties.Metadata)
+         }
+      }
+      return extractedMetadata, nil
    }
-   var value struct {
-      Data Node
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data, nil
+   return nil, errors.New("could not find episode list in the manifest")
 }
 
 func (c *Client) SeasonEpisodes(id int64) (*Node, error) {
@@ -315,21 +345,4 @@ func (c *Client) SeasonEpisodes(id int64) (*Node, error) {
       return nil, err
    }
    return &value.Data, nil
-}
-
-func (n *Node) findSeasonsTabNode() (*Node, bool) {
-   for _, topLevelChild := range n.Children {
-      if topLevelChild.Type == "tab_bar" {
-         for _, tabItem := range topLevelChild.Children {
-            if tabItem.Properties != nil {
-               if tabItem.Properties.Text != nil {
-                  if tabItem.Properties.Text.Title.Title == "Seasons" {
-                     return tabItem, true
-                  }
-               }
-            }
-         }
-      }
-   }
-   return nil, false
 }
