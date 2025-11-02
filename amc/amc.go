@@ -12,84 +12,11 @@ import (
    "strconv"
 )
 
-type Child struct {
-   Children   []Child
-   Properties struct {
-      Metadata Metadata
-   }
-}
-
-type Metadata struct {
-   EpisodeNumber int64
-   Nid           int64
-   Title         string
-}
-
-func (c *Client) SeriesDetail(id int64) (*Child, error) {
-   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
-      b = append(b, "type/series-detail/id/"...)
-      b = strconv.AppendInt(b, id, 10)
-      return string(b)
-   }()
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "android")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      Data Child
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data, nil
-}
-
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       log.Println(req.Method, req.URL)
       return http.ProxyFromEnvironment(req)
    },
-}
-
-func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
-   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
-      b = append(b, "type/season-episodes/id/"...)
-      b = strconv.AppendInt(b, id, 10)
-      return string(b)
-   }()
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "android")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      Data Child
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data, nil
 }
 
 type Source struct {
@@ -202,34 +129,6 @@ func (p *Playback) Dash() (*Source, bool) {
    return nil, false
 }
 
-func (c *Child) Episodes() iter.Seq[*Child] {
-   return func(yield func(*Child) bool) {
-      for _, child1 := range c.Children {
-         for _, child2 := range child1.Children {
-            if !yield(&child2) {
-               return
-            }
-         }
-      }
-   }
-}
-
-func (c *Child) Seasons() iter.Seq[*Child] {
-   return func(yield func(*Child) bool) {
-      for _, child1 := range c.Children { // tab_bar
-         for _, child2 := range child1.Children {
-            for _, child3 := range child2.Children {
-               for _, child4 := range child3.Children {
-                  if !yield(&child4) {
-                     return
-                  }
-               }
-            }
-         }
-      }
-   }
-}
-
 func (p *Playback) Widevine(sourceVar *Source, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
@@ -302,4 +201,135 @@ func (c *Client) Playback(id int64) (*Playback, error) {
    }
    play.Header = resp.Header
    return &play, nil
+}
+
+type Metadata struct {
+   EpisodeNumber int64
+   Nid           int64
+   Title         string
+}
+
+func (c *Client) SeriesDetail(id int64) (*Node, error) {
+   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
+      b = append(b, "type/series-detail/id/"...)
+      b = strconv.AppendInt(b, id, 10)
+      return string(b)
+   }()
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      Data Node
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data, nil
+}
+
+func (n *Node) findSeasonsTabNode() (*Node, bool) {
+   for _, topLevelChild := range n.Children {
+      if topLevelChild.Type == "tab_bar" {
+         for _, tabItem := range topLevelChild.Children {
+            if tabItem.Properties != nil {
+               if tabItem.Properties.Text != nil {
+                  if tabItem.Properties.Text.Title.Title == "Seasons" {
+                     return tabItem, true
+                  }
+               }
+            }
+         }
+      }
+   }
+   return nil, false
+}
+
+type Node struct {
+   Type       string
+   Children   []*Node
+   Properties *struct {
+      Text *struct {
+         Title struct {
+            Title string
+         }
+      }
+      Metadata *Metadata
+   }
+}
+
+func (n *Node) ExtractSeasons() ([]*Metadata, error) {
+   seasonsTabNode, found := n.findSeasonsTabNode()
+   if !found {
+      return nil, errors.New("could not find the 'Seasons' tab in the JSON data")
+   }
+   for _, childNode := range seasonsTabNode.Children {
+      if childNode.Type == "tab_bar" {
+         seasonsList := childNode.Children
+         extractedMetadata := make([]*Metadata, 0, len(seasonsList))
+         for _, seasonNode := range seasonsList {
+            if seasonNode.Properties != nil {
+               if seasonNode.Properties.Metadata != nil {
+                  extractedMetadata = append(extractedMetadata, seasonNode.Properties.Metadata)
+               }
+            }
+         }
+         return extractedMetadata, nil
+      }
+   }
+   return nil, errors.New("could not find the list of seasons inside the 'Seasons' tab")
+}
+
+func (c *Client) SeasonEpisodes(id int64) (*Node, error) {
+   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
+      b = append(b, "type/season-episodes/id/"...)
+      b = strconv.AppendInt(b, id, 10)
+      return string(b)
+   }()
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      Data Node
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data, nil
+}
+
+// FIXME
+func (n *Node) Episodes() iter.Seq[*Node] {
+   return func(yield func(*Node) bool) {
+      for _, child1 := range n.Children {
+         for _, child2 := range child1.Children {
+            if !yield(child2) {
+               return
+            }
+         }
+      }
+   }
 }
