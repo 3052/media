@@ -1,0 +1,970 @@
+{
+  "data": {
+    "type": "list_of_lists",
+    "properties": {
+      "mode": "default",
+      "metadata": {
+        "elementType": "list_Of_lists"
+      },
+      "id": "1010638",
+      "manifestType": "season-episodes"
+    },
+    "children": [
+      {
+        "properties": {
+          "cardSize": {
+            "mobile": {
+              "cardWidth": 341,
+              "cardHeight": 315
+            },
+            "tablet": {
+              "portrait": {
+                "cardWidth": 735,
+                "cardHeight": 149
+              },
+              "landscape": {
+                "cardWidth": 934,
+                "cardHeight": 225
+              }
+            }
+          },
+          "columns_number": {
+            "mobile_portrait": 1,
+            "tablet_portrait": 1,
+            "tablet_landscape": 1
+          },
+          "headLines": {
+            "slot1": {}
+          },
+          "headerHeight": {
+            "mobile": 32,
+            "tablet": {
+              "landscape": 48,
+              "portrait": 48
+            }
+          },
+          "metadata": {
+            "listMode": "swimlane",
+            "clickthroughUrl": "none",
+            "searchValue": "none",
+            "listPosition": 0,
+            "amcnId": "RLS14907",
+            "episodeNumber": -1,
+            "contentNetworkOfRecordId": -1,
+            "seasonNumber": 2,
+            "showName": "Orphan Black",
+            "title": "Season 2",
+            "nid": 1010638
+          },
+          "mode": "swimlane",
+          "orientation": "vertical"
+        },
+        "type": "list",
+        "children": [
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011160",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650011_Orphan-Black_201__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650011_Orphan-Black_201__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011160,
+              "text": {
+                "title": {
+                  "title": "Nature Under Constraint and Vexed"
+                },
+                "description": {
+                  "title": "Sarah searches for her daughter and suspects Rachel is behind the disappearance."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E1",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "April 19, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "41m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011160"
+                },
+                "content_id": "1011160",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Nature Under Constraint and Vexed"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Nature Under Constraint and Vexed, Sarah searches for her daughter and suspects Rachel is behind the disappearance., TV-MA, CC, S2, E1, April 19, 2014, 41m"
+              },
+              "metadata": {
+                "amcnId": "RLA196511",
+                "episodeNumber": 1,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Nature Under Constraint and Vexed",
+                "nid": 1011160,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011160",
+                "elementName": "none",
+                "itemText": "Nature Under Constraint and Vexed",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011163",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650012_Orphan-Black_202__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650012_Orphan-Black_202__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011163,
+              "text": {
+                "title": {
+                  "title": "Governed by Sound Reason and True Religion"
+                },
+                "description": {
+                  "title": "Alison struggles with Aynsley's death; Cosima's symptoms worsen."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E2",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "April 26, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011163"
+                },
+                "content_id": "1011163",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Governed by Sound Reason and True Religion"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Governed by Sound Reason and True Religion, Alison struggles with Aynsley's death; Cosima's symptoms worsen., TV-MA, CC, S2, E2, April 26, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196512",
+                "episodeNumber": 2,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Governed by Sound Reason and True Religion",
+                "nid": 1011163,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011163",
+                "elementName": "none",
+                "itemText": "Governed by Sound Reason and True Religion",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011167",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650021_Orphan-Black_203__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650021_Orphan-Black_203__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011167,
+              "text": {
+                "title": {
+                  "title": "Mingling Its Own Nature With It"
+                },
+                "description": {
+                  "title": "Sarah turns to an old flame after traveling with Felix."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E3",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "May 3, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011167"
+                },
+                "content_id": "1011167",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Mingling Its Own Nature With It"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Mingling Its Own Nature With It, Sarah turns to an old flame after traveling with Felix., TV-MA, CC, S2, E3, May 3, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196513",
+                "episodeNumber": 3,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Mingling Its Own Nature With It",
+                "nid": 1011167,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011167",
+                "elementName": "none",
+                "itemText": "Mingling Its Own Nature With It",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011165",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650022_Orphan-Black_204__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650022_Orphan-Black_204__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011165,
+              "text": {
+                "title": {
+                  "title": "Governed As It Were by Chance"
+                },
+                "description": {
+                  "title": "Sarah returns home to search for answers, digging into the origins."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E4",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "May 10, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011165"
+                },
+                "content_id": "1011165",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Governed As It Were by Chance"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Governed As It Were by Chance, Sarah returns home to search for answers, digging into the origins., TV-MA, CC, S2, E4, May 10, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196514",
+                "episodeNumber": 4,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Governed As It Were by Chance",
+                "nid": 1011165,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011165",
+                "elementName": "none",
+                "itemText": "Governed As It Were by Chance",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011164",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650023_Orphan-Black_205__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650023_Orphan-Black_205__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011164,
+              "text": {
+                "title": {
+                  "title": "Ipsa Scientia Potestas Est"
+                },
+                "description": {
+                  "title": "Rachel lashes out at those close to Sarah; an unexpected visitor threatens Sarah's plans."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E5",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "May 17, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011164"
+                },
+                "content_id": "1011164",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Ipsa Scientia Potestas Est"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Ipsa Scientia Potestas Est, Rachel lashes out at those close to Sarah; an unexpected visitor threatens Sarah's plans., TV-MA, CC, S2, E5, May 17, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196515",
+                "episodeNumber": 5,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Ipsa Scientia Potestas Est",
+                "nid": 1011164,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011164",
+                "elementName": "none",
+                "itemText": "Ipsa Scientia Potestas Est",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011176",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650024_Orphan-Black_206__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650024_Orphan-Black_206__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011176,
+              "text": {
+                "title": {
+                  "title": "To Hound Nature in Her Wanderings"
+                },
+                "description": {
+                  "title": "Sarah and an unlikely ally follow clues about the origins of the clone experiment."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E6",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "May 22, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011176"
+                },
+                "content_id": "1011176",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "To Hound Nature in Her Wanderings"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "To Hound Nature in Her Wanderings, Sarah and an unlikely ally follow clues about the origins of the clone experiment., TV-MA, CC, S2, E6, May 22, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196516",
+                "episodeNumber": 6,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "To Hound Nature in Her Wanderings",
+                "nid": 1011176,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011176",
+                "elementName": "none",
+                "itemText": "To Hound Nature in Her Wanderings",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011166",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650025_Orphan-Black_207__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650025_Orphan-Black_207__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011166,
+              "text": {
+                "title": {
+                  "title": "Knowledge of Causes, and Secret Motion of Things"
+                },
+                "description": {
+                  "title": "A rehab confidante betrays Alison, threatening to expose the truth."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E7",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "May 31, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011166"
+                },
+                "content_id": "1011166",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Knowledge of Causes, and Secret Motion of Things"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Knowledge of Causes, and Secret Motion of Things, A rehab confidante betrays Alison, threatening to expose the truth., TV-MA, CC, S2, E7, May 31, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196517",
+                "episodeNumber": 7,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Knowledge of Causes, and Secret Motion of Things",
+                "nid": 1011166,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011166",
+                "elementName": "none",
+                "itemText": "Knowledge of Causes, and Secret Motion of Things",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011170",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650026_Orphan-Black_208__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650026_Orphan-Black_208__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011170,
+              "text": {
+                "title": {
+                  "title": "Variable and Full of Perturbation"
+                },
+                "description": {
+                  "title": "A new player arrives on Felix's doorstep; Cosima nearly runs out of options."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E8",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "June 7, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011170"
+                },
+                "content_id": "1011170",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Variable and Full of Perturbation"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Variable and Full of Perturbation, A new player arrives on Felix's doorstep; Cosima nearly runs out of options., TV-MA, CC, S2, E8, June 7, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196518",
+                "episodeNumber": 8,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Variable and Full of Perturbation",
+                "nid": 1011170,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011170",
+                "elementName": "none",
+                "itemText": "Variable and Full of Perturbation",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011171",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650027_Orphan-Black_209__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650027_Orphan-Black_209__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011171,
+              "text": {
+                "title": {
+                  "title": "Things Which Have Never Yet Been Done"
+                },
+                "description": {
+                  "title": "Cosima takes a bad turn; Sarah takes action with tragic consequences."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-MA",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E9",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "June 14, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "41m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011171"
+                },
+                "content_id": "1011171",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "Things Which Have Never Yet Been Done"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "Things Which Have Never Yet Been Done, Cosima takes a bad turn; Sarah takes action with tragic consequences., TV-MA, CC, S2, E9, June 14, 2014, 41m"
+              },
+              "metadata": {
+                "amcnId": "RLA196519",
+                "episodeNumber": 9,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "Things Which Have Never Yet Been Done",
+                "nid": 1011171,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011171",
+                "elementName": "none",
+                "itemText": "Things Which Have Never Yet Been Done",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          },
+          {
+            "properties": {
+              "contentType": "episode",
+              "downloadData": {
+                "downloadable": true,
+                "downloadingExpireIn": 1768453140,
+                "downloadingEndDate": 1768453140,
+                "callback": {
+                  "endpoint": "type/downloads/id/1011178",
+                  "type": "downloads"
+                }
+              },
+              "images": {
+                "mobile": "https://dimages.cds.amcn.com/341x192/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650015_Orphan-Black_210__img_wide_16x9.jpg",
+                "tablet": "https://dimages.cds.amcn.com/400x225/https://images.cds.amcn.com/amcn/amcplus/processed/episode_tms_EP016349650015_Orphan-Black_210__img_wide_16x9.jpg"
+              },
+              "layout": "image_card",
+              "nid": 1011178,
+              "text": {
+                "title": {
+                  "title": "By Means Which Have Never Yet Been Tried"
+                },
+                "description": {
+                  "title": "Rachel's latest ploy forces Sarah to concede; the Clone Club unites to save Sarah and gain freedom."
+                },
+                "subheadings": [
+                  {
+                    "id": "rating",
+                    "title": "TV-14",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "cc",
+                    "title": "CC",
+                    "type": "badge"
+                  },
+                  {
+                    "id": "seasonEpisodeNumber",
+                    "title": "S2, E10",
+                    "type": "text"
+                  },
+                  {
+                    "id": "premiereDate",
+                    "title": "June 21, 2014",
+                    "type": "text"
+                  },
+                  {
+                    "id": "duration",
+                    "title": "42m",
+                    "type": "text"
+                  }
+                ]
+              },
+              "navigation": {
+                "client_request": {
+                  "endpoint": "type/video-player/id/1011178"
+                },
+                "content_id": "1011178",
+                "contentType": "episode",
+                "micro_app_type": "video-player",
+                "properties": {
+                  "fullscreen": true,
+                  "isLive": false,
+                  "videoTitle": "By Means Which Have Never Yet Been Tried"
+                },
+                "screenDesignType": "video-player"
+              },
+              "TTS": {
+                "speechText": "By Means Which Have Never Yet Been Tried, Rachel's latest ploy forces Sarah to concede; the Clone Club unites to save Sarah and gain freedom., TV-14, CC, S2, E10, June 21, 2014, 42m"
+              },
+              "metadata": {
+                "amcnId": "RLA196520",
+                "episodeNumber": 10,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": 2,
+                "title": "By Means Which Have Never Yet Been Tried",
+                "nid": 1011178,
+                "action": "clickthrough",
+                "elementType": "card",
+                "clickthroughUrl": "type/video-player/id/1011178",
+                "elementName": "none",
+                "itemText": "By Means Which Have Never Yet Been Tried",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": true,
+                "componentName": "card"
+              }
+            },
+            "type": "card"
+          }
+        ]
+      }
+    ]
+  },
+  "status": 200,
+  "success": true
+}

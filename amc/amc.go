@@ -239,23 +239,6 @@ func (c *Client) SeriesDetail(id int64) (*Node, error) {
    return &value.Data, nil
 }
 
-func (n *Node) findSeasonsTabNode() (*Node, bool) {
-   for _, topLevelChild := range n.Children {
-      if topLevelChild.Type == "tab_bar" {
-         for _, tabItem := range topLevelChild.Children {
-            if tabItem.Properties != nil {
-               if tabItem.Properties.Text != nil {
-                  if tabItem.Properties.Text.Title.Title == "Seasons" {
-                     return tabItem, true
-                  }
-               }
-            }
-         }
-      }
-   }
-   return nil, false
-}
-
 type Node struct {
    Type       string
    Children   []*Node
@@ -332,4 +315,21 @@ func (n *Node) Episodes() iter.Seq[*Node] {
          }
       }
    }
+}
+
+func (n *Node) findSeasonsTabNode() (*Node, bool) {
+   for _, topLevelChild := range n.Children {
+      if topLevelChild.Type == "tab_bar" {
+         for _, tabItem := range topLevelChild.Children {
+            if tabItem.Properties != nil {
+               if tabItem.Properties.Text != nil {
+                  if tabItem.Properties.Text.Title.Title == "Seasons" {
+                     return tabItem, true
+                  }
+               }
+            }
+         }
+      }
+   }
+   return nil, false
 }
