@@ -1,0 +1,464 @@
+{
+  "data": {
+    "type": "page",
+    "properties": {
+      "pageType": "series-detail",
+      "id": "1010578",
+      "images": {
+        "mobile": "https://dimages.cds.amcn.com/1366x768/https://images.cds.amcn.com/amcn/amcplus/series_tms_SH016349650000_orphan-black_S1__img_wide_16x9.jpg",
+        "tablet": "https://dimages.cds.amcn.com/1366x768/https://images.cds.amcn.com/amcn/amcplus/series_tms_SH016349650000_orphan-black_S1__img_wide_16x9.jpg"
+      },
+      "countryCode": "us",
+      "metadata": {
+        "amcnId": "RLA196500",
+        "episodeNumber": -1,
+        "contentNetworkOfRecordId": 1000010,
+        "seasonNumber": -1,
+        "showName": "Orphan Black",
+        "title": "none",
+        "nid": 1010578,
+        "pageType": "series-detail",
+        "url": "type/series-detail/id/1010578"
+      },
+      "manifestType": "series-detail"
+    },
+    "children": [
+      {
+        "type": "image_bar",
+        "tablet_properties": {
+          "layout": "image_card_tablet"
+        },
+        "properties": {
+          "text": {
+            "title": {
+              "title": "Orphan Black"
+            }
+          },
+          "images": {
+            "default": "https://dimages.cds.amcn.com/fit-in/359x112/https://images.cds.amcn.com/amcn/amcplus/series_tms_SH016349650000_orphan-black_S1__img_logo.png"
+          },
+          "metadata": {
+            "action": "clickthrough",
+            "elementType": "image_bar",
+            "clickthroughUrl": "none",
+            "elementName": "none",
+            "itemText": "Orphan Black",
+            "label": "internal"
+          }
+        }
+      },
+      {
+        "type": "tab_bar",
+        "properties": {
+          "scrollable": true,
+          "metadata": {
+            "action": "clickthrough",
+            "elementType": "tab_bar",
+            "clickthroughUrl": "none",
+            "elementName": "none",
+            "itemText": "none",
+            "label": "internal",
+            "amcnId": "none",
+            "episodeNumber": -1,
+            "contentNetworkOfRecordId": -1,
+            "seasonNumber": -1,
+            "showName": "none",
+            "title": "none",
+            "nid": -1,
+            "navComponentName": "tab_bar",
+            "navigationTitle": "none",
+            "isNavigation": true
+          }
+        },
+        "children": [
+          {
+            "type": "tab_bar_item",
+            "properties": {
+              "text": {
+                "title": {
+                  "title": "Info"
+                }
+              },
+              "metadata": {
+                "amcnId": "none",
+                "episodeNumber": -1,
+                "contentNetworkOfRecordId": -1,
+                "seasonNumber": -1,
+                "showName": "Orphan Black",
+                "title": "none",
+                "nid": -1,
+                "navComponentName": "none",
+                "navigationTitle": "Info",
+                "isNavigation": true,
+                "action": "clickthrough",
+                "elementType": "tab_bar_item",
+                "clickthroughUrl": "type/series-info/id/1010578",
+                "elementName": "none",
+                "itemText": "Info",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": false
+              }
+            },
+            "callback": {
+              "endpoint": "type/series-info/id/1010578",
+              "type": "user-manifest"
+            }
+          },
+          {
+            "type": "tab_bar_item",
+            "properties": {
+              "text": {
+                "title": {
+                  "title": "Seasons"
+                }
+              },
+              "metadata": {
+                "amcnId": "none",
+                "episodeNumber": -1,
+                "contentNetworkOfRecordId": -1,
+                "seasonNumber": -1,
+                "showName": "Orphan Black",
+                "title": "none",
+                "nid": 1010634,
+                "navComponentName": "none",
+                "navigationTitle": "Seasons",
+                "isNavigation": true,
+                "action": "clickthrough",
+                "elementType": "tab_bar_item",
+                "clickthroughUrl": "type/season-episodes/id/1010634",
+                "elementName": "none",
+                "itemText": "Seasons",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": false
+              }
+            },
+            "callback": {
+              "endpoint": "type/season-episodes/id/1010634",
+              "type": "manifest"
+            },
+            "children": [
+              {
+                "type": "tab_bar",
+                "properties": {
+                  "scrollable": true,
+                  "metadata": {
+                    "action": "clickthrough",
+                    "elementType": "tab_bar",
+                    "clickthroughUrl": "none",
+                    "elementName": "none",
+                    "itemText": "Season 1",
+                    "label": "internal",
+                    "amcnId": "none",
+                    "episodeNumber": -1,
+                    "contentNetworkOfRecordId": -1,
+                    "seasonNumber": 1,
+                    "showName": "none",
+                    "title": "Season 1",
+                    "nid": 1010634,
+                    "navComponentName": "tab_bar",
+                    "navigationTitle": "none",
+                    "isNavigation": true
+                  }
+                },
+                "children": [
+                  {
+                    "type": "tab_bar_item",
+                    "properties": {
+                      "text": {
+                        "title": {
+                          "title": "S1"
+                        }
+                      },
+                      "downloadData": {
+                        "downloadable": false,
+                        "callback": {
+                          "endpoint": "type/downloads/id/1010634",
+                          "type": "downloads"
+                        }
+                      },
+                      "TTS": {
+                        "speechText": "Season 1, Sarah discovers that she is a clone and has many 'sister' clones."
+                      },
+                      "metadata": {
+                        "action": "clickthrough",
+                        "elementType": "tab_bar_item",
+                        "clickthroughUrl": "type/season-episodes/id/1010634",
+                        "elementName": "none",
+                        "itemText": "S1",
+                        "label": "internal",
+                        "amcnId": "none",
+                        "episodeNumber": -1,
+                        "contentNetworkOfRecordId": -1,
+                        "seasonNumber": 1,
+                        "showName": "none",
+                        "title": "Season 1",
+                        "nid": 1010634,
+                        "navComponentName": "none",
+                        "navigationTitle": "S1",
+                        "isNavigation": true,
+                        "listTitle": "none",
+                        "isPlayback": false
+                      }
+                    },
+                    "callback": {
+                      "endpoint": "type/season-episodes/id/1010634",
+                      "type": "manifest"
+                    }
+                  },
+                  {
+                    "type": "tab_bar_item",
+                    "properties": {
+                      "text": {
+                        "title": {
+                          "title": "S2"
+                        }
+                      },
+                      "downloadData": {
+                        "downloadable": true,
+                        "callback": {
+                          "endpoint": "type/downloads/id/1010638",
+                          "type": "downloads"
+                        }
+                      },
+                      "TTS": {
+                        "speechText": "Season 2, Sarah discovers that she is a clone and has many 'sister' clones."
+                      },
+                      "metadata": {
+                        "action": "clickthrough",
+                        "elementType": "tab_bar_item",
+                        "clickthroughUrl": "type/season-episodes/id/1010638",
+                        "elementName": "none",
+                        "itemText": "S2",
+                        "label": "internal",
+                        "amcnId": "none",
+                        "episodeNumber": -1,
+                        "contentNetworkOfRecordId": -1,
+                        "seasonNumber": 2,
+                        "showName": "none",
+                        "title": "Season 2",
+                        "nid": 1010638,
+                        "navComponentName": "none",
+                        "navigationTitle": "S2",
+                        "isNavigation": true,
+                        "listTitle": "none",
+                        "isPlayback": false
+                      }
+                    },
+                    "callback": {
+                      "endpoint": "type/season-episodes/id/1010638",
+                      "type": "manifest"
+                    }
+                  },
+                  {
+                    "type": "tab_bar_item",
+                    "properties": {
+                      "text": {
+                        "title": {
+                          "title": "S3"
+                        }
+                      },
+                      "downloadData": {
+                        "downloadable": true,
+                        "callback": {
+                          "endpoint": "type/downloads/id/1010635",
+                          "type": "downloads"
+                        }
+                      },
+                      "TTS": {
+                        "speechText": "Season 3, Sarah discovers that she is a clone and has many 'sister' clones."
+                      },
+                      "metadata": {
+                        "action": "clickthrough",
+                        "elementType": "tab_bar_item",
+                        "clickthroughUrl": "type/season-episodes/id/1010635",
+                        "elementName": "none",
+                        "itemText": "S3",
+                        "label": "internal",
+                        "amcnId": "none",
+                        "episodeNumber": -1,
+                        "contentNetworkOfRecordId": -1,
+                        "seasonNumber": 3,
+                        "showName": "none",
+                        "title": "Season 3",
+                        "nid": 1010635,
+                        "navComponentName": "none",
+                        "navigationTitle": "S3",
+                        "isNavigation": true,
+                        "listTitle": "none",
+                        "isPlayback": false
+                      }
+                    },
+                    "callback": {
+                      "endpoint": "type/season-episodes/id/1010635",
+                      "type": "manifest"
+                    }
+                  },
+                  {
+                    "type": "tab_bar_item",
+                    "properties": {
+                      "text": {
+                        "title": {
+                          "title": "S4"
+                        }
+                      },
+                      "downloadData": {
+                        "downloadable": true,
+                        "callback": {
+                          "endpoint": "type/downloads/id/1010643",
+                          "type": "downloads"
+                        }
+                      },
+                      "TTS": {
+                        "speechText": "Season 4, Sarah discovers that she is a clone and has many 'sister' clones."
+                      },
+                      "metadata": {
+                        "action": "clickthrough",
+                        "elementType": "tab_bar_item",
+                        "clickthroughUrl": "type/season-episodes/id/1010643",
+                        "elementName": "none",
+                        "itemText": "S4",
+                        "label": "internal",
+                        "amcnId": "none",
+                        "episodeNumber": -1,
+                        "contentNetworkOfRecordId": -1,
+                        "seasonNumber": 4,
+                        "showName": "none",
+                        "title": "Season 4",
+                        "nid": 1010643,
+                        "navComponentName": "none",
+                        "navigationTitle": "S4",
+                        "isNavigation": true,
+                        "listTitle": "none",
+                        "isPlayback": false
+                      }
+                    },
+                    "callback": {
+                      "endpoint": "type/season-episodes/id/1010643",
+                      "type": "manifest"
+                    }
+                  },
+                  {
+                    "type": "tab_bar_item",
+                    "properties": {
+                      "text": {
+                        "title": {
+                          "title": "S5"
+                        }
+                      },
+                      "downloadData": {
+                        "downloadable": true,
+                        "callback": {
+                          "endpoint": "type/downloads/id/1010637",
+                          "type": "downloads"
+                        }
+                      },
+                      "TTS": {
+                        "speechText": "Season 5, Sarah discovers that she is a clone and has many 'sister' clones."
+                      },
+                      "metadata": {
+                        "action": "clickthrough",
+                        "elementType": "tab_bar_item",
+                        "clickthroughUrl": "type/season-episodes/id/1010637",
+                        "elementName": "none",
+                        "itemText": "S5",
+                        "label": "internal",
+                        "amcnId": "none",
+                        "episodeNumber": -1,
+                        "contentNetworkOfRecordId": -1,
+                        "seasonNumber": 5,
+                        "showName": "none",
+                        "title": "Season 5",
+                        "nid": 1010637,
+                        "navComponentName": "none",
+                        "navigationTitle": "S5",
+                        "isNavigation": true,
+                        "listTitle": "none",
+                        "isPlayback": false
+                      }
+                    },
+                    "callback": {
+                      "endpoint": "type/season-episodes/id/1010637",
+                      "type": "manifest"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "tab_bar_item",
+            "properties": {
+              "text": {
+                "title": {
+                  "title": "Extras"
+                }
+              },
+              "metadata": {
+                "amcnId": "none",
+                "episodeNumber": -1,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": -1,
+                "showName": "Orphan Black",
+                "title": "'Orphan Black's' Creators Answer the Questions Creators Don't Want To Answer",
+                "nid": 1014472,
+                "navComponentName": "none",
+                "navigationTitle": "Extras",
+                "isNavigation": true,
+                "action": "clickthrough",
+                "elementType": "tab_bar_item",
+                "clickthroughUrl": "type/series-extras/id/1010578",
+                "elementName": "none",
+                "itemText": "Extras",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": false
+              }
+            },
+            "callback": {
+              "endpoint": "type/series-extras/id/1010578",
+              "type": "manifest"
+            }
+          },
+          {
+            "type": "tab_bar_item",
+            "properties": {
+              "text": {
+                "title": {
+                  "title": "You May Like"
+                }
+              },
+              "metadata": {
+                "amcnId": "RLA208042",
+                "episodeNumber": -1,
+                "contentNetworkOfRecordId": 1000010,
+                "seasonNumber": -1,
+                "showName": "Orphan Black",
+                "title": "Killing Eve",
+                "nid": 1010570,
+                "navComponentName": "none",
+                "navigationTitle": "You May Like",
+                "isNavigation": true,
+                "action": "clickthrough",
+                "elementType": "tab_bar_item",
+                "clickthroughUrl": "type/series-you-may-like/id/1010578",
+                "elementName": "none",
+                "itemText": "You May Like",
+                "label": "internal",
+                "listTitle": "none",
+                "isPlayback": false
+              }
+            },
+            "callback": {
+              "endpoint": "type/series-you-may-like/id/1010578",
+              "type": "manifest"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "status": 200,
+  "success": true
+}

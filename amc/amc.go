@@ -12,6 +12,13 @@ import (
    "strconv"
 )
 
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
 func (c *Client) SeriesDetail(id int64) (*Child, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
@@ -143,13 +150,6 @@ func (c *Client) Unauth() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(c)
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return nil, nil
-   },
 }
 
 type Metadata struct {
