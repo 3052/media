@@ -12,14 +12,7 @@ import (
    "strconv"
 )
 
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return nil, nil
-   },
-}
-
-func (a *Auth) Unauth() error {
+func (c *Client) Unauth() error {
    req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
    req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
    req.Header.Set("x-amcn-device-id", "-")
@@ -32,10 +25,17 @@ func (a *Auth) Unauth() error {
       return err
    }
    defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(a)
+   return json.NewDecoder(resp.Body).Decode(c)
 }
 
-func (a *Auth) SeasonEpisodes(id int64) (*Child, error) {
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return nil, nil
+   },
+}
+
+func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
       b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
@@ -43,7 +43,7 @@ func (a *Auth) SeasonEpisodes(id int64) (*Child, error) {
       b = strconv.AppendInt(b, id, 10)
       return string(b)
    }()
-   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
+   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
    req.Header.Set("x-amcn-network", "amcplus")
    req.Header.Set("x-amcn-platform", "android")
    req.Header.Set("x-amcn-tenant", "amcn")
@@ -65,7 +65,7 @@ func (a *Auth) SeasonEpisodes(id int64) (*Child, error) {
    return &value.Data, nil
 }
 
-func (a *Auth) SeriesDetail(id int64) (*Child, error) {
+func (c *Client) SeriesDetail(id int64) (*Child, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
       b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
@@ -73,7 +73,7 @@ func (a *Auth) SeriesDetail(id int64) (*Child, error) {
       b = strconv.AppendInt(b, id, 10)
       return string(b)
    }()
-   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
+   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
    req.Header.Set("x-amcn-network", "amcplus")
    req.Header.Set("x-amcn-platform", "android")
    req.Header.Set("x-amcn-tenant", "amcn")
@@ -161,6 +161,16 @@ func (p *Playback) Dash() (*Source, bool) {
    return nil, false
 }
 
+type Source struct {
+   KeySystems *struct {
+      Widevine struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // MPD
+   Type string
+}
+
 func (p *Playback) Widevine(sourceVar *Source, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
@@ -176,17 +186,6 @@ func (p *Playback) Widevine(sourceVar *Source, data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
-type Byte[T any] []byte
-
-type Source struct {
-   KeySystems *struct {
-      Widevine struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // MPD
-   Type string
-}
 
 type Playback struct {
    Header http.Header
@@ -199,64 +198,14 @@ type Playback struct {
    }
 }
 
-type Auth struct {
+type Client struct {
    Data struct {
       AccessToken  string `json:"access_token"`
       RefreshToken string `json:"refresh_token"`
    }
 }
 
-func (a *Auth) Refresh() (Byte[Auth], error) {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
-   req.Header.Set("authorization", "Bearer "+a.Data.RefreshToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (a *Auth) Login(email, password string) (Byte[Auth], error) {
-   data, err := json.Marshal(map[string]string{
-      "email":    email,
-      "password": password,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/auth-orchestration-id/api/v1/login"
-   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-amcn-device-ad-id", "-")
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-service-group-id", "10")
-   req.Header.Set("x-amcn-service-id", "amcplus")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (a *Auth) Unmarshal(data Byte[Auth]) error {
-   return json.Unmarshal(data, a)
-}
-
-func (a *Auth) Playback(id int64) (*Playback, error) {
+func (c *Client) Playback(id int64) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
          "lat":          0,
@@ -277,7 +226,7 @@ func (a *Auth) Playback(id int64) (*Playback, error) {
       return nil, err
    }
    req.URL.Path = "/playback-id/api/v1/playback/" + strconv.FormatInt(id, 10)
-   req.Header.Set("authorization", "Bearer " + a.Data.AccessToken)
+   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("x-amcn-device-ad-id", "-")
    req.Header.Set("x-amcn-language", "en")
@@ -301,4 +250,58 @@ func (a *Auth) Playback(id int64) (*Playback, error) {
    }
    play.Header = resp.Header
    return &play, nil
+}
+
+///
+
+type Byte[T any] []byte
+
+func (c *Client) Refresh() (Byte[Client], error) {
+   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
+   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (c *Client) Login(email, password string) (Byte[Client], error) {
+   data, err := json.Marshal(map[string]string{
+      "email":    email,
+      "password": password,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/auth-orchestration-id/api/v1/login"
+   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-group-id", "10")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (c *Client) Unmarshal(data Byte[Client]) error {
+   return json.Unmarshal(data, c)
 }
