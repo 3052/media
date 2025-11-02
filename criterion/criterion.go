@@ -19,8 +19,6 @@ var Transport = http.Transport{
 
 const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
-type Byte[T any] []byte
-
 func (f *File) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
@@ -58,10 +56,6 @@ func (f Files) Dash() (*File, bool) {
    return nil, false
 }
 
-func (f *Files) Unmarshal(data Byte[Files]) error {
-   return json.Unmarshal(data, f)
-}
-
 func (t *Token) Video(slug string) (*Video, error) {
    req, _ := http.NewRequest("", "https://api.vhx.com", nil)
    req.URL.Path = "/videos/" + slug
@@ -86,6 +80,24 @@ func (t *Token) Video(slug string) (*Video, error) {
 type Token struct {
    AccessToken  string `json:"access_token"`
    RefreshToken string `json:"refresh_token"`
+}
+
+type Video struct {
+   Links struct {
+      Files struct {
+         Href string
+      }
+   } `json:"_links"`
+   Message string
+   Name    string
+}
+
+///
+
+type Byte[T any] []byte
+
+func (f *Files) Unmarshal(data Byte[Files]) error {
+   return json.Unmarshal(data, f)
 }
 
 func NewToken(username, password string) (Byte[Token], error) {
@@ -134,14 +146,4 @@ func (t *Token) Files(videoVar *Video) (Byte[Files], error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-type Video struct {
-   Links struct {
-      Files struct {
-         Href string
-      }
-   } `json:"_links"`
-   Message string
-   Name    string
 }

@@ -18,6 +18,43 @@ import (
    "time"
 )
 
+type client_token struct {
+   time int64
+   sig []byte
+}
+
+const (
+   // clientKey is the public identifier for the client.
+   clientKey = "web.NhFyz4KsZ54"
+   // secretKey is the base64 encoded secret for HMAC.
+   secretKey = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+func (c *client_token) New(address *url.URL, body []byte) error {
+   bodyHash := sha256.Sum256(body)
+   c.time = time.Now().Unix()
+   decodedSecret, err := base64.RawURLEncoding.DecodeString(secretKey)
+   if err != nil {
+      return err
+   }
+   hasher := hmac.New(sha256.New, decodedSecret)
+   fmt.Fprint(hasher, address)
+   fmt.Fprint(hasher, base64.RawURLEncoding.EncodeToString(bodyHash[:]))
+   fmt.Fprint(hasher, c.time)
+   c.sig = hasher.Sum(nil)
+   return nil
+}
+
+func (c *client_token) String() string {
+   data := []byte("Client key=")
+   data = append(data, clientKey...)
+   data = append(data, ",time="...)
+   data = fmt.Append(data, c.time)
+   data = append(data, ",sig="...)
+   data = base64.RawURLEncoding.AppendEncode(data, c.sig)
+   return string(data)
+}
+
 func (s *Session) Player(tracking_id string) (*Player, error) {
    data, err := json.Marshal(map[string]any{
       "player": map[string]any{
@@ -100,17 +137,13 @@ var Transport = http.Transport{
    },
 }
 
-const (
-   device_serial = "!!!!"
-   key    = "web.NhFyz4KsZ54"
-   secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
+const device_serial = "!!!!"
 
-func (a *Episode) String() string {
+func (e *Episode) String() string {
    data := []byte("episode = ")
-   data = strconv.AppendInt(data, a.Params.SeriesEpisode, 10)
+   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
    data = append(data, "\nid = "...)
-   data = append(data, a.Id...)
+   data = append(data, e.Id...)
    return string(data)
 }
 
@@ -147,12 +180,12 @@ func (t *Ticket) Token(username, password string) (*Token, error) {
    if err != nil {
       return nil, err
    }
-   var clientVar client
-   err = clientVar.New(req.URL, data)
+   var client client_token
+   err = client.New(req.URL, data)
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", clientVar.String())
+   req.Header.Set("authorization", client.String())
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -194,12 +227,12 @@ func (t *Ticket) New() error {
    if err != nil {
       return err
    }
-   var clientVar client
-   err = clientVar.New(req.URL, data)
+   var client client_token
+   err = client.New(req.URL, data)
    if err != nil {
       return err
    }
-   req.Header.Set("authorization", clientVar.String())
+   req.Header.Set("authorization", client.String())
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
@@ -213,36 +246,6 @@ func (t *Ticket) New() error {
       return errors.New(t.Message)
    }
    return nil
-}
-
-type client struct {
-   sig  []byte
-   time int64
-}
-
-func (c *client) New(address *url.URL, body []byte) error {
-   body1 := sha256.Sum256(body)
-   c.time = time.Now().Unix()
-   secret1, err := base64.RawURLEncoding.DecodeString(secret)
-   if err != nil {
-      return err
-   }
-   hash := hmac.New(sha256.New, secret1)
-   fmt.Fprint(hash, address)
-   fmt.Fprint(hash, base64.RawURLEncoding.EncodeToString(body1[:]))
-   fmt.Fprint(hash, c.time)
-   c.sig = hash.Sum(nil)
-   return nil
-}
-
-func (c *client) String() string {
-   data := []byte("Client key=")
-   data = append(data, key...)
-   data = append(data, ",time="...)
-   data = fmt.Append(data, c.time)
-   data = append(data, ",sig="...)
-   data = base64.RawURLEncoding.AppendEncode(data, c.sig)
-   return string(data)
 }
 
 type Session struct {

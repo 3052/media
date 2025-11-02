@@ -65,11 +65,7 @@ no payPal option
 1. criterionchannel.com/checkout
 2. monthly
 3. email
-   1. mail.tm
-   2. email.ml
-   3. mailsac.com
-   4. tempmail.best (1 hour)
-   5. emailnator.com
+   - mail.tm
 4. confirm email
 5. password
 6. name on card
@@ -87,11 +83,7 @@ WORKS
 1. criterionchannel.com/checkout
 2. monthly
 3. email
-   1. mail.tm
-   2. email.ml
-   3. mailsac.com
-   4. tempmail.best (1 hour)
-   5. emailnator.com
+   - mail.tm
 4. confirm email
 5. password
 6. name on card
