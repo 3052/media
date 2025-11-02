@@ -12,72 +12,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.cache + "/amc/Client")
-   if err != nil {
-      return err
-   }
-   var client amc.Client
-   err = client.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   season, err := client.SeasonEpisodes(f.season)
-   if err != nil {
-      return err
-   }
-   episodes, err := season.ExtractEpisodes()
-   if err != nil {
-      return err
-   }
-   for i, episode := range episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(episode)
-   }
-   return nil
-}
-
-func (f *flag_set) do_series() error {
-   data, err := os.ReadFile(f.cache + "/amc/Client")
-   if err != nil {
-      return err
-   }
-   var client amc.Client
-   err = client.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   series, err := client.SeriesDetail(f.series)
-   if err != nil {
-      return err
-   }
-   seasons, err := series.ExtractSeasons()
-   if err != nil {
-      return err
-   }
-   for i, season := range seasons {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(season)
-   }
-   return nil
-}
-
-type flag_set struct {
-   cache    string
-   config   net.Config
-   email    string
-   episode  int64
-   filters  net.Filters
-   password string
-   refresh  bool
-   season   int64
-   series   int64
-}
-
 func (f *flag_set) do_episode() error {
    data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
@@ -88,20 +22,20 @@ func (f *flag_set) do_episode() error {
    if err != nil {
       return err
    }
-   play, err := client.Playback(f.episode)
+   header, sources, err := client.Playback(f.episode)
    if err != nil {
       return err
    }
-   source, ok := play.Dash()
+   source, ok := amc.Dash(sources)
    if !ok {
-      return errors.New(".Dash()")
+      return errors.New("amc.Dash")
    }
    resp, err := http.Get(source.Src)
    if err != nil {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return play.Widevine(source, data)
+      return amc.Widevine(header, source, data)
    }
    return f.filters.Filter(resp, &f.config)
 }
@@ -197,4 +131,69 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
+}
+func (f *flag_set) do_season() error {
+   data, err := os.ReadFile(f.cache + "/amc/Client")
+   if err != nil {
+      return err
+   }
+   var client amc.Client
+   err = client.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   season, err := client.SeasonEpisodes(f.season)
+   if err != nil {
+      return err
+   }
+   episodes, err := season.ExtractEpisodes()
+   if err != nil {
+      return err
+   }
+   for i, episode := range episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(episode)
+   }
+   return nil
+}
+
+func (f *flag_set) do_series() error {
+   data, err := os.ReadFile(f.cache + "/amc/Client")
+   if err != nil {
+      return err
+   }
+   var client amc.Client
+   err = client.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   series, err := client.SeriesDetail(f.series)
+   if err != nil {
+      return err
+   }
+   seasons, err := series.ExtractSeasons()
+   if err != nil {
+      return err
+   }
+   for i, season := range seasons {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(season)
+   }
+   return nil
+}
+
+type flag_set struct {
+   cache    string
+   config   net.Config
+   email    string
+   episode  int64
+   filters  net.Filters
+   password string
+   refresh  bool
+   season   int64
+   series   int64
 }
