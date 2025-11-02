@@ -12,6 +12,32 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_season() error {
+   data, err := os.ReadFile(f.cache + "/amc/Client")
+   if err != nil {
+      return err
+   }
+   var client amc.Client
+   err = client.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   season, err := client.SeasonEpisodes(f.season)
+   if err != nil {
+      return err
+   }
+   var line bool
+   for episode := range season.Episodes() {
+      if line {
+         fmt.Println()
+      } else {
+         line = true
+      }
+      fmt.Println(episode.Properties.Metadata)
+   }
+   return nil
+}
+
 func (f *flag_set) do_series() error {
    data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
@@ -50,6 +76,7 @@ type flag_set struct {
    season   int64
    series   int64
 }
+
 func (f *flag_set) do_episode() error {
    data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
@@ -99,6 +126,7 @@ func (f *flag_set) New() error {
    flag.Parse()
    return nil
 }
+
 func main() {
    http.DefaultTransport = &amc.Transport
    log.SetFlags(log.Ltime)
@@ -168,30 +196,4 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
-}
-
-func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.cache + "/amc/Client")
-   if err != nil {
-      return err
-   }
-   var client amc.Client
-   err = client.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   season, err := client.SeasonEpisodes(f.season)
-   if err != nil {
-      return err
-   }
-   var line bool
-   for episode := range season.Episodes() {
-      if line {
-         fmt.Println()
-      } else {
-         line = true
-      }
-      fmt.Println(&episode.Properties.Metadata)
-   }
-   return nil
 }

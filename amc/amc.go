@@ -12,6 +12,32 @@ import (
    "strconv"
 )
 
+// FIXME
+func (n *Node) Episodes() iter.Seq[*Node] {
+   return func(yield func(*Node) bool) {
+      for _, child1 := range n.Children {
+         for _, child2 := range child1.Children {
+            if !yield(child2) {
+               return
+            }
+         }
+      }
+   }
+}
+
+type Node struct {
+   Type       string
+   Children   []*Node
+   Properties *struct {
+      Text *struct {
+         Title struct {
+            Title string
+         }
+      }
+      Metadata *Metadata
+   }
+}
+
 func (m *Metadata) String() string {
    var b []byte
    if m.EpisodeNumber >= 0 {
@@ -26,6 +52,28 @@ func (m *Metadata) String() string {
    b = append(b, "\nnid = "...)
    b = strconv.AppendInt(b, m.Nid, 10)
    return string(b)
+}
+
+func (n *Node) ExtractSeasons() ([]*Metadata, error) {
+   seasonsTabNode, found := n.findSeasonsTabNode()
+   if !found {
+      return nil, errors.New("could not find the 'Seasons' tab in the JSON data")
+   }
+   for _, childNode := range seasonsTabNode.Children {
+      if childNode.Type == "tab_bar" {
+         seasonsList := childNode.Children
+         extractedMetadata := make([]*Metadata, 0, len(seasonsList))
+         for _, seasonNode := range seasonsList {
+            if seasonNode.Properties != nil {
+               if seasonNode.Properties.Metadata != nil {
+                  extractedMetadata = append(extractedMetadata, seasonNode.Properties.Metadata)
+               }
+            }
+         }
+         return extractedMetadata, nil
+      }
+   }
+   return nil, errors.New("could not find the list of seasons inside the 'Seasons' tab")
 }
 
 var Transport = http.Transport{
@@ -269,19 +317,6 @@ func (c *Client) SeasonEpisodes(id int64) (*Node, error) {
    return &value.Data, nil
 }
 
-// FIXME
-func (n *Node) Episodes() iter.Seq[*Node] {
-   return func(yield func(*Node) bool) {
-      for _, child1 := range n.Children {
-         for _, child2 := range child1.Children {
-            if !yield(child2) {
-               return
-            }
-         }
-      }
-   }
-}
-
 func (n *Node) findSeasonsTabNode() (*Node, bool) {
    for _, topLevelChild := range n.Children {
       if topLevelChild.Type == "tab_bar" {
@@ -297,39 +332,4 @@ func (n *Node) findSeasonsTabNode() (*Node, bool) {
       }
    }
    return nil, false
-}
-
-type Node struct {
-   Type       string
-   Children   []*Node
-   Properties *struct {
-      Text *struct {
-         Title struct {
-            Title string
-         }
-      }
-      Metadata *Metadata
-   }
-}
-
-func (n *Node) ExtractSeasons() ([]*Metadata, error) {
-   seasonsTabNode, found := n.findSeasonsTabNode()
-   if !found {
-      return nil, errors.New("could not find the 'Seasons' tab in the JSON data")
-   }
-   for _, childNode := range seasonsTabNode.Children {
-      if childNode.Type == "tab_bar" {
-         seasonsList := childNode.Children
-         extractedMetadata := make([]*Metadata, 0, len(seasonsList))
-         for _, seasonNode := range seasonsList {
-            if seasonNode.Properties != nil {
-               if seasonNode.Properties.Metadata != nil {
-                  extractedMetadata = append(extractedMetadata, seasonNode.Properties.Metadata)
-               }
-            }
-         }
-         return extractedMetadata, nil
-      }
-   }
-   return nil, errors.New("could not find the list of seasons inside the 'Seasons' tab")
 }
