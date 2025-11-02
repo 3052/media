@@ -88,43 +88,10 @@ func (f *flag_set) do_asset() error {
    }
    return f.filters.Filter(resp, &f.config)
 }
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) do_session() error {
-   var ticket canal.Ticket
-   err := ticket.New()
-   if err != nil {
-      return err
-   }
-   token, err := ticket.Token(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   data, err := canal.NewSession(token.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/canal/Session", data)
-}
-
-func (f *flag_set) do_refresh() error {
-   data, err := os.ReadFile(f.cache + "/canal/Session")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = canal.NewSession(session.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/canal/Session", data)
 }
 
 func (f *flag_set) do_address() error {
@@ -180,4 +147,38 @@ func (f *flag_set) New() error {
    flag.Int64Var(&f.season, "s", 0, "season")
    flag.Parse()
    return nil
+}
+
+func (f *flag_set) do_session() error {
+   var ticket canal.Ticket
+   err := ticket.New()
+   if err != nil {
+      return err
+   }
+   token, err := ticket.Token(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   data, err := canal.NewSession(token.SsoToken)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/canal/Session", data)
+}
+
+func (f *flag_set) do_refresh() error {
+   data, err := os.ReadFile(f.cache + "/canal/Session")
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = canal.NewSession(session.SsoToken)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/canal/Session", data)
 }
