@@ -10,6 +10,24 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.IntVar(&f.nbc, "n", 0, "NBC ID")
+   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
+}
+
 func main() {
    http.DefaultTransport = &nbc.Transport
    log.SetFlags(log.Ltime)
@@ -33,23 +51,6 @@ type flag_set struct {
    config  net.Config
    filters net.Filters
    nbc     int
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.IntVar(&f.nbc, "n", 0, "NBC ID")
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.Parse()
-   return nil
 }
 
 func (f *flag_set) do_nbc() error {
