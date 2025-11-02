@@ -18,7 +18,7 @@ import (
    "time"
 )
 
-func (s *Session) Player(asset_id string) (*Player, error) {
+func (s *Session) Player(tracking_id string) (*Player, error) {
    data, err := json.Marshal(map[string]any{
       "player": map[string]any{
          "capabilities": map[string]any{
@@ -39,7 +39,7 @@ func (s *Session) Player(asset_id string) (*Player, error) {
    req.URL.Path = func() string {
       var data strings.Builder
       data.WriteString("/v1/assets/")
-      data.WriteString(asset_id)
+      data.WriteString(tracking_id)
       data.WriteString("/play")
       return data.String()
    }()
@@ -61,6 +61,28 @@ func (s *Session) Player(asset_id string) (*Player, error) {
    return &play, nil
 }
 
+func TrackingId(address string) (string, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const startKey = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(string(data), startKey)
+   if !found {
+      return "", fmt.Errorf("attribute key '%s' not found", startKey)
+   }
+   value, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", fmt.Errorf("could not find closing quote for the attribute")
+   }
+   return value, nil
+}
+
 type Player struct {
    Drm struct {
       LicenseUrl string
@@ -68,6 +90,7 @@ type Player struct {
    Message string
    Url     string // MPD
 }
+
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       if path.Ext(req.URL.Path) != ".dash" {
@@ -83,7 +106,7 @@ const (
    secret = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
 )
 
-func (a *Asset) String() string {
+func (a *Episode) String() string {
    data := []byte("episode = ")
    data = strconv.AppendInt(data, a.Params.SeriesEpisode, 10)
    data = append(data, "\nid = "...)
@@ -91,43 +114,11 @@ func (a *Asset) String() string {
    return string(data)
 }
 
-type Asset struct {
+type Episode struct {
    Params struct {
       SeriesEpisode int64
    }
    Id string
-}
-
-func (f Fields) AssetId() string {
-   var key, value string
-   for _, field := range f {
-      switch key {
-      case "data-algolia-convert-tracking":
-         value = field
-      case "/web/signup/":
-         return value
-      }
-      key = field
-   }
-   return ""
-}
-
-type Fields []string
-
-func (f *Fields) New(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   *f = strings.FieldsFunc(string(data), func(r rune) bool {
-      return strings.ContainsRune(` "=`, r)
-   })
-   return nil
 }
 
 func (p *Player) Widevine(data []byte) ([]byte, error) {
@@ -137,41 +128,6 @@ func (p *Player) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
-
-func (s *Session) Assets(series_id string, season int64) ([]Asset, error) {
-   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.URL.RawQuery = func() string {
-      data := []byte("limit=99&query=episodes,")
-      data = append(data, series_id...)
-      data = append(data, ",season,"...)
-      data = strconv.AppendInt(data, season, 10)
-      return string(data)
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Assets  []Asset
-      Message string
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if value.Message != "" {
-      return nil, errors.New(value.Message)
-   }
-   return value.Assets, nil
 }
 
 func (t *Ticket) Token(username, password string) (*Token, error) {
@@ -259,17 +215,12 @@ func (t *Ticket) New() error {
    return nil
 }
 
-type Token struct {
-   Label    string
-   SsoToken string // this last one day
-}
-
 type client struct {
    sig  []byte
    time int64
 }
 
-func (c *client) New(ref *url.URL, body []byte) error {
+func (c *client) New(address *url.URL, body []byte) error {
    body1 := sha256.Sum256(body)
    c.time = time.Now().Unix()
    secret1, err := base64.RawURLEncoding.DecodeString(secret)
@@ -277,7 +228,7 @@ func (c *client) New(ref *url.URL, body []byte) error {
       return err
    }
    hash := hmac.New(sha256.New, secret1)
-   fmt.Fprint(hash, ref)
+   fmt.Fprint(hash, address)
    fmt.Fprint(hash, base64.RawURLEncoding.EncodeToString(body1[:]))
    fmt.Fprint(hash, c.time)
    c.sig = hash.Sum(nil)
@@ -294,9 +245,31 @@ func (c *client) String() string {
    return string(data)
 }
 
-type Byte[T any] []byte
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
 
-func NewSession(sso_token string) (Byte[Session], error) {
+type Token struct {
+   Label    string
+   SsoToken string // this last one day
+}
+
+func (s *Session) Unmarshal(data SessionData) error {
+   err := json.Unmarshal(data, s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type SessionData []byte
+
+func GetSession(sso_token string) (SessionData, error) {
    data, err := json.Marshal(map[string]string{
       "brand":        "m7cp",
       "deviceSerial": device_serial,
@@ -316,13 +289,31 @@ func NewSession(sso_token string) (Byte[Session], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (s *Session) Unmarshal(data Byte[Session]) error {
-   err := json.Unmarshal(data, s)
+func (s *Session) Episodes(tracking_id string, season int64) ([]Episode, error) {
+   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.URL.RawQuery = func() string {
+      data := []byte("limit=99&query=episodes,")
+      data = append(data, tracking_id...)
+      data = append(data, ",season,"...)
+      data = strconv.AppendInt(data, season, 10)
+      return string(data)
+   }()
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return err
+      return nil, err
    }
-   if s.Message != "" {
-      return errors.New(s.Message)
+   defer resp.Body.Close()
+   var value struct {
+      Assets  []Episode
+      Message string
    }
-   return nil
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Message != "" {
+      return nil, errors.New(value.Message)
+   }
+   return value.Assets, nil
 }
