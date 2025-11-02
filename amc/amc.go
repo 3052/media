@@ -12,6 +12,22 @@ import (
    "strconv"
 )
 
+func (m *Metadata) String() string {
+   var b []byte
+   if m.EpisodeNumber >= 0 {
+      b = []byte("episodeNumber = ")
+      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "title = "...)
+   b = append(b, m.Title...)
+   b = append(b, "\nnid = "...)
+   b = strconv.AppendInt(b, m.Nid, 10)
+   return string(b)
+}
+
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       log.Println(req.Method, req.URL)
@@ -90,22 +106,6 @@ func (c *Client) Unauth() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(c)
-}
-
-func (m *Metadata) String() string {
-   var b []byte
-   if m.EpisodeNumber >= 0 {
-      b = []byte("episode = ")
-      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
-   }
-   if b != nil {
-      b = append(b, '\n')
-   }
-   b = append(b, "title = "...)
-   b = append(b, m.Title...)
-   b = append(b, "\nnid = "...)
-   b = strconv.AppendInt(b, m.Nid, 10)
-   return string(b)
 }
 
 func (c *Client) Refresh() (ClientData, error) {
@@ -239,41 +239,6 @@ func (c *Client) SeriesDetail(id int64) (*Node, error) {
    return &value.Data, nil
 }
 
-type Node struct {
-   Type       string
-   Children   []*Node
-   Properties *struct {
-      Text *struct {
-         Title struct {
-            Title string
-         }
-      }
-      Metadata *Metadata
-   }
-}
-
-func (n *Node) ExtractSeasons() ([]*Metadata, error) {
-   seasonsTabNode, found := n.findSeasonsTabNode()
-   if !found {
-      return nil, errors.New("could not find the 'Seasons' tab in the JSON data")
-   }
-   for _, childNode := range seasonsTabNode.Children {
-      if childNode.Type == "tab_bar" {
-         seasonsList := childNode.Children
-         extractedMetadata := make([]*Metadata, 0, len(seasonsList))
-         for _, seasonNode := range seasonsList {
-            if seasonNode.Properties != nil {
-               if seasonNode.Properties.Metadata != nil {
-                  extractedMetadata = append(extractedMetadata, seasonNode.Properties.Metadata)
-               }
-            }
-         }
-         return extractedMetadata, nil
-      }
-   }
-   return nil, errors.New("could not find the list of seasons inside the 'Seasons' tab")
-}
-
 func (c *Client) SeasonEpisodes(id int64) (*Node, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
@@ -332,4 +297,39 @@ func (n *Node) findSeasonsTabNode() (*Node, bool) {
       }
    }
    return nil, false
+}
+
+type Node struct {
+   Type       string
+   Children   []*Node
+   Properties *struct {
+      Text *struct {
+         Title struct {
+            Title string
+         }
+      }
+      Metadata *Metadata
+   }
+}
+
+func (n *Node) ExtractSeasons() ([]*Metadata, error) {
+   seasonsTabNode, found := n.findSeasonsTabNode()
+   if !found {
+      return nil, errors.New("could not find the 'Seasons' tab in the JSON data")
+   }
+   for _, childNode := range seasonsTabNode.Children {
+      if childNode.Type == "tab_bar" {
+         seasonsList := childNode.Children
+         extractedMetadata := make([]*Metadata, 0, len(seasonsList))
+         for _, seasonNode := range seasonsList {
+            if seasonNode.Properties != nil {
+               if seasonNode.Properties.Metadata != nil {
+                  extractedMetadata = append(extractedMetadata, seasonNode.Properties.Metadata)
+               }
+            }
+         }
+         return extractedMetadata, nil
+      }
+   }
+   return nil, errors.New("could not find the list of seasons inside the 'Seasons' tab")
 }
