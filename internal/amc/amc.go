@@ -13,16 +13,16 @@ import (
 )
 
 func (f *flag_set) do_episode() error {
-   data, err := os.ReadFile(f.cache + "/amc/Auth")
+   data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
       return err
    }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
+   var client amc.Client
+   err = client.Unmarshal(data)
    if err != nil {
       return err
    }
-   play, err := auth.Playback(f.episode)
+   play, err := client.Playback(f.episode)
    if err != nil {
       return err
    }
@@ -97,33 +97,33 @@ func write_file(name string, data []byte) error {
 }
 
 func (f *flag_set) do_refresh() error {
-   data, err := os.ReadFile(f.cache + "/amc/Auth")
+   data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
       return err
    }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
+   var client amc.Client
+   err = client.Unmarshal(data)
    if err != nil {
       return err
    }
-   data, err = auth.Refresh()
+   data, err = client.Refresh()
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/amc/Auth", data)
+   return write_file(f.cache+"/amc/Client", data)
 }
 
 func (f *flag_set) do_auth() error {
-   var auth amc.Auth
-   err := auth.Unauth()
+   var client amc.Client
+   err := client.Unauth()
    if err != nil {
       return err
    }
-   data, err := auth.Login(f.email, f.password)
+   data, err := client.Login(f.email, f.password)
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/amc/Auth", data)
+   return write_file(f.cache+"/amc/Client", data)
 }
 
 func (f *flag_set) email_password() bool {
@@ -136,16 +136,16 @@ func (f *flag_set) email_password() bool {
 }
 
 func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.cache + "/amc/Auth")
+   data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
       return err
    }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
+   var client amc.Client
+   err = client.Unmarshal(data)
    if err != nil {
       return err
    }
-   season, err := auth.SeasonEpisodes(f.season)
+   season, err := client.SeasonEpisodes(f.season)
    if err != nil {
       return err
    }
@@ -162,16 +162,16 @@ func (f *flag_set) do_season() error {
 }
 
 func (f *flag_set) do_series() error {
-   data, err := os.ReadFile(f.cache + "/amc/Auth")
+   data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
       return err
    }
-   var auth amc.Auth
-   err = auth.Unmarshal(data)
+   var client amc.Client
+   err = client.Unmarshal(data)
    if err != nil {
       return err
    }
-   series, err := auth.SeriesDetail(f.series)
+   series, err := client.SeriesDetail(f.series)
    if err != nil {
       return err
    }

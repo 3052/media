@@ -12,34 +12,11 @@ import (
    "strconv"
 )
 
-func (c *Client) Unauth() error {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return nil, nil
-   },
-}
-
-func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
+func (c *Client) SeriesDetail(id int64) (*Child, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
       b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
-      b = append(b, "type/season-episodes/id/"...)
+      b = append(b, "type/series-detail/id/"...)
       b = strconv.AppendInt(b, id, 10)
       return string(b)
    }()
@@ -65,11 +42,134 @@ func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
    return &value.Data, nil
 }
 
-func (c *Client) SeriesDetail(id int64) (*Child, error) {
+type Source struct {
+   KeySystems *struct {
+      Widevine struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // MPD
+   Type string
+}
+
+type Client struct {
+   Data struct {
+      AccessToken  string `json:"access_token"`
+      RefreshToken string `json:"refresh_token"`
+   }
+}
+
+func (c *Client) Login(email, password string) (ClientData, error) {
+   data, err := json.Marshal(map[string]string{
+      "email":    email,
+      "password": password,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.Path = "/auth-orchestration-id/api/v1/login"
+   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-group-id", "10")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type ClientData []byte
+
+func (c *Client) Unmarshal(data ClientData) error {
+   return json.Unmarshal(data, c)
+}
+
+func (c *Client) Unauth() error {
+   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return nil, nil
+   },
+}
+
+type Metadata struct {
+   EpisodeNumber int64
+   Nid           int64
+   Title         string
+}
+
+func (m *Metadata) String() string {
+   var b []byte
+   if m.EpisodeNumber >= 0 {
+      b = []byte("episode = ")
+      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "title = "...)
+   b = append(b, m.Title...)
+   b = append(b, "\nnid = "...)
+   b = strconv.AppendInt(b, m.Nid, 10)
+   return string(b)
+}
+
+func (c *Client) Refresh() (ClientData, error) {
+   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
+   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Playback) Dash() (*Source, bool) {
+   for _, sourceVar := range p.Body.Data.PlaybackJsonData.Sources {
+      if sourceVar.Type == "application/dash+xml" {
+         return &sourceVar, true
+      }
+   }
+   return nil, false
+}
+
+func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
       b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
-      b = append(b, "type/series-detail/id/"...)
+      b = append(b, "type/season-episodes/id/"...)
       b = strconv.AppendInt(b, id, 10)
       return string(b)
    }()
@@ -130,47 +230,6 @@ func (c *Child) Seasons() iter.Seq[*Child] {
    }
 }
 
-type Metadata struct {
-   EpisodeNumber int64
-   Nid           int64
-   Title         string
-}
-
-func (m *Metadata) String() string {
-   var b []byte
-   if m.EpisodeNumber >= 0 {
-      b = []byte("episode = ")
-      b = strconv.AppendInt(b, m.EpisodeNumber, 10)
-   }
-   if b != nil {
-      b = append(b, '\n')
-   }
-   b = append(b, "title = "...)
-   b = append(b, m.Title...)
-   b = append(b, "\nnid = "...)
-   b = strconv.AppendInt(b, m.Nid, 10)
-   return string(b)
-}
-
-func (p *Playback) Dash() (*Source, bool) {
-   for _, sourceVar := range p.Body.Data.PlaybackJsonData.Sources {
-      if sourceVar.Type == "application/dash+xml" {
-         return &sourceVar, true
-      }
-   }
-   return nil, false
-}
-
-type Source struct {
-   KeySystems *struct {
-      Widevine struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // MPD
-   Type string
-}
-
 func (p *Playback) Widevine(sourceVar *Source, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", sourceVar.KeySystems.Widevine.LicenseUrl, bytes.NewReader(data),
@@ -195,13 +254,6 @@ type Playback struct {
             Sources []Source
          }
       }
-   }
-}
-
-type Client struct {
-   Data struct {
-      AccessToken  string `json:"access_token"`
-      RefreshToken string `json:"refresh_token"`
    }
 }
 
@@ -250,58 +302,4 @@ func (c *Client) Playback(id int64) (*Playback, error) {
    }
    play.Header = resp.Header
    return &play, nil
-}
-
-///
-
-type Byte[T any] []byte
-
-func (c *Client) Refresh() (Byte[Client], error) {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
-   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (c *Client) Login(email, password string) (Byte[Client], error) {
-   data, err := json.Marshal(map[string]string{
-      "email":    email,
-      "password": password,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/auth-orchestration-id/api/v1/login"
-   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-amcn-device-ad-id", "-")
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-service-group-id", "10")
-   req.Header.Set("x-amcn-service-id", "amcplus")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (c *Client) Unmarshal(data Byte[Client]) error {
-   return json.Unmarshal(data, c)
 }
