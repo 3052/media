@@ -20,7 +20,37 @@ func (c *Client) SeriesDetail(id int64) (*Child, error) {
       b = strconv.AppendInt(b, id, 10)
       return string(b)
    }()
-   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      Data Child
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Data, nil
+}
+
+func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
+   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
+      b = append(b, "type/season-episodes/id/"...)
+      b = strconv.AppendInt(b, id, 10)
+      return string(b)
+   }()
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
    req.Header.Set("x-amcn-network", "amcplus")
    req.Header.Set("x-amcn-platform", "android")
    req.Header.Set("x-amcn-tenant", "amcn")
@@ -74,7 +104,7 @@ func (c *Client) Login(email, password string) (ClientData, error) {
       return nil, err
    }
    req.URL.Path = "/auth-orchestration-id/api/v1/login"
-   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("x-amcn-device-ad-id", "-")
    req.Header.Set("x-amcn-device-id", "-")
@@ -165,36 +195,6 @@ func (p *Playback) Dash() (*Source, bool) {
    return nil, false
 }
 
-func (c *Client) SeasonEpisodes(id int64) (*Child, error) {
-   req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/content-compiler-cr/api/v1/content/amcn/amcplus/")
-      b = append(b, "type/season-episodes/id/"...)
-      b = strconv.AppendInt(b, id, 10)
-      return string(b)
-   }()
-   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "android")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      Data Child
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Data, nil
-}
-
 type Child struct {
    Children   []Child
    Properties struct {
@@ -278,7 +278,7 @@ func (c *Client) Playback(id int64) (*Playback, error) {
       return nil, err
    }
    req.URL.Path = "/playback-id/api/v1/playback/" + strconv.FormatInt(id, 10)
-   req.Header.Set("authorization", "Bearer " + c.Data.AccessToken)
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("x-amcn-device-ad-id", "-")
    req.Header.Set("x-amcn-language", "en")

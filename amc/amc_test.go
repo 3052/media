@@ -5,26 +5,28 @@ import (
    "testing"
 )
 
-var movie = test{
-   id:  1061554,
-   url: "amcplus.com/movies/nocebo--1061554",
+var tests = []struct {
+   content string
+   id      int
+   url     string
+}{
+   {
+      content: "movie",
+      url:     "amcplus.com/movies/nocebo--1061554",
+      id:      1061554,
+   },
+   {
+      content: "season",
+      url:     "amcplus.com/shows/orphan-black/episodes--1010638",
+      id:      1010638,
+   },
+   {
+      content: "series",
+      url:     "amcplus.com/shows/orphan-black--1010578",
+      id:      1010578,
+   },
 }
 
 func Test(t *testing.T) {
-   fmt.Println(series, season, movie)
-}
-
-type test struct {
-   id  int64
-   url string
-}
-
-var series = test{
-   id:  1010578,
-   url: "amcplus.com/shows/orphan-black--1010578",
-}
-
-var season = test{
-   id:  1010638,
-   url: "amcplus.com/shows/orphan-black/episodes--1010638",
+   fmt.Println(tests)
 }
