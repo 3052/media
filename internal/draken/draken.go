@@ -11,6 +11,46 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/draken/Login")
+   if err != nil {
+      return err
+   }
+   var login draken.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   var movie draken.Movie
+   err = movie.New(path.Base(f.address))
+   if err != nil {
+      return err
+   }
+   title, err := login.Entitlement(movie)
+   if err != nil {
+      return err
+   }
+   play, err := login.Playback(&movie, title)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(play.Playlist)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return login.Widevine(play, data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
+func (f *flag_set) do_login() error {
+   data, err := draken.NewLogin(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/draken/Login", data)
+}
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -23,14 +63,6 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
-}
-
-func (f *flag_set) do_login() error {
-   data, err := draken.NewLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/draken/Login", data)
 }
 
 type flag_set struct {
@@ -78,42 +110,4 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/draken/Login")
-   if err != nil {
-      return err
-   }
-   var login draken.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   var movie draken.Movie
-   err = movie.New(path.Base(f.address))
-   if err != nil {
-      return err
-   }
-   title, err := login.Entitlement(movie)
-   if err != nil {
-      return err
-   }
-   data, err = login.Playback(&movie, title)
-   if err != nil {
-      return err
-   }
-   var play draken.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Playlist)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return login.Widevine(&play, data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }

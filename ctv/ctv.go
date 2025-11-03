@@ -6,9 +6,19 @@ import (
    "errors"
    "io"
    "net/http"
+   "net/url"
    "strconv"
    "strings"
 )
+
+// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func GetPath(raw_url string) (string, error) {
+   parsed_url, err := url.Parse(raw_url)
+   if err != nil {
+      return "", err
+   }
+   return parsed_url.Path, nil
+}
 
 const query_resolve = `
 query resolvePath($path: String!) {
@@ -166,8 +176,6 @@ func Resolve(path string) (*ResolvedPath, error) {
    return &value.Data.ResolvedPath.LastSegment.Content, nil
 }
 
-///
-
 type Content struct {
    ContentPackages []struct {
       Id int64
@@ -228,11 +236,4 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
       return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.AxisContent, nil
-}
-
-// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func Path(data string) string {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   return strings.TrimPrefix(data, "ctv.ca")
 }
