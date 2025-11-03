@@ -121,8 +121,6 @@ func (m *Metadata) String() string {
    return string(data)
 }
 
-///
-
 func Widevine(
    header http.Header, sourceVar *Source, data []byte,
 ) ([]byte, error) {

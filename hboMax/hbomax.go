@@ -14,6 +14,31 @@ import (
    "strings"
 )
 
+// https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
+// https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
+func ExtractId(rawUrl string) (string, error) {
+   parsedURL, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   return path.Base(parsedURL.Path), nil
+}
+
+func (v *Videos) EpisodeMovie() {
+   v.Included = slices.DeleteFunc(v.Included, func(a *Video) bool {
+      if a.Attributes != nil {
+         switch a.Attributes.VideoType {
+         case "EPISODE", "MOVIE":
+            return false
+         }
+      }
+      return true
+   })
+   slices.SortFunc(v.Included, func(a, b *Video) int {
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+}
+
 type Playback struct {
    Drm struct {
       Schemes struct {
@@ -373,29 +398,3 @@ func (l *Login) Unmarshal(data LoginData) error {
 }
 
 type LoginData []byte
-
-///
-
-func (v *Videos) EpisodeMovie() {
-   v.Included = slices.DeleteFunc(v.Included, func(a *Video) bool {
-      if a.Attributes != nil {
-         switch a.Attributes.VideoType {
-         case "EPISODE", "MOVIE":
-            return false
-         }
-      }
-      return true
-   })
-   slices.SortFunc(v.Included, func(a, b *Video) int {
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
-}
-
-func ShowId(data string) (string, error) {
-   if !strings.Contains(data, "/movies/") {
-      if !strings.Contains(data, "/shows/") {
-         return "", errors.New("/movies/ or /shows/ not found")
-      }
-   }
-   return path.Base(data), nil
-}
