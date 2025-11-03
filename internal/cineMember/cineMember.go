@@ -11,6 +11,21 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_user() error {
+   var session cineMember.Session
+   err := session.Fetch()
+   if err != nil {
+      return err
+   }
+   err = session.Login(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(
+      f.cache+"/cineMember/Session", []byte(session.String()),
+   )
+}
+
 func main() {
    http.DefaultTransport = &cineMember.Transport
    log.SetFlags(log.Ltime)
@@ -45,21 +60,6 @@ type flag_set struct {
    email    string
    password string
    vtt      bool
-}
-
-func (f *flag_set) do_user() error {
-   var session cineMember.Session
-   err := session.New()
-   if err != nil {
-      return err
-   }
-   err = session.Login(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(
-      f.cache+"/cineMember/Session", []byte(session.String()),
-   )
 }
 
 func (f *flag_set) email_password() bool {

@@ -13,7 +13,7 @@ import (
 
 func (f *flag_set) do_session() error {
    var ticket canal.Ticket
-   err := ticket.Get()
+   err := ticket.Fetch()
    if err != nil {
       return err
    }
@@ -21,47 +21,11 @@ func (f *flag_set) do_session() error {
    if err != nil {
       return err
    }
-   data, err := canal.GetSession(token.SsoToken)
+   data, err := canal.FetchSession(token.SsoToken)
    if err != nil {
       return err
    }
    return write_file(f.cache+"/canal/Session", data)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.BoolVar(&f.refresh, "r", false, "refresh")
-   flag.Int64Var(&f.season, "s", 0, "season")
-   flag.StringVar(&f.tracking_id, "t", "", "tracking ID")
-   flag.Parse()
-   return nil
-}
-
-func (f *flag_set) do_address() error {
-   tracking_id, err := canal.TrackingId(f.address)
-   if err != nil {
-      return err
-   }
-   fmt.Println("tracking id =", tracking_id)
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flag_set) do_refresh() error {
@@ -74,7 +38,7 @@ func (f *flag_set) do_refresh() error {
    if err != nil {
       return err
    }
-   data, err = canal.GetSession(session.SsoToken)
+   data, err = canal.FetchSession(session.SsoToken)
    if err != nil {
       return err
    }
@@ -175,4 +139,39 @@ func (f *flag_set) do_episode_movie() error {
       return player.Widevine(data)
    }
    return f.filters.Filter(resp, &f.config)
+}
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.BoolVar(&f.refresh, "r", false, "refresh")
+   flag.Int64Var(&f.season, "s", 0, "season")
+   flag.StringVar(&f.tracking_id, "t", "", "tracking ID")
+   flag.Parse()
+   return nil
+}
+
+func (f *flag_set) do_address() error {
+   tracking_id, err := canal.TrackingId(f.address)
+   if err != nil {
+      return err
+   }
+   fmt.Println("tracking id =", tracking_id)
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }

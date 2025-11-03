@@ -18,7 +18,27 @@ import (
    "time"
 )
 
-func (t *Ticket) Get() error {
+func FetchSession(sso_token string) (SessionData, error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (t *Ticket) Fetch() error {
    data, err := json.Marshal(map[string]any{
       "deviceInfo": map[string]string{
          "brand":        "m7cp", // sg.ui.sso.fatal.internal_error
@@ -59,26 +79,6 @@ func (t *Ticket) Get() error {
    return nil
 }
 
-func GetSession(sso_token string) (SessionData, error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     sso_token,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 func (s *Session) Episodes(tracking_id string, season int64) ([]Episode, error) {
    req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
    req.Header.Set("authorization", "Bearer "+s.Token)
@@ -108,13 +108,9 @@ func (s *Session) Episodes(tracking_id string, season int64) ([]Episode, error) 
    return value.Assets, nil
 }
 
-
-
-
-
 type client_token struct {
    time int64
-   sig []byte
+   sig  []byte
 }
 
 const (

@@ -12,6 +12,23 @@ import (
    "strings"
 )
 
+func (s *Session) Fetch() error {
+   req, _ := http.NewRequest("HEAD", "https://www.cinemember.nl/nl", nil)
+   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
+   req.Header.Add("user-agent", "Windows")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "PHPSESSID" {
+         s[0] = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       if path.Ext(req.URL.Path) != ".m4s" {
@@ -41,23 +58,6 @@ func Id(address string) (int, error) {
       return 0, err
    }
    return id, nil
-}
-
-func (s *Session) New() error {
-   req, _ := http.NewRequest("HEAD", "https://www.cinemember.nl/nl", nil)
-   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
-   req.Header.Add("user-agent", "Windows")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "PHPSESSID" {
-         s[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
 }
 
 type Session [1]*http.Cookie
