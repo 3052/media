@@ -10,12 +10,7 @@ import (
    "net/url"
 )
 
-type Token struct {
-   AccessToken  string `json:"access_token"`
-   RefreshToken string `json:"refresh_token"`
-}
-
-func GetToken(username, password string) (TokenData, error) {
+func FetchToken(username, password string) (TokenData, error) {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
       "client_id":  {client_id},
       "grant_type": {"password"},
@@ -27,6 +22,11 @@ func GetToken(username, password string) (TokenData, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
+}
+
+type Token struct {
+   AccessToken  string `json:"access_token"`
+   RefreshToken string `json:"refresh_token"`
 }
 
 func (t *Token) Refresh() (TokenData, error) {

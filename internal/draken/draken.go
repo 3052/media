@@ -11,14 +11,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_login() error {
-   data, err := draken.GetLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/draken/Login", data)
-}
-
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/draken/Login")
    if err != nil {
@@ -30,7 +22,7 @@ func (f *flag_set) do_address() error {
       return err
    }
    var movie draken.Movie
-   err = movie.New(path.Base(f.address))
+   err = movie.Fetch(path.Base(f.address))
    if err != nil {
       return err
    }
@@ -50,6 +42,14 @@ func (f *flag_set) do_address() error {
       return login.Widevine(play, data)
    }
    return f.filters.Filter(resp, &f.config)
+}
+
+func (f *flag_set) do_login() error {
+   data, err := draken.FetchLogin(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/draken/Login", data)
 }
 
 func write_file(name string, data []byte) error {

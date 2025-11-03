@@ -2,7 +2,6 @@ package hboMax
 
 import (
    "bytes"
-   "cmp"
    "encoding/json"
    "errors"
    "io"
@@ -14,6 +13,18 @@ import (
    "strconv"
    "strings"
 )
+
+func (e *Error) Error() string {
+   if e.Detail != "" {
+      return e.Detail
+   }
+   return e.Message
+}
+
+type Error struct {
+   Detail  string // show was filtered by validator
+   Message string // Token is missing or not valid
+}
 
 var Transport = http.Transport{
    Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
@@ -134,6 +145,60 @@ func ShowId(data string) (string, error) {
    return path.Base(data), nil
 }
 
+func (l Login) Movie(show_id string) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/routes/movie/" + show_id
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "page[items.size]": {"1"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var movie Videos
+   err = json.NewDecoder(resp.Body).Decode(&movie)
+   if err != nil {
+      return nil, err
+   }
+   if len(movie.Errors) >= 1 {
+      return nil, &movie.Errors[0]
+   }
+   return &movie, nil
+}
+
+type Login struct {
+   Data struct {
+      Attributes struct {
+         Token string
+      }
+   }
+}
+
+func (l Login) Season(show_id string, number int) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "pf[seasonNumber]": {strconv.Itoa(number)},
+      "pf[show.id]":      {show_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   season := &Videos{}
+   err = json.NewDecoder(resp.Body).Decode(season)
+   if err != nil {
+      return nil, err
+   }
+   return season, nil
+}
+
 func (l *Login) PlayReady(edit_id string) (Byte[Playback], error) {
    return l.playback(edit_id, "playready")
 }
@@ -208,60 +273,6 @@ func (l *Login) playback(edit_id, drm string) (Byte[Playback], error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-func (l Login) Movie(show_id string) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/routes/movie/" + show_id
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "page[items.size]": {"1"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var movie Videos
-   err = json.NewDecoder(resp.Body).Decode(&movie)
-   if err != nil {
-      return nil, err
-   }
-   if len(movie.Errors) >= 1 {
-      return nil, &movie.Errors[0]
-   }
-   return &movie, nil
-}
-
-type Login struct {
-   Data struct {
-      Attributes struct {
-         Token string
-      }
-   }
-}
-
-func (l Login) Season(show_id string, number int) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "pf[seasonNumber]": {strconv.Itoa(number)},
-      "pf[show.id]":      {show_id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   season := &Videos{}
-   err = json.NewDecoder(resp.Body).Decode(season)
-   if err != nil {
-      return nil, err
-   }
-   return season, nil
 }
 
 // you must
@@ -351,15 +362,6 @@ type Playback struct {
    Manifest struct {
       Url string // 1080p
    }
-}
-
-type Error struct {
-   Detail  string // show was filtered by validator
-   Message string // Token is missing or not valid
-}
-
-func (e *Error) Error() string {
-   return cmp.Or(e.Detail, e.Message)
 }
 
 func (s St) Initiate() (*Initiate, error) {

@@ -13,7 +13,7 @@ import (
 )
 
 func (f *flag_set) do_token() error {
-   data, err := criterion.GetToken(f.email, f.password)
+   data, err := criterion.FetchToken(f.email, f.password)
    if err != nil {
       return err
    }
