@@ -18,6 +18,100 @@ import (
    "time"
 )
 
+func (t *Ticket) Get() error {
+   data, err := json.Marshal(map[string]any{
+      "deviceInfo": map[string]string{
+         "brand":        "m7cp", // sg.ui.sso.fatal.internal_error
+         "deviceModel":  "Firefox",
+         "deviceOem":    "Firefox",
+         "deviceSerial": device_serial,
+         "deviceType":   "PC",
+         "osVersion":    "Windows 10",
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   var client client_token
+   err = client.New(req.URL, data)
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", client.String())
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(t)
+   if err != nil {
+      return err
+   }
+   if t.Message != "" {
+      return errors.New(t.Message)
+   }
+   return nil
+}
+
+func GetSession(sso_token string) (SessionData, error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     sso_token,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (s *Session) Episodes(tracking_id string, season int64) ([]Episode, error) {
+   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.URL.RawQuery = func() string {
+      data := []byte("limit=99&query=episodes,")
+      data = append(data, tracking_id...)
+      data = append(data, ",season,"...)
+      data = strconv.AppendInt(data, season, 10)
+      return string(data)
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Assets  []Episode
+      Message string
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if value.Message != "" {
+      return nil, errors.New(value.Message)
+   }
+   return value.Assets, nil
+}
+
+
+
+
+
 type client_token struct {
    time int64
    sig []byte
@@ -206,48 +300,6 @@ type Ticket struct {
    Message string
    Ticket  string
 }
-
-func (t *Ticket) New() error {
-   data, err := json.Marshal(map[string]any{
-      "deviceInfo": map[string]string{
-         "brand":        "m7cp", // sg.ui.sso.fatal.internal_error
-         "deviceModel":  "Firefox",
-         "deviceOem":    "Firefox",
-         "deviceSerial": device_serial,
-         "deviceType":   "PC",
-         "osVersion":    "Windows 10",
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   var client client_token
-   err = client.New(req.URL, data)
-   if err != nil {
-      return err
-   }
-   req.Header.Set("authorization", client.String())
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(t)
-   if err != nil {
-      return err
-   }
-   if t.Message != "" {
-      return errors.New(t.Message)
-   }
-   return nil
-}
-
 type Session struct {
    Message  string
    SsoToken string
@@ -271,52 +323,3 @@ func (s *Session) Unmarshal(data SessionData) error {
 }
 
 type SessionData []byte
-
-func GetSession(sso_token string) (SessionData, error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     sso_token,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (s *Session) Episodes(tracking_id string, season int64) ([]Episode, error) {
-   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.URL.RawQuery = func() string {
-      data := []byte("limit=99&query=episodes,")
-      data = append(data, tracking_id...)
-      data = append(data, ",season,"...)
-      data = strconv.AppendInt(data, season, 10)
-      return string(data)
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Assets  []Episode
-      Message string
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if value.Message != "" {
-      return nil, errors.New(value.Message)
-   }
-   return value.Assets, nil
-}

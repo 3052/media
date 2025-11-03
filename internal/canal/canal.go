@@ -11,6 +11,23 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_session() error {
+   var ticket canal.Ticket
+   err := ticket.Get()
+   if err != nil {
+      return err
+   }
+   token, err := ticket.Token(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   data, err := canal.GetSession(token.SsoToken)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/canal/Session", data)
+}
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -40,23 +57,6 @@ func (f *flag_set) do_address() error {
    }
    fmt.Println("tracking id =", tracking_id)
    return nil
-}
-
-func (f *flag_set) do_session() error {
-   var ticket canal.Ticket
-   err := ticket.New()
-   if err != nil {
-      return err
-   }
-   token, err := ticket.Token(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   data, err := canal.GetSession(token.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/canal/Session", data)
 }
 
 func write_file(name string, data []byte) error {
