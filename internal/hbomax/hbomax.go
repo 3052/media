@@ -11,6 +11,47 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_initiate() error {
+   var st hboMax.St
+   err := st.Fetch()
+   if err != nil {
+      return err
+   }
+   log.Println("Create", f.cache+"/hboMax/St")
+   file, err := os.Create(f.cache + "/hboMax/St")
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = fmt.Fprint(file, st)
+   if err != nil {
+      return err
+   }
+   initiate, err := st.Initiate()
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return nil
+}
+
+func (f *flag_set) do_login() error {
+   data, err := os.ReadFile(f.cache + "/hboMax/St")
+   if err != nil {
+      return err
+   }
+   var st hboMax.St
+   err = st.Set(string(data))
+   if err != nil {
+      return err
+   }
+   data, err = st.Login()
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", f.cache + "/hboMax/Login")
+   return os.WriteFile(f.cache + "/hboMax/Login", data, os.ModePerm)
+}
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -89,7 +130,6 @@ func main() {
       panic(err)
    }
 }
-
 func (f *flag_set) do_edit() error {
    data, err := os.ReadFile(f.cache + "/hboMax/Login")
    if err != nil {
@@ -100,21 +140,16 @@ func (f *flag_set) do_edit() error {
    if err != nil {
       return err
    }
-   data, err = login.PlayReady(f.edit)
+   playback, err := login.PlayReady(f.edit)
    if err != nil {
       return err
    }
-   var play hboMax.Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Mpd())
+   resp, err := http.Get(playback.Mpd())
    if err != nil {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return play.PlayReady(data)
+      return playback.PlayReady(data)
    }
    return f.filters.Filter(resp, &f.config)
 }
@@ -128,50 +163,4 @@ type flag_set struct {
    initiate bool
    login    bool
    season   int
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) do_initiate() error {
-   var st hboMax.St
-   err := st.New()
-   if err != nil {
-      return err
-   }
-   log.Println("Create", f.cache+"/hboMax/St")
-   file, err := os.Create(f.cache + "/hboMax/St")
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = fmt.Fprint(file, st)
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate()
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return nil
-}
-
-func (f *flag_set) do_login() error {
-   data, err := os.ReadFile(f.cache + "/hboMax/St")
-   if err != nil {
-      return err
-   }
-   var st hboMax.St
-   err = st.Set(string(data))
-   if err != nil {
-      return err
-   }
-   data, err = st.Login()
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/hboMax/Login", data)
 }

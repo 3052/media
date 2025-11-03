@@ -12,7 +12,7 @@ var content_tests = []struct {
 }{
    {
       location: []string{"united states"},
-      url: "hbomax.com/movies/love-lies-bleeding/552f0116-65dc-4a87-9666-b2ef6135ed3d",
+      url:      "hbomax.com/movies/love-lies-bleeding/552f0116-65dc-4a87-9666-b2ef6135ed3d",
    },
    {
       url: "hbomax.com/movies/despicable-me-4/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
@@ -93,7 +93,7 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      cache + "/hboMax/PlayReady",
+      cache+"/hboMax/PlayReady",
       []byte(play.Drm.Schemes.PlayReady.LicenseUrl), os.ModePerm,
    )
    if err != nil {

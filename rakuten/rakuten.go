@@ -14,6 +14,7 @@ import (
 )
 
 var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
    Proxy: func(req *http.Request) (*url.URL, error) {
       switch path.Ext(req.URL.Path) {
       case ".isma", ".ismv":
@@ -35,6 +36,8 @@ func (a *Address) classification_id() (int, error) {
       return 23, nil
    case "pl":
       return 277, nil
+   case "pt":
+      return 64, nil
    case "se":
       return 282, nil
    case "uk":

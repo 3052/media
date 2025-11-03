@@ -14,6 +14,68 @@ import (
    "strings"
 )
 
+func (v *Video) String() string {
+   var b []byte
+   if v.Attributes.SeasonNumber >= 1 {
+      b = append(b, "season number = "...)
+      b = strconv.AppendInt(b, int64(v.Attributes.SeasonNumber), 10)
+   }
+   if v.Attributes.EpisodeNumber >= 1 {
+      b = append(b, "\nepisode number = "...)
+      b = strconv.AppendInt(b, int64(v.Attributes.EpisodeNumber), 10)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "name = "...)
+   b = append(b, v.Attributes.Name...)
+   b = append(b, "\nvideo type = "...)
+   b = append(b, v.Attributes.VideoType...)
+   b = append(b, "\nedit id = "...)
+   b = append(b, v.Relationships.Edit.Data.Id...)
+   return string(b)
+}
+
+func (p *Playback) Mpd() string {
+   return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
+}
+
+type Scheme struct {
+   LicenseUrl string
+}
+
+func (s St) Initiate() (*Initiate, error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/initiate"
+   req.AddCookie(s[0])
+   req.Header.Set("x-device-info", device_info)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Attributes Initiate
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, &value.Errors[0]
+   }
+   return &value.Data.Attributes, nil
+}
+
+const (
+   device_info  = "!/!(!/!;!/!;!/!)"
+   disco_client = "!:!:beam:!"
+   prd_api      = "https://default.prd.api.discomax.com"
+)
+
 func (e *Error) Error() string {
    if e.Detail != "" {
       return e.Detail
@@ -53,7 +115,7 @@ func (v *Videos) EpisodeMovie() {
 }
 
 type Videos struct {
-   Errors []Error
+   Errors   []Error
    Included []*Video
 }
 
@@ -105,24 +167,6 @@ func (p *Playback) Widevine(data []byte) ([]byte, error) {
 
 type St [1]*http.Cookie
 
-func (s *St) New() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
-
 func (s *St) Set(data string) error {
    var err error
    s[0], err = http.ParseSetCookie(data)
@@ -143,6 +187,24 @@ func ShowId(data string) (string, error) {
       }
    }
    return path.Base(data), nil
+}
+
+func (s *St) Fetch() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s[0] = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
 }
 
 func (l Login) Movie(show_id string) (*Videos, error) {
@@ -199,15 +261,68 @@ func (l Login) Season(show_id string, number int) (*Videos, error) {
    return season, nil
 }
 
-func (l *Login) PlayReady(edit_id string) (Byte[Playback], error) {
+// you must
+// /authentication/linkDevice/initiate
+// first or this will always fail
+func (s St) Login() (Byte[Login], error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/login"
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Byte[T any] []byte
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
+}
+
+func (i *Initiate) String() string {
+   var b strings.Builder
+   b.WriteString("target URL = ")
+   b.WriteString(i.TargetUrl)
+   b.WriteString("\nlinking code = ")
+   b.WriteString(i.LinkingCode)
+   return b.String()
+}
+
+func (l *Login) Unmarshal(data Byte[Login]) error {
+   return json.Unmarshal(data, l)
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine  *Scheme
+      }
+   }
+   Errors   []Error
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
+func (l *Login) PlayReady(edit_id string) (*Playback, error) {
    return l.playback(edit_id, "playready")
 }
 
-func (l *Login) Widevine(edit_id string) (Byte[Playback], error) {
+func (l *Login) Widevine(edit_id string) (*Playback, error) {
    return l.playback(edit_id, "widevine")
 }
 
-func (l *Login) playback(edit_id, drm string) (Byte[Playback], error) {
+func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
       "consumptionType":      "streaming",
@@ -272,131 +387,13 @@ func (l *Login) playback(edit_id, drm string) (Byte[Playback], error) {
       // bail since no response body
       return nil, errors.New(resp.Status)
    }
-   return io.ReadAll(resp.Body)
-}
-
-// you must
-// /authentication/linkDevice/initiate
-// first or this will always fail
-func (s St) Login() (Byte[Login], error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/login"
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
+   var play Playback
+   err = json.NewDecoder(resp.Body).Decode(&play)
    if err != nil {
       return nil, err
    }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
-
-type Byte[T any] []byte
-
-type Initiate struct {
-   LinkingCode string
-   TargetUrl   string
-}
-
-func (i *Initiate) String() string {
-   var b strings.Builder
-   b.WriteString("target URL = ")
-   b.WriteString(i.TargetUrl)
-   b.WriteString("\nlinking code = ")
-   b.WriteString(i.LinkingCode)
-   return b.String()
-}
-
-func (l *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, l)
-}
-
-func (v *Video) String() string {
-   var b []byte
-   if v.Attributes.SeasonNumber >= 1 {
-      b = append(b, "season number = "...)
-      b = strconv.AppendInt(b, int64(v.Attributes.SeasonNumber), 10)
+   if len(play.Errors) >= 1 {
+      return nil, &play.Errors[0]
    }
-   if v.Attributes.EpisodeNumber >= 1 {
-      b = append(b, "\nepisode number = "...)
-      b = strconv.AppendInt(b, int64(v.Attributes.EpisodeNumber), 10)
-   }
-   if b != nil {
-      b = append(b, '\n')
-   }
-   b = append(b, "name = "...)
-   b = append(b, v.Attributes.Name...)
-   b = append(b, "\nvideo type = "...)
-   b = append(b, v.Attributes.VideoType...)
-   b = append(b, "\nedit id = "...)
-   b = append(b, v.Relationships.Edit.Data.Id...)
-   return string(b)
-}
-
-func (p *Playback) Mpd() string {
-   return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
-}
-
-type Scheme struct {
-   LicenseUrl string
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         PlayReady *Scheme
-         Widevine *Scheme
-      }
-   }
-   Errors []Error
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
-}
-
-func (s St) Initiate() (*Initiate, error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/initiate"
-   req.AddCookie(s[0])
-   req.Header.Set("x-device-info", device_info)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Attributes Initiate
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, &value.Errors[0]
-   }
-   return &value.Data.Attributes, nil
-}
-
-func (p *Playback) Unmarshal(data Byte[Playback]) error {
-   err := json.Unmarshal(data, p)
-   if err != nil {
-      return err
-   }
-   if len(p.Errors) >= 1 {
-      return &p.Errors[0]
-   }
-   return nil
+   return &play, nil
 }

@@ -31,6 +31,9 @@ var web_tests = []struct {
       url:      "http://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
    },
    {
+      url: "http://rakuten.tv/pt/movies/bound",
+   },
+   {
       language: "ENG",
       url:      "http://rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
    },

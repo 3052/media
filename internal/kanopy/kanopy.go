@@ -11,6 +11,26 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
+}
+
 func main() {
    http.DefaultTransport = &kanopy.Transport
    log.SetFlags(log.Ltime)
@@ -39,25 +59,6 @@ type flag_set struct {
    filters  net.Filters
    kanopy   int
    password string
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
 }
 
 func (f *flag_set) email_password() bool {
