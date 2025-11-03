@@ -11,6 +11,14 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_login() error {
+   data, err := draken.GetLogin(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/draken/Login", data)
+}
+
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/draken/Login")
    if err != nil {
@@ -44,13 +52,6 @@ func (f *flag_set) do_address() error {
    return f.filters.Filter(resp, &f.config)
 }
 
-func (f *flag_set) do_login() error {
-   data, err := draken.NewLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/draken/Login", data)
-}
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)

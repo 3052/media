@@ -166,31 +166,6 @@ type header struct {
    value string
 }
 
-type Byte[T any] []byte
-
-func NewLogin(identity, key string) (Byte[Login], error) {
-   data, err := json.Marshal(map[string]string{
-      "accessKey": key,
-      "identity":  identity,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://drakenfilm.se/api/auth/login", "application/json",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (l *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, l)
-}
-
 type Playback struct {
    Headers  map[string]string
    Playlist string // MPD
@@ -220,4 +195,29 @@ func (l Login) Playback(movieVar *Movie, title *Entitlement) (*Playback, error) 
       return nil, err
    }
    return play, nil
+}
+
+func (l *Login) Unmarshal(data LoginData) error {
+   return json.Unmarshal(data, l)
+}
+
+type LoginData []byte
+
+func GetLogin(identity, key string) (LoginData, error) {
+   data, err := json.Marshal(map[string]string{
+      "accessKey": key,
+      "identity":  identity,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://drakenfilm.se/api/auth/login", "application/json",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
