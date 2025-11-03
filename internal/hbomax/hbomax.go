@@ -13,7 +13,7 @@ import (
 
 func (f *flag_set) do_initiate() error {
    var st hboMax.St
-   err := st.Fetch()
+   err := st.Token()
    if err != nil {
       return err
    }

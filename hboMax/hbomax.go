@@ -14,288 +14,6 @@ import (
    "strings"
 )
 
-func (v *Video) String() string {
-   var b []byte
-   if v.Attributes.SeasonNumber >= 1 {
-      b = append(b, "season number = "...)
-      b = strconv.AppendInt(b, int64(v.Attributes.SeasonNumber), 10)
-   }
-   if v.Attributes.EpisodeNumber >= 1 {
-      b = append(b, "\nepisode number = "...)
-      b = strconv.AppendInt(b, int64(v.Attributes.EpisodeNumber), 10)
-   }
-   if b != nil {
-      b = append(b, '\n')
-   }
-   b = append(b, "name = "...)
-   b = append(b, v.Attributes.Name...)
-   b = append(b, "\nvideo type = "...)
-   b = append(b, v.Attributes.VideoType...)
-   b = append(b, "\nedit id = "...)
-   b = append(b, v.Relationships.Edit.Data.Id...)
-   return string(b)
-}
-
-func (p *Playback) Mpd() string {
-   return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
-}
-
-type Scheme struct {
-   LicenseUrl string
-}
-
-func (s St) Initiate() (*Initiate, error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/initiate"
-   req.AddCookie(s[0])
-   req.Header.Set("x-device-info", device_info)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Attributes Initiate
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, &value.Errors[0]
-   }
-   return &value.Data.Attributes, nil
-}
-
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
-
-func (e *Error) Error() string {
-   if e.Detail != "" {
-      return e.Detail
-   }
-   return e.Message
-}
-
-type Error struct {
-   Detail  string // show was filtered by validator
-   Message string // Token is missing or not valid
-}
-
-var Transport = http.Transport{
-   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return nil, nil
-      }
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
-}
-
-func (v *Videos) EpisodeMovie() {
-   v.Included = slices.DeleteFunc(v.Included, func(a *Video) bool {
-      if a.Attributes != nil {
-         switch a.Attributes.VideoType {
-         case "EPISODE", "MOVIE":
-            return false
-         }
-      }
-      return true
-   })
-   slices.SortFunc(v.Included, func(a, b *Video) int {
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
-}
-
-type Videos struct {
-   Errors   []Error
-   Included []*Video
-}
-
-type Video struct {
-   Attributes *struct {
-      SeasonNumber  int
-      EpisodeNumber int
-      Name          string
-      VideoType     string
-   }
-   Relationships *struct {
-      Edit *struct {
-         Data struct {
-            Id string
-         }
-      }
-   }
-}
-
-func (p *Playback) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-type St [1]*http.Cookie
-
-func (s *St) Set(data string) error {
-   var err error
-   s[0], err = http.ParseSetCookie(data)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (s St) String() string {
-   return s[0].String()
-}
-
-func ShowId(data string) (string, error) {
-   if !strings.Contains(data, "/movies/") {
-      if !strings.Contains(data, "/shows/") {
-         return "", errors.New("/movies/ or /shows/ not found")
-      }
-   }
-   return path.Base(data), nil
-}
-
-func (s *St) Fetch() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
-
-func (l Login) Movie(show_id string) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/routes/movie/" + show_id
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "page[items.size]": {"1"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var movie Videos
-   err = json.NewDecoder(resp.Body).Decode(&movie)
-   if err != nil {
-      return nil, err
-   }
-   if len(movie.Errors) >= 1 {
-      return nil, &movie.Errors[0]
-   }
-   return &movie, nil
-}
-
-type Login struct {
-   Data struct {
-      Attributes struct {
-         Token string
-      }
-   }
-}
-
-func (l Login) Season(show_id string, number int) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "pf[seasonNumber]": {strconv.Itoa(number)},
-      "pf[show.id]":      {show_id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   season := &Videos{}
-   err = json.NewDecoder(resp.Body).Decode(season)
-   if err != nil {
-      return nil, err
-   }
-   return season, nil
-}
-
-// you must
-// /authentication/linkDevice/initiate
-// first or this will always fail
-func (s St) Login() (Byte[Login], error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/login"
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Byte[T any] []byte
-
-type Initiate struct {
-   LinkingCode string
-   TargetUrl   string
-}
-
-func (i *Initiate) String() string {
-   var b strings.Builder
-   b.WriteString("target URL = ")
-   b.WriteString(i.TargetUrl)
-   b.WriteString("\nlinking code = ")
-   b.WriteString(i.LinkingCode)
-   return b.String()
-}
-
-func (l *Login) Unmarshal(data Byte[Login]) error {
-   return json.Unmarshal(data, l)
-}
-
 type Playback struct {
    Drm struct {
       Schemes struct {
@@ -396,4 +114,288 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
       return nil, &play.Errors[0]
    }
    return &play, nil
+}
+
+type Videos struct {
+   Errors   []Error
+   Included []*Video
+}
+
+type Video struct {
+   Attributes *struct {
+      SeasonNumber  int
+      EpisodeNumber int
+      Name          string
+      VideoType     string
+   }
+   Relationships *struct {
+      Edit *struct {
+         Data struct {
+            Id string
+         }
+      }
+   }
+}
+
+func (p *Playback) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+type St [1]*http.Cookie
+
+func (s *St) Set(data string) error {
+   var err error
+   s[0], err = http.ParseSetCookie(data)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (s St) String() string {
+   return s[0].String()
+}
+
+func (v *Video) String() string {
+   var b []byte
+   if v.Attributes.SeasonNumber >= 1 {
+      b = append(b, "season number = "...)
+      b = strconv.AppendInt(b, int64(v.Attributes.SeasonNumber), 10)
+   }
+   if v.Attributes.EpisodeNumber >= 1 {
+      b = append(b, "\nepisode number = "...)
+      b = strconv.AppendInt(b, int64(v.Attributes.EpisodeNumber), 10)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "name = "...)
+   b = append(b, v.Attributes.Name...)
+   b = append(b, "\nvideo type = "...)
+   b = append(b, v.Attributes.VideoType...)
+   b = append(b, "\nedit id = "...)
+   b = append(b, v.Relationships.Edit.Data.Id...)
+   return string(b)
+}
+
+func (p *Playback) Mpd() string {
+   return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
+}
+
+type Scheme struct {
+   LicenseUrl string
+}
+
+func (s St) Initiate() (*Initiate, error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/initiate"
+   req.AddCookie(s[0])
+   req.Header.Set("x-device-info", device_info)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Attributes Initiate
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, &value.Errors[0]
+   }
+   return &value.Data.Attributes, nil
+}
+
+const (
+   device_info  = "!/!(!/!;!/!;!/!)"
+   disco_client = "!:!:beam:!"
+   prd_api      = "https://default.prd.api.discomax.com"
+)
+
+func (e *Error) Error() string {
+   if e.Detail != "" {
+      return e.Detail
+   }
+   return e.Message
+}
+
+type Error struct {
+   Detail  string // show was filtered by validator
+   Message string // Token is missing or not valid
+}
+
+var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return nil, nil
+      }
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
+}
+
+type Login struct {
+   Data struct {
+      Attributes struct {
+         Token string
+      }
+   }
+}
+
+func (l Login) Movie(show_id string) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/routes/movie/" + show_id
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "page[items.size]": {"1"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var movie Videos
+   err = json.NewDecoder(resp.Body).Decode(&movie)
+   if err != nil {
+      return nil, err
+   }
+   if len(movie.Errors) >= 1 {
+      return nil, &movie.Errors[0]
+   }
+   return &movie, nil
+}
+
+func (l Login) Season(show_id string, number int) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/collections/generic-show-page-rail-episodes-tabbed-content"
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "pf[seasonNumber]": {strconv.Itoa(number)},
+      "pf[show.id]":      {show_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   season := &Videos{}
+   err = json.NewDecoder(resp.Body).Decode(season)
+   if err != nil {
+      return nil, err
+   }
+   return season, nil
+}
+
+func (i *Initiate) String() string {
+   var b strings.Builder
+   b.WriteString("target URL = ")
+   b.WriteString(i.TargetUrl)
+   b.WriteString("\nlinking code = ")
+   b.WriteString(i.LinkingCode)
+   return b.String()
+}
+
+func (s *St) Token() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s[0] = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
+// you must
+// /authentication/linkDevice/initiate
+// first or this will always fail
+func (s St) Login() (LoginData, error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/login"
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (l *Login) Unmarshal(data LoginData) error {
+   return json.Unmarshal(data, l)
+}
+
+type LoginData []byte
+
+///
+
+func (v *Videos) EpisodeMovie() {
+   v.Included = slices.DeleteFunc(v.Included, func(a *Video) bool {
+      if a.Attributes != nil {
+         switch a.Attributes.VideoType {
+         case "EPISODE", "MOVIE":
+            return false
+         }
+      }
+      return true
+   })
+   slices.SortFunc(v.Included, func(a, b *Video) int {
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+}
+
+func ShowId(data string) (string, error) {
+   if !strings.Contains(data, "/movies/") {
+      if !strings.Contains(data, "/shows/") {
+         return "", errors.New("/movies/ or /shows/ not found")
+      }
+   }
+   return path.Base(data), nil
 }
