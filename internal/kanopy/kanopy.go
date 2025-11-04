@@ -11,6 +11,50 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_login() error {
+   data, err := kanopy.FetchLogin(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/kanopy/Login", data)
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) do_kanopy() error {
+   data, err := os.ReadFile(f.cache + "/kanopy/Login")
+   if err != nil {
+      return err
+   }
+   var login kanopy.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   member, err := login.Membership()
+   if err != nil {
+      return err
+   }
+   plays, err := login.Plays(member, f.kanopy)
+   if err != nil {
+      return err
+   }
+   manifest, ok := plays.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   resp, err := manifest.Mpd()
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return login.Widevine(manifest, data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -26,7 +70,6 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
    flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&f.config.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }
@@ -68,54 +111,4 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
-}
-
-func (f *flag_set) do_login() error {
-   data, err := kanopy.NewLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/kanopy/Login", data)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) do_kanopy() error {
-   data, err := os.ReadFile(f.cache + "/kanopy/Login")
-   if err != nil {
-      return err
-   }
-   var login kanopy.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   member, err := login.Membership()
-   if err != nil {
-      return err
-   }
-   data, err = login.Plays(member, f.kanopy)
-   if err != nil {
-      return err
-   }
-   var plays kanopy.Plays
-   err = plays.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   manifest, ok := plays.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := manifest.Mpd()
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return login.Widevine(manifest, data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }
