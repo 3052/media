@@ -5,6 +5,7 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
    "net/http/cookiejar"
    "net/url"
@@ -12,9 +13,56 @@ import (
    "strings"
 )
 
+// hard geo block
+func (t *Title) Playlist() (*Playlist, error) {
+   data, err := json.Marshal(map[string]any{
+      "client": map[string]string{
+         "id": "browser",
+      },
+      "variantAvailability": map[string]any{
+         "drm": map[string]string{
+            "maxSupported": "L3",
+            "system":       "widevine",
+         },
+         "featureset": []string{ // need all these to get 720p
+            "hd",
+            "mpeg-dash",
+            "single-track",
+            "widevine",
+         },
+         "platformTag": "ctv", // 1080p
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", t.LatestAvailableVersion.PlaylistUrl, bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
+   req.Header.Set("user-agent", "!")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   play := &Playlist{}
+   err = json.NewDecoder(resp.Body).Decode(play)
+   if err != nil {
+      return nil, err
+   }
+   return play, nil
+}
+
 // pass: https://www.itv.com/watch/joan/10a3918
 // fail: https://www.itv.com/watch/joan/10a3918/10a3918a0001
-func (v *LegacyId) Set(data string) error {
+func (l *LegacyId) Set(data string) error {
    data = strings.TrimPrefix(data, "https://")
    data = strings.TrimPrefix(data, "www.")
    data = strings.TrimPrefix(data, "itv.com")
@@ -22,13 +70,21 @@ func (v *LegacyId) Set(data string) error {
    if len(split) != 4 {
       return errors.New("/watch/[programmeSlug]/[programmeId]")
    }
-   v[0] = strings.ReplaceAll(split[3], "a", "/")
+   l[0] = strings.ReplaceAll(split[3], "a", "/")
    return nil
 }
 
-func (v LegacyId) Titles() ([]Title, error) {
+type LegacyId [1]string
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
+func (l LegacyId) Titles() ([]Title, error) {
    data, err := json.Marshal(map[string]string{
-      "brandLegacyId": v[0],
+      "brandLegacyId": l[0],
    })
    if err != nil {
       return nil, err
@@ -97,12 +153,6 @@ type Title struct {
    Title                  string
 }
 
-type LegacyId [1]string
-
-func (v LegacyId) String() string {
-   return "/watch/!/" + strings.ReplaceAll(v[0], "/", "a")
-}
-
 const programme_page = `
 query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
    titles(
@@ -146,8 +196,6 @@ func (t *Title) String() string {
    b = append(b, t.LatestAvailableVersion.PlaylistUrl...)
    return string(b)
 }
-
-///
 
 func (p *Playlist) FullHd() (*MediaFile, bool) {
    for _, file := range p.Playlist.Video.MediaFiles {
@@ -202,50 +250,4 @@ type Playlist struct {
          MediaFiles []MediaFile
       }
    }
-}
-
-// hard geo block
-func (t *Title) Playlist() (*Playlist, error) {
-   data, err := json.Marshal(map[string]any{
-      "client": map[string]string{
-         "id": "browser",
-      },
-      "variantAvailability": map[string]any{
-         "drm": map[string]string{
-            "maxSupported": "L3",
-            "system":       "widevine",
-         },
-         "featureset": []string{ // need all these to get 720p
-            "hd",
-            "mpeg-dash",
-            "single-track",
-            "widevine",
-         },
-         "platformTag": "ctv", // 1080p
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", t.LatestAvailableVersion.PlaylistUrl, bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   play := &Playlist{}
-   err = json.NewDecoder(resp.Body).Decode(play)
-   if err != nil {
-      return nil, err
-   }
-   return play, nil
 }

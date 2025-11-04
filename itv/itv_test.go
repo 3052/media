@@ -10,6 +10,23 @@ import (
    "testing"
 )
 
+var watch_tests = []struct {
+   id  string
+   url string
+}{
+   {
+      url: "https://itv.com/watch/solo-a-star-wars-story/10a6201a0001B",
+   },
+   {
+      id:  "2/7610",
+      url: "https://itv.com/watch/grace/2a7610",
+   },
+   {
+      id:  "10/3918",
+      url: "https://itv.com/watch/joan/10a3918",
+   },
+}
+
 func TestPlayReady(t *testing.T) {
    data, err := exec.Command("password", "-i", "nordvpn.com").Output()
    if err != nil {
@@ -46,22 +63,4 @@ func TestPlayReady(t *testing.T) {
 
 func TestWatch(t *testing.T) {
    fmt.Println(watch_tests)
-}
-
-var watch_tests = []struct {
-   id  string
-   url string
-}{
-   {
-      id:  "10/5503/0001B",
-      url: "itv.com/watch/gone-girl/10a5503a0001B",
-   },
-   {
-      id:  "2/7610",
-      url: "itv.com/watch/grace/2a7610",
-   },
-   {
-      id:  "10/3918",
-      url: "itv.com/watch/joan/10a3918",
-   },
 }

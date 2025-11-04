@@ -6,9 +6,32 @@ import (
    "errors"
    "flag"
    "fmt"
+   "log"
+   "net/http"
    "os"
    "path/filepath"
 )
+
+func main() {
+   http.DefaultTransport = &itv.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.playlist != "":
+      err = set.do_playlist()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
 
 func (f *flag_set) do_playlist() error {
    var title itv.Title
@@ -74,23 +97,4 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.playlist, "p", "", "playlist URL")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.playlist != "":
-      err = set.do_playlist()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }
