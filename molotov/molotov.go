@@ -12,128 +12,6 @@ import (
    "strings"
 )
 
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
-}
-
-func (a *Asset) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   for key, value := range a.UpDrm.License.HttpHeaders {
-      req.Header.Set(key, value)
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      License []byte
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.License, nil
-}
-
-func (a *Asset) FhdReady() string {
-   return strings.Replace(a.Stream.Url, "high", "fhdready", 1)
-}
-
-func (a *Asset) Unmarshal(data Byte[Asset]) error {
-   return json.Unmarshal(data, a)
-}
-
-type Byte[T any] []byte
-
-func (n *Login) New(email, password string) error {
-   data, err := json.Marshal(map[string]string{
-      "grant_type": "password",
-      "email": email,
-      "password": password,
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(n)
-}
-
-type Login struct {
-   Auth Refresh
-}
-
-func (r *Refresh) Asset(viewVar *View) (Byte[Asset], error) {
-   req, err := http.NewRequest("", viewVar.Program.Actions.Play.Url, nil)
-   if err != nil {
-      return nil, err
-   }
-   query := req.URL.Query()
-   query.Set("access_token", r.AccessToken)
-   req.URL.RawQuery = query.Encode()
-   req.Header.Set("x-forwarded-for", "138.199.15.158")
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-// authorization server issues a new refresh token, in which case the
-// client MUST discard the old refresh token and replace it with the new
-// refresh token
-func (r *Refresh) Refresh() (Byte[Refresh], error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = "/v3/auth/refresh/" + r.RefreshToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (r *Refresh) Unmarshal(data Byte[Refresh]) error {
-   return json.Unmarshal(data, r)
-}
-
-type Asset struct {
-   Stream struct {
-      Url string // MPD
-   }
-   UpDrm struct {
-      License struct {
-         HttpHeaders map[string]string `json:"http_headers"`
-      }
-   } `json:"up_drm"`
-}
 type Address struct {
    Channel int64
    Program int64
@@ -207,3 +85,127 @@ type Refresh struct {
 }
 
 const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
+
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
+func (a *Asset) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   for key, value := range a.UpDrm.License.HttpHeaders {
+      req.Header.Set(key, value)
+   }
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      License []byte
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.License, nil
+}
+
+func (a *Asset) FhdReady() string {
+   return strings.Replace(a.Stream.Url, "high", "fhdready", 1)
+}
+
+func (l *Login) New(email, password string) error {
+   data, err := json.Marshal(map[string]string{
+      "grant_type": "password",
+      "email": email,
+      "password": password,
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(l)
+}
+
+type Login struct {
+   Auth Refresh
+}
+
+// authorization server issues a new refresh token, in which case the
+// client MUST discard the old refresh token and replace it with the new
+// refresh token
+func (r *Refresh) Refresh() (Byte[Refresh], error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = "/v3/auth/refresh/" + r.RefreshToken
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (r *Refresh) Unmarshal(data Byte[Refresh]) error {
+   return json.Unmarshal(data, r)
+}
+
+type Byte[T any] []byte
+
+type Asset struct {
+   Stream struct {
+      Url string // MPD
+   }
+   UpDrm struct {
+      License struct {
+         HttpHeaders map[string]string `json:"http_headers"`
+      }
+   } `json:"up_drm"`
+}
+
+func (r *Refresh) Asset(viewVar *View) (*Asset, error) {
+   req, err := http.NewRequest("", viewVar.Program.Actions.Play.Url, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-forwarded-for", "138.199.15.158")
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   req.URL.RawQuery = url.Values{
+      "access_token": {r.AccessToken},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   assetVar := &Asset{}
+   err = json.NewDecoder(resp.Body).Decode(assetVar)
+   if err != nil {
+      return nil, err
+   }
+   return assetVar, nil
+}

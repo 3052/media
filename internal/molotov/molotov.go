@@ -10,27 +10,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   http.DefaultTransport = &molotov.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_refresh()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/molotov/Refresh")
    if err != nil {
@@ -58,12 +37,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   data, err = refresh.Asset(view)
-   if err != nil {
-      return err
-   }
-   var asset molotov.Asset
-   err = asset.Unmarshal(data)
+   asset, err := refresh.Asset(view)
    if err != nil {
       return err
    }
@@ -76,6 +50,7 @@ func (f *flag_set) do_address() error {
    }
    return f.filters.Filter(resp, &f.config)
 }
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -129,4 +104,24 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
+}
+func main() {
+   http.DefaultTransport = &molotov.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_refresh()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
 }

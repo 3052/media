@@ -14,6 +14,15 @@ import (
    "strings"
 )
 
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".dash" {
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
 func LegacyId(rawUrl string) (string, error) {
    parsed_url, err := url.Parse(rawUrl)
    if err != nil {
@@ -110,13 +119,6 @@ type Playlist struct {
          MediaFiles []MediaFile
       }
    }
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
 }
 
 type MediaFile struct {
