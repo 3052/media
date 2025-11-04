@@ -18,12 +18,12 @@ import (
    "time"
 )
 
-func FetchSession(sso_token string) (SessionData, error) {
+func FetchSession(ssoToken string) (SessionData, error) {
    data, err := json.Marshal(map[string]string{
       "brand":        "m7cp",
       "deviceSerial": device_serial,
       "deviceType":   "PC",
-      "ssoToken":     sso_token,
+      "ssoToken":     ssoToken,
    })
    if err != nil {
       return nil, err

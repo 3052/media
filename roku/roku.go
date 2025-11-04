@@ -45,11 +45,11 @@ func (a *AccountToken) Activation() (Byte[Activation], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (a *AccountToken) Playback(roku_id string) (Byte[Playback], error) {
+func (a *AccountToken) Playback(rokuId string) (Byte[Playback], error) {
    data, err := json.Marshal(map[string]string{
       "mediaFormat": "DASH",
       "providerId":  "rokuavod",
-      "rokuId":      roku_id,
+      "rokuId":      rokuId,
    })
    if err != nil {
       return nil, err

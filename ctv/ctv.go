@@ -12,8 +12,8 @@ import (
 )
 
 // https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func GetPath(raw_url string) (string, error) {
-   parsed_url, err := url.Parse(raw_url)
+func GetPath(rawUrl string) (string, error) {
+   parsed_url, err := url.Parse(rawUrl)
    if err != nil {
       return "", err
    }
@@ -189,7 +189,7 @@ type ResolvedPath struct {
    Id string
 }
 
-func (r *ResolvedPath) get_id() string {
+func (r *ResolvedPath) getId() string {
    if r.FirstPlayableContent != nil {
       return r.FirstPlayableContent.Id
    }
@@ -200,7 +200,7 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
    data, err := json.Marshal(map[string]any{
       "query": graphql_compact(query_axis),
       "variables": map[string]string{
-         "id": r.get_id(),
+         "id": r.getId(),
       },
    })
    if err != nil {

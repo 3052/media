@@ -224,12 +224,12 @@ func (a Address) AssetId() (string, error) {
    return "", errors.New("assetId not found")
 }
 
-func (g *GigyaLogin) Entitlement(asset_id string) (Byte[Entitlement], error) {
+func (g *GigyaLogin) Entitlement(assetId string) (Byte[Entitlement], error) {
    req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)
    req.URL.Path = func() string {
       var data strings.Builder
       data.WriteString("/v2/customer/RTBF/businessunit/Auvio/entitlement/")
-      data.WriteString(asset_id)
+      data.WriteString(assetId)
       data.WriteString("/play")
       return data.String()
    }()

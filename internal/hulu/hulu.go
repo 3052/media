@@ -100,14 +100,6 @@ type flag_set struct {
    password string
 }
 
-func (f *flag_set) do_authenticate() error {
-   data, err := hulu.NewAuthenticate(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/hulu/Authenticate", data)
-}
-
 func (f *flag_set) email_password() bool {
    if f.email != "" {
       if f.password != "" {
@@ -115,6 +107,14 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
+}
+
+func (f *flag_set) do_authenticate() error {
+   data, err := hulu.NewAuthenticate(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/hulu/Authenticate", data)
 }
 
 func write_file(name string, data []byte) error {

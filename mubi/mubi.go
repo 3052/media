@@ -171,11 +171,11 @@ type Text struct {
 
 // to get the MPD you have to call this or view video on the website. request
 // is hard geo blocked only the first time
-func (a *Authenticate) Viewing(film_id int64) error {
+func (a *Authenticate) Viewing(filmId int64) error {
    req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
    req.URL.Path = func() string {
       b := []byte("/v3/films/")
-      b = strconv.AppendInt(b, film_id, 10)
+      b = strconv.AppendInt(b, filmId, 10)
       b = append(b, "/viewing"...)
       return string(b)
    }()
@@ -201,11 +201,11 @@ func (a *Authenticate) Viewing(film_id int64) error {
    return nil
 }
 
-func (a *Authenticate) SecureUrl(film_id int64) (Byte[SecureUrl], error) {
+func (a *Authenticate) SecureUrl(filmId int64) (Byte[SecureUrl], error) {
    req, _ := http.NewRequest("", "https://api.mubi.com", nil)
    req.URL.Path = func() string {
       b := []byte("/v3/films/")
-      b = strconv.AppendInt(b, film_id, 10)
+      b = strconv.AppendInt(b, filmId, 10)
       b = append(b, "/viewing/secure_url"...)
       return string(b)
    }()
