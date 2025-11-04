@@ -12,6 +12,41 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_address() error {
+   legacy_id, err := itv.LegacyId(f.address)
+   if err != nil {
+      return err
+   }
+   titles, err := itv.Titles(legacy_id)
+   if err != nil {
+      return err
+   }
+   for i, title := range titles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&title)
+   }
+   return nil
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.playlist, "p", "", "playlist URL")
+   flag.Parse()
+   return nil
+}
 func main() {
    http.DefaultTransport = &itv.Transport
    log.SetFlags(log.Ltime)
@@ -60,41 +95,4 @@ type flag_set struct {
    config   net.Config
    filters  net.Filters
    playlist string
-}
-
-func (f *flag_set) do_address() error {
-   var id itv.LegacyId
-   err := id.Set(f.address)
-   if err != nil {
-      return err
-   }
-   titles, err := id.Titles()
-   if err != nil {
-      return err
-   }
-   for i, title := range titles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&title)
-   }
-   return nil
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.playlist, "p", "", "playlist URL")
-   flag.Parse()
-   return nil
 }

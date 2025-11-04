@@ -9,9 +9,53 @@ import (
    "net/http"
    "net/http/cookiejar"
    "net/url"
+   "path"
    "strconv"
    "strings"
 )
+
+func LegacyId(rawUrl string) (string, error) {
+   parsed_url, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   last_segment := path.Base(parsed_url.Path)
+   return strings.ReplaceAll(last_segment, "a", "/"), nil
+}
+
+func Titles(legacyId string) ([]Title, error) {
+   data, err := json.Marshal(map[string]string{
+      "brandLegacyId": legacyId,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = url.Values{
+      "query":     {graphql_compact(programme_page)},
+      "variables": {string(data)},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Titles []Title
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.Data.Titles, nil
+}
 
 func (t *Title) Playlist() (*Playlist, error) {
    data, err := json.Marshal(map[string]any{
@@ -60,7 +104,7 @@ func (t *Title) Playlist() (*Playlist, error) {
 }
 
 type Playlist struct {
-   Error string
+   Error    string
    Playlist struct {
       Video struct {
          MediaFiles []MediaFile
@@ -68,71 +112,11 @@ type Playlist struct {
    }
 }
 
-// pass: https://www.itv.com/watch/joan/10a3918
-// fail: https://www.itv.com/watch/joan/10a3918/10a3918a0001
-func (l *LegacyId) Set(data string) error {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "www.")
-   data = strings.TrimPrefix(data, "itv.com")
-   split := strings.SplitN(data, "/", 5)
-   if len(split) != 4 {
-      return errors.New("/watch/[programmeSlug]/[programmeId]")
-   }
-   l[0] = strings.ReplaceAll(split[3], "a", "/")
-   return nil
-}
-
-type LegacyId [1]string
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       log.Println(req.Method, req.URL)
       return http.ProxyFromEnvironment(req)
    },
-}
-
-func (l LegacyId) Titles() ([]Title, error) {
-   data, err := json.Marshal(map[string]string{
-      "brandLegacyId": l[0],
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = url.Values{
-      "query":     {graphql_compact(programme_page)},
-      "variables": {string(data)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Titles []Title
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.Data.Titles, nil
-}
-
-func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 type MediaFile struct {
@@ -157,8 +141,8 @@ type Title struct {
    Series *struct {
       SeriesNumber int64
    }
-   EpisodeNumber          int64
-   Title                  string
+   EpisodeNumber int64
+   Title         string
 }
 
 const programme_page = `
@@ -182,27 +166,38 @@ func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
 }
 
+func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (t *Title) String() string {
-   var b []byte
+   var data []byte
    if t.Series != nil {
-      b = []byte("series = ")
-      b = strconv.AppendInt(b, t.Series.SeriesNumber, 10)
-      b = append(b, "\nepisode = "...)
-      b = strconv.AppendInt(b, t.EpisodeNumber, 10)
+      data = []byte("series = ")
+      data = strconv.AppendInt(data, t.Series.SeriesNumber, 10)
+      data = append(data, "\nepisode = "...)
+      data = strconv.AppendInt(data, t.EpisodeNumber, 10)
    }
    if t.Title != "" {
-      if b != nil {
-         b = append(b, '\n')
+      if data != nil {
+         data = append(data, '\n')
       }
-      b = append(b, "title = "...)
-      b = append(b, t.Title...)
+      data = append(data, "title = "...)
+      data = append(data, t.Title...)
    }
-   if b != nil {
-      b = append(b, '\n')
+   if data != nil {
+      data = append(data, '\n')
    }
-   b = append(b, "playlist = "...)
-   b = append(b, t.LatestAvailableVersion.PlaylistUrl...)
-   return string(b)
+   data = append(data, "playlist = "...)
+   data = append(data, t.LatestAvailableVersion.PlaylistUrl...)
+   return string(data)
 }
 
 func (p *Playlist) FullHd() (*MediaFile, bool) {
@@ -237,7 +232,7 @@ func (p *Playlist) playReady(id string) error {
       return err
    }
    req, err := http.NewRequest(
-      "POST", "https://magni.itv.com/playlist/itvonline/ITV/" + id,
+      "POST", "https://magni.itv.com/playlist/itvonline/ITV/"+id,
       bytes.NewReader(data),
    )
    if err != nil {
@@ -251,4 +246,3 @@ func (p *Playlist) playReady(id string) error {
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(p)
 }
-
