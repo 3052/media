@@ -13,7 +13,6 @@ import (
    "strings"
 )
 
-// hard geo block
 func (t *Title) Playlist() (*Playlist, error) {
    data, err := json.Marshal(map[string]any{
       "client": map[string]string{
@@ -49,15 +48,24 @@ func (t *Title) Playlist() (*Playlist, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   play := &Playlist{}
-   err = json.NewDecoder(resp.Body).Decode(play)
+   var play Playlist
+   err = json.NewDecoder(resp.Body).Decode(&play)
    if err != nil {
       return nil, err
    }
-   return play, nil
+   if play.Error != "" {
+      return nil, errors.New(play.Error)
+   }
+   return &play, nil
+}
+
+type Playlist struct {
+   Error string
+   Playlist struct {
+      Video struct {
+         MediaFiles []MediaFile
+      }
+   }
 }
 
 // pass: https://www.itv.com/watch/joan/10a3918
@@ -244,10 +252,3 @@ func (p *Playlist) playReady(id string) error {
    return json.NewDecoder(resp.Body).Decode(p)
 }
 
-type Playlist struct {
-   Playlist struct {
-      Video struct {
-         MediaFiles []MediaFile
-      }
-   }
-}
