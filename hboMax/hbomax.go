@@ -14,6 +14,22 @@ import (
    "strings"
 )
 
+func (v *Videos) FilterAndSort() {
+   v.Included = slices.DeleteFunc(v.Included, func(video *Video) bool {
+      if video.Attributes == nil {
+         return true // Remove videos with nil attributes.
+      }
+      videoType := video.Attributes.VideoType
+      return videoType != "EPISODE" && videoType != "MOVIE"
+   })
+   slices.SortFunc(v.Included, func(a, b *Video) int {
+      if a.Attributes == nil || b.Attributes == nil {
+         return 0 // Consider them equal if attributes are missing.
+      }
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+}
+
 // https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
 // https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
 func ExtractId(rawUrl string) (string, error) {
@@ -22,21 +38,6 @@ func ExtractId(rawUrl string) (string, error) {
       return "", err
    }
    return path.Base(parsedURL.Path), nil
-}
-
-func (v *Videos) EpisodeMovie() {
-   v.Included = slices.DeleteFunc(v.Included, func(a *Video) bool {
-      if a.Attributes != nil {
-         switch a.Attributes.VideoType {
-         case "EPISODE", "MOVIE":
-            return false
-         }
-      }
-      return true
-   })
-   slices.SortFunc(v.Included, func(a, b *Video) int {
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
 }
 
 type Playback struct {
@@ -139,27 +140,6 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
       return nil, &play.Errors[0]
    }
    return &play, nil
-}
-
-type Videos struct {
-   Errors   []Error
-   Included []*Video
-}
-
-type Video struct {
-   Attributes *struct {
-      SeasonNumber  int
-      EpisodeNumber int
-      Name          string
-      VideoType     string
-   }
-   Relationships *struct {
-      Edit *struct {
-         Data struct {
-            Id string
-         }
-      }
-   }
 }
 
 func (p *Playback) PlayReady(data []byte) ([]byte, error) {
@@ -274,11 +254,6 @@ func (e *Error) Error() string {
       return e.Detail
    }
    return e.Message
-}
-
-type Error struct {
-   Detail  string // show was filtered by validator
-   Message string // Token is missing or not valid
 }
 
 var Transport = http.Transport{

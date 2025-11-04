@@ -34,7 +34,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   videos.EpisodeMovie()
+   videos.FilterAndSort()
    for i, video := range videos.Included {
       if i >= 1 {
          fmt.Println()

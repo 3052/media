@@ -6,6 +6,34 @@ import (
    "testing"
 )
 
+func TestPlayReady(t *testing.T) {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(cache + "/hboMax/Login")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var loginVar Login
+   err = loginVar.Unmarshal(data)
+   if err != nil {
+      t.Fatal(err)
+   }
+   // hbomax.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7
+   play, err := loginVar.PlayReady("06a38397-862d-4419-be84-0641939825e7")
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      cache+"/hboMax/PlayReady",
+      []byte(play.Drm.Schemes.PlayReady.LicenseUrl), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
 var content_tests = []struct {
    url      string
    location []string
@@ -65,38 +93,5 @@ var content_tests = []struct {
 func TestContent(t *testing.T) {
    for _, test := range content_tests {
       fmt.Println(test)
-   }
-}
-
-func TestPlayReady(t *testing.T) {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(cache + "/hboMax/Login")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var loginVar Login
-   err = loginVar.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   // hbomax.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7
-   data, err = loginVar.PlayReady("06a38397-862d-4419-be84-0641939825e7")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var play Playback
-   err = play.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(
-      cache+"/hboMax/PlayReady",
-      []byte(play.Drm.Schemes.PlayReady.LicenseUrl), os.ModePerm,
-   )
-   if err != nil {
-      t.Fatal(err)
    }
 }
