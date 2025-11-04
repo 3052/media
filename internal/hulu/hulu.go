@@ -10,25 +10,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/hulu/Authenticate")
    if err != nil {
@@ -51,21 +32,16 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   data, err = auth.Playlist(deep)
+   playlist, err := auth.Playlist(deep)
    if err != nil {
       return err
    }
-   var play hulu.Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.StreamUrl)
+   resp, err := http.Get(playlist.StreamUrl)
    if err != nil {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return play.Widevine(data)
+      return playlist.Widevine(data)
    }
    return f.filters.Filter(resp, &f.config)
 }
@@ -120,4 +96,22 @@ func (f *flag_set) do_authenticate() error {
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
+}
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   return nil
 }
