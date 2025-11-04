@@ -10,6 +10,27 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) do_playlist() error {
+   var title itv.Title
+   title.LatestAvailableVersion.PlaylistUrl = f.playlist
+   playlist, err := title.Playlist()
+   if err != nil {
+      return err
+   }
+   file, ok := playlist.FullHd()
+   if !ok {
+      return errors.New(".FullHd()")
+   }
+   resp, err := file.Mpd()
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return file.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
 type flag_set struct {
    address  string
    cache    string
@@ -72,30 +93,4 @@ func main() {
    if err != nil {
       panic(err)
    }
-}
-
-func (f *flag_set) do_playlist() error {
-   var title itv.Title
-   title.LatestAvailableVersion.PlaylistUrl = f.playlist
-   data, err := title.Playlist()
-   if err != nil {
-      return err
-   }
-   var play itv.Playlist
-   err = play.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   file, ok := play.FullHd()
-   if !ok {
-      return errors.New(".FullHd()")
-   }
-   resp, err := file.Mpd()
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return file.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
 }

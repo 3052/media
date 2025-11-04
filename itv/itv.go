@@ -12,152 +12,6 @@ import (
    "strings"
 )
 
-func (p *Playlist) playReady(id string) error {
-   data, err := json.Marshal(map[string]any{
-      "client": map[string]string{
-         "id": "browser",
-      },
-      "variantAvailability": map[string]any{
-         "drm": map[string]string{
-            "maxSupported": "SL3000",
-            "system":       "playready",
-         },
-         "featureset": []string{
-            "hd",
-            "mpeg-dash",
-            "single-track",
-            "playready",
-         },
-         "platformTag": "ctv", // 1080p
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://magni.itv.com/playlist/itvonline/ITV/" + id,
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(p)
-}
-
-// hard geo block
-func (t *Title) Playlist() (Byte[Playlist], error) {
-   data, err := json.Marshal(map[string]any{
-      "client": map[string]string{
-         "id": "browser",
-      },
-      "variantAvailability": map[string]any{
-         "drm": map[string]string{
-            "maxSupported": "L3",
-            "system":       "widevine",
-         },
-         "featureset": []string{ // need all these to get 720p
-            "hd",
-            "mpeg-dash",
-            "single-track",
-            "widevine",
-         },
-         "platformTag": "ctv", // 1080p
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", t.LatestAvailableVersion.PlaylistUrl, bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playlist) Unmarshal(data Byte[Playlist]) error {
-   return json.Unmarshal(data, p)
-}
-
-type Title struct {
-   LatestAvailableVersion struct {
-      PlaylistUrl string
-   }
-   Series *struct {
-      SeriesNumber int64
-   }
-   EpisodeNumber          int64
-   Title                  string
-}
-
-type LegacyId [1]string
-
-func (v LegacyId) String() string {
-   return "/watch/!/" + strings.ReplaceAll(v[0], "/", "a")
-}
-
-const programme_page = `
-query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
-   titles(
-      filter: { brandLegacyId: $brandLegacyId }
-      sortBy: SEQUENCE_ASC
-   ) {
-      ... on Episode {
-         series { seriesNumber }
-         episodeNumber
-      }
-      title
-      latestAvailableVersion { playlistUrl }
-   }
-}
-`
-
-// this is better than strings.Replace and strings.ReplaceAll
-func graphql_compact(data string) string {
-   return strings.Join(strings.Fields(data), " ")
-}
-
-func (t *Title) String() string {
-   var b []byte
-   if t.Series != nil {
-      b = []byte("series = ")
-      b = strconv.AppendInt(b, t.Series.SeriesNumber, 10)
-      b = append(b, "\nepisode = "...)
-      b = strconv.AppendInt(b, t.EpisodeNumber, 10)
-   }
-   if t.Title != "" {
-      if b != nil {
-         b = append(b, '\n')
-      }
-      b = append(b, "title = "...)
-      b = append(b, t.Title...)
-   }
-   if b != nil {
-      b = append(b, '\n')
-   }
-   b = append(b, "playlist = "...)
-   b = append(b, t.LatestAvailableVersion.PlaylistUrl...)
-   return string(b)
-}
-
-type Byte[T any] []byte
-
 // pass: https://www.itv.com/watch/joan/10a3918
 // fail: https://www.itv.com/watch/joan/10a3918/10a3918a0001
 func (v *LegacyId) Set(data string) error {
@@ -232,6 +86,69 @@ func (m *MediaFile) Mpd() (*http.Response, error) {
    return http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
 }
 
+type Title struct {
+   LatestAvailableVersion struct {
+      PlaylistUrl string
+   }
+   Series *struct {
+      SeriesNumber int64
+   }
+   EpisodeNumber          int64
+   Title                  string
+}
+
+type LegacyId [1]string
+
+func (v LegacyId) String() string {
+   return "/watch/!/" + strings.ReplaceAll(v[0], "/", "a")
+}
+
+const programme_page = `
+query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
+   titles(
+      filter: { brandLegacyId: $brandLegacyId }
+      sortBy: SEQUENCE_ASC
+   ) {
+      ... on Episode {
+         series { seriesNumber }
+         episodeNumber
+      }
+      title
+      latestAvailableVersion { playlistUrl }
+   }
+}
+`
+
+// this is better than strings.Replace and strings.ReplaceAll
+func graphql_compact(data string) string {
+   return strings.Join(strings.Fields(data), " ")
+}
+
+func (t *Title) String() string {
+   var b []byte
+   if t.Series != nil {
+      b = []byte("series = ")
+      b = strconv.AppendInt(b, t.Series.SeriesNumber, 10)
+      b = append(b, "\nepisode = "...)
+      b = strconv.AppendInt(b, t.EpisodeNumber, 10)
+   }
+   if t.Title != "" {
+      if b != nil {
+         b = append(b, '\n')
+      }
+      b = append(b, "title = "...)
+      b = append(b, t.Title...)
+   }
+   if b != nil {
+      b = append(b, '\n')
+   }
+   b = append(b, "playlist = "...)
+   b = append(b, t.LatestAvailableVersion.PlaylistUrl...)
+   return string(b)
+}
+
+///
+
 func (p *Playlist) FullHd() (*MediaFile, bool) {
    for _, file := range p.Playlist.Video.MediaFiles {
       if file.Resolution == "1080" {
@@ -239,6 +156,44 @@ func (p *Playlist) FullHd() (*MediaFile, bool) {
       }
    }
    return nil, false
+}
+
+func (p *Playlist) playReady(id string) error {
+   data, err := json.Marshal(map[string]any{
+      "client": map[string]string{
+         "id": "browser",
+      },
+      "variantAvailability": map[string]any{
+         "drm": map[string]string{
+            "maxSupported": "SL3000",
+            "system":       "playready",
+         },
+         "featureset": []string{
+            "hd",
+            "mpeg-dash",
+            "single-track",
+            "playready",
+         },
+         "platformTag": "ctv", // 1080p
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://magni.itv.com/playlist/itvonline/ITV/" + id,
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(p)
 }
 
 type Playlist struct {
@@ -249,3 +204,48 @@ type Playlist struct {
    }
 }
 
+// hard geo block
+func (t *Title) Playlist() (*Playlist, error) {
+   data, err := json.Marshal(map[string]any{
+      "client": map[string]string{
+         "id": "browser",
+      },
+      "variantAvailability": map[string]any{
+         "drm": map[string]string{
+            "maxSupported": "L3",
+            "system":       "widevine",
+         },
+         "featureset": []string{ // need all these to get 720p
+            "hd",
+            "mpeg-dash",
+            "single-track",
+            "widevine",
+         },
+         "platformTag": "ctv", // 1080p
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", t.LatestAvailableVersion.PlaylistUrl, bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   play := &Playlist{}
+   err = json.NewDecoder(resp.Body).Decode(play)
+   if err != nil {
+      return nil, err
+   }
+   return play, nil
+}
