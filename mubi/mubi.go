@@ -77,13 +77,13 @@ var ClientCountry = "US"
 // client-version
 const client = "web"
 
-func (c *LinkCode) String() string {
+func (l *LinkCode) String() string {
    var b strings.Builder
    b.WriteString("TO LOG IN AND START WATCHING\n")
    b.WriteString("Go to\n")
    b.WriteString("mubi.com/android\n")
    b.WriteString("and enter the code below\n")
-   b.WriteString(c.LinkCode)
+   b.WriteString(l.LinkCode)
    return b.String()
 }
 
@@ -105,8 +105,8 @@ type Authenticate struct {
    }
 }
 
-func (c *LinkCode) Authenticate() (Byte[Authenticate], error) {
-   data, err := json.Marshal(map[string]string{"auth_token": c.AuthToken})
+func (l *LinkCode) Authenticate() (Byte[Authenticate], error) {
+   data, err := json.Marshal(map[string]string{"auth_token": l.AuthToken})
    if err != nil {
       return nil, err
    }
@@ -139,8 +139,8 @@ func NewLinkCode() (Byte[LinkCode], error) {
    return io.ReadAll(resp.Body)
 }
 
-func (c *LinkCode) Unmarshal(data Byte[LinkCode]) error {
-   return json.Unmarshal(data, c)
+func (l *LinkCode) Unmarshal(data Byte[LinkCode]) error {
+   return json.Unmarshal(data, l)
 }
 
 type SecureUrl struct {
