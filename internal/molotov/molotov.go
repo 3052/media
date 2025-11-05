@@ -10,82 +10,16 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/molotov/Refresh")
-   if err != nil {
-      return err
-   }
-   var refresh molotov.Refresh
-   err = refresh.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = refresh.Refresh()
-   if err != nil {
-      return err
-   }
-   err = write_file(f.cache+"/molotov/Refresh", data)
-   if err != nil {
-      return err
-   }
-   var media molotov.MediaId
-   err = media.Parse(f.address)
-   if err != nil {
-      return err
-   }
-   view, err := refresh.View(&media)
-   if err != nil {
-      return err
-   }
-   asset, err := refresh.Asset(view)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(asset.FhdReady())
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return asset.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (f *flag_set) do_refresh() error {
-   var login molotov.Login
-   err := login.New(f.email, f.password)
+   login, err := molotov.FetchLogin(f.email, f.password)
    if err != nil {
       return err
    }
-   data, err := login.Auth.Refresh()
+   data, err := login.Refresh()
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/molotov/Refresh", data)
+   return write_file(f.cache+"/molotov/Login", data)
 }
 
 type flag_set struct {
@@ -124,4 +58,68 @@ func main() {
    if err != nil {
       panic(err)
    }
+}
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/molotov/Login")
+   if err != nil {
+      return err
+   }
+   var login molotov.Login
+   err = login.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   data, err = login.Refresh()
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache+"/molotov/Login", data)
+   if err != nil {
+      return err
+   }
+   var media molotov.MediaId
+   err = media.Parse(f.address)
+   if err != nil {
+      return err
+   }
+   play_url, err := login.PlayUrl(&media)
+   if err != nil {
+      return err
+   }
+   playback, err := login.Playback(play_url)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(playback.FhdReady())
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return playback.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }

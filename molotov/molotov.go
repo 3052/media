@@ -12,58 +12,25 @@ import (
    "strings"
 )
 
-type View struct {
-   Program struct {
-      Actions struct {
-         Play *struct {
-            Url string
-         }
-      }
-   }
+func (l *Login) Unmarshal(data LoginData) error {
+   return json.Unmarshal(data, l)
 }
 
-func (a *Asset) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   for key, value := range a.UpDrm.License.HttpHeaders {
-      req.Header.Set(key, value)
-   }
+type LoginData []byte
+
+// authorization server issues a new refresh token, in which case the
+// client MUST discard the old refresh token and replace it with the new
+// refresh token
+func (l *Login) Refresh() (LoginData, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = "/v3/auth/refresh/" + l.RefreshToken
+   req.Header.Set("x-molotov-agent", molotov_agent)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      License []byte
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.License, nil
-}
-
-func (a *Asset) FhdReady() string {
-   return strings.Replace(a.Stream.Url, "high", "fhdready", 1)
-}
-
-type Asset struct {
-   Stream struct {
-      Url string // MPD
-   }
-   UpDrm struct {
-      License struct {
-         HttpHeaders map[string]string `json:"http_headers"`
-      }
-   } `json:"up_drm"`
+   return io.ReadAll(resp.Body)
 }
 
 var Transport = http.Transport{
@@ -141,15 +108,15 @@ type Login struct {
    RefreshToken string `json:"refresh_token"`
 }
 
-func (l *Login) View(media *MediaId) (*View, error) {
+func (l *Login) PlayUrl(media *MediaId) (string, error) {
    req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
    req.URL.Path = func() string {
-      b := []byte("/v2/channels/")
-      b = strconv.AppendInt(b, media.Channel, 10)
-      b = append(b, "/programs/"...)
-      b = strconv.AppendInt(b, media.Program, 10)
-      b = append(b, "/view"...)
-      return string(b)
+      data := []byte("/v2/channels/")
+      data = strconv.AppendInt(data, media.Channel, 10)
+      data = append(data, "/programs/"...)
+      data = strconv.AppendInt(data, media.Program, 10)
+      data = append(data, "/view"...)
+      return string(data)
    }()
    req.Header.Set("x-molotov-agent", molotov_agent)
    req.URL.RawQuery = url.Values{
@@ -157,22 +124,30 @@ func (l *Login) View(media *MediaId) (*View, error) {
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, err
+      return "", err
    }
    defer resp.Body.Close()
-   var viewVar View
-   err = json.NewDecoder(resp.Body).Decode(&viewVar)
+   var value struct {
+      Program struct {
+         Actions struct {
+            Play *struct {
+               Url string
+            }
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {
-      return nil, err
+      return "", err
    }
-   if viewVar.Program.Actions.Play == nil {
-      return nil, errors.New("Program.Actions.Play == nil")
+   if value.Program.Actions.Play == nil {
+      return "", errors.New("Program.Actions.Play")
    }
-   return &viewVar, nil
+   return value.Program.Actions.Play.Url, nil
 }
 
-func (l *Login) Asset(viewVar *View) (*Asset, error) {
-   req, err := http.NewRequest("", viewVar.Program.Actions.Play.Url, nil)
+func (l *Login) Playback(playUrl string) (*Playback, error) {
+   req, err := http.NewRequest("", playUrl, nil)
    if err != nil {
       return nil, err
    }
@@ -186,31 +161,54 @@ func (l *Login) Asset(viewVar *View) (*Asset, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   assetVar := &Asset{}
-   err = json.NewDecoder(resp.Body).Decode(assetVar)
+   play := &Playback{}
+   err = json.NewDecoder(resp.Body).Decode(play)
    if err != nil {
       return nil, err
    }
-   return assetVar, nil
+   return play, nil
 }
 
-func (l *Login) Unmarshal(data LoginData) error {
-   return json.Unmarshal(data, l)
-}
-
-type LoginData []byte
-
-// authorization server issues a new refresh token, in which case the
-// client MUST discard the old refresh token and replace it with the new
-// refresh token
-func (l *Login) Refresh() (LoginData, error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = "/v3/auth/refresh/" + l.RefreshToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   for key, value := range p.UpDrm.License.HttpHeaders {
+      req.Header.Set(key, value)
+   }
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      License []byte
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.License, nil
+}
+
+func (p *Playback) FhdReady() string {
+   return strings.Replace(p.Stream.Url, "high", "fhdready", 1)
+}
+
+type Playback struct {
+   Stream struct {
+      Url string // MPD
+   }
+   UpDrm struct {
+      License struct {
+         HttpHeaders map[string]string `json:"http_headers"`
+      }
+   } `json:"up_drm"`
 }

@@ -10,12 +10,12 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(cache + "/molotov/refresh")
+   data, err := os.ReadFile(cache + "/molotov/Login")
    if err != nil {
       t.Fatal(err)
    }
-   var token Refresh
-   err = token.Unmarshal(data)
+   var loginVar Login
+   err = loginVar.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
@@ -24,7 +24,7 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   _, err = token.View(&media)
+   _, err = loginVar.PlayUrl(&media)
    if err != nil {
       t.Fatal(err)
    }
