@@ -22,7 +22,7 @@ var tests = []struct {
 func Test(t *testing.T) {
    for _, testVar := range tests {
       var movieVar Movie
-      err := movieVar.New(testVar.custom_id)
+      err := movieVar.Fetch(testVar.custom_id)
       if err != nil {
          t.Fatal(err)
       }

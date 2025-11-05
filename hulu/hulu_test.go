@@ -1,14 +1,9 @@
 package hulu
 
 import (
-   "fmt"
    "os"
    "testing"
 )
-
-func TestWatch(t *testing.T) {
-   fmt.Println(tests)
-}
 
 var tests = []struct {
    content string
@@ -35,22 +30,17 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var auth Authenticate
-   err = auth.Unmarshal(data)
+   var sessionVar Session
+   err = sessionVar.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   err = auth.Refresh()
+   err = sessionVar.Refresh()
    if err != nil {
       t.Fatal(err)
    }
    test := tests[0]
-   data, err = auth.Playlist(&DeepLink{EabId: test.id})
-   if err != nil {
-      t.Fatal(err)
-   }
-   var play Playlist
-   err = play.Unmarshal(data)
+   play, err := sessionVar.Playlist(&DeepLink{EabId: test.id})
    if err != nil {
       t.Fatal(err)
    }

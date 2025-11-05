@@ -11,6 +11,49 @@ import (
    "strings"
 )
 
+func FetchAssetId(path string) (string, error) {
+   resp, err := http.Get(
+      "https://bff-service.rtbf.be/auvio/v1.23/pages" + path,
+   )
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   var page struct {
+      Data struct {
+         Content struct {
+            AssetId string
+            Media   *struct {
+               AssetId string
+            }
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&page)
+   if err != nil {
+      return "", err
+   }
+   content := page.Data.Content
+   if content.AssetId != "" {
+      return content.AssetId, nil
+   }
+   if content.Media != nil {
+      return content.Media.AssetId, nil
+   }
+   return "", errors.New("assetId not found")
+}
+
+func GetPath(rawUrl string) (string, error) {
+   parsed_url, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   return parsed_url.Path, nil
+}
+
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       log.Println(req.Method, req.URL)
@@ -47,13 +90,6 @@ func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(value.Message)
    }
    return io.ReadAll(resp.Body)
-}
-
-type Address [1]string
-
-func (a *Address) New(data string) {
-   data = strings.TrimPrefix(data, "https://")
-   a[0] = strings.TrimPrefix(data, "auvio.rtbf.be")
 }
 
 type Entitlement struct {
@@ -188,41 +224,6 @@ func (e *Entitlement) Dash() (*Format, bool) {
 }
 
 type Byte[T any] []byte
-
-func (a Address) AssetId() (string, error) {
-   resp, err := http.Get(
-      "https://bff-service.rtbf.be/auvio/v1.23/pages" + a[0],
-   )
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   var page struct {
-      Data struct {
-         Content struct {
-            AssetId string
-            Media   *struct {
-               AssetId string
-            }
-         }
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&page)
-   if err != nil {
-      return "", err
-   }
-   content := page.Data.Content
-   if content.AssetId != "" {
-      return content.AssetId, nil
-   }
-   if content.Media != nil {
-      return content.Media.AssetId, nil
-   }
-   return "", errors.New("assetId not found")
-}
 
 func (g *GigyaLogin) Entitlement(assetId string) (Byte[Entitlement], error) {
    req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)

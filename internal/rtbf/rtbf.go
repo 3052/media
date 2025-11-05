@@ -11,53 +11,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   http.DefaultTransport = &rtbf.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_login()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
-func (f *flag_set) do_login() error {
-   data, err := rtbf.NewLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/rtbf/Login", data)
-}
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/rtbf/Login")
    if err != nil {
@@ -76,9 +29,11 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   var address rtbf.Address
-   address.New(f.address)
-   asset_id, err := address.AssetId()
+   path, err := rtbf.GetPath(f.address)
+   if err != nil {
+      return err
+   }
+   asset_id, err := rtbf.FetchAssetId(path)
    if err != nil {
       return err
    }
@@ -126,4 +81,51 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
+}
+func main() {
+   http.DefaultTransport = &rtbf.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_login()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   return nil
+}
+
+func (f *flag_set) do_login() error {
+   data, err := rtbf.NewLogin(f.email, f.password)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/rtbf/Login", data)
 }

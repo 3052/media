@@ -19,12 +19,12 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var web Address
-   err = web.Parse("molotov.tv/fr_fr/p/15082-531")
+   var media MediaId
+   err = media.Parse("molotov.tv/fr_fr/p/15082-531")
    if err != nil {
       t.Fatal(err)
    }
-   _, err = token.View(&web)
+   _, err = token.View(&media)
    if err != nil {
       t.Fatal(err)
    }

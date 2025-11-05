@@ -49,7 +49,7 @@ func TestWrite(t *testing.T) {
       t.Fatal(err)
    }
    var sessionVar Session
-   err = sessionVar.New()
+   err = sessionVar.Fetch()
    if err != nil {
       t.Fatal(err)
    }

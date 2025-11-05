@@ -27,7 +27,7 @@ func Test(t *testing.T) {
       t.Fatal(err)
    }
    email, password, _ := strings.Cut(string(data), ":")
-   data, err = NewLogin(email, password)
+   data, err = FetchLogin(email, password)
    if err != nil {
       t.Fatal(err)
    }
