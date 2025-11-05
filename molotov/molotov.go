@@ -12,15 +12,15 @@ import (
    "strings"
 )
 
-type Address struct {
+type MediaId struct {
    Channel int64
    Program int64
 }
 
 // https://molotov.tv/fr_fr/p/15082-531
 // https://molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-func (a *Address) Parse(raw_url string) error {
-   _, after, found := strings.Cut(raw_url, "/p/")
+func (m *MediaId) Parse(rawUrl string) error {
+   _, after, found := strings.Cut(rawUrl, "/p/")
    if !found {
       return errors.New("URL does not contain the '/p/' segment")
    }
@@ -30,24 +30,24 @@ func (a *Address) Parse(raw_url string) error {
       return errors.New("ID segment: missing '-' separator")
    }
    var err error
-   a.Program, err = strconv.ParseInt(program, 10, 64)
+   m.Program, err = strconv.ParseInt(program, 10, 64)
    if err != nil {
       return err
    }
-   a.Channel, err = strconv.ParseInt(channel, 10, 64)
+   m.Channel, err = strconv.ParseInt(channel, 10, 64)
    if err != nil {
       return err
    }
    return nil
 }
 
-func (r *Refresh) View(web *Address) (*View, error) {
+func (r *Refresh) View(media *MediaId) (*View, error) {
    req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
    req.URL.Path = func() string {
       b := []byte("/v2/channels/")
-      b = strconv.AppendInt(b, web.Channel, 10)
+      b = strconv.AppendInt(b, media.Channel, 10)
       b = append(b, "/programs/"...)
-      b = strconv.AppendInt(b, web.Program, 10)
+      b = strconv.AppendInt(b, media.Program, 10)
       b = append(b, "/view"...)
       return string(b)
    }()
@@ -155,27 +155,6 @@ type Login struct {
    Auth Refresh
 }
 
-// authorization server issues a new refresh token, in which case the
-// client MUST discard the old refresh token and replace it with the new
-// refresh token
-func (r *Refresh) Refresh() (Byte[Refresh], error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = "/v3/auth/refresh/" + r.RefreshToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (r *Refresh) Unmarshal(data Byte[Refresh]) error {
-   return json.Unmarshal(data, r)
-}
-
-type Byte[T any] []byte
-
 type Asset struct {
    Stream struct {
       Url string // MPD
@@ -208,4 +187,25 @@ func (r *Refresh) Asset(viewVar *View) (*Asset, error) {
       return nil, err
    }
    return assetVar, nil
+}
+
+// authorization server issues a new refresh token, in which case the
+// client MUST discard the old refresh token and replace it with the new
+// refresh token
+func (r *Refresh) Refresh() (RefreshData, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = "/v3/auth/refresh/" + r.RefreshToken
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type RefreshData []byte
+
+func (r *Refresh) Unmarshal(data RefreshData) error {
+   return json.Unmarshal(data, r)
 }

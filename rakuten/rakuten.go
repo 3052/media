@@ -13,6 +13,35 @@ import (
    "strings"
 )
 
+func (m *Media) Parse(source string) error {
+   parsed, err := url.Parse(source)
+   if err != nil {
+      return err
+   }
+   path := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+   query := parsed.Query()
+   if len(path) > 0 {
+      m.MarketCode = path[0]
+   }
+   if content_type := query.Get("content_type"); content_type != "" {
+      m.ContentType = content_type
+      m.ContentId = query.Get("content_id")
+      m.TvShowId = query.Get("tv_show_id")
+   } else {
+      if len(path) > 1 {
+         m.ContentType = path[1]
+      }
+      if len(path) > 2 {
+         if m.ContentType == "tv_shows" {
+            m.TvShowId = path[2]
+         } else {
+            m.ContentId = path[2]
+         }
+      }
+   }
+   return nil
+}
+
 var Transport = http.Transport{
    Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
    Proxy: func(req *http.Request) (*url.URL, error) {
@@ -26,8 +55,8 @@ var Transport = http.Transport{
 }
 
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-func (a *Address) classification_id() (int, error) {
-   switch a.MarketCode {
+func (m *Media) classification_id() (int, error) {
+   switch m.MarketCode {
    case "cz":
       return 272, nil
    case "dk":
@@ -80,26 +109,26 @@ type Season struct {
 // https://rakuten.tv/fr/tv_shows/une-femme-d-honneur
 // https://rakuten.tv/fr?content_type=movies&content_id=michael-clayton
 // https://rakuten.tv/fr?content_type=tv_shows&tv_show_id=une-femme-d-honneur&content_id=une-femme-d-honneur-1
-type Address struct {
+type Media struct {
    ContentId   string
    ContentType string
    MarketCode  string
    TvShowId    string
 }
 
-func (a *Address) Seasons() ([]Season, error) {
-   classificationID, err := a.classification_id()
+func (m *Media) Seasons() ([]Season, error) {
+   classificationID, err := m.classification_id()
    if err != nil {
       return nil, err
    }
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/tv_shows/" + a.TvShowId
+   req.URL.Path = "/v3/tv_shows/" + m.TvShowId
    req.URL.RawQuery = url.Values{
       "classification_id": {
          strconv.Itoa(classificationID),
       },
       "device_identifier": {device_identifier},
-      "market_code":       {a.MarketCode},
+      "market_code":       {m.MarketCode},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -124,19 +153,19 @@ func (a *Address) Seasons() ([]Season, error) {
    return value.Data.Seasons, nil
 }
 
-func (a *Address) Movie() (*Content, error) {
-   classificationID, err := a.classification_id()
+func (m *Media) Movie() (*Content, error) {
+   classificationID, err := m.classification_id()
    if err != nil {
       return nil, err
    }
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/movies/" + a.ContentId
+   req.URL.Path = "/v3/movies/" + m.ContentId
    req.URL.RawQuery = url.Values{
       "classification_id": {
          strconv.Itoa(classificationID),
       },
       "device_identifier": {device_identifier},
-      "market_code":       {a.MarketCode},
+      "market_code":       {m.MarketCode},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -159,10 +188,10 @@ func (a *Address) Movie() (*Content, error) {
    return &value.Data, nil
 }
 
-func (a *Address) streamInfo(
+func (m *Media) streamInfo(
    content_id, audio_language, player string, video Quality,
 ) (*StreamInfo, error) {
-   classificationID, err := a.classification_id()
+   classificationID, err := m.classification_id()
    if err != nil {
       return nil, err
    }
@@ -177,7 +206,7 @@ func (a *Address) streamInfo(
       "device_stream_video_quality": string(video),
       "player":                      device_identifier + player,
       "classification_id":           strconv.Itoa(classificationID),
-      "content_type":                a.ContentType,
+      "content_type":                m.ContentType,
    })
    if err != nil {
       return nil, err
@@ -208,19 +237,19 @@ func (a *Address) streamInfo(
    return &value.Data.StreamInfos[0], nil
 }
 
-func (a *Address) Episodes(season_id string) ([]Content, error) {
-   classificationID, err := a.classification_id()
+func (m *Media) Episodes(seasonId string) ([]Content, error) {
+   classificationID, err := m.classification_id()
    if err != nil {
       return nil, err
    }
    req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/seasons/" + season_id
+   req.URL.Path = "/v3/seasons/" + seasonId
    req.URL.RawQuery = url.Values{
       "classification_id": {
          strconv.Itoa(classificationID),
       },
       "device_identifier": {device_identifier},
-      "market_code":       {a.MarketCode},
+      "market_code":       {m.MarketCode},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -283,43 +312,14 @@ const (
    Hd  Quality = "HD"
 )
 
-func (a *Address) Wvm(
+func (m *Media) Wvm(
    content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
-   return a.streamInfo(content_id, audio_language, ":DASH-CENC:WVM", video)
+   return m.streamInfo(content_id, audio_language, ":DASH-CENC:WVM", video)
 }
 
-func (a *Address) Pr(
+func (m *Media) Pr(
    content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
-   return a.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
-}
-
-func (a *Address) Parse(data string) error {
-   parsed, err := url.Parse(data)
-   if err != nil {
-      return err
-   }
-   path := strings.Split(strings.Trim(parsed.Path, "/"), "/")
-   query := parsed.Query()
-   if len(path) > 0 {
-      a.MarketCode = path[0]
-   }
-   if content_type := query.Get("content_type"); content_type != "" {
-      a.ContentType = content_type
-      a.ContentId = query.Get("content_id")
-      a.TvShowId = query.Get("tv_show_id")
-   } else {
-      if len(path) > 1 {
-         a.ContentType = path[1]
-      }
-      if len(path) > 2 {
-         if a.ContentType == "tv_shows" {
-            a.TvShowId = path[2]
-         } else {
-            a.ContentId = path[2]
-         }
-      }
-   }
-   return nil
+   return m.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
 }

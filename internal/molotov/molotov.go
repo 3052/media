@@ -28,12 +28,12 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   var address molotov.Address
-   err = address.Parse(f.address)
+   var media molotov.MediaId
+   err = media.Parse(f.address)
    if err != nil {
       return err
    }
-   view, err := refresh.View(&address)
+   view, err := refresh.View(&media)
    if err != nil {
       return err
    }

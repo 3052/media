@@ -85,16 +85,16 @@ type flag_set struct {
 
 // print episodes
 func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Address")
+   data, err := os.ReadFile(f.cache + "/rakuten/Media")
    if err != nil {
       return err
    }
-   var address rakuten.Address
-   err = address.Parse(string(data))
+   var media rakuten.Media
+   err = media.Parse(string(data))
    if err != nil {
       return err
    }
-   contents, err := address.Episodes(f.season)
+   contents, err := media.Episodes(f.season)
    if err != nil {
       return err
    }
@@ -108,16 +108,16 @@ func (f *flag_set) do_season() error {
 }
 
 func (f *flag_set) do_show() error {
-   var address rakuten.Address
-   err := address.Parse(f.show)
+   var media rakuten.Media
+   err := media.Parse(f.show)
    if err != nil {
       return err
    }
-   err = write_file(f.cache+"/rakuten/Address", []byte(f.show))
+   err = write_file(f.cache+"/rakuten/Media", []byte(f.show))
    if err != nil {
       return err
    }
-   seasons, err := address.Seasons()
+   seasons, err := media.Seasons()
    if err != nil {
       return err
    }
@@ -131,16 +131,16 @@ func (f *flag_set) do_show() error {
 }
 
 func (f *flag_set) do_movie() error {
-   var address rakuten.Address
-   err := address.Parse(f.movie)
+   var media rakuten.Media
+   err := media.Parse(f.movie)
    if err != nil {
       return err
    }
-   err = write_file(f.cache+"/rakuten/Address", []byte(f.movie))
+   err = write_file(f.cache+"/rakuten/Media", []byte(f.movie))
    if err != nil {
       return err
    }
-   content, err := address.Movie()
+   content, err := media.Movie()
    if err != nil {
       return err
    }
@@ -149,16 +149,16 @@ func (f *flag_set) do_movie() error {
 }
 
 func (f *flag_set) do_send() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Address")
+   data, err := os.ReadFile(f.cache + "/rakuten/Media")
    if err != nil {
       return err
    }
-   var address rakuten.Address
-   err = address.Parse(string(data))
+   var media rakuten.Media
+   err = media.Parse(string(data))
    if err != nil {
       return err
    }
-   info, err := address.Wvm(f.content, f.language, rakuten.Fhd)
+   info, err := media.Wvm(f.content, f.language, rakuten.Fhd)
    if err != nil {
       return err
    }
@@ -166,7 +166,7 @@ func (f *flag_set) do_send() error {
    if err != nil {
       return err
    }
-   info, err = address.Wvm(f.content, f.language, rakuten.Hd)
+   info, err = media.Wvm(f.content, f.language, rakuten.Hd)
    if err != nil {
       return err
    }
