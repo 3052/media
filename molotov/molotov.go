@@ -12,63 +12,6 @@ import (
    "strings"
 )
 
-type MediaId struct {
-   Channel int64
-   Program int64
-}
-
-// https://molotov.tv/fr_fr/p/15082-531
-// https://molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-func (m *MediaId) Parse(rawUrl string) error {
-   _, after, found := strings.Cut(rawUrl, "/p/")
-   if !found {
-      return errors.New("URL does not contain the '/p/' segment")
-   }
-   id, _, _ := strings.Cut(after, "/")
-   program, channel, found := strings.Cut(id, "-")
-   if !found {
-      return errors.New("ID segment: missing '-' separator")
-   }
-   var err error
-   m.Program, err = strconv.ParseInt(program, 10, 64)
-   if err != nil {
-      return err
-   }
-   m.Channel, err = strconv.ParseInt(channel, 10, 64)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (r *Refresh) View(media *MediaId) (*View, error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = func() string {
-      b := []byte("/v2/channels/")
-      b = strconv.AppendInt(b, media.Channel, 10)
-      b = append(b, "/programs/"...)
-      b = strconv.AppendInt(b, media.Program, 10)
-      b = append(b, "/view"...)
-      return string(b)
-   }()
-   req.URL.RawQuery = "access_token=" + r.AccessToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var viewVar View
-   err = json.NewDecoder(resp.Body).Decode(&viewVar)
-   if err != nil {
-      return nil, err
-   }
-   if viewVar.Program.Actions.Play == nil {
-      return nil, errors.New(".Program.Actions.Play == nil")
-   }
-   return &viewVar, nil
-}
-
 type View struct {
    Program struct {
       Actions struct {
@@ -77,20 +20,6 @@ type View struct {
          }
       }
    }
-}
-
-type Refresh struct {
-   AccessToken string `json:"access_token"`
-   RefreshToken string `json:"refresh_token"`
-}
-
-const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
 }
 
 func (a *Asset) Widevine(data []byte) ([]byte, error) {
@@ -126,35 +55,6 @@ func (a *Asset) FhdReady() string {
    return strings.Replace(a.Stream.Url, "high", "fhdready", 1)
 }
 
-func (l *Login) New(email, password string) error {
-   data, err := json.Marshal(map[string]string{
-      "grant_type": "password",
-      "email": email,
-      "password": password,
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
-}
-
-type Login struct {
-   Auth Refresh
-}
-
 type Asset struct {
    Stream struct {
       Url string // MPD
@@ -166,7 +66,112 @@ type Asset struct {
    } `json:"up_drm"`
 }
 
-func (r *Refresh) Asset(viewVar *View) (*Asset, error) {
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
+type MediaId struct {
+   Channel int64
+   Program int64
+}
+
+// https://molotov.tv/fr_fr/p/15082-531
+// https://molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
+func (m *MediaId) Parse(rawUrl string) error {
+   _, after, found := strings.Cut(rawUrl, "/p/")
+   if !found {
+      return errors.New("URL does not contain the '/p/' segment")
+   }
+   id, _, _ := strings.Cut(after, "/")
+   program, channel, found := strings.Cut(id, "-")
+   if !found {
+      return errors.New("ID segment: missing '-' separator")
+   }
+   var err error
+   m.Program, err = strconv.ParseInt(program, 10, 64)
+   if err != nil {
+      return err
+   }
+   m.Channel, err = strconv.ParseInt(channel, 10, 64)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
+
+func FetchLogin(email, password string) (*Login, error) {
+   data, err := json.Marshal(map[string]string{
+      "grant_type": "password",
+      "email": email,
+      "password": password,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Auth Login
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return &value.Auth, nil
+}
+
+type Login struct {
+   AccessToken string `json:"access_token"`
+   RefreshToken string `json:"refresh_token"`
+}
+
+func (l *Login) View(media *MediaId) (*View, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.URL.Path = func() string {
+      b := []byte("/v2/channels/")
+      b = strconv.AppendInt(b, media.Channel, 10)
+      b = append(b, "/programs/"...)
+      b = strconv.AppendInt(b, media.Program, 10)
+      b = append(b, "/view"...)
+      return string(b)
+   }()
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   req.URL.RawQuery = url.Values{
+      "access_token": {l.AccessToken},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var viewVar View
+   err = json.NewDecoder(resp.Body).Decode(&viewVar)
+   if err != nil {
+      return nil, err
+   }
+   if viewVar.Program.Actions.Play == nil {
+      return nil, errors.New("Program.Actions.Play == nil")
+   }
+   return &viewVar, nil
+}
+
+func (l *Login) Asset(viewVar *View) (*Asset, error) {
    req, err := http.NewRequest("", viewVar.Program.Actions.Play.Url, nil)
    if err != nil {
       return nil, err
@@ -174,7 +179,7 @@ func (r *Refresh) Asset(viewVar *View) (*Asset, error) {
    req.Header.Set("x-forwarded-for", "138.199.15.158")
    req.Header.Set("x-molotov-agent", molotov_agent)
    req.URL.RawQuery = url.Values{
-      "access_token": {r.AccessToken},
+      "access_token": {l.AccessToken},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -189,12 +194,18 @@ func (r *Refresh) Asset(viewVar *View) (*Asset, error) {
    return assetVar, nil
 }
 
+func (l *Login) Unmarshal(data LoginData) error {
+   return json.Unmarshal(data, l)
+}
+
+type LoginData []byte
+
 // authorization server issues a new refresh token, in which case the
 // client MUST discard the old refresh token and replace it with the new
 // refresh token
-func (r *Refresh) Refresh() (RefreshData, error) {
+func (l *Login) Refresh() (LoginData, error) {
    req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = "/v3/auth/refresh/" + r.RefreshToken
+   req.URL.Path = "/v3/auth/refresh/" + l.RefreshToken
    req.Header.Set("x-molotov-agent", molotov_agent)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -202,10 +213,4 @@ func (r *Refresh) Refresh() (RefreshData, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-type RefreshData []byte
-
-func (r *Refresh) Unmarshal(data RefreshData) error {
-   return json.Unmarshal(data, r)
 }
