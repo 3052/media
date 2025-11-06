@@ -87,15 +87,9 @@ func (l *LinkCode) String() string {
    return b.String()
 }
 
-type Byte[T any] []byte
-
 type LinkCode struct {
    AuthToken string `json:"auth_token"`
    LinkCode  string `json:"link_code"`
-}
-
-func (a *Authenticate) Unmarshal(data Byte[Authenticate]) error {
-   return json.Unmarshal(data, a)
 }
 
 type Authenticate struct {
@@ -103,61 +97,6 @@ type Authenticate struct {
    User  struct {
       Id int
    }
-}
-
-func (l *LinkCode) Authenticate() (Byte[Authenticate], error) {
-   data, err := json.Marshal(map[string]string{"auth_token": l.AuthToken})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://api.mubi.com/v3/authenticate", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func NewLinkCode() (Byte[LinkCode], error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (l *LinkCode) Unmarshal(data Byte[LinkCode]) error {
-   return json.Unmarshal(data, l)
-}
-
-type SecureUrl struct {
-   TextTrackUrls []Text `json:"text_track_urls"`
-   Url           string      // MPD
-   UserMessage   string      `json:"user_message"`
-}
-
-func (s *SecureUrl) Unmarshal(data Byte[SecureUrl]) error {
-   err := json.Unmarshal(data, s)
-   if err != nil {
-      return err
-   }
-   if s.UserMessage != "" {
-      return errors.New(s.UserMessage)
-   }
-   return nil
 }
 
 func (t *Text) Base() string {
@@ -201,26 +140,6 @@ func (a *Authenticate) Viewing(filmId int64) error {
    return nil
 }
 
-func (a *Authenticate) SecureUrl(filmId int64) (Byte[SecureUrl], error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/v3/films/")
-      b = strconv.AppendInt(b, filmId, 10)
-      b = append(b, "/viewing/secure_url"...)
-      return string(b)
-   }()
-   req.Header.Set("authorization", "Bearer "+a.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   req.Header.Set("proxy", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 // https://mubi.com/en/films/perfect-days
 // https://mubi.com/en/us/films/perfect-days
 // https://mubi.com/films/perfect-days
@@ -252,3 +171,86 @@ func FilmId(slug string) (int64, error) {
    }
    return film.Id, nil
 }
+
+type SecureUrl struct {
+   TextTrackUrls []Text `json:"text_track_urls"`
+   Url           string      // MPD
+   UserMessage   string      `json:"user_message"`
+}
+
+func (a *Authenticate) SecureUrl(filmId int64) (*SecureUrl, error) {
+   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
+   req.URL.Path = func() string {
+      data := []byte("/v3/films/")
+      data = strconv.AppendInt(data, filmId, 10)
+      data = append(data, "/viewing/secure_url"...)
+      return string(data)
+   }()
+   req.Header.Set("authorization", "Bearer "+a.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.Header.Set("proxy", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var secure SecureUrl
+   err = json.NewDecoder(resp.Body).Decode(&secure)
+   if err != nil {
+      return nil, err
+   }
+   if secure.UserMessage != "" {
+      return nil, errors.New(secure.UserMessage)
+   }
+   return &secure, nil
+}
+
+func FetchLinkCode() (LinkCodeData, error) {
+   req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (l *LinkCode) Unmarshal(data LinkCodeData) error {
+   return json.Unmarshal(data, l)
+}
+
+type LinkCodeData []byte
+
+///
+
+type Byte[T any] []byte
+
+func (a *Authenticate) Unmarshal(data Byte[Authenticate]) error {
+   return json.Unmarshal(data, a)
+}
+
+func (l *LinkCode) Authenticate() (Byte[Authenticate], error) {
+   data, err := json.Marshal(map[string]string{"auth_token": l.AuthToken})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://api.mubi.com/v3/authenticate", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+

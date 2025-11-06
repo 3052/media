@@ -5,10 +5,7 @@
 1. mubi.com
 2. enable javascript
 3. email address
-   - email.ml
-   - emailnator.com
    - mail.tm
-   - tempmail.best (1 hour)
 4. get started
 5. mubi
 6. next

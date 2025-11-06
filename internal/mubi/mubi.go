@@ -11,38 +11,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   http.DefaultTransport = &mubi.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.auth:
-      err = set.do_auth()
-   case set.code:
-      err = set.do_code()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-type flag_set struct {
-   address string
-   auth    bool
-   cache   string
-   code    bool
-   config  net.Config
-   filters net.Filters
-}
-
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/mubi/Authenticate")
    if err != nil {
@@ -65,12 +33,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   data, err = auth.SecureUrl(film_id)
-   if err != nil {
-      return err
-   }
-   var secure mubi.SecureUrl
-   err = secure.Unmarshal(data)
+   secure, err := auth.SecureUrl(film_id)
    if err != nil {
       return err
    }
@@ -83,6 +46,7 @@ func (f *flag_set) do_address() error {
    }
    return f.filters.Filter(resp, &f.config)
 }
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -137,4 +101,35 @@ func (f *flag_set) New() error {
    flag.IntVar(&f.config.Threads, "t", 12, "threads")
    flag.Parse()
    return nil
+}
+func main() {
+   http.DefaultTransport = &mubi.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.auth:
+      err = set.do_auth()
+   case set.code:
+      err = set.do_code()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+type flag_set struct {
+   address string
+   auth    bool
+   cache   string
+   code    bool
+   config  net.Config
+   filters net.Filters
 }

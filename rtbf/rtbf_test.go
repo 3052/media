@@ -1,10 +1,19 @@
 package rtbf
 
 import (
-   "log"
    "testing"
    "time"
 )
+
+func Test(t *testing.T) {
+   for _, testVar := range tests {
+      _, err := FetchAssetId(testVar.path)
+      if err != nil {
+         t.Fatal(err)
+      }
+      time.Sleep(time.Second)
+   }
+}
 
 var tests = []struct {
    category string
@@ -21,15 +30,4 @@ var tests = []struct {
       path: "/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
       url: "https://auvio.rtbf.be/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
    },
-}
-
-func Test(t *testing.T) {
-   for _, testVar := range tests {
-      asset_id, err := Address{testVar.path}.AssetId()
-      if err != nil {
-         t.Fatal(err)
-      }
-      log.Print(asset_id)
-      time.Sleep(time.Second)
-   }
 }
