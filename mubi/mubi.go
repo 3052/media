@@ -224,15 +224,7 @@ func (l *LinkCode) Unmarshal(data LinkCodeData) error {
 
 type LinkCodeData []byte
 
-///
-
-type Byte[T any] []byte
-
-func (a *Authenticate) Unmarshal(data Byte[Authenticate]) error {
-   return json.Unmarshal(data, a)
-}
-
-func (l *LinkCode) Authenticate() (Byte[Authenticate], error) {
+func (l *LinkCode) Authenticate() (AuthenticateData, error) {
    data, err := json.Marshal(map[string]string{"auth_token": l.AuthToken})
    if err != nil {
       return nil, err
@@ -254,3 +246,8 @@ func (l *LinkCode) Authenticate() (Byte[Authenticate], error) {
    return io.ReadAll(resp.Body)
 }
 
+type AuthenticateData []byte
+
+func (a *Authenticate) Unmarshal(data AuthenticateData) error {
+   return json.Unmarshal(data, a)
+}
