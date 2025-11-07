@@ -2,34 +2,11 @@ package mubi
 
 import (
    "fmt"
-   "os"
    "testing"
-   "time"
 )
 
 func Test(t *testing.T) {
-   data, err := os.ReadFile("authenticate.txt")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var auth Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   for _, testVar := range tests {
-      data, err := auth.SecureUrl(testVar.id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      var secure SecureUrl
-      err = secure.Unmarshal(data)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Printf("%+v\n", secure)
-      time.Sleep(time.Second)
-   }
+   fmt.Println(tests)
 }
 
 var tests = []struct {

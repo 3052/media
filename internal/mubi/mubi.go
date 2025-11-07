@@ -11,49 +11,8 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/mubi/Authenticate")
-   if err != nil {
-      return err
-   }
-   var auth mubi.Authenticate
-   err = auth.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   slug, err := mubi.FilmSlug(f.address)
-   if err != nil {
-      return err
-   }
-   film_id, err := mubi.FilmId(slug)
-   if err != nil {
-      return err
-   }
-   err = auth.Viewing(film_id)
-   if err != nil {
-      return err
-   }
-   secure, err := auth.SecureUrl(film_id)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(secure.Url)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return auth.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (f *flag_set) do_code() error {
-   data, err := mubi.NewLinkCode()
+   data, err := mubi.FetchLinkCode()
    if err != nil {
       return err
    }
@@ -132,4 +91,44 @@ type flag_set struct {
    code    bool
    config  net.Config
    filters net.Filters
+}
+func (f *flag_set) do_address() error {
+   data, err := os.ReadFile(f.cache + "/mubi/Authenticate")
+   if err != nil {
+      return err
+   }
+   var auth mubi.Authenticate
+   err = auth.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   slug, err := mubi.FilmSlug(f.address)
+   if err != nil {
+      return err
+   }
+   film_id, err := mubi.FilmId(slug)
+   if err != nil {
+      return err
+   }
+   err = auth.Viewing(film_id)
+   if err != nil {
+      return err
+   }
+   secure, err := auth.SecureUrl(film_id)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(secure.Url)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return auth.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
