@@ -1,6 +1,7 @@
 package rakuten
 
 import (
+   "fmt"
    "net/http"
    "net/url"
    "os"
@@ -9,44 +10,60 @@ import (
    "testing"
 )
 
-var web_tests = []struct {
-   language string
-   url      string
+var classification_tests = []string{
+   "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
+   "http://rakuten.tv/dk/movies/a-time-to-kill",
+   "http://rakuten.tv/fr?content_type=movies&content_id=michael-clayton",
+   "http://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
+   "http://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
+   "http://rakuten.tv/pt/movies/bound",
+   "http://rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
+   "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+}
+
+func TestAddress(t *testing.T) {
+   fmt.Println(classification_tests)
+   for _, test := range address_tests {
+      var mediaVar Media
+      err := mediaVar.Parse(test.url)
+      if err != nil {
+         t.Fatal(err)
+      }
+      fmt.Printf("%+v\n", mediaVar)
+   }
+}
+
+var address_tests = []struct{
+   format string
+   url string
 }{
    {
-      language: "SPA",
-      url:      "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
+      format: "/movies/",
+      url: "http://rakuten.tv/nl/movies/made-in-america",
    },
    {
-      language: "ENG",
-      url: "http://rakuten.tv/dk/movies/a-time-to-kill",
+      format: "/player/movies/stream/",
+      url: "http://rakuten.tv/nl/player/movies/stream/made-in-america",
    },
    {
-      language: "ENG",
-      url:      "http://rakuten.tv/fr?content_type=movies&content_id=infidele",
+      format: "/tv_shows/",
+      url: "http://rakuten.tv/fr/tv_shows/une-femme-d-honneur",
    },
    {
-      url: "https://rakuten.tv/nl/player/movies/stream/made-in-america",
+      format: "?content_id=",
+      url: "http://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
    },
    {
-   
-      language: "ENG",
-      url:      "http://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
-   },
-   {
-      url: "http://rakuten.tv/pt/movies/bound",
-   },
-   {
-      language: "ENG",
-      url:      "http://rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
-   },
-   {
-      language: "ENG",
-      url:      "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+      format: "?tv_show_id=",
+      url: "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
    },
 }
 
 func TestPlayReady(t *testing.T) {
+   const (
+      address = "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run"
+      language = "SPA"
+   )
    data, err := exec.Command("password", "-i", "nordvpn.com").Output()
    if err != nil {
       t.Fatal(err)
@@ -59,13 +76,12 @@ func TestPlayReady(t *testing.T) {
          Host:   "cz103.nordvpn.com:89",
       }),
    }
-   test := web_tests[0]
    var mediaVar Media
-   err = mediaVar.Parse(test.url)
+   err = mediaVar.Parse(address)
    if err != nil {
       t.Fatal(err)
    }
-   info, err := mediaVar.Pr(mediaVar.ContentId, test.language, Hd)
+   info, err := mediaVar.Pr(mediaVar.ContentId, language, Hd)
    if err != nil {
       t.Fatal(err)
    }

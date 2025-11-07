@@ -4,6 +4,7 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "log"
    "net/http"
@@ -13,27 +14,66 @@ import (
    "strings"
 )
 
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-func (m *Media) classification_id() (int, error) {
-   switch m.MarketCode {
-   case "cz":
-      return 272, nil
-   case "dk":
-      return 283, nil
-   case "fr":
-      return 23, nil
-   case "nl":
-      return 69, nil
-   case "pl":
-      return 277, nil
-   case "pt":
-      return 64, nil
-   case "se":
-      return 282, nil
-   case "uk":
-      return 18, nil
+type Media struct {
+   ContentId   string
+   ContentType string
+   MarketCode  string
+   TvShowId    string
+}
+
+func (info *Media) Parse(rawURL string) error {
+   parsedURL, err := url.Parse(rawURL)
+   if err != nil {
+      return fmt.Errorf("failed to parse URL: %w", err)
    }
-   return 0, errors.New("unknown market code")
+
+   path := strings.Trim(parsedURL.Path, "/")
+   pathParts := strings.Split(path, "/")
+
+   if len(pathParts) > 0 && len(pathParts[0]) == 2 {
+      info.MarketCode = pathParts[0]
+   } else {
+      return fmt.Errorf("could not determine country code from URL path")
+   }
+
+   // First, try to parse content info from the path.
+   if len(pathParts) > 2 {
+      if pathParts[1] == "movies" && len(pathParts) == 3 {
+         info.ContentType = "movies"
+         info.ContentId = pathParts[2]
+         return nil
+      }
+      if pathParts[1] == "tv_shows" && len(pathParts) == 3 {
+         info.ContentType = "tv_shows"
+         info.TvShowId = pathParts[2]
+         return nil
+      }
+      if pathParts[1] == "player" && len(pathParts) == 5 && pathParts[2] == "movies" && pathParts[3] == "stream" {
+         info.ContentType = "movies"
+         info.ContentId = pathParts[4]
+         return nil
+      }
+   }
+
+   // If not in the path, fall back to checking query parameters.
+   queryParams := parsedURL.Query()
+   contentType := queryParams.Get("content_type")
+   if contentType != "" {
+      info.ContentType = contentType
+      if contentType == "movies" {
+         if contentID := queryParams.Get("content_id"); contentID != "" {
+            info.ContentId = contentID
+            return nil
+         }
+      } else if contentType == "tv_shows" {
+         if tvShowID := queryParams.Get("tv_show_id"); tvShowID != "" {
+            info.TvShowId = tvShowID
+            return nil
+         }
+      }
+   }
+
+   return fmt.Errorf("could not parse content type and ID from URL")
 }
 
 type StreamInfo struct {
@@ -64,17 +104,6 @@ const device_identifier = "atvui40"
 type Season struct {
    TvShowTitle string `json:"tv_show_title"`
    Id          string
-}
-
-// https://rakuten.tv/fr/movies/michael-clayton
-// https://rakuten.tv/fr/tv_shows/une-femme-d-honneur
-// https://rakuten.tv/fr?content_type=movies&content_id=michael-clayton
-// https://rakuten.tv/fr?content_type=tv_shows&tv_show_id=une-femme-d-honneur&content_id=une-femme-d-honneur-1
-type Media struct {
-   ContentId   string
-   ContentType string
-   MarketCode  string
-   TvShowId    string
 }
 
 func (m *Media) Seasons() ([]Season, error) {
@@ -148,6 +177,7 @@ func (m *Media) Movie() (*Content, error) {
    }
    return &value.Data, nil
 }
+
 func (m *Media) streamInfo(
    content_id, audio_language, player string, video Quality,
 ) (*StreamInfo, error) {
@@ -234,6 +264,7 @@ func (m *Media) Episodes(seasonId string) ([]Content, error) {
    }
    return value.Data.Episodes, nil
 }
+
 func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
@@ -290,34 +321,6 @@ func (m *Media) Pr(
 ) (*StreamInfo, error) {
    return m.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
 }
-func (m *Media) Parse(source string) error {
-   parsed, err := url.Parse(source)
-   if err != nil {
-      return err
-   }
-   path := strings.Split(strings.Trim(parsed.Path, "/"), "/")
-   query := parsed.Query()
-   if len(path) > 0 {
-      m.MarketCode = path[0]
-   }
-   if content_type := query.Get("content_type"); content_type != "" {
-      m.ContentType = content_type
-      m.ContentId = query.Get("content_id")
-      m.TvShowId = query.Get("tv_show_id")
-   } else {
-      if len(path) > 1 {
-         m.ContentType = path[1]
-      }
-      if len(path) > 2 {
-         if m.ContentType == "tv_shows" {
-            m.TvShowId = path[2]
-         } else {
-            m.ContentId = path[2]
-         }
-      }
-   }
-   return nil
-}
 
 var Transport = http.Transport{
    Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
@@ -329,4 +332,26 @@ var Transport = http.Transport{
       }
       return http.ProxyFromEnvironment(req)
    },
+}
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+func (m *Media) classification_id() (int, error) {
+   switch m.MarketCode {
+   case "cz":
+      return 272, nil
+   case "dk":
+      return 283, nil
+   case "fr":
+      return 23, nil
+   case "nl":
+      return 69, nil
+   case "pl":
+      return 277, nil
+   case "pt":
+      return 64, nil
+   case "se":
+      return 282, nil
+   case "uk":
+      return 18, nil
+   }
+   return 0, errors.New("unknown market code")
 }
