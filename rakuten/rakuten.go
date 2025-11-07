@@ -13,6 +13,141 @@ import (
    "strings"
 )
 
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+func (m *Media) classification_id() (int, error) {
+   switch m.MarketCode {
+   case "cz":
+      return 272, nil
+   case "dk":
+      return 283, nil
+   case "fr":
+      return 23, nil
+   case "nl":
+      return 69, nil
+   case "pl":
+      return 277, nil
+   case "pt":
+      return 64, nil
+   case "se":
+      return 282, nil
+   case "uk":
+      return 18, nil
+   }
+   return 0, errors.New("unknown market code")
+}
+
+type StreamInfo struct {
+   // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
+   LicenseUrl string `json:"license_url"`
+   // MPD
+   Url string
+}
+
+type Quality string
+
+type Content struct {
+   Id          string
+   Title       string
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string
+            } `json:"audio_languages"`
+         }
+      }
+   } `json:"view_options"`
+}
+
+const device_identifier = "atvui40"
+
+type Season struct {
+   TvShowTitle string `json:"tv_show_title"`
+   Id          string
+}
+
+// https://rakuten.tv/fr/movies/michael-clayton
+// https://rakuten.tv/fr/tv_shows/une-femme-d-honneur
+// https://rakuten.tv/fr?content_type=movies&content_id=michael-clayton
+// https://rakuten.tv/fr?content_type=tv_shows&tv_show_id=une-femme-d-honneur&content_id=une-femme-d-honneur-1
+type Media struct {
+   ContentId   string
+   ContentType string
+   MarketCode  string
+   TvShowId    string
+}
+
+func (m *Media) Seasons() ([]Season, error) {
+   classificationID, err := m.classification_id()
+   if err != nil {
+      return nil, err
+   }
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/tv_shows/" + m.TvShowId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(classificationID),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {m.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data struct {
+         Seasons []Season
+      }
+      Errors []struct {
+         Code string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Code)
+   }
+   return value.Data.Seasons, nil
+}
+
+func (m *Media) Movie() (*Content, error) {
+   classificationID, err := m.classification_id()
+   if err != nil {
+      return nil, err
+   }
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/movies/" + m.ContentId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(classificationID),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {m.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data   Content
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
+   }
+   return &value.Data, nil
+}
 func (m *Media) streamInfo(
    content_id, audio_language, player string, video Quality,
 ) (*StreamInfo, error) {
@@ -194,138 +329,4 @@ var Transport = http.Transport{
       }
       return http.ProxyFromEnvironment(req)
    },
-}
-
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-func (m *Media) classification_id() (int, error) {
-   switch m.MarketCode {
-   case "cz":
-      return 272, nil
-   case "dk":
-      return 283, nil
-   case "fr":
-      return 23, nil
-   case "pl":
-      return 277, nil
-   case "pt":
-      return 64, nil
-   case "se":
-      return 282, nil
-   case "uk":
-      return 18, nil
-   }
-   return 0, errors.New("unknown market code")
-}
-
-type StreamInfo struct {
-   // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
-   LicenseUrl string `json:"license_url"`
-   // MPD
-   Url string
-}
-
-type Quality string
-
-type Content struct {
-   Id          string
-   Title       string
-   ViewOptions struct {
-      Private struct {
-         Streams []struct {
-            AudioLanguages []struct {
-               Id string
-            } `json:"audio_languages"`
-         }
-      }
-   } `json:"view_options"`
-}
-
-const device_identifier = "atvui40"
-
-type Season struct {
-   TvShowTitle string `json:"tv_show_title"`
-   Id          string
-}
-
-// https://rakuten.tv/fr/movies/michael-clayton
-// https://rakuten.tv/fr/tv_shows/une-femme-d-honneur
-// https://rakuten.tv/fr?content_type=movies&content_id=michael-clayton
-// https://rakuten.tv/fr?content_type=tv_shows&tv_show_id=une-femme-d-honneur&content_id=une-femme-d-honneur-1
-type Media struct {
-   ContentId   string
-   ContentType string
-   MarketCode  string
-   TvShowId    string
-}
-
-func (m *Media) Seasons() ([]Season, error) {
-   classificationID, err := m.classification_id()
-   if err != nil {
-      return nil, err
-   }
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/tv_shows/" + m.TvShowId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(classificationID),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {m.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Seasons []Season
-      }
-      Errors []struct {
-         Code string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Code)
-   }
-   return value.Data.Seasons, nil
-}
-
-func (m *Media) Movie() (*Content, error) {
-   classificationID, err := m.classification_id()
-   if err != nil {
-      return nil, err
-   }
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/movies/" + m.ContentId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(classificationID),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {m.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data   Content
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Message)
-   }
-   return &value.Data, nil
 }

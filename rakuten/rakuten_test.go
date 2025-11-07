@@ -26,6 +26,10 @@ var web_tests = []struct {
       url:      "http://rakuten.tv/fr?content_type=movies&content_id=infidele",
    },
    {
+      url: "https://rakuten.tv/nl/player/movies/stream/made-in-america",
+   },
+   {
+   
       language: "ENG",
       url:      "http://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
    },
