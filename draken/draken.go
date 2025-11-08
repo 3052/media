@@ -14,7 +14,7 @@ import (
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       log.Println(req.Method, req.URL)
-      return nil, nil
+      return http.ProxyFromEnvironment(req)
    },
 }
 
