@@ -14,30 +14,22 @@ import (
    "strings"
 )
 
-type Media struct {
-   ContentId   string
-   ContentType string
-   MarketCode  string
-   TvShowId    string
-}
-
 func (info *Media) Parse(rawURL string) error {
    parsedURL, err := url.Parse(rawURL)
    if err != nil {
       return fmt.Errorf("failed to parse URL: %w", err)
    }
-
    path := strings.Trim(parsedURL.Path, "/")
    pathParts := strings.Split(path, "/")
-
+   // The first part of the path is the MarketCode.
    if len(pathParts) > 0 && len(pathParts[0]) == 2 {
       info.MarketCode = pathParts[0]
    } else {
-      return fmt.Errorf("could not determine country code from URL path")
+      return fmt.Errorf("could not determine market code from URL path")
    }
-
    // First, try to parse content info from the path.
-   if len(pathParts) > 2 {
+   if len(pathParts) > 1 {
+      // Handle direct content links like /movies/... or /tv_shows/...
       if pathParts[1] == "movies" && len(pathParts) == 3 {
          info.ContentType = "movies"
          info.ContentId = pathParts[2]
@@ -48,32 +40,41 @@ func (info *Media) Parse(rawURL string) error {
          info.TvShowId = pathParts[2]
          return nil
       }
-      if pathParts[1] == "player" && len(pathParts) == 5 && pathParts[2] == "movies" && pathParts[3] == "stream" {
-         info.ContentType = "movies"
-         info.ContentId = pathParts[4]
-         return nil
+      if pathParts[1] == "player" {
+         if len(pathParts) == 5 {
+            if pathParts[2] == "movies" && pathParts[3] == "stream" {
+               info.ContentType = "movies"
+               info.ContentId = pathParts[4]
+               return nil
+            }
+         }
       }
    }
-
    // If not in the path, fall back to checking query parameters.
-   queryParams := parsedURL.Query()
-   contentType := queryParams.Get("content_type")
+   query := parsedURL.Query()
+   contentType := query.Get("content_type")
    if contentType != "" {
       info.ContentType = contentType
       if contentType == "movies" {
-         if contentID := queryParams.Get("content_id"); contentID != "" {
+         if contentID := query.Get("content_id"); contentID != "" {
             info.ContentId = contentID
             return nil
          }
       } else if contentType == "tv_shows" {
-         if tvShowID := queryParams.Get("tv_show_id"); tvShowID != "" {
+         if tvShowID := query.Get("tv_show_id"); tvShowID != "" {
             info.TvShowId = tvShowID
             return nil
          }
       }
    }
-
    return fmt.Errorf("could not parse content type and ID from URL")
+}
+
+type Media struct {
+   ContentId   string
+   ContentType string
+   MarketCode  string
+   TvShowId    string
 }
 
 type StreamInfo struct {

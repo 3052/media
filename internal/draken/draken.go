@@ -11,6 +11,27 @@ import (
    "path/filepath"
 )
 
+func main() {
+   http.DefaultTransport = &draken.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_login()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/draken/Login")
    if err != nil {
@@ -92,23 +113,4 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_login()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }

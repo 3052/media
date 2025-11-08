@@ -5,9 +5,18 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
+   "net/url"
    "strings"
 )
+
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return nil, nil
+   },
+}
 
 func FetchLogin(identity, key string) (LoginData, error) {
    data, err := json.Marshal(map[string]string{
