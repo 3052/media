@@ -6,47 +6,31 @@ import (
    "net/url"
    "os"
    "os/exec"
-   "strings"
    "testing"
 )
 
-var watch_tests = []struct {
-   category string
-   id       string
-   url      string
-}{
-   {
-      category: "DRAMA_AND_SOAPS",
-      url:      "https://itv.com/watch/grace/2a7610",
-      id:       "2/7610",
-   },
-   {
-      category: "DRAMA_AND_SOAPS",
-      url:      "https://itv.com/watch/joan/10a3918",
-      id:       "10/3918",
-   },
-   {
-      category: "FILM",
-      url:      "https://itv.com/watch/solo-a-star-wars-story/10a6201a0001B",
-      id:       "10/6201/0001B",
-   },
-}
-
 func TestPlayReady(t *testing.T) {
-   data, err := exec.Command("password", "-i", "nordvpn.com").Output()
+   user, err := exec.Command(
+      "credential", "-h", "api.nordvpn.com", "-k", "user",
+   ).Output()
    if err != nil {
       t.Fatal(err)
    }
-   username, password, _ := strings.Cut(string(data), ":")
+   password, err := exec.Command(
+      "credential", "-h", "api.nordvpn.com",
+   ).Output()
+   if err != nil {
+      t.Fatal(err)
+   }
    http.DefaultTransport = &http.Transport{
       Proxy: http.ProxyURL(&url.URL{
          Scheme: "https",
-         User:   url.UserPassword(username, password),
-         Host:   "uk871.nordvpn.com:89",
+         User:   url.UserPassword(string(user), string(password)),
+         Host:   "uk813.nordvpn.com:89",
       }),
    }
    var play Playlist
-   err = play.playReady("10_5503_0001.001")
+   err = play.playReady("10_6201_0001.002")
    if err != nil {
       t.Fatal(err)
    }
@@ -68,4 +52,26 @@ func TestPlayReady(t *testing.T) {
 
 func TestWatch(t *testing.T) {
    fmt.Println(watch_tests)
+}
+
+var watch_tests = []struct {
+   category string
+   id       string
+   url      string
+}{
+   {
+      category: "FILM",
+      url:      "http://itv.com/watch/solo-a-star-wars-story/10a6201a0001B",
+      id:       "10/6201/0001B",
+   },
+   {
+      category: "DRAMA_AND_SOAPS",
+      url:      "http://itv.com/watch/grace/2a7610",
+      id:       "2/7610",
+   },
+   {
+      category: "DRAMA_AND_SOAPS",
+      url:      "http://itv.com/watch/joan/10a3918",
+      id:       "10/3918",
+   },
 }

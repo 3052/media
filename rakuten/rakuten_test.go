@@ -6,10 +6,53 @@ import (
    "net/url"
    "os"
    "os/exec"
-   "strings"
    "testing"
 )
 
+func TestPlayReady(t *testing.T) {
+   const (
+      address = "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run"
+      language = "SPA"
+   )
+   user, err := exec.Command(
+      "credential", "-h", "api.nordvpn.com", "-k", "user",
+   ).Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   password, err := exec.Command(
+      "credential", "-h", "api.nordvpn.com",
+   ).Output()
+   if err != nil {
+      t.Fatal(err)
+   }
+   http.DefaultTransport = &http.Transport{
+      Proxy: http.ProxyURL(&url.URL{
+         Scheme: "https",
+         User:   url.UserPassword(string(user), string(password)),
+         Host:   "cz103.nordvpn.com:89",
+      }),
+   }
+   var mediaVar Media
+   err = mediaVar.Parse(address)
+   if err != nil {
+      t.Fatal(err)
+   }
+   info, err := mediaVar.Pr(mediaVar.ContentId, language, Hd)
+   if err != nil {
+      t.Fatal(err)
+   }
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      cache+"/rakuten/PlayReady", []byte(info.LicenseUrl), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
 var classification_tests = []string{
    "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
    "http://rakuten.tv/dk/movies/a-time-to-kill",
@@ -57,42 +100,4 @@ var address_tests = []struct{
       format: "?tv_show_id=",
       url: "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
    },
-}
-
-func TestPlayReady(t *testing.T) {
-   const (
-      address = "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run"
-      language = "SPA"
-   )
-   data, err := exec.Command("password", "-i", "nordvpn.com").Output()
-   if err != nil {
-      t.Fatal(err)
-   }
-   username, password, _ := strings.Cut(string(data), ":")
-   http.DefaultTransport = &http.Transport{
-      Proxy: http.ProxyURL(&url.URL{
-         Scheme: "https",
-         User:   url.UserPassword(username, password),
-         Host:   "cz103.nordvpn.com:89",
-      }),
-   }
-   var mediaVar Media
-   err = mediaVar.Parse(address)
-   if err != nil {
-      t.Fatal(err)
-   }
-   info, err := mediaVar.Pr(mediaVar.ContentId, language, Hd)
-   if err != nil {
-      t.Fatal(err)
-   }
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(
-      cache+"/rakuten/PlayReady", []byte(info.LicenseUrl), os.ModePerm,
-   )
-   if err != nil {
-      t.Fatal(err)
-   }
 }

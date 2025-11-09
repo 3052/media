@@ -6,6 +6,27 @@ import (
    "testing"
 )
 
+func TestPlayReady(t *testing.T) {
+   token, err := ComCbsApp.At()
+   if err != nil {
+      t.Fatal(err)
+   }
+   sessionVar, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
+   if err != nil {
+      t.Fatal(err)
+   }
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      cache+"/paramount/PlayReady", []byte(sessionVar.LsSession), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
+
 var location_tests = []struct {
    content_id string
    location   []string
@@ -39,25 +60,4 @@ var location_tests = []struct {
 
 func TestLocation(t *testing.T) {
    fmt.Println(location_tests)
-}
-
-func TestPlayReady(t *testing.T) {
-   token, err := ComCbsApp.At()
-   if err != nil {
-      t.Fatal(err)
-   }
-   sessionVar, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
-   if err != nil {
-      t.Fatal(err)
-   }
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(
-      cache+"/paramount/PlayReady", []byte(sessionVar.LsSession), os.ModePerm,
-   )
-   if err != nil {
-      t.Fatal(err)
-   }
 }
