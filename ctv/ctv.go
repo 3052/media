@@ -11,13 +11,16 @@ import (
    "strings"
 )
 
-// https://www.ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
 func GetPath(rawUrl string) (string, error) {
-   parsed_url, err := url.Parse(rawUrl)
+   u, err := url.Parse(rawUrl)
    if err != nil {
       return "", err
    }
-   return parsed_url.Path, nil
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return u.Path, nil
 }
 
 const query_resolve = `

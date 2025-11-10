@@ -14,12 +14,15 @@ import (
    "strings"
 )
 
-func (info *Media) Parse(rawURL string) error {
-   parsedURL, err := url.Parse(rawURL)
+func (info *Media) Parse(rawUrl string) error {
+   parsed, err := url.Parse(rawUrl)
    if err != nil {
       return fmt.Errorf("failed to parse URL: %w", err)
    }
-   path := strings.Trim(parsedURL.Path, "/")
+   if parsed.Scheme == "" {
+      return errors.New("invalid URL: scheme is missing")
+   }
+   path := strings.Trim(parsed.Path, "/")
    pathParts := strings.Split(path, "/")
    // The first part of the path is the MarketCode.
    if len(pathParts) > 0 && len(pathParts[0]) == 2 {
@@ -51,7 +54,7 @@ func (info *Media) Parse(rawURL string) error {
       }
    }
    // If not in the path, fall back to checking query parameters.
-   query := parsedURL.Query()
+   query := parsed.Query()
    contentType := query.Get("content_type")
    if contentType != "" {
       info.ContentType = contentType

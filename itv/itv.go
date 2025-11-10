@@ -14,6 +14,18 @@ import (
    "strings"
 )
 
+func LegacyId(rawUrl string) (string, error) {
+   u, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   last_segment := path.Base(u.Path)
+   return strings.ReplaceAll(last_segment, "a", "/"), nil
+}
+
 func (p *Playlist) playReady(id string) error {
    data, err := json.Marshal(map[string]any{
       "client": map[string]string{
@@ -60,15 +72,6 @@ var Transport = http.Transport{
       }
       return http.ProxyFromEnvironment(req)
    },
-}
-
-func LegacyId(rawUrl string) (string, error) {
-   parsed_url, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   last_segment := path.Base(parsed_url.Path)
-   return strings.ReplaceAll(last_segment, "a", "/"), nil
 }
 
 func Titles(legacyId string) ([]Title, error) {

@@ -11,6 +11,17 @@ import (
    "strings"
 )
 
+func GetPath(rawUrl string) (string, error) {
+   u, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return u.Path, nil
+}
+
 func FetchAssetId(path string) (string, error) {
    resp, err := http.Get(
       "https://bff-service.rtbf.be/auvio/v1.23/pages" + path,
@@ -44,14 +55,6 @@ func FetchAssetId(path string) (string, error) {
       return content.Media.AssetId, nil
    }
    return "", errors.New("assetId not found")
-}
-
-func GetPath(rawUrl string) (string, error) {
-   parsed_url, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   return parsed_url.Path, nil
 }
 
 var Transport = http.Transport{

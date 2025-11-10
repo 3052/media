@@ -14,6 +14,19 @@ import (
    "strings"
 )
 
+// https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
+// https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
+func ExtractId(rawUrl string) (string, error) {
+   u, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return path.Base(u.Path), nil
+}
+
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
@@ -370,16 +383,6 @@ func (v *Videos) FilterAndSort() {
       }
       return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
    })
-}
-
-// https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
-// https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
-func ExtractId(rawUrl string) (string, error) {
-   parsedURL, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   return path.Base(parsedURL.Path), nil
 }
 
 type Playback struct {
