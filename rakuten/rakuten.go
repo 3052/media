@@ -14,6 +14,31 @@ import (
    "strings"
 )
 
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+func (m *Media) classification_id() (int, error) {
+   switch m.MarketCode {
+   case "cz":
+      return 272, nil
+   case "dk":
+      return 283, nil
+   case "es":
+      return 5, nil
+   case "fr":
+      return 23, nil
+   case "nl":
+      return 69, nil
+   case "pl":
+      return 277, nil
+   case "pt":
+      return 64, nil
+   case "se":
+      return 282, nil
+   case "uk":
+      return 18, nil
+   }
+   return 0, errors.New("unknown market code")
+}
+
 func (info *Media) Parse(rawUrl string) error {
    parsed, err := url.Parse(rawUrl)
    if err != nil {
@@ -336,26 +361,4 @@ var Transport = http.Transport{
       }
       return http.ProxyFromEnvironment(req)
    },
-}
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-func (m *Media) classification_id() (int, error) {
-   switch m.MarketCode {
-   case "cz":
-      return 272, nil
-   case "dk":
-      return 283, nil
-   case "fr":
-      return 23, nil
-   case "nl":
-      return 69, nil
-   case "pl":
-      return 277, nil
-   case "pt":
-      return 64, nil
-   case "se":
-      return 282, nil
-   case "uk":
-      return 18, nil
-   }
-   return 0, errors.New("unknown market code")
 }
