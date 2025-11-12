@@ -5,8 +5,7 @@
 3. czech republic VPN
 4. canal+ komplet, subscribe
 5. e-mail
-   - mailsac.com
-   - or just use my real email since no trial
+   - just use real email since no trial
 6. first name
 7. last name
 8. I agree to the general terms and conditions

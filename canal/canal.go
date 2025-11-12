@@ -18,6 +18,19 @@ import (
    "time"
 )
 
+var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".dash" {
+         log.Println(req.Method, req.URL)
+      }
+      if strings.HasSuffix(req.URL.Path, "/play") {
+         return http.ProxyFromEnvironment(req)
+      }
+      return nil, nil
+   },
+}
+
 func FetchSession(ssoToken string) (SessionData, error) {
    data, err := json.Marshal(map[string]string{
       "brand":        "m7cp",
@@ -216,15 +229,6 @@ type Player struct {
    }
    Message string
    Url     string // MPD
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) != ".dash" {
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
 }
 
 const device_serial = "!!!!"
