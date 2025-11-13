@@ -7,7 +7,7 @@ var tests = []struct {
    url  string
 }{
    {
-      url: "ctv.ca/movies/x-men-days-of-future-past",
+      url: "https://ctv.ca/movies/the-hurt-locker",
    },
    {
       path: "/shows/friends/the-one-with-the-chicken-pox-s2e23",

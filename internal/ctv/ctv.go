@@ -4,10 +4,29 @@ import (
    "41.neocities.org/media/ctv"
    "41.neocities.org/net"
    "flag"
+   "log"
    "net/http"
    "os"
    "path/filepath"
 )
+
+func main() {
+   http.DefaultTransport = &ctv.Transport
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      err = set.do_address()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
 
 func (f *flag_set) do_address() error {
    path, err := ctv.GetPath(f.address)
@@ -58,20 +77,4 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      err = set.do_address()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }

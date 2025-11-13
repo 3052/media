@@ -5,102 +5,12 @@ import (
    "encoding/json"
    "errors"
    "io"
+   "log"
    "net/http"
    "net/url"
    "strconv"
    "strings"
 )
-
-// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func GetPath(rawUrl string) (string, error) {
-   u, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   if u.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return u.Path, nil
-}
-
-const query_resolve = `
-query resolvePath($path: String!) {
-   resolvedPath(path: $path) {
-      lastSegment {
-         content {
-            ... on AxisObject {
-               id
-               ... on AxisMedia {
-                  firstPlayableContent {
-                     id
-                  }
-               }
-            }
-         }
-      }
-   }
-}
-`
-
-const query_axis = `
-query axisContent($id: ID!) {
-   axisContent(id: $id) {
-      axisId
-      axisPlaybackLanguages {
-         ... on AxisPlayback {
-            destinationCode
-         }
-      }
-   }
-}
-` // do not use `query(`
-
-// this is better than strings.Replace and strings.ReplaceAll
-func graphql_compact(data string) string {
-   return strings.Join(strings.Fields(data), " ")
-}
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://license.9c9media.ca/widevine", "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type AxisContent struct {
-   AxisId                int64
-   AxisPlaybackLanguages []struct {
-      DestinationCode string
-   }
-}
-
-func (a *AxisContent) Content() (*Content, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/destinations/")
-      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
-      b = append(b, "/platforms/desktop/contents/"...)
-      b = strconv.AppendInt(b, a.AxisId, 10)
-      return string(b)
-   }()
-   req.URL.RawQuery = "$include=[ContentPackages]"
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   contentVar := &Content{}
-   err = json.NewDecoder(resp.Body).Decode(contentVar)
-   if err != nil {
-      return nil, err
-   }
-   return contentVar, nil
-}
 
 func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
@@ -125,11 +35,17 @@ func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
    if err != nil {
       return "", err
    }
-   data1 := string(data)
    if resp.StatusCode != http.StatusOK {
-      return "", errors.New(data1)
+      var value struct {
+         Message string
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return "", err
+      }
+      return "", errors.New(value.Message)
    }
-   return strings.Replace(data1, "/best/", "/ultimate/", 1), nil
+   return strings.Replace(string(data), "/best/", "/ultimate/", 1), nil
 }
 
 func Resolve(path string) (*ResolvedPath, error) {
@@ -239,4 +155,101 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
       return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.AxisContent, nil
+}
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      log.Println(req.Method, req.URL)
+      return nil, nil
+   },
+}
+
+// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func GetPath(rawUrl string) (string, error) {
+   u, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return u.Path, nil
+}
+
+const query_resolve = `
+query resolvePath($path: String!) {
+   resolvedPath(path: $path) {
+      lastSegment {
+         content {
+            ... on AxisObject {
+               id
+               ... on AxisMedia {
+                  firstPlayableContent {
+                     id
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+`
+
+const query_axis = `
+query axisContent($id: ID!) {
+   axisContent(id: $id) {
+      axisId
+      axisPlaybackLanguages {
+         ... on AxisPlayback {
+            destinationCode
+         }
+      }
+   }
+}
+` // do not use `query(`
+
+// this is better than strings.Replace and strings.ReplaceAll
+func graphql_compact(data string) string {
+   return strings.Join(strings.Fields(data), " ")
+}
+
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://license.9c9media.ca/widevine", "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type AxisContent struct {
+   AxisId                int64
+   AxisPlaybackLanguages []struct {
+      DestinationCode string
+   }
+}
+
+func (a *AxisContent) Content() (*Content, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.Path = func() string {
+      b := []byte("/destinations/")
+      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
+      b = append(b, "/platforms/desktop/contents/"...)
+      b = strconv.AppendInt(b, a.AxisId, 10)
+      return string(b)
+   }()
+   req.URL.RawQuery = "$include=[ContentPackages]"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   contentVar := &Content{}
+   err = json.NewDecoder(resp.Body).Decode(contentVar)
+   if err != nil {
+      return nil, err
+   }
+   return contentVar, nil
 }
