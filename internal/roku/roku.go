@@ -11,27 +11,9 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.BoolVar(&f.token_write, "T", false, "write token")
-   flag.BoolVar(&f.code_write, "c", false, "write code")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.roku, "r", "", "Roku ID")
-   flag.BoolVar(&f.token_read, "t", false, "read token")
-   flag.Parse()
-   return nil
-}
-
 func main() {
+   http.DefaultTransport = &roku.Transport
+   log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()
    if err != nil {
@@ -159,4 +141,23 @@ func (f *flag_set) do_roku() error {
       return play.Widevine(data)
    }
    return f.filters.Filter(resp, &f.config)
+}
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.BoolVar(&f.token_write, "T", false, "write token")
+   flag.BoolVar(&f.code_write, "c", false, "write code")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.roku, "r", "", "Roku ID")
+   flag.BoolVar(&f.token_read, "t", false, "read token")
+   flag.Parse()
+   return nil
 }
