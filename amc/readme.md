@@ -17,8 +17,6 @@
 12. state
 13. agree & start free trial
 
-no benefit from canceling
-
 ## com.amcplus.amcfullepisodes
 
 - https://apkmirror.com/apk/digital-store-llc/amc-tv-shows-movies

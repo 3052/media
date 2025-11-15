@@ -1,11 +1,11 @@
 41.neocities.org/dash v1.28.1 h1:polFKCd5BozH2DUUqdFLjJwKTOo/4k7hAgh6J6H2i2E=
 41.neocities.org/dash v1.28.1/go.mod h1:BoiwRQ49/m0Jyf98s8nO15CjAkBiKlAs27ljIMhBIJA=
-41.neocities.org/drm v1.6.8 h1:qliereznfY4zJXsQp4u5YusmdO49fqGXOh8e3fMmZ8Q=
-41.neocities.org/drm v1.6.8/go.mod h1:oWfNJou8jpDuGYcitOEzh97dt+Ta3/PLvpP0biE8wcU=
-41.neocities.org/net v1.12.5 h1:KCN5TQOTwZnhO5QVKMcHgYct4X4gJNIdVh8LDkB8fII=
-41.neocities.org/net v1.12.5/go.mod h1:P2gsNWQEuMe3IuDOmjm1GQCILPAnv+O4Gq8HL0A+0MU=
-41.neocities.org/protobuf v1.5.4 h1:+T7Vb4edFU6m6hwgQHmgxLk6wVPrs0E7XsTz9BlV7vk=
-41.neocities.org/protobuf v1.5.4/go.mod h1:nhuoexeiRjXmAbWQN21+Ta6/wfKYeqLWA33H6jgLf0s=
+41.neocities.org/drm v1.7.1 h1:too69TIJ7KK36tvnEMCT27eJGTqX36HcNNi4W1V/r3Q=
+41.neocities.org/drm v1.7.1/go.mod h1:uqYe/7dy+tlHCd4Yhl8ePVBnAAIRGeay9ugyktlOdBQ=
+41.neocities.org/net v1.12.6 h1:8gVZW0p0S56MGjVJm3fL2jHqSA5xxEtLN39/cRrMxT8=
+41.neocities.org/net v1.12.6/go.mod h1:9P2Nm0lC3lIR0uN2T0sg9B/1BRLwrKNrfhnUM5mmldc=
+41.neocities.org/protobuf v1.5.6 h1:/1ZGxBZ6Ir3jMXtkxAY9nfKKUyqHz4j32BOxTDDhmxg=
+41.neocities.org/protobuf v1.5.6/go.mod h1:nhuoexeiRjXmAbWQN21+Ta6/wfKYeqLWA33H6jgLf0s=
 41.neocities.org/sofia v1.10.8 h1:19gkYfasmahYJKfXsKFY9PEmJXkdPv+djCTTAaQ2UYw=
 41.neocities.org/sofia v1.10.8/go.mod h1:sEkwYTmUFHqoL34OBDmyeQR7BrMNa8Z60PKYjOT5unQ=
 github.com/arnaucube/cryptofun v0.0.0-20181124004321-9b11ae8280bd/go.mod h1:PZE8kKpHPD1UMrS3mTfAMmEEinGtijSwjxLRqRcD64A=

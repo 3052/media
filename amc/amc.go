@@ -8,8 +8,18 @@ import (
    "log"
    "net/http"
    "net/url"
+   "path"
    "strconv"
 )
+
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".m4f" {
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
+}
 
 func (c *Client) Playback(id int64) (http.Header, []Source, error) {
    data, err := json.Marshal(map[string]any{
@@ -46,6 +56,14 @@ func (c *Client) Playback(id int64) (http.Header, []Source, error) {
       return nil, nil, err
    }
    defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   // 1 ugly
+   if len(data) == 0 {
+      return nil, nil, errors.New(resp.Status)
+   }
    var value struct {
       Data struct {
          PlaybackJsonData struct {
@@ -54,13 +72,15 @@ func (c *Client) Playback(id int64) (http.Header, []Source, error) {
       }
       Error string
    }
-   err = json.NewDecoder(resp.Body).Decode(&value)
+   err = json.Unmarshal(data, &value)
    if err != nil {
       return nil, nil, err
    }
+   // 2 bad
    if value.Error != "" {
       return nil, nil, errors.New(value.Error)
    }
+   // 3 good
    return resp.Header, value.Data.PlaybackJsonData.Sources, nil
 }
 
@@ -247,13 +267,6 @@ func (c *Client) SeriesDetail(id int64) (*Node, error) {
       return nil, err
    }
    return &value.Data, nil
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
 }
 
 type Client struct {
