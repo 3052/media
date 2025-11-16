@@ -18,14 +18,78 @@ import (
    "time"
 )
 
+func (t *Ticket) Token(username, password string) (*Token, error) {
+   value := map[string]any{
+      "ticket": t.Ticket,
+      "userInput": map[string]string{
+         "username": username,
+         "password": password,
+      },
+   }
+   data, err := json.MarshalIndent(value, "", " ")
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   var client client_token
+   err = client.New(req.URL, data)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", client.String())
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var tokenVar Token
+   err = json.NewDecoder(resp.Body).Decode(&tokenVar)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, &tokenVar
+   }
+   return &tokenVar, nil
+}
+
+func (t *Token) Error() string {
+   var data strings.Builder
+   data.WriteString("label = ")
+   data.WriteString(t.Label)
+   data.WriteString("\nmessage = ")
+   data.WriteString(t.Message)
+   return data.String()
+}
+
+type Token struct {
+   Label    string
+   Message  string
+   SsoToken string // this last one day
+}
+
 var Transport = http.Transport{
    Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
    Proxy: func(req *http.Request) (*url.URL, error) {
       if path.Ext(req.URL.Path) != ".dash" {
          log.Println(req.Method, req.URL)
       }
-      if strings.HasSuffix(req.URL.Path, "/play") {
-         return http.ProxyFromEnvironment(req)
+      proxy, err := http.ProxyFromEnvironment(req)
+      if err != nil {
+         return nil, err
+      }
+      if proxy != nil {
+         if proxy.Hostname() == "localhost" {
+            return proxy, nil
+         }
+         if strings.HasSuffix(req.URL.Path, "/play") {
+            return proxy, nil
+         }
       }
       return nil, nil
    },
@@ -257,58 +321,15 @@ func (p *Player) Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (t *Ticket) Token(username, password string) (*Token, error) {
-   data, err := json.Marshal(map[string]any{
-      "ticket": t.Ticket,
-      "userInput": map[string]string{
-         "username": username,
-         "password": password,
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   var client client_token
-   err = client.New(req.URL, data)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", client.String())
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var tokenVar Token
-   err = json.NewDecoder(resp.Body).Decode(&tokenVar)
-   if err != nil {
-      return nil, err
-   }
-   if tokenVar.Label != "sg.ui.sso.success.login" {
-      return nil, errors.New(tokenVar.Label)
-   }
-   return &tokenVar, nil
-}
-
 type Ticket struct {
    Message string
    Ticket  string
 }
+
 type Session struct {
    Message  string
    SsoToken string
    Token    string // this last one hour
-}
-
-type Token struct {
-   Label    string
-   SsoToken string // this last one day
 }
 
 func (s *Session) Unmarshal(data SessionData) error {

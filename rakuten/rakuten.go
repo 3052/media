@@ -14,6 +14,13 @@ import (
    "strings"
 )
 
+type StreamInfo struct {
+   // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
+   LicenseUrl string `json:"license_url"`
+   // MPD
+   Url string
+}
+
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
 func (m *Media) classification_id() (int, error) {
    switch m.MarketCode {
@@ -103,13 +110,6 @@ type Media struct {
    ContentType string
    MarketCode  string
    TvShowId    string
-}
-
-type StreamInfo struct {
-   // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
-   LicenseUrl string `json:"license_url"`
-   // MPD
-   Url string
 }
 
 type Quality string
