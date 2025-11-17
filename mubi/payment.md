@@ -3,20 +3,24 @@
 ## privacy.com
 
 1. mubi.com
-2. enable javascript
+2. disable uBlock Origin
 3. email address
-   - mail.tm
+   1. tempmail.best (pass)
+   2. mail.tm (fail)
 4. get started
-5. mubi
-6. next
-7. cardholder name
-8. card number
-9. expiry date
-10. CVV
-11. zip code
-12. I agree that after my first 7-days free, my membership will automatically
+5. verification code
+6. mubi
+7. next
+8. cardholder name
+9. card number (MUST USE NEW CARD EACH TIME)
+10. expiry date
+11. CVV
+12. zip code
+13. I agree that after my first 7-days free, my membership will automatically
    renew
-13. start free trial
+14. start free trial
+
+if you cancel it cancels the trial
 
 ## paypal.com
 
@@ -33,10 +37,6 @@
 10. remove paypal as payment method
 11. remove
 12. submit
-13. mubi.com/subscription/cancel
-14. other
-15. continue
-16. extend my free trial
 
 ## bankofamerica.com
 
@@ -52,6 +52,3 @@
 9. CVV
 10. zip code
 11. start free trial
-12. mubi.com/subscription/cancel
-
-if you cancel, you lose access immediately

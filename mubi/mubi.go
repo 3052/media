@@ -9,10 +9,18 @@ import (
    "log"
    "net/http"
    "net/url"
-   "path"
    "strconv"
    "strings"
 )
+
+type SecureUrl struct {
+   TextTrackUrls []struct {
+      Id  string
+      Url string
+   } `json:"text_track_urls"`
+   Url           string      // MPD
+   UserMessage   string      `json:"user_message"`
+}
 
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
@@ -99,15 +107,6 @@ type Authenticate struct {
    }
 }
 
-func (t *Text) Base() string {
-   return path.Base(t.Url)
-}
-
-type Text struct {
-   Id  string
-   Url string
-}
-
 // to get the MPD you have to call this or view video on the website. request
 // is hard geo blocked only the first time
 func (a *Authenticate) Viewing(filmId int64) error {
@@ -170,12 +169,6 @@ func FilmId(slug string) (int64, error) {
       return 0, err
    }
    return film.Id, nil
-}
-
-type SecureUrl struct {
-   TextTrackUrls []Text `json:"text_track_urls"`
-   Url           string      // MPD
-   UserMessage   string      `json:"user_message"`
 }
 
 func (a *Authenticate) SecureUrl(filmId int64) (*SecureUrl, error) {
