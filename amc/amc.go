@@ -12,6 +12,16 @@ import (
    "strconv"
 )
 
+type Source struct {
+   KeySystems *struct {
+      ComWidevineAlpha struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string   // URL to the MPD manifest
+   Type string  // e.g., "application/dash+xml"
+}
+
 var Transport = http.Transport{
    Proxy: func(req *http.Request) (*url.URL, error) {
       if path.Ext(req.URL.Path) != ".m4f" {
@@ -274,16 +284,6 @@ type Client struct {
       AccessToken  string `json:"access_token"`
       RefreshToken string `json:"refresh_token"`
    }
-}
-
-type Source struct {
-   KeySystems *struct {
-      ComWidevineAlpha struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string   // URL to the MPD manifest
-   Type string  // e.g., "application/dash+xml"
 }
 
 func (c *Client) Login(email, password string) (ClientData, error) {
