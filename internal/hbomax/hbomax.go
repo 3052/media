@@ -11,6 +11,28 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.CertificateChain = f.cache + "/SL3000/CertificateChain"
+   f.config.EncryptSignKey = f.cache + "/SL3000/EncryptSignKey"
+   flag.StringVar(&f.config.CertificateChain, "C", f.config.CertificateChain, "certificate chain")
+   flag.StringVar(&f.config.EncryptSignKey, "E", f.config.EncryptSignKey, "encrypt sign key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.edit, "e", "", "edit ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.BoolVar(&f.initiate, "i", false, "device initiate")
+   flag.BoolVar(&f.login, "l", false, "device login")
+   flag.IntVar(&f.season, "s", 0, "season")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
+}
+
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/hboMax/Login")
    if err != nil {
@@ -142,26 +164,4 @@ func (f *flag_set) do_login() error {
    }
    log.Println("WriteFile", f.cache + "/hboMax/Login")
    return os.WriteFile(f.cache + "/hboMax/Login", data, os.ModePerm)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.CertificateChain = f.cache + "/SL3000/CertificateChain"
-   f.config.EncryptSignKey = f.cache + "/SL3000/EncryptSignKey"
-   flag.StringVar(&f.config.CertificateChain, "C", f.config.CertificateChain, "certificate chain")
-   flag.StringVar(&f.config.EncryptSignKey, "E", f.config.EncryptSignKey, "encrypt sign key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.edit, "e", "", "edit ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.BoolVar(&f.initiate, "i", false, "device initiate")
-   flag.BoolVar(&f.login, "l", false, "device login")
-   flag.IntVar(&f.season, "s", 0, "season")
-   flag.IntVar(&f.config.Threads, "t", 1, "threads")
-   flag.Parse()
-   return nil
 }

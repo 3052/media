@@ -9,9 +9,21 @@ import (
    "log"
    "net/http"
    "net/url"
+   "path"
    "strconv"
    "strings"
 )
+
+var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".dash" {
+         return nil, nil
+      }
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
 
 type SecureUrl struct {
    TextTrackUrls []struct {
@@ -20,13 +32,6 @@ type SecureUrl struct {
    } `json:"text_track_urls"`
    Url           string      // MPD
    UserMessage   string      `json:"user_message"`
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return nil, nil
-   },
 }
 
 func (a *Authenticate) Widevine(data []byte) ([]byte, error) {
