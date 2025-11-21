@@ -18,6 +18,35 @@ import (
    "time"
 )
 
+var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return nil, nil
+      }
+      log.Println(req.Method, req.URL)
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
+func (e *Episode) String() string {
+   data := []byte("episode = ")
+   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
+   data = append(data, "\ntitle = "...)
+   data = append(data, e.Title...)
+   data = append(data, "\nid = "...)
+   data = append(data, e.Id...)
+   return string(data)
+}
+
+type Episode struct {
+   Id string
+   Params struct {
+      SeriesEpisode int64
+   }
+   Title string
+}
+
 func (t *Ticket) Token(username, password string) (*Token, error) {
    value := map[string]any{
       "ticket": t.Ticket,
@@ -71,28 +100,6 @@ type Token struct {
    Label    string
    Message  string
    SsoToken string // this last one day
-}
-
-var Transport = http.Transport{
-   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) != ".dash" {
-         log.Println(req.Method, req.URL)
-      }
-      proxy, err := http.ProxyFromEnvironment(req)
-      if err != nil {
-         return nil, err
-      }
-      if proxy != nil {
-         if proxy.Hostname() == "localhost" {
-            return proxy, nil
-         }
-         if strings.HasSuffix(req.URL.Path, "/play") {
-            return proxy, nil
-         }
-      }
-      return nil, nil
-   },
 }
 
 func FetchSession(ssoToken string) (SessionData, error) {
@@ -296,21 +303,6 @@ type Player struct {
 }
 
 const device_serial = "!!!!"
-
-func (e *Episode) String() string {
-   data := []byte("episode = ")
-   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
-   data = append(data, "\nid = "...)
-   data = append(data, e.Id...)
-   return string(data)
-}
-
-type Episode struct {
-   Params struct {
-      SeriesEpisode int64
-   }
-   Id string
-}
 
 func (p *Player) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
