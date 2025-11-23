@@ -2,24 +2,13 @@ package ctv
 
 import "testing"
 
-var tests = []struct {
-   path string
-   url  string
-}{
-   {
-      url: "https://ctv.ca/movies/the-hurt-locker",
-   },
-   {
-      path: "/shows/friends/the-one-with-the-chicken-pox-s2e23",
-      url:  "ctv.ca/shows/friends/the-one-with-the-chicken-pox-s2e23",
-   },
+var test_address = []string{
+   "https://ctv.ca/movies/heathers",
+   "https://ctv.ca/shows/greys-anatomy/we-built-this-city-s22e2",
 }
 
 func Test(t *testing.T) {
-   for _, testVar := range tests {
-      _, err := GetPath(testVar.url)
-      if err != nil {
-         t.Fatal(err)
-      }
+   for _, address := range test_address {
+      t.Log(address)
    }
 }

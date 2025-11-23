@@ -2,10 +2,10 @@ module 41.neocities.org/media
 
 go 1.24.0
 
-require 41.neocities.org/net v1.12.7
+require 41.neocities.org/net v1.13.3
 
 require (
-	41.neocities.org/dash v1.28.3 // indirect
+	41.neocities.org/dash v1.29.2 // indirect
 	41.neocities.org/drm v1.7.2 // indirect
 	41.neocities.org/protobuf v1.5.7 // indirect
 	41.neocities.org/sofia v1.10.9 // indirect
