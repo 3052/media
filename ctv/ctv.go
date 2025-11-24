@@ -8,9 +8,23 @@ import (
    "log"
    "net/http"
    "net/url"
+   "path"
    "strconv"
    "strings"
 )
+
+var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      switch path.Ext(req.URL.Path) {
+      case ".m4a", ".m4v":
+      default:
+         log.Println(req.Method, req.URL)
+         return http.ProxyFromEnvironment(req)
+      }
+      return nil, nil
+   },
+}
 
 func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
@@ -155,12 +169,6 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
       return nil, errors.New(value.Errors[0].Message)
    }
    return &value.Data.AxisContent, nil
-}
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return nil, nil
-   },
 }
 
 // https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21

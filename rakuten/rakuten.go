@@ -14,6 +14,18 @@ import (
    "strings"
 )
 
+var Transport = http.Transport{
+   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+      default:
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
 type StreamInfo struct {
    // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
    LicenseUrl string `json:"license_url"`
@@ -349,16 +361,4 @@ func (m *Media) Pr(
    content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
    return m.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
-}
-
-var Transport = http.Transport{
-   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-      default:
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
 }

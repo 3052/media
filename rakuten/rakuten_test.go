@@ -1,7 +1,6 @@
 package rakuten
 
 import (
-   "fmt"
    "net/http"
    "net/url"
    "os"
@@ -10,20 +9,46 @@ import (
 )
 
 var classification_tests = []string{
-   "http://rakuten.tv/es/movies/una-obra-maestra",
-   "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
-   "http://rakuten.tv/dk/movies/a-time-to-kill",
-   "http://rakuten.tv/fr?content_type=movies&content_id=michael-clayton",
-   "http://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
-   "http://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
-   "http://rakuten.tv/pt/movies/bound",
-   "http://rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
-   "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+   "https://rakuten.tv/pt/movies/bound",
+   "https://rakuten.tv/dk/movies/a-time-to-kill",
+   "https://rakuten.tv/es/movies/una-obra-maestra",
+   "https://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
+   "https://rakuten.tv/fr?content_type=movies&content_id=michael-clayton",
+   "https://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
+   "https://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
+   "https://rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
+   "https://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+}
+
+var address_tests = []struct {
+   format string
+   url    string
+}{
+   {
+      format: "/movies/",
+      url:    "http://rakuten.tv/nl/movies/made-in-america",
+   },
+   {
+      format: "/player/movies/stream/",
+      url:    "http://rakuten.tv/nl/player/movies/stream/made-in-america",
+   },
+   {
+      format: "/tv_shows/",
+      url:    "http://rakuten.tv/fr/tv_shows/une-femme-d-honneur",
+   },
+   {
+      format: "?content_id=",
+      url:    "http://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
+   },
+   {
+      format: "?tv_show_id=",
+      url:    "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+   },
 }
 
 func TestPlayReady(t *testing.T) {
    const (
-      address = "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run"
+      address  = "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run"
       language = "SPA"
    )
    user, err := exec.Command(
@@ -67,39 +92,13 @@ func TestPlayReady(t *testing.T) {
 }
 
 func TestAddress(t *testing.T) {
-   fmt.Println(classification_tests)
+   t.Log(classification_tests)
    for _, test := range address_tests {
       var mediaVar Media
       err := mediaVar.Parse(test.url)
       if err != nil {
          t.Fatal(err)
       }
-      fmt.Printf("%+v\n", mediaVar)
+      t.Logf("%+v", mediaVar)
    }
-}
-
-var address_tests = []struct{
-   format string
-   url string
-}{
-   {
-      format: "/movies/",
-      url: "http://rakuten.tv/nl/movies/made-in-america",
-   },
-   {
-      format: "/player/movies/stream/",
-      url: "http://rakuten.tv/nl/player/movies/stream/made-in-america",
-   },
-   {
-      format: "/tv_shows/",
-      url: "http://rakuten.tv/fr/tv_shows/une-femme-d-honneur",
-   },
-   {
-      format: "?content_id=",
-      url: "http://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
-   },
-   {
-      format: "?tv_show_id=",
-      url: "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
-   },
 }
