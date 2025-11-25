@@ -162,6 +162,7 @@ func (s *Session) Unmarshal(data SessionData) error {
    *s = value.Data
    return nil
 }
+
 type Playlist struct {
    DashPrServer string `json:"dash_pr_server"`
    WvServer     string `json:"wv_server"`
@@ -337,4 +338,3 @@ func (s *Session) DeepLink(id string) (*DeepLink, error) {
    }
    return &deep, nil
 }
-
