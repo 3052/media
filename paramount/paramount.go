@@ -108,12 +108,12 @@ func (a At) playReady(content_id string) (*Session, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   sessionVar := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(sessionVar)
+   session_var := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(session_var)
    if err != nil {
       return nil, err
    }
-   return sessionVar, nil
+   return session_var, nil
 }
 
 type Session struct {
