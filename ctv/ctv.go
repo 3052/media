@@ -254,10 +254,10 @@ func (a *AxisContent) Content() (*Content, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   contentVar := &Content{}
-   err = json.NewDecoder(resp.Body).Decode(contentVar)
+   content_var := &Content{}
+   err = json.NewDecoder(resp.Body).Decode(content_var)
    if err != nil {
       return nil, err
    }
-   return contentVar, nil
+   return content_var, nil
 }

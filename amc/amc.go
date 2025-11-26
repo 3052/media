@@ -344,9 +344,9 @@ type Source struct {
 }
 
 func Dash(sources []Source) (*Source, bool) {
-   for _, sourceVar := range sources {
-      if sourceVar.Type == "application/dash+xml" {
-         return &sourceVar, true
+   for _, source_var := range sources {
+      if source_var.Type == "application/dash+xml" {
+         return &source_var, true
       }
    }
    return nil, false

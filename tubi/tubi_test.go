@@ -36,17 +36,17 @@ var tests = []struct {
 }
 
 func Test(t *testing.T) {
-   for _, testVar := range tests {
-      data, err := NewContent(testVar.content_id)
+   for _, test_var := range tests {
+      data, err := NewContent(test_var.content_id)
       if err != nil {
          t.Fatal(err)
       }
-      contentVar := &Content{}
-      err = contentVar.Unmarshal(data)
+      content_var := &Content{}
+      err = content_var.Unmarshal(data)
       if err != nil {
          t.Fatal(err)
       }
-      fmt.Println(contentVar)
+      fmt.Println(content_var)
       time.Sleep(time.Second)
    }
 }

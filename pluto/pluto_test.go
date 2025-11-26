@@ -19,9 +19,9 @@ var tests = []struct {
    },
 }
 
-func Test(t *testing.T) {
-   for _, testVar := range tests {
-      video, err := NewVod(testVar.id)
+func TestPluto(t *testing.T) {
+   for _, test := range tests {
+      video, err := NewVod(test.id)
       if err != nil {
          t.Fatal(err)
       }

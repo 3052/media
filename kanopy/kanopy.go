@@ -43,12 +43,12 @@ func (l *Login) Plays(member *Membership, videoId int) (*Plays, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   playsVar := &Plays{}
-   err = json.NewDecoder(resp.Body).Decode(playsVar)
+   plays_var := &Plays{}
+   err = json.NewDecoder(resp.Body).Decode(plays_var)
    if err != nil {
       return nil, err
    }
-   return playsVar, nil
+   return plays_var, nil
 }
 
 var Transport = http.Transport{

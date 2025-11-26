@@ -11,7 +11,7 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   sessionVar, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
+   session_var, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
    if err != nil {
       t.Fatal(err)
    }
@@ -20,7 +20,7 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      cache+"/paramount/PlayReady", []byte(sessionVar.LsSession), os.ModePerm,
+      cache+"/paramount/PlayReady", []byte(session_var.LsSession), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)

@@ -67,15 +67,15 @@ func (t *Token) Video(slug string) (*Video, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var videoVar Video
-   err = json.NewDecoder(resp.Body).Decode(&videoVar)
+   var video_var Video
+   err = json.NewDecoder(resp.Body).Decode(&video_var)
    if err != nil {
       return nil, err
    }
-   if videoVar.Message != "" {
-      return nil, errors.New(videoVar.Message)
+   if video_var.Message != "" {
+      return nil, errors.New(video_var.Message)
    }
-   return &videoVar, nil
+   return &video_var, nil
 }
 
 type Video struct {
@@ -102,12 +102,12 @@ func (t *Token) Files(videoVar *Video) (Files, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   var filesVar Files
-   err = json.NewDecoder(resp.Body).Decode(&filesVar)
+   var files_var Files
+   err = json.NewDecoder(resp.Body).Decode(&files_var)
    if err != nil {
       return nil, err
    }
-   return filesVar, nil
+   return files_var, nil
 }
 
 type Files []File
@@ -139,9 +139,9 @@ func (f *File) Widevine(data []byte) ([]byte, error) {
 }
 
 func (f Files) Dash() (*File, bool) {
-   for _, fileVar := range f {
-      if fileVar.Method == "dash" {
-         return &fileVar, true
+   for _, file_var := range f {
+      if file_var.Method == "dash" {
+         return &file_var, true
       }
    }
    return nil, false

@@ -19,10 +19,10 @@ var tests = []struct {
    },
 }
 
-func Test(t *testing.T) {
-   for _, testVar := range tests {
-      var movieVar Movie
-      err := movieVar.Fetch(testVar.custom_id)
+func TestDraken(t *testing.T) {
+   for _, test := range tests {
+      var movie_var Movie
+      err := movie_var.Fetch(test.custom_id)
       if err != nil {
          t.Fatal(err)
       }

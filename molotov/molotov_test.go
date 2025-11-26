@@ -14,8 +14,8 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var loginVar Login
-   err = loginVar.Unmarshal(data)
+   var login_var Login
+   err = login_var.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
@@ -24,7 +24,7 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   _, err = loginVar.PlayUrl(&media)
+   _, err = login_var.PlayUrl(&media)
    if err != nil {
       t.Fatal(err)
    }

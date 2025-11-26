@@ -11,17 +11,17 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var userVar User
-   err = userVar.Unmarshal(data)
+   var user_var User
+   err = user_var.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
    for _, watch_test := range watch_tests {
-      matchVar, err := userVar.Match(watch_test.path)
+      match_var, err := user_var.Match(watch_test.path)
       if err != nil {
          t.Fatal(err)
       }
-      fmt.Println(matchVar)
+      fmt.Println(match_var)
       time.Sleep(time.Second)
    }
 }

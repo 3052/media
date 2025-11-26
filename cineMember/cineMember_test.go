@@ -21,20 +21,20 @@ func TestRead(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var sessionVar Session
-   err = sessionVar.Set(string(data))
+   var session_var Session
+   err = session_var.Set(string(data))
    if err != nil {
       t.Fatal(err)
    }
-   idVar, err := Id(tests[0])
+   id_var, err := Id(tests[0])
    if err != nil {
       t.Fatal(err)
    }
-   streamVar, err := sessionVar.Stream(idVar)
+   stream_var, err := session_var.Stream(id_var)
    if err != nil {
       t.Fatal(err)
    }
-   for _, link := range streamVar.Links {
+   for _, link := range stream_var.Links {
       fmt.Printf("%+v\n", link)
    }
 }
@@ -48,12 +48,12 @@ func TestWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var sessionVar Session
-   err = sessionVar.Fetch()
+   var session_var Session
+   err = session_var.Fetch()
    if err != nil {
       t.Fatal(err)
    }
-   err = sessionVar.Login(user, password)
+   err = session_var.Login(user, password)
    if err != nil {
       t.Fatal(err)
    }
@@ -62,7 +62,7 @@ func TestWrite(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      cache+"/cineMember/session", []byte(sessionVar.String()), os.ModePerm,
+      cache+"/cineMember/session", []byte(session_var.String()), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)

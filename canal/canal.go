@@ -76,15 +76,15 @@ func (t *Ticket) Token(username, password string) (*Token, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var tokenVar Token
-   err = json.NewDecoder(resp.Body).Decode(&tokenVar)
+   var token_var Token
+   err = json.NewDecoder(resp.Body).Decode(&token_var)
    if err != nil {
       return nil, err
    }
    if resp.StatusCode != http.StatusOK {
-      return nil, &tokenVar
+      return nil, &token_var
    }
-   return &tokenVar, nil
+   return &token_var, nil
 }
 
 func (t *Token) Error() string {

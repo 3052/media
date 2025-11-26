@@ -33,17 +33,17 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var sessionVar Session
-   err = sessionVar.Unmarshal(data)
+   var session_var Session
+   err = session_var.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   err = sessionVar.Refresh()
+   err = session_var.Refresh()
    if err != nil {
       t.Fatal(err)
    }
    test := tests[0]
-   play, err := sessionVar.Playlist(&DeepLink{EabId: test.id})
+   play, err := session_var.Playlist(&DeepLink{EabId: test.id})
    if err != nil {
       t.Fatal(err)
    }

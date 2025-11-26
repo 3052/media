@@ -21,7 +21,7 @@ var tests = []struct {
    },
 }
 
-func Test(t *testing.T) {
+func TestKanopy(t *testing.T) {
    data, err := exec.Command("password", "kanopy.com").Output()
    if err != nil {
       t.Fatal(err)
@@ -31,17 +31,17 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var loginVar Login
-   err = loginVar.Unmarshal(data)
+   var login_var Login
+   err = login_var.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   member, err := loginVar.Membership()
+   member, err := login_var.Membership()
    if err != nil {
       t.Fatal(err)
    }
-   for _, testVar := range tests {
-      _, err = loginVar.Plays(member, testVar.video_id)
+   for _, test := range tests {
+      _, err = login_var.Plays(member, test.video_id)
       if err != nil {
          t.Fatal(err)
       }

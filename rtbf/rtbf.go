@@ -218,9 +218,9 @@ func (l *Login) Unmarshal(data Byte[Login]) error {
 }
 
 func (e *Entitlement) Dash() (*Format, bool) {
-   for _, formatVar := range e.Formats {
-      if formatVar.Format == "DASH" {
-         return &formatVar, true
+   for _, format_var := range e.Formats {
+      if format_var.Format == "DASH" {
+         return &format_var, true
       }
    }
    return nil, false

@@ -70,12 +70,12 @@ func TestPlayReady(t *testing.T) {
          Host:   "cz103.nordvpn.com:89",
       }),
    }
-   var mediaVar Media
-   err = mediaVar.Parse(address)
+   var media_var Media
+   err = media_var.Parse(address)
    if err != nil {
       t.Fatal(err)
    }
-   info, err := mediaVar.Pr(mediaVar.ContentId, language, Hd)
+   info, err := media_var.Pr(media_var.ContentId, language, Hd)
    if err != nil {
       t.Fatal(err)
    }
@@ -94,11 +94,11 @@ func TestPlayReady(t *testing.T) {
 func TestAddress(t *testing.T) {
    t.Log(classification_tests)
    for _, test := range address_tests {
-      var mediaVar Media
-      err := mediaVar.Parse(test.url)
+      var media_var Media
+      err := media_var.Parse(test.url)
       if err != nil {
          t.Fatal(err)
       }
-      t.Logf("%+v", mediaVar)
+      t.Logf("%+v", media_var)
    }
 }

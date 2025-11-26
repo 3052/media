@@ -6,35 +6,35 @@ import (
    "time"
 )
 
-var tests = []struct{
-   id    string
-   typeVar string
-   url   string
+var tests = []struct {
+   id         string
+   type_value string
+   url        string
 }{
    {
-      id:    "597a64a4a25c5bf6af4a8c7053049a6f",
-      typeVar: "movie",
-      url:   "therokuchannel.roku.com/watch/597a64a4a25c5bf6af4a8c7053049a6f",
+      id:         "597a64a4a25c5bf6af4a8c7053049a6f",
+      type_value: "movie",
+      url:        "therokuchannel.roku.com/watch/597a64a4a25c5bf6af4a8c7053049a6f",
    },
    {
-      id:    "105c41ea75775968b670fbb26978ed76",
-      typeVar: "episode",
-      url:   "therokuchannel.roku.com/watch/105c41ea75775968b670fbb26978ed76",
+      id:         "105c41ea75775968b670fbb26978ed76",
+      type_value: "episode",
+      url:        "therokuchannel.roku.com/watch/105c41ea75775968b670fbb26978ed76",
    },
 }
 
-func Test(t *testing.T) {
-   for _, testVar := range tests {
+func TestRoku(t *testing.T) {
+   for _, test := range tests {
       data, err := (*Code).AccountToken(nil)
       if err != nil {
          t.Fatal(err)
       }
-      var tokenVar AccountToken
-      err = tokenVar.Unmarshal(data)
+      var token_var AccountToken
+      err = token_var.Unmarshal(data)
       if err != nil {
          t.Fatal(err)
       }
-      play, err := tokenVar.Playback(testVar.id)
+      play, err := token_var.Playback(test.id)
       if err != nil {
          t.Fatal(err)
       }

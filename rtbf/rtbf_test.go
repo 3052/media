@@ -5,9 +5,9 @@ import (
    "time"
 )
 
-func Test(t *testing.T) {
-   for _, testVar := range tests {
-      _, err := FetchAssetId(testVar.path)
+func TestRtbf(t *testing.T) {
+   for _, test := range tests {
+      _, err := FetchAssetId(test.path)
       if err != nil {
          t.Fatal(err)
       }

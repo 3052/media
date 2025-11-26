@@ -15,13 +15,13 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var loginVar Login
-   err = loginVar.Unmarshal(data)
+   var login_var Login
+   err = login_var.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
    // hbomax.com/movies/dune/e7dc7b3a-a494-4ef1-8107-f4308aa6bbf7
-   play, err := loginVar.PlayReady("06a38397-862d-4419-be84-0641939825e7")
+   play, err := login_var.PlayReady("06a38397-862d-4419-be84-0641939825e7")
    if err != nil {
       t.Fatal(err)
    }

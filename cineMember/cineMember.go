@@ -139,16 +139,16 @@ func (s Session) Stream(id int) (*Stream, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var streamVar Stream
-   err = json.NewDecoder(resp.Body).Decode(&streamVar)
+   var stream_var Stream
+   err = json.NewDecoder(resp.Body).Decode(&stream_var)
    if err != nil {
       return nil, err
    }
-   if streamVar.Error != "" {
-      return nil, errors.New(streamVar.Error)
+   if stream_var.Error != "" {
+      return nil, errors.New(stream_var.Error)
    }
-   if streamVar.NoAccess {
+   if stream_var.NoAccess {
       return nil, errors.New("no access")
    }
-   return &streamVar, nil
+   return &stream_var, nil
 }

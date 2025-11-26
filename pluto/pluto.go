@@ -155,10 +155,10 @@ func NewClips(id string) (*Clips, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var clipsVar []Clips
-   err = json.NewDecoder(resp.Body).Decode(&clipsVar)
+   var clips_var []Clips
+   err = json.NewDecoder(resp.Body).Decode(&clips_var)
    if err != nil {
       return nil, err
    }
-   return &clipsVar[0], nil
+   return &clips_var[0], nil
 }
