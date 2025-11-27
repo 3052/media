@@ -11,6 +11,42 @@ import (
    "path/filepath"
 )
 
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   http.DefaultTransport = net.Transport(".mp4")
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.edit != "":
+      err = set.do_edit()
+   case set.initiate:
+      err = set.do_initiate()
+   case set.login:
+      err = set.do_login()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+type flag_set struct {
+   address  string
+   cache    string
+   config   net.Config
+   edit     string
+   filters  net.Filters
+   initiate bool
+   login    bool
+   season   int
+   bypass string
+}
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -23,12 +59,12 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.CertificateChain, "C", f.config.CertificateChain, "certificate chain")
    flag.StringVar(&f.config.EncryptSignKey, "E", f.config.EncryptSignKey, "encrypt sign key")
    flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.bypass, "b", ".mp4", "proxy bypass")
    flag.StringVar(&f.edit, "e", "", "edit ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.BoolVar(&f.initiate, "i", false, "device initiate")
    flag.BoolVar(&f.login, "l", false, "device login")
    flag.IntVar(&f.season, "s", 0, "season")
-   flag.IntVar(&f.config.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }
@@ -65,30 +101,7 @@ func (f *flag_set) do_address() error {
    }
    return nil
 }
-func main() {
-   http.DefaultTransport = &hboMax.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.edit != "":
-      err = set.do_edit()
-   case set.initiate:
-      err = set.do_initiate()
-   case set.login:
-      err = set.do_login()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
+
 func (f *flag_set) do_edit() error {
    data, err := os.ReadFile(f.cache + "/hboMax/Login")
    if err != nil {
@@ -111,17 +124,6 @@ func (f *flag_set) do_edit() error {
       return playback.PlayReady(data)
    }
    return f.filters.Filter(resp, &f.config)
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   edit     string
-   filters  net.Filters
-   initiate bool
-   login    bool
-   season   int
 }
 
 func (f *flag_set) do_initiate() error {

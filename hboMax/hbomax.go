@@ -5,7 +5,6 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
    "path"
@@ -13,17 +12,6 @@ import (
    "strconv"
    "strings"
 )
-
-var Transport = http.Transport{
-   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return nil, nil
-      }
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
-}
 
 // https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
 // https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
