@@ -22,8 +22,8 @@ func (f *flag_set) New() error {
    f.config.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.IntVar(&f.config.Threads, "T", 2, "threads")
    flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.bypass, "b", ".dash", "proxy bypass")
    flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
@@ -32,6 +32,33 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.tracking_id, "t", "", "tracking ID")
    flag.Parse()
    return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   http.DefaultTransport = net.Transport(set.bypass)
+   if set.address != "" {
+      err = set.do_address()
+   } else if set.tracking_id != "" {
+      if set.season >= 1 {
+         err = set.do_season()
+      } else {
+         err = set.do_episode_movie()
+      }
+   } else if set.email_password() {
+      err = set.do_session()
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
 }
 
 func (f *flag_set) do_address() error {
@@ -47,6 +74,7 @@ func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
+
 func (f *flag_set) do_session() error {
    var ticket canal.Ticket
    err := ticket.Fetch()
@@ -81,34 +109,6 @@ func (f *flag_set) do_refresh() error {
    return write_file(f.cache+"/canal/Session", data)
 }
 
-func main() {
-   http.DefaultTransport = &canal.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      err = set.do_address()
-   } else if set.tracking_id != "" {
-      if set.season >= 1 {
-         err = set.do_season()
-      } else {
-         err = set.do_episode_movie()
-      }
-   } else if set.email_password() {
-      err = set.do_session()
-   } else if set.refresh {
-      err = set.do_refresh()
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
 func (f *flag_set) email_password() bool {
    if f.email != "" {
       if f.password != "" {
@@ -128,6 +128,7 @@ type flag_set struct {
    refresh     bool
    season      int64
    tracking_id string
+   bypass string
 }
 
 func (f *flag_set) do_season() error {

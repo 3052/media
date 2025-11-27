@@ -14,8 +14,8 @@ var tests = []struct {
 }{
    {
       content_id: 100047438,
-      drm: true,
-      url: "tubitv.com/movies/100047438",
+      drm:        true,
+      url:        "tubitv.com/movies/100047438",
    },
    {
       content_id: 200042567,

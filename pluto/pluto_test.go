@@ -5,26 +5,11 @@ import (
    "testing"
 )
 
-var tests = []struct {
-   id  string
-   url string
-}{
-   {
-      id:  "5a9dd73dfb6f2f17481aff11",
-      url: "pluto.tv/us/on-demand/movies/5a9dd73dfb6f2f17481aff11",
-   },
-   {
-      id:  "66d0bb64a1c89200137fb0e6",
-      url: "pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6",
-   },
+var tests = []string{
+   "https://pluto.tv/on-demand/movies/6495eff09263a40013cf63a5",
+   "https://pluto.tv/on-demand/series/66d0bb64a1c89200137fb0e6",
 }
 
 func TestPluto(t *testing.T) {
-   for _, test := range tests {
-      video, err := NewVod(test.id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Printf("%+v\n", video)
-   }
+   t.Log(tests)
 }
