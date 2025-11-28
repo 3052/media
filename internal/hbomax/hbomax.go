@@ -17,7 +17,7 @@ func main() {
    if err != nil {
       panic(err)
    }
-   http.DefaultTransport = net.Transport(".mp4")
+   http.DefaultTransport = net.Transport(set.bypass)
    switch {
    case set.address != "":
       err = set.do_address()
