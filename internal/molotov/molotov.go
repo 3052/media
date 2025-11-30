@@ -26,7 +26,7 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.email, "e", "", "email")
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&f.config.Threads, "t", 2, "threads")
+   flag.IntVar(&f.config.Threads, "t", 9, "threads")
    flag.Parse()
    return nil
 }

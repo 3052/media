@@ -7,11 +7,35 @@ import (
    "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   f.config.ClientId = cache + "/L3/client_id.bin"
+   f.config.PrivateKey = cache + "/L3/private_key.pem"
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
+}
+
 func main() {
-   http.DefaultTransport = &ctv.Transport
+   http.DefaultTransport = net.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4a", ".m4v":
+         return ""
+      }
+      return "LP"
+   })
    log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()
@@ -61,20 +85,4 @@ type flag_set struct {
    address string
    config  net.Config
    filters net.Filters
-}
-
-func (f *flag_set) New() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   f.config.ClientId = cache + "/L3/client_id.bin"
-   f.config.PrivateKey = cache + "/L3/private_key.pem"
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.Parse()
-   return nil
 }

@@ -5,26 +5,11 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
-   "path"
    "strconv"
    "strings"
 )
-
-var Transport = http.Transport{
-   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      switch path.Ext(req.URL.Path) {
-      case ".m4a", ".m4v":
-      default:
-         log.Println(req.Method, req.URL)
-         return http.ProxyFromEnvironment(req)
-      }
-      return nil, nil
-   },
-}
 
 func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
