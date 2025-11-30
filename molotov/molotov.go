@@ -11,6 +11,86 @@ import (
    "strings"
 )
 
+type Playback struct {
+   Error struct {
+      DeveloperMessage string `json:"developer_message"`
+   }
+   Stream struct {
+      Url string // MPD
+   }
+   UpDrm struct {
+      KeySystems struct {
+         Widevine struct {
+            License struct {
+               HttpHeaders map[string]string `json:"http_headers"`
+            }
+         }
+      } `json:"key_systems"`
+   } `json:"up_drm"`
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   for key, value := range p.UpDrm.KeySystems.Widevine.License.HttpHeaders {
+      req.Header.Set(key, value)
+   }
+   req.Header.Set("content-type", "application/x-protobuf")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      License []byte
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   return value.License, nil
+}
+
+const (
+   browser_app = `{ "app_build": 4, "app_id": "browser_app", "inner_app_version_name": "5.7.0" }`
+   customer_area = `{ "app_build": 1, "app_id": "customer_area" }`
+)
+
+func (l *Login) Playback(playUrl string) (*Playback, error) {
+   req, err := http.NewRequest("", playUrl, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-forwarded-for", "138.199.15.158")
+   req.Header.Set("x-molotov-agent", browser_app)
+   // keep existing query string
+   query := req.URL.Query()
+   query.Set("access_token", l.AccessToken)
+   req.URL.RawQuery = query.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var play Playback
+   err = json.NewDecoder(resp.Body).Decode(&play)
+   if err != nil {
+      return nil, err
+   }
+   if play.Error.DeveloperMessage != "" {
+      return nil, errors.New(play.Error.DeveloperMessage)
+   }
+   return &play, nil
+}
+
 func FetchLogin(email, password string) (*Login, error) {
    value := map[string]string{
       "grant_type": "password",
@@ -28,7 +108,7 @@ func FetchLogin(email, password string) (*Login, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("x-molotov-agent", molotov_agent)
+   req.Header.Set("x-molotov-agent", customer_area)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -56,7 +136,7 @@ type LoginData []byte
 func (l *Login) Refresh() (LoginData, error) {
    req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
    req.URL.Path = "/v3/auth/refresh/" + l.RefreshToken
-   req.Header.Set("x-molotov-agent", molotov_agent)
+   req.Header.Set("x-molotov-agent", customer_area)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -94,8 +174,6 @@ func (m *MediaId) Parse(rawUrl string) error {
    return nil
 }
 
-const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
-
 type Login struct {
    AccessToken string `json:"access_token"`
    RefreshToken string `json:"refresh_token"`
@@ -111,7 +189,7 @@ func (l *Login) PlayUrl(media *MediaId) (string, error) {
       data = append(data, "/view"...)
       return string(data)
    }()
-   req.Header.Set("x-molotov-agent", molotov_agent)
+   req.Header.Set("x-molotov-agent", customer_area)
    req.URL.RawQuery = url.Values{
       "access_token": {l.AccessToken},
    }.Encode()
@@ -124,7 +202,7 @@ func (l *Login) PlayUrl(media *MediaId) (string, error) {
       Program struct {
          Actions struct {
             Play *struct {
-               Url string
+               Url string // fapi.molotov.tv/v2/me/assets
             }
          }
       }
@@ -139,69 +217,7 @@ func (l *Login) PlayUrl(media *MediaId) (string, error) {
    return value.Program.Actions.Play.Url, nil
 }
 
-func (l *Login) Playback(playUrl string) (*Playback, error) {
-   req, err := http.NewRequest("", playUrl, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("x-forwarded-for", "138.199.15.158")
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   req.URL.RawQuery = url.Values{
-      "access_token": {l.AccessToken},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   play := &Playback{}
-   err = json.NewDecoder(resp.Body).Decode(play)
-   if err != nil {
-      return nil, err
-   }
-   return play, nil
-}
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   for key, value := range p.UpDrm.License.HttpHeaders {
-      req.Header.Set(key, value)
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var value struct {
-      License []byte
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return value.License, nil
-}
-
 func (p *Playback) FhdReady() string {
    return strings.Replace(p.Stream.Url, "high", "fhdready", 1)
 }
 
-type Playback struct {
-   Stream struct {
-      Url string // MPD
-   }
-   UpDrm struct {
-      License struct {
-         HttpHeaders map[string]string `json:"http_headers"`
-      }
-   } `json:"up_drm"`
-}
