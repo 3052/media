@@ -21,19 +21,22 @@ https://vod-molotov.akamaized.net/output/v2/d8/a1/65/32e3c47902de4911dca77b0ad73
 
 ## subscribe
 
-<https://molotov.tv/fr_fr/p/15082-531>
-
-1. Regarder maintenant (watch now)
-2. e-mail
-3. password
-4. day
-5. month
-6. year
-7. sex
-8. FRANCE VPN
-9. subscribe
-10. card number
-11. month
-12. year
-13. security code
-14. Essayer gratuitement (try it for free)
+1. molotov.tv
+2. FRANCE VPN
+3. try now
+4. e-mail
+   - mail.tm
+5. password
+6. day
+7. month
+8. year
+9. sex
+10. subscribe
+11. continue
+12. molotov extended
+13. continue
+14. card number
+15. month
+16. year
+17. security code
+18. Essayer maintenant (try now)

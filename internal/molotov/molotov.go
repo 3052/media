@@ -10,6 +10,29 @@ import (
    "path/filepath"
 )
 
+func main() {
+   http.DefaultTransport = net.Transport(func(*http.Request) string {
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_refresh()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
 func (f *flag_set) do_refresh() error {
    login, err := molotov.FetchLogin(f.email, f.password)
    if err != nil {
@@ -39,26 +62,7 @@ func (f *flag_set) email_password() bool {
    }
    return false
 }
-func main() {
-   http.DefaultTransport = &molotov.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_refresh()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
+
 func (f *flag_set) do_address() error {
    data, err := os.ReadFile(f.cache + "/molotov/Login")
    if err != nil {

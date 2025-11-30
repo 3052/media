@@ -7,9 +7,37 @@ import (
    "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
-   "strings"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = net.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return ""
+      }
+      switch path.Base(req.URL.Path) {
+      case "anonymous-session-token.json", "getlicense":
+         return "L"
+      }
+      return "LP"
+   })
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.paramount != "" {
+      err := set.do_paramount()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
 
 func (f *flag_set) do_paramount() error {
    // INTL does NOT allow anonymous key request, so if you are INTL you
@@ -58,7 +86,6 @@ type flag_set struct {
    filters    net.Filters
    intl       bool
    paramount  string
-   bypass string // Added field
 }
 
 func (f *flag_set) New() error {
@@ -75,32 +102,6 @@ func (f *flag_set) New() error {
    flag.Var(&f.filters, "f", net.FilterUsage)
    flag.BoolVar(&f.intl, "i", false, "intl")
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.StringVar(&f.bypass, "b", ".m4s,.mp4", "proxy bypass")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = net.Proxy(func(req *http.Request) bool {
-      for _, ext := range strings.Split(set.bypass, ",") {
-         if filepath.Ext(req.URL.Path) == ext {
-            return true
-         }
-      }
-      return false
-   })
-   if set.paramount != "" {
-      err := set.do_paramount()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }

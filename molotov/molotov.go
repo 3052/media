@@ -5,12 +5,44 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
    "strconv"
    "strings"
 )
+
+func FetchLogin(email, password string) (*Login, error) {
+   value := map[string]string{
+      "grant_type": "password",
+      "email": email,
+      "password": password,
+   }
+   data, err := json.MarshalIndent(value, "", " ")
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-molotov-agent", molotov_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value1 struct {
+      Auth Login
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value1)
+   if err != nil {
+      return nil, err
+   }
+   return &value1.Auth, nil
+}
 
 func (l *Login) Unmarshal(data LoginData) error {
    return json.Unmarshal(data, l)
@@ -31,13 +63,6 @@ func (l *Login) Refresh() (LoginData, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
 }
 
 type MediaId struct {
@@ -70,38 +95,6 @@ func (m *MediaId) Parse(rawUrl string) error {
 }
 
 const molotov_agent = `{ "app_build": 4, "app_id": "browser_app" }`
-
-func FetchLogin(email, password string) (*Login, error) {
-   data, err := json.Marshal(map[string]string{
-      "grant_type": "password",
-      "email": email,
-      "password": password,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("x-molotov-agent", molotov_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Auth Login
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   return &value.Auth, nil
-}
 
 type Login struct {
    AccessToken string `json:"access_token"`
