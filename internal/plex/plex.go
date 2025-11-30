@@ -5,9 +5,29 @@ import (
    "41.neocities.org/net"
    "errors"
    "flag"
+   "log"
+   "net/http"
    "os"
    "path/filepath"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = net.Proxy(nil)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   if set.address != "" {
+      err = set.do_address()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
+}
 
 type flag_set struct {
    address string
@@ -32,22 +52,6 @@ func (f *flag_set) New() error {
    flag.StringVar(&plex.ForwardedFor, "x", "", "x-forwarded-for")
    flag.Parse()
    return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      err = set.do_address()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }
 
 func (f *flag_set) do_address() error {

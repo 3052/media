@@ -5,31 +5,11 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
-   "path"
    "strconv"
    "strings"
 )
-
-var Transport = http.Transport{
-   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      // log
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-      default:
-         log.Println(req.Method, req.URL)
-      }
-      // proxy
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense":
-         return nil, nil
-      }
-      return http.ProxyFromEnvironment(req)
-   },
-}
 
 func (i *Item) Mpd() (*http.Response, error) {
    req, _ := http.NewRequest("", "https://link.theplatform.com", nil)

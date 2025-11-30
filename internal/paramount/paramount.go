@@ -8,47 +8,8 @@ import (
    "net/http"
    "os"
    "path/filepath"
+   "strings"
 )
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.BoolVar(&f.intl, "i", false, "intl")
-   flag.BoolVar(&f.localhost, "l", false, "localhost")
-   flag.StringVar(&f.paramount, "p", "", "paramount ID")
-   flag.IntVar(&f.config.Threads, "t", 9, "threads")
-   flag.Parse()
-   return nil
-}
-
-func main() {
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if !set.localhost {
-      http.DefaultTransport = &paramount.Transport
-      log.SetFlags(log.Ltime)
-   }
-   if set.paramount != "" {
-      err := set.do_paramount()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
-}
 
 func (f *flag_set) do_paramount() error {
    // INTL does NOT allow anonymous key request, so if you are INTL you
@@ -92,10 +53,54 @@ func (f *flag_set) secret() paramount.AppSecret {
 }
 
 type flag_set struct {
-   cache     string
-   config    net.Config
-   filters   net.Filters
-   intl      bool
-   paramount string
-   localhost bool
+   cache      string
+   config     net.Config
+   filters    net.Filters
+   intl       bool
+   paramount  string
+   bypass string // Added field
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.BoolVar(&f.intl, "i", false, "intl")
+   flag.StringVar(&f.paramount, "p", "", "paramount ID")
+   flag.StringVar(&f.bypass, "b", ".m4s,.mp4", "proxy bypass")
+   flag.Parse()
+   return nil
+}
+
+func main() {
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = net.Proxy(func(req *http.Request) bool {
+      for _, ext := range strings.Split(set.bypass, ",") {
+         if filepath.Ext(req.URL.Path) == ext {
+            return true
+         }
+      }
+      return false
+   })
+   if set.paramount != "" {
+      err := set.do_paramount()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
 }

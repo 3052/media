@@ -11,6 +11,49 @@ import (
    "path/filepath"
 )
 
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
+   flag.Parse()
+   return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = net.Proxy(func(req *http.Request) bool {
+      return filepath.Ext(req.URL.Path) == ".m4s"
+   })
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.email_password():
+      err = set.do_login()
+   case set.kanopy >= 1:
+      err = set.do_kanopy()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
 func (f *flag_set) do_login() error {
    data, err := kanopy.FetchLogin(f.email, f.password)
    if err != nil {
@@ -54,45 +97,6 @@ func (f *flag_set) do_kanopy() error {
       return login.Widevine(manifest, data)
    }
    return f.filters.Filter(resp, &f.config)
-}
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.IntVar(&f.kanopy, "k", 0, "Kanopy ID")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
-func main() {
-   http.DefaultTransport = &kanopy.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.email_password():
-      err = set.do_login()
-   case set.kanopy >= 1:
-      err = set.do_kanopy()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
 }
 
 type flag_set struct {

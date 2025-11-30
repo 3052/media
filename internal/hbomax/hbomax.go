@@ -17,7 +17,10 @@ func main() {
    if err != nil {
       panic(err)
    }
-   http.DefaultTransport = net.Transport(set.bypass)
+   log.SetFlags(log.Ltime)
+   http.DefaultTransport = net.Proxy(func(req *http.Request) bool {
+      return filepath.Ext(req.URL.Path) == set.bypass
+   })
    switch {
    case set.address != "":
       err = set.do_address()

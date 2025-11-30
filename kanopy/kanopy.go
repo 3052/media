@@ -5,9 +5,7 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
-   "net/url"
    "strconv"
 )
 
@@ -49,13 +47,6 @@ func (l *Login) Plays(member *Membership, videoId int) (*Plays, error) {
       return nil, err
    }
    return plays_var, nil
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return nil, nil
-   },
 }
 
 func (l *Login) Widevine(manifestVar *Manifest, data []byte) ([]byte, error) {
