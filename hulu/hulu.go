@@ -89,6 +89,13 @@ var deejay = []struct {
    },
 }
 
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+}
+
+///
+
 func FetchSession(email, password string) (SessionData, error) {
    resp, err := http.PostForm(
       "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
@@ -301,16 +308,6 @@ func (s *Session) DeepLink(id string) (*DeepLink, error) {
       return nil, errors.New(deep.Message)
    }
    return &deep, nil
-}
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-      default:
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
 }
 
 func (p *Playlist) Widevine(data []byte) ([]byte, error) {

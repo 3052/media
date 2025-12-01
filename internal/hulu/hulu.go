@@ -10,6 +10,17 @@ import (
    "path/filepath"
 )
 
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+      default:
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
 func (f *flag_set) do_session() error {
    data, err := hulu.FetchSession(f.email, f.password)
    if err != nil {
