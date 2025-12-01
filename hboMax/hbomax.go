@@ -13,19 +13,22 @@ import (
    "strings"
 )
 
-func (p *Playback) Dash() ([]byte, *url.URL, error) {
+func (p *Playback) Dash() (map[string]string, error) {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
    )
    if err != nil {
-      return nil, nil, err
+      return nil, err
    }
    defer resp.Body.Close()
    data, err := io.ReadAll(resp.Body)
    if err != nil {
-      return nil, nil, err
+      return nil, err
    }
-   return data, resp.Request.URL, nil
+   values := map[string]string{}
+   values["body"] = string(data)
+   values["url"] = resp.Request.URL.String()
+   return values, nil
 }
 
 // https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
