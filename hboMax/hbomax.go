@@ -13,6 +13,21 @@ import (
    "strings"
 )
 
+func (p *Playback) Dash() ([]byte, *url.URL, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return data, resp.Request.URL, nil
+}
+
 // https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
 // https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
 func ExtractId(rawUrl string) (string, error) {
@@ -250,10 +265,6 @@ func (v *Video) String() string {
    b = append(b, "\nedit id = "...)
    b = append(b, v.Relationships.Edit.Data.Id...)
    return string(b)
-}
-
-func (p *Playback) Mpd() string {
-   return strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1)
 }
 
 type Scheme struct {

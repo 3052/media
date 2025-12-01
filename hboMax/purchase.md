@@ -21,8 +21,6 @@
 17. state
 18. pay now
 
-if you try to cancel they offer half price for three months
-
 ## paypal.com
 
 1. paypal.com/myaccount/autopay/connect
