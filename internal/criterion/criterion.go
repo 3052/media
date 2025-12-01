@@ -12,6 +12,34 @@ import (
    "path/filepath"
 )
 
+func main() {
+   http.DefaultTransport = net.Transport(func(req *http.Request) string {
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      panic(err)
+   }
+   switch {
+   case set.address != "":
+      err = set.do_address()
+   case set.email_password():
+      err = set.do_token()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      panic(err)
+   }
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 func (f *flag_set) do_token() error {
    data, err := criterion.FetchToken(f.email, f.password)
    if err != nil {
@@ -99,30 +127,4 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
-}
-
-func main() {
-   http.DefaultTransport = &criterion.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_token()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }

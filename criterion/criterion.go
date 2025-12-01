@@ -5,10 +5,11 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
 )
+
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
 func FetchToken(username, password string) (TokenData, error) {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
@@ -25,8 +26,20 @@ func FetchToken(username, password string) (TokenData, error) {
 }
 
 type Token struct {
-   AccessToken  string `json:"access_token"`
-   RefreshToken string `json:"refresh_token"`
+   AccessToken      string `json:"access_token"`
+   ErrorDescription string `json:"error_description"`
+   RefreshToken     string `json:"refresh_token"`
+}
+
+func (t *Token) Unmarshal(data TokenData) error {
+   err := json.Unmarshal(data, t)
+   if err != nil {
+      return err
+   }
+   if t.ErrorDescription != "" {
+      return errors.New(t.ErrorDescription)
+   }
+   return nil
 }
 
 func (t *Token) Refresh() (TokenData, error) {
@@ -43,19 +56,6 @@ func (t *Token) Refresh() (TokenData, error) {
 }
 
 type TokenData []byte
-
-func (t *Token) Unmarshal(data TokenData) error {
-   return json.Unmarshal(data, t)
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      log.Println(req.Method, req.URL)
-      return http.ProxyFromEnvironment(req)
-   },
-}
-
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
 func (t *Token) Video(slug string) (*Video, error) {
    req, _ := http.NewRequest("", "https://api.vhx.com", nil)

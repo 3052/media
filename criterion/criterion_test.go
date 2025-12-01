@@ -7,18 +7,15 @@ import (
 
 var tests = []struct {
    segment string
-   slug    string
    url     string
 }{
    {
       segment: "SegmentList",
-      slug:    "wildcat",
-      url:     "criterionchannel.com/wildcat",
+      url:     "https://criterionchannel.com/wildcat",
    },
    {
       segment: "SegmentTemplate",
-      slug:    "my-dinner-with-andre",
-      url:     "criterionchannel.com/videos/my-dinner-with-andre",
+      url:     "https://criterionchannel.com/my-dinner-with-andre",
    },
 }
 
