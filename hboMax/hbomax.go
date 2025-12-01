@@ -13,164 +13,6 @@ import (
    "strings"
 )
 
-func (l Login) Movie(show_id string) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/routes/movie/" + show_id
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "page[items.size]": {"1"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var movie Videos
-   err = json.NewDecoder(resp.Body).Decode(&movie)
-   if err != nil {
-      return nil, err
-   }
-   if len(movie.Errors) >= 1 {
-      return nil, &movie.Errors[0]
-   }
-   return &movie, nil
-}
-
-func (e *Error) Error() string {
-   if e.Detail != "" {
-      return e.Detail
-   }
-   return e.Message
-}
-
-func (v *Video) String() string {
-   var data []byte
-   if v.Attributes.SeasonNumber >= 1 {
-      data = append(data, "season number = "...)
-      data = strconv.AppendInt(data, int64(v.Attributes.SeasonNumber), 10)
-   }
-   if v.Attributes.EpisodeNumber >= 1 {
-      data = append(data, "\nepisode number = "...)
-      data = strconv.AppendInt(data, int64(v.Attributes.EpisodeNumber), 10)
-   }
-   if data != nil {
-      data = append(data, '\n')
-   }
-   data = append(data, "name = "...)
-   data = append(data, v.Attributes.Name...)
-   data = append(data, "\nvideo type = "...)
-   data = append(data, v.Attributes.VideoType...)
-   data = append(data, "\nedit id = "...)
-   data = append(data, v.Relationships.Edit.Data.Id...)
-   return string(data)
-}
-
-func (i *Initiate) String() string {
-   var data strings.Builder
-   data.WriteString("target URL = ")
-   data.WriteString(i.TargetUrl)
-   data.WriteString("\nlinking code = ")
-   data.WriteString(i.LinkingCode)
-   return data.String()
-}
-
-type Scheme struct {
-   LicenseUrl string
-}
-
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
-
-type Initiate struct {
-   LinkingCode string
-   TargetUrl   string
-}
-
-type Videos struct {
-   Errors   []Error
-   Included []*Video
-}
-
-type Error struct {
-   Detail  string // show was filtered by validator
-   Message string // Token is missing or not valid
-}
-
-type Video struct {
-   Attributes *struct {
-      SeasonNumber  int
-      EpisodeNumber int
-      Name          string
-      VideoType     string
-   }
-   Relationships *struct {
-      Edit *struct {
-         Data struct {
-            Id string
-         }
-      }
-   }
-}
-
-func (v *Videos) FilterAndSort() {
-   v.Included = slices.DeleteFunc(v.Included, func(video *Video) bool {
-      if video.Attributes == nil {
-         return true // Remove videos with nil attributes.
-      }
-      videoType := video.Attributes.VideoType
-      return videoType != "EPISODE" && videoType != "MOVIE"
-   })
-   slices.SortFunc(v.Included, func(a, b *Video) int {
-      if a.Attributes == nil || b.Attributes == nil {
-         return 0 // Consider them equal if attributes are missing.
-      }
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         PlayReady *Scheme
-         Widevine  *Scheme
-      }
-   }
-   Errors   []Error
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
-}
-
-type Login struct {
-   Data struct {
-      Attributes struct {
-         Token string
-      }
-   }
-}
-
-// https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
-// https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
-func ExtractId(rawUrl string) (string, error) {
-   u, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   if u.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return path.Base(u.Path), nil
-}
-
 func (s St) Initiate() (*Initiate, error) {
    req, _ := http.NewRequest("POST", prd_api, nil)
    req.URL.Path = "/authentication/linkDevice/initiate"
@@ -333,9 +175,16 @@ func (p *Playback) Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-type St [1]*http.Cookie
+type Login struct {
+   Data struct {
+      Attributes struct {
+         Token string
+      }
+   }
+}
 
-func (s *St) Fetch(cache map[string]string) error {
+type St [1]*http.Cookie
+func (c *Cache) FetchSt() error {
    req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
    req.Header.Set("x-device-info", device_info)
    req.Header.Set("x-disco-client", disco_client)
@@ -346,43 +195,37 @@ func (s *St) Fetch(cache map[string]string) error {
    defer resp.Body.Close()
    for _, cookie := range resp.Cookies() {
       if cookie.Name == "st" {
-         s[0] = cookie
-         cache[cookie.Name] = cookie.Value
+         c.St = &St{cookie}
          return nil
       }
    }
    return http.ErrNoCookie
 }
 
-func (s *St) Load(cache map[string]string) {
-   s[0] = &http.Cookie{
-      Name: "st",
-      Value: cache["st"],
-   }
+type Cache struct {
+   Login   *Login
+   Mpd     *url.URL
+   MpdBody string
+   St      *St
 }
-
-///
 
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
-func (s St) Login() (LoginData, error) {
+func (c *Cache) FetchLogin() error {
    req, _ := http.NewRequest("POST", prd_api, nil)
    req.URL.Path = "/authentication/linkDevice/login"
-   req.AddCookie(s[0])
+   req.AddCookie(c.St[0])
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   c.Login = &Login{}
+   return json.NewDecoder(resp.Body).Decode(c.Login)
 }
 
-func (l *Login) Unmarshal(data LoginData) error {
-   return json.Unmarshal(data, l)
-}
-
-func (p *Playback) Dash() (map[string]string, error) {
+func (p *Playback) FetchManifest() (*Cache, error) {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
    )
@@ -394,8 +237,158 @@ func (p *Playback) Dash() (map[string]string, error) {
    if err != nil {
       return nil, err
    }
-   values := map[string]string{}
-   values["body"] = string(data)
-   values["url"] = resp.Request.URL.String()
-   return values, nil
+   var session Cache
+   session.MpdBody = string(data)
+   session.Mpd = resp.Request.URL
+   return &session, nil
+}
+
+func (l Login) Movie(show_id string) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/routes/movie/" + show_id
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "page[items.size]": {"1"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var movie Videos
+   err = json.NewDecoder(resp.Body).Decode(&movie)
+   if err != nil {
+      return nil, err
+   }
+   if len(movie.Errors) >= 1 {
+      return nil, &movie.Errors[0]
+   }
+   return &movie, nil
+}
+
+func (e *Error) Error() string {
+   if e.Detail != "" {
+      return e.Detail
+   }
+   return e.Message
+}
+
+func (v *Video) String() string {
+   var data []byte
+   if v.Attributes.SeasonNumber >= 1 {
+      data = append(data, "season number = "...)
+      data = strconv.AppendInt(data, int64(v.Attributes.SeasonNumber), 10)
+   }
+   if v.Attributes.EpisodeNumber >= 1 {
+      data = append(data, "\nepisode number = "...)
+      data = strconv.AppendInt(data, int64(v.Attributes.EpisodeNumber), 10)
+   }
+   if data != nil {
+      data = append(data, '\n')
+   }
+   data = append(data, "name = "...)
+   data = append(data, v.Attributes.Name...)
+   data = append(data, "\nvideo type = "...)
+   data = append(data, v.Attributes.VideoType...)
+   data = append(data, "\nedit id = "...)
+   data = append(data, v.Relationships.Edit.Data.Id...)
+   return string(data)
+}
+
+func (i *Initiate) String() string {
+   var data strings.Builder
+   data.WriteString("target URL = ")
+   data.WriteString(i.TargetUrl)
+   data.WriteString("\nlinking code = ")
+   data.WriteString(i.LinkingCode)
+   return data.String()
+}
+
+type Scheme struct {
+   LicenseUrl string
+}
+
+const (
+   device_info  = "!/!(!/!;!/!;!/!)"
+   disco_client = "!:!:beam:!"
+   prd_api      = "https://default.prd.api.discomax.com"
+)
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
+}
+
+type Videos struct {
+   Errors   []Error
+   Included []*Video
+}
+
+type Error struct {
+   Detail  string // show was filtered by validator
+   Message string // Token is missing or not valid
+}
+
+type Video struct {
+   Attributes *struct {
+      SeasonNumber  int
+      EpisodeNumber int
+      Name          string
+      VideoType     string
+   }
+   Relationships *struct {
+      Edit *struct {
+         Data struct {
+            Id string
+         }
+      }
+   }
+}
+
+func (v *Videos) FilterAndSort() {
+   v.Included = slices.DeleteFunc(v.Included, func(video *Video) bool {
+      if video.Attributes == nil {
+         return true // Remove videos with nil attributes.
+      }
+      videoType := video.Attributes.VideoType
+      return videoType != "EPISODE" && videoType != "MOVIE"
+   })
+   slices.SortFunc(v.Included, func(a, b *Video) int {
+      if a.Attributes == nil || b.Attributes == nil {
+         return 0 // Consider them equal if attributes are missing.
+      }
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine  *Scheme
+      }
+   }
+   Errors   []Error
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
+// https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
+// https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
+func ExtractId(rawUrl string) (string, error) {
+   u, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return path.Base(u.Path), nil
 }

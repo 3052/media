@@ -12,6 +12,11 @@ import (
    "path/filepath"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -74,30 +79,46 @@ func main() {
    }
 }
 
-///
-
 func (f *flag_set) do_initiate() error {
-   var st hboMax.St
-   err := st.Token()
+   var cache hboMax.Cache
+   err := cache.FetchSt()
    if err != nil {
       return err
    }
-   log.Println("Create", f.cache+"/hboMax/St")
-   file, err := os.Create(f.cache + "/hboMax/St")
+   data, err := json.Marshal(cache)
    if err != nil {
       return err
    }
-   defer file.Close()
-   _, err = fmt.Fprint(file, st)
+   err = write_file(f.cache + "/hboMax/cache.json")
    if err != nil {
       return err
    }
-   initiate, err := st.Initiate()
+   initiate, err := cache.St.Initiate()
    if err != nil {
       return err
    }
    fmt.Println(initiate)
    return nil
+}
+
+///
+
+func (f *flag_set) do_login() error {
+   data, err := os.ReadFile(f.cache + "/hboMax/St")
+   if err != nil {
+      return err
+   }
+   var st hboMax.St
+   err = st.Set(string(data))
+   if err != nil {
+      return err
+   }
+   data, err = st.Login()
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", f.cache+"/hboMax/Login")
+   return os.WriteFile(f.cache+"/hboMax/Login", data, os.ModePerm)
 }
 
 func (f *flag_set) do_address() error {
@@ -158,22 +179,4 @@ func (f *flag_set) do_edit() error {
       return f.config.Download(values["body"], values["url"], f.dash)
    }
    return net.Representations(values["body"], values["url"])
-}
-
-func (f *flag_set) do_login() error {
-   data, err := os.ReadFile(f.cache + "/hboMax/St")
-   if err != nil {
-      return err
-   }
-   var st hboMax.St
-   err = st.Set(string(data))
-   if err != nil {
-      return err
-   }
-   data, err = st.Login()
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", f.cache+"/hboMax/Login")
-   return os.WriteFile(f.cache+"/hboMax/Login", data, os.ModePerm)
 }

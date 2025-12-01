@@ -67,17 +67,18 @@ func TestContent(t *testing.T) {
       fmt.Println(test)
    }
 }
+
 func TestPlayReady(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(cache + "/hboMax/Login")
+   //data, err := os.ReadFile(cache + "/hboMax/Login")
    if err != nil {
       t.Fatal(err)
    }
    var login_var Login
-   err = login_var.Unmarshal(data)
+   //err = login_var.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
