@@ -13,6 +13,37 @@ import (
    "strings"
 )
 
+func (l Login) Movie(show_id string) (*Videos, error) {
+   req, _ := http.NewRequest("", prd_api, nil)
+   req.URL.Path = "/cms/routes/movie/" + show_id
+   req.URL.RawQuery = url.Values{
+      "include":          {"default"},
+      "page[items.size]": {"1"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var movie Videos
+   err = json.NewDecoder(resp.Body).Decode(&movie)
+   if err != nil {
+      return nil, err
+   }
+   if len(movie.Errors) >= 1 {
+      return nil, &movie.Errors[0]
+   }
+   return &movie, nil
+}
+
+func (e *Error) Error() string {
+   if e.Detail != "" {
+      return e.Detail
+   }
+   return e.Message
+}
+
 func (v *Video) String() string {
    var data []byte
    if v.Attributes.SeasonNumber >= 1 {
@@ -53,13 +84,6 @@ const (
    disco_client = "!:!:beam:!"
    prd_api      = "https://default.prd.api.discomax.com"
 )
-
-func (e *Error) Error() string {
-   if e.Detail != "" {
-      return e.Detail
-   }
-   return e.Message
-}
 
 type Initiate struct {
    LinkingCode string
@@ -147,56 +171,6 @@ func ExtractId(rawUrl string) (string, error) {
    return path.Base(u.Path), nil
 }
 
-///
-
-// you must
-// /authentication/linkDevice/initiate
-// first or this will always fail
-func (s St) Login() (LoginData, error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/login"
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type St [1]*http.Cookie
-
-func (s *St) Token() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
-
-func (s *St) Set(data string) error {
-   var err error
-   s[0], err = http.ParseSetCookie(data)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (s St) String() string {
-   return s[0].String()
-}
-
 func (s St) Initiate() (*Initiate, error) {
    req, _ := http.NewRequest("POST", prd_api, nil)
    req.URL.Path = "/authentication/linkDevice/initiate"
@@ -221,54 +195,6 @@ func (s St) Initiate() (*Initiate, error) {
       return nil, &value.Errors[0]
    }
    return &value.Data.Attributes, nil
-}
-
-func (p *Playback) Dash() (map[string]string, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   values := map[string]string{}
-   values["body"] = string(data)
-   values["url"] = resp.Request.URL.String()
-   return values, nil
-}
-
-func (l *Login) Unmarshal(data LoginData) error {
-   return json.Unmarshal(data, l)
-}
-
-type LoginData []byte
-
-func (l Login) Movie(show_id string) (*Videos, error) {
-   req, _ := http.NewRequest("", prd_api, nil)
-   req.URL.Path = "/cms/routes/movie/" + show_id
-   req.URL.RawQuery = url.Values{
-      "include":          {"default"},
-      "page[items.size]": {"1"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var movie Videos
-   err = json.NewDecoder(resp.Body).Decode(&movie)
-   if err != nil {
-      return nil, err
-   }
-   if len(movie.Errors) >= 1 {
-      return nil, &movie.Errors[0]
-   }
-   return &movie, nil
 }
 
 func (l Login) Season(show_id string, number int) (*Videos, error) {
@@ -405,4 +331,71 @@ func (p *Playback) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
+}
+
+type St [1]*http.Cookie
+
+func (s *St) Fetch(cache map[string]string) error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s[0] = cookie
+         cache[cookie.Name] = cookie.Value
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
+func (s *St) Load(cache map[string]string) {
+   s[0] = &http.Cookie{
+      Name: "st",
+      Value: cache["st"],
+   }
+}
+
+///
+
+// you must
+// /authentication/linkDevice/initiate
+// first or this will always fail
+func (s St) Login() (LoginData, error) {
+   req, _ := http.NewRequest("POST", prd_api, nil)
+   req.URL.Path = "/authentication/linkDevice/login"
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (l *Login) Unmarshal(data LoginData) error {
+   return json.Unmarshal(data, l)
+}
+
+func (p *Playback) Dash() (map[string]string, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   values := map[string]string{}
+   values["body"] = string(data)
+   values["url"] = resp.Request.URL.String()
+   return values, nil
 }
