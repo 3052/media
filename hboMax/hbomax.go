@@ -14,26 +14,29 @@ import (
 )
 
 type Cache struct {
-   Login   *Login
-   St      *St
-   Mpd     *url.URL
-   MpdBody []byte
+   Login    *Login
+   Mpd      *url.URL
+   MpdBody  []byte
+   Playback *Playback
+   St       *St
 }
 
-func (p *Playback) FetchManifest(session *Cache) error {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return err
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine  *Scheme
+      }
    }
-   defer resp.Body.Close()
-   session.Mpd = resp.Request.URL
-   session.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
+   Errors   []Error
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
    }
-   return nil
+   Manifest struct {
+      Url string // 1080p
+   }
 }
 
 // you must
@@ -191,24 +194,6 @@ func (v *Videos) FilterAndSort() {
       }
       return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
    })
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         PlayReady *Scheme
-         Widevine  *Scheme
-      }
-   }
-   Errors   []Error
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
 }
 
 // https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
@@ -395,3 +380,19 @@ type Login struct {
 }
 
 type St [1]*http.Cookie
+
+func (p *Playback) FetchManifest(session *Cache) error {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   session.Mpd = resp.Request.URL
+   session.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}

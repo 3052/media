@@ -13,33 +13,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_edit() error {
-   data, err := os.ReadFile(f.cache + "/hboMax/Cache")
-   if err != nil {
-      return err
-   }
-   var cache hboMax.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   playback, err := cache.Login.PlayReady(f.edit)
-   if err != nil {
-      return err
-   }
-   err = playback.FetchManifest(&cache)
-   if err != nil {
-      return err
-   }
-   if f.dash != "" {
-      f.config.Send = func(data []byte) ([]byte, error) {
-         return playback.PlayReady(data)
-      }
-      return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
-}
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -66,17 +39,6 @@ func (f *flag_set) New() error {
    return nil
 }
 
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   dash     string
-   edit     string
-   initiate bool
-   login    bool
-   season   int
-}
-
 func main() {
    net.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".mp4" {
@@ -93,18 +55,36 @@ func main() {
    switch {
    case set.initiate:
       err = set.do_initiate()
+   case set.login:
+      err = set.do_login()
    case set.address != "":
       err = set.do_address()
    case set.edit != "":
       err = set.do_edit()
-   case set.login:
-      err = set.do_login()
+   case set.dash != "":
+      err = set.do_dash()
    default:
       flag.Usage()
    }
    if err != nil {
       panic(err)
    }
+}
+
+type flag_set struct {
+   cache    string
+   config   net.Config
+   // 1
+   initiate bool
+   // 2
+   login    bool
+   // 3
+   address  string
+   season   int
+   // 4
+   edit     string
+   // 5
+   dash     string
 }
 
 func (f *flag_set) do_initiate() error {
@@ -147,7 +127,7 @@ func (f *flag_set) do_login() error {
    if err != nil {
       return err
    }
-   return write_file(f.cache + "hboMax/Cache", data)
+   return write_file(f.cache + "/hboMax/Cache", data)
 }
 
 func (f *flag_set) do_address() error {
@@ -181,4 +161,49 @@ func (f *flag_set) do_address() error {
       fmt.Println(video)
    }
    return nil
+}
+
+func (f *flag_set) do_edit() error {
+   data, err := os.ReadFile(f.cache + "/hboMax/Cache")
+   if err != nil {
+      return err
+   }
+   var cache hboMax.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   cache.Playback, err = cache.Login.PlayReady(f.edit)
+   if err != nil {
+      return err
+   }
+   err = cache.Playback.FetchManifest(&cache)
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache + "/hboMax/Cache", data)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
+}
+
+func (f *flag_set) do_dash() error {
+   data, err := os.ReadFile(f.cache + "/hboMax/Cache")
+   if err != nil {
+      return err
+   }
+   var cache hboMax.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.PlayReady(data)
+   }
+   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
 }
