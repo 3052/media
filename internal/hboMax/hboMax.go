@@ -3,6 +3,7 @@ package main
 import (
    "41.neocities.org/media/hboMax"
    "41.neocities.org/net"
+   "encoding/json"
    "flag"
    "fmt"
    "log"
@@ -11,6 +12,33 @@ import (
    "path"
    "path/filepath"
 )
+
+func (f *flag_set) do_edit() error {
+   data, err := os.ReadFile(f.cache + "/hboMax/Cache")
+   if err != nil {
+      return err
+   }
+   var cache hboMax.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   playback, err := cache.Login.PlayReady(f.edit)
+   if err != nil {
+      return err
+   }
+   err = playback.FetchManifest(&cache)
+   if err != nil {
+      return err
+   }
+   if f.dash != "" {
+      f.config.Send = func(data []byte) ([]byte, error) {
+         return playback.PlayReady(data)
+      }
+      return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
+}
 
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
@@ -80,20 +108,20 @@ func main() {
 }
 
 func (f *flag_set) do_initiate() error {
-   var cache hboMax.Cache
-   err := cache.FetchSt()
+   var st hboMax.St
+   err := st.Fetch()
    if err != nil {
       return err
    }
-   data, err := json.Marshal(cache)
+   data, err := json.Marshal(hboMax.Cache{St: &st})
    if err != nil {
       return err
    }
-   err = write_file(f.cache + "/hboMax/cache.json")
+   err = write_file(f.cache + "/hboMax/Cache", data)
    if err != nil {
       return err
    }
-   initiate, err := cache.St.Initiate()
+   initiate, err := st.Initiate()
    if err != nil {
       return err
    }
@@ -101,45 +129,46 @@ func (f *flag_set) do_initiate() error {
    return nil
 }
 
-///
-
 func (f *flag_set) do_login() error {
-   data, err := os.ReadFile(f.cache + "/hboMax/St")
+   data, err := os.ReadFile(f.cache + "/hboMax/Cache")
    if err != nil {
       return err
    }
-   var st hboMax.St
-   err = st.Set(string(data))
+   var cache hboMax.Cache
+   err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
-   data, err = st.Login()
+   cache.Login, err = cache.St.Login()
    if err != nil {
       return err
    }
-   log.Println("WriteFile", f.cache+"/hboMax/Login")
-   return os.WriteFile(f.cache+"/hboMax/Login", data, os.ModePerm)
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache + "hboMax/Cache", data)
 }
 
 func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/hboMax/Login")
-   if err != nil {
-      return err
-   }
-   var login hboMax.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
    show_id, err := hboMax.ExtractId(f.address)
+   if err != nil {
+      return err
+   }
+   data, err := os.ReadFile(f.cache + "/hboMax/Cache")
+   if err != nil {
+      return err
+   }
+   var cache hboMax.Cache
+   err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
    var videos *hboMax.Videos
    if f.season >= 1 {
-      videos, err = login.Season(show_id, f.season)
+      videos, err = cache.Login.Season(show_id, f.season)
    } else {
-      videos, err = login.Movie(show_id)
+      videos, err = cache.Login.Movie(show_id)
    }
    if err != nil {
       return err
@@ -152,31 +181,4 @@ func (f *flag_set) do_address() error {
       fmt.Println(video)
    }
    return nil
-}
-
-func (f *flag_set) do_edit() error {
-   data, err := os.ReadFile(f.cache + "/hboMax/Login")
-   if err != nil {
-      return err
-   }
-   var login hboMax.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   playback, err := login.PlayReady(f.edit)
-   if err != nil {
-      return err
-   }
-   values, err := playback.Dash()
-   if err != nil {
-      return err
-   }
-   if f.dash != "" {
-      f.config.Send = func(data []byte) ([]byte, error) {
-         return playback.PlayReady(data)
-      }
-      return f.config.Download(values["body"], values["url"], f.dash)
-   }
-   return net.Representations(values["body"], values["url"])
 }
