@@ -3,13 +3,60 @@ package main
 import (
    "41.neocities.org/media/canal"
    "41.neocities.org/net"
+   "encoding/json"
    "flag"
    "fmt"
    "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
 )
+
+func (f *flag_set) do_dash() error {
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
+   if err != nil {
+      return err
+   }
+   var cache canal.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Player.Widevine(data)
+   }
+   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
+}
+
+func (f *flag_set) do_episode_movie() error {
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
+   if err != nil {
+      return err
+   }
+   var cache canal.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   cache.Player, err = cache.Session.Player(f.tracking_id)
+   if err != nil {
+      return err
+   }
+   err = cache.Player.Mpd(&cache)
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache+"/canal/Cache", data)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
+}
 
 func (f *flag_set) New() error {
    var err error
@@ -82,23 +129,6 @@ func main() {
    }
 }
 
-type flag_set struct {
-   config      net.Config
-   cache       string
-   // 1
-   email       string
-   password    string
-   // 2
-   refresh     bool
-   // 3
-   address     string
-   // 4
-   tracking_id string
-   season      int64
-   // 5
-   dash string
-}
-
 func (f *flag_set) do_session() error {
    var ticket canal.Ticket
    err := ticket.Fetch()
@@ -121,7 +151,26 @@ func (f *flag_set) do_session() error {
    return write_file(f.cache+"/canal/Cache", data)
 }
 
-///
+func (f *flag_set) do_refresh() error {
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
+   if err != nil {
+      return err
+   }
+   var cache canal.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   err = cache.Session.Fetch(cache.Session.SsoToken)
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/canal/Cache", data)
+}
 
 func (f *flag_set) do_address() error {
    tracking_id, err := canal.TrackingId(f.address)
@@ -132,34 +181,17 @@ func (f *flag_set) do_address() error {
    return nil
 }
 
-func (f *flag_set) do_refresh() error {
-   data, err := os.ReadFile(f.cache + "/canal/Cache")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = canal.FetchSession(session.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/canal/Cache", data)
-}
-
 func (f *flag_set) do_season() error {
    data, err := os.ReadFile(f.cache + "/canal/Cache")
    if err != nil {
       return err
    }
-   var session canal.Session
-   err = session.Unmarshal(data)
+   var cache canal.Cache
+   err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
-   episodes, err := session.Episodes(f.tracking_id, f.season)
+   episodes, err := cache.Session.Episodes(f.tracking_id, f.season)
    if err != nil {
       return err
    }
@@ -172,50 +204,14 @@ func (f *flag_set) do_season() error {
    return nil
 }
 
-func (f *flag_set) do_episode_movie() error {
-   data, err := os.ReadFile(f.cache + "/canal/Cache")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   player, err := session.Player(f.tracking_id)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(player.Url)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return player.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
-}
-
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.cache + "/canal/Cache")
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   player, err := session.Player(f.tracking_id)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(player.Url)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return player.Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
+type flag_set struct {
+   config      net.Config
+   cache       string
+   email       string
+   password    string
+   refresh     bool
+   address     string
+   tracking_id string
+   season      int64
+   dash        string
 }

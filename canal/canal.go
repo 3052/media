@@ -17,9 +17,32 @@ import (
 )
 
 type Cache struct {
-   Mpd      *url.URL
-   MpdBody  []byte
+   Mpd     *url.URL
+   MpdBody []byte
+   Player  *Player
    Session *Session
+}
+
+func (p *Player) Mpd(storage *Cache) error {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
+}
+
+type Player struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
 }
 
 func (s *Session) Fetch(ssoToken string) error {
@@ -66,7 +89,7 @@ func (e *Episode) String() string {
 }
 
 type Episode struct {
-   Id string
+   Id     string
    Params struct {
       SeriesEpisode int64
    }
@@ -314,25 +337,4 @@ func (p *Player) Widevine(data []byte) ([]byte, error) {
 type Ticket struct {
    Message string
    Ticket  string
-}
-func (p *Player) Mpd(storage *Cache) error {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
-
-type Player struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
 }
