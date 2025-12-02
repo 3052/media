@@ -15,6 +15,76 @@ import (
    "strings"
 )
 
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+}
+
+func (i *Item) Mpd(session *Cache) error {
+   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
+   req.URL.Path = func() string {
+      data := []byte("/s/")
+      data = append(data, i.CmsAccountId...)
+      data = append(data, "/media/guid/"...)
+      data = strconv.AppendInt(data, cms_account(i.CmsAccountId), 10)
+      data = append(data, '/')
+      data = append(data, i.ContentId...)
+      return string(data)
+   }()
+   req.URL.RawQuery = url.Values{
+      "assetTypes": {i.AssetType},
+      "formats":    {"MPEG-DASH"},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   session.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   session.Mpd = resp.Request.URL
+   return nil
+}
+
+func (a At) Token(content_id string) (*Token, error) {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
+      data.WriteString("/anonymous-session-token.json")
+      return data.String()
+   }()
+   req.URL.RawQuery = url.Values{
+      "at":        {string(a)},
+      "contentId": {content_id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var data strings.Builder
+      err = resp.Write(&data)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(data.String())
+   }
+   defer resp.Body.Close()
+   session := &Token{}
+   err = json.NewDecoder(resp.Body).Decode(session)
+   if err != nil {
+      return nil, err
+   }
+   return session, nil
+}
+
+type At string
+
+const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
+
 // 16.0.0
 const ComCbsCa AppSecret = "6c68178445de8138"
 
@@ -33,7 +103,7 @@ func (a AppSecret) At() (At, error) {
    var iv [aes.BlockSize]byte
    data := []byte{'|'}
    data = append(data, a...)
-   data = pad(data)
+   data = pkcs7_padding(data, aes.BlockSize)
    cipher.NewCBCEncrypter(block, iv[:]).CryptBlocks(data, data)
    data1 := []byte{0, aes.BlockSize}
    data1 = append(data1, iv[:]...)
@@ -41,42 +111,7 @@ func (a AppSecret) At() (At, error) {
    return At(base64.StdEncoding.EncodeToString(data1)), nil
 }
 
-type At string
-
-func pad(data []byte) []byte {
-   length := aes.BlockSize - len(data)%aes.BlockSize
-   for high := byte(length); length >= 1; length-- {
-      data = append(data, high)
-   }
-   return data
-}
-
-const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
-
 type AppSecret string
-func (i *Item) Mpd() (*http.Response, error) {
-   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/s/")
-      b = append(b, i.CmsAccountId...)
-      b = append(b, "/media/guid/"...)
-      b = strconv.AppendInt(b, cms_account(i.CmsAccountId), 10)
-      b = append(b, '/')
-      b = append(b, i.ContentId...)
-      return string(b)
-   }()
-   req.URL.RawQuery = url.Values{
-      "assetTypes": {i.AssetType},
-      "formats":    {"MPEG-DASH"},
-   }.Encode()
-   return http.DefaultClient.Do(req)
-}
-
-type Item struct {
-   AssetType    string
-   CmsAccountId string
-   ContentId    string
-}
 
 const encoding = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
@@ -92,12 +127,20 @@ func cms_account(id string) int64 {
    return int64(i)
 }
 
-func (s *Session) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
+func pkcs7_padding(data []byte, blockSize int) []byte {
+   padLen := blockSize - (len(data) % blockSize)
+   for i := 0; i < padLen; i++ {
+      data = append(data, byte(padLen))
+   }
+   return data
+}
+
+func (t *Token) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", t.Url, bytes.NewReader(data))
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer "+s.LsSession)
+   req.Header.Set("authorization", "Bearer "+t.LsSession)
    req.Header.Set("content-type", "application/x-protobuf")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -114,13 +157,13 @@ func (s *Session) Widevine(data []byte) ([]byte, error) {
    return data, nil
 }
 
-func (a At) playReady(content_id string) (*Session, error) {
+func (a At) playReady(content_id string) (*Token, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
-      b.WriteString("/anonymous-session-token.json")
-      return b.String()
+      var data strings.Builder
+      data.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
+      data.WriteString("/anonymous-session-token.json")
+      return data.String()
    }()
    req.URL.RawQuery = url.Values{
       "at":        {string(a)},
@@ -131,7 +174,7 @@ func (a At) playReady(content_id string) (*Session, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   session_var := &Session{}
+   session_var := &Token{}
    err = json.NewDecoder(resp.Body).Decode(session_var)
    if err != nil {
       return nil, err
@@ -139,20 +182,25 @@ func (a At) playReady(content_id string) (*Session, error) {
    return session_var, nil
 }
 
-type Session struct {
+type Token struct {
    LsSession string `json:"ls_session"`
    Url       string
 }
 
-// proxy
+type Item struct {
+   AssetType    string
+   CmsAccountId string
+   ContentId    string
+}
+
 func (a At) Item(cid string) (*Item, error) {
    req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
    req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v2.0/androidphone/video/cid/")
-      b.WriteString(cid)
-      b.WriteString(".json")
-      return b.String()
+      var data strings.Builder
+      data.WriteString("/apps-api/v2.0/androidphone/video/cid/")
+      data.WriteString(cid)
+      data.WriteString(".json")
+      return data.String()
    }()
    req.URL.RawQuery = "at=" + url.QueryEscape(string(a))
    resp, err := http.DefaultClient.Do(req)
@@ -181,38 +229,4 @@ func (a At) Item(cid string) (*Item, error) {
       return nil, errors.New(string(data))
    }
    return &value.ItemList[0], nil
-}
-
-func (a At) Session(content_id string) (Byte[Session], error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
-      b.WriteString("/anonymous-session-token.json")
-      return b.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {string(a)},
-      "contentId": {content_id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var b strings.Builder
-      err = resp.Write(&b)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(b.String())
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Byte[T any] []byte
-
-func (s *Session) Unmarshal(data Byte[Session]) error {
-   return json.Unmarshal(data, s)
 }

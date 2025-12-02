@@ -1,10 +1,30 @@
 package paramount
 
 import (
-   "fmt"
    "os"
    "testing"
 )
+
+func TestPlayReady(t *testing.T) {
+   token, err := ComCbsApp.At()
+   if err != nil {
+      t.Fatal(err)
+   }
+   session_var, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
+   if err != nil {
+      t.Fatal(err)
+   }
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = os.WriteFile(
+      cache+"/paramount/PlayReady", []byte(session_var.LsSession), os.ModePerm,
+   )
+   if err != nil {
+      t.Fatal(err)
+   }
+}
 
 func TestLog(t *testing.T) {
    t.Log(apk0, apk1, location_tests)
@@ -91,25 +111,4 @@ var location_tests = []struct {
          "Brazil", "Canada", "Chile", "Colombia", "Mexico", "Peru",
       },
    },
-}
-
-func TestPlayReady(t *testing.T) {
-   token, err := ComCbsApp.At()
-   if err != nil {
-      t.Fatal(err)
-   }
-   session_var, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
-   if err != nil {
-      t.Fatal(err)
-   }
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile(
-      cache+"/paramount/PlayReady", []byte(session_var.LsSession), os.ModePerm,
-   )
-   if err != nil {
-      t.Fatal(err)
-   }
 }

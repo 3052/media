@@ -13,6 +13,14 @@ import (
    "strings"
 )
 
+type Cache struct {
+   Login    *Login
+   Mpd      *url.URL
+   MpdBody  []byte
+   Playback *Playback
+   St       *St
+}
+
 func (p *Playback) Mpd(session *Cache) error {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
@@ -27,14 +35,6 @@ func (p *Playback) Mpd(session *Cache) error {
       return err
    }
    return nil
-}
-
-type Cache struct {
-   Login    *Login
-   Mpd      *url.URL
-   MpdBody  []byte
-   Playback *Playback
-   St       *St
 }
 
 type Playback struct {
