@@ -3,6 +3,7 @@ package main
 import (
    "41.neocities.org/media/paramount"
    "41.neocities.org/net"
+   "encoding/json"
    "flag"
    "log"
    "net/http"
@@ -11,66 +12,30 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = net.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return ""
-      }
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense":
-         return "L"
-      }
-      return "LP"
-   })
-   var set flag_set
-   err := set.New()
+// INTL does NOT allow anonymous key request, so if you are INTL you
+// will need to use US VPN until someone codes the INTL login
+func (f *flag_set) do_dash() error {
+   data, err := os.ReadFile(f.cache + "/paramount/Cache")
    if err != nil {
-      log.Fatal(err)
+      return err
    }
-   if set.paramount != "" {
-      err := set.do_paramount()
-      if err != nil {
-         log.Fatal(err)
-      }
-   } else {
-      flag.Usage()
+   var cache paramount.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
    }
-}
-
-func (f *flag_set) do_paramount() error {
-   // INTL does NOT allow anonymous key request, so if you are INTL you
-   // will need to use US VPN until someone codes the INTL login
    at, err := paramount.ComCbsApp.At()
    if err != nil {
       return err
    }
-   data, err := at.Session(f.paramount)
-   if err != nil {
-      return err
-   }
-   var session paramount.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   at, err = f.secret().At()
-   if err != nil {
-      return err
-   }
-   item, err := at.Item(f.paramount)
-   if err != nil {
-      return err
-   }
-   resp, err := item.Mpd()
+   token, err := at.Token(f.paramount)
    if err != nil {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return session.Widevine(data)
+      return token.Widevine(data)
    }
-   return f.filters.Filter(resp, &f.config)
+   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
 }
 
 func (f *flag_set) secret() paramount.AppSecret {
@@ -78,14 +43,6 @@ func (f *flag_set) secret() paramount.AppSecret {
       return paramount.ComCbsCa
    }
    return paramount.ComCbsApp
-}
-
-type flag_set struct {
-   cache      string
-   config     net.Config
-   filters    net.Filters
-   intl       bool
-   paramount  string
 }
 
 func (f *flag_set) New() error {
@@ -99,9 +56,79 @@ func (f *flag_set) New() error {
    f.config.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.Var(&f.filters, "f", net.FilterUsage)
    flag.BoolVar(&f.intl, "i", false, "intl")
    flag.StringVar(&f.paramount, "p", "", "paramount ID")
+   flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.Parse()
    return nil
+}
+
+func main() {
+   net.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return ""
+      }
+      switch path.Base(req.URL.Path) {
+      case "anonymous-session-token.json", "getlicense":
+         return "L"
+      }
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      log.Fatal(err)
+   }
+   switch {
+   case set.paramount != "":
+      err = set.do_paramount()
+   case set.dash != "":
+      err = set.do_dash()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type flag_set struct {
+   cache     string
+   config    net.Config
+   intl      bool
+   // 1
+   paramount string
+   // 2
+   dash      string
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+func (f *flag_set) do_paramount() error {
+   at, err := f.secret().At()
+   if err != nil {
+      return err
+   }
+   item, err := at.Item(f.paramount)
+   if err != nil {
+      return err
+   }
+   var cache paramount.Cache
+   err = item.Mpd(&cache)
+   if err != nil {
+      return err
+   }
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache + "/paramount/Cache", data)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
 }
