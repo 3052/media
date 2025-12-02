@@ -7,9 +7,105 @@ import (
    "errors"
    "io"
    "net/http"
+   "net/url"
    "strconv"
    "strings"
 )
+
+type Cache struct {
+   LinkCode *LinkCode
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session *Session
+}
+
+func (l *LinkCode) Session() (*Session, error) {
+   data, err := json.Marshal(map[string]string{"auth_token": l.AuthToken})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://api.mubi.com/v3/authenticate", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   value := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(value)
+   if err != nil {
+      return nil, err
+   }
+   return value, nil
+}
+
+func (s *Session) SecureUrl(filmId int64) (*SecureUrl, error) {
+   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
+   req.URL.Path = func() string {
+      data := []byte("/v3/films/")
+      data = strconv.AppendInt(data, filmId, 10)
+      data = append(data, "/viewing/secure_url"...)
+      return string(data)
+   }()
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var secure SecureUrl
+   err = json.NewDecoder(resp.Body).Decode(&secure)
+   if err != nil {
+      return nil, err
+   }
+   if secure.UserMessage != "" {
+      return nil, errors.New(secure.UserMessage)
+   }
+   return &secure, nil
+}
+func (l *LinkCode) Fetch() error {
+   req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(l)
+}
+
+func (s *SecureUrl) Mpd(session *Cache) error {
+   resp, err := http.Get(s.Url)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   session.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   session.Mpd = resp.Request.URL
+   return nil
+}
+
+type SecureUrl struct {
+   TextTrackUrls []struct {
+      Id  string
+      Url string
+   } `json:"text_track_urls"`
+   Url           string      // MPD
+   UserMessage   string      `json:"user_message"`
+}
 
 func (s *Session) Widevine(data []byte) ([]byte, error) {
    // final slash is needed
@@ -138,84 +234,9 @@ func (l *LinkCode) String() string {
    return b.String()
 }
 
-func (l *LinkCode) Fetch() error {
-   req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
-}
-
 type Session struct {
    Token string
    User  struct {
       Id int
    }
-}
-
-func (l *LinkCode) Session() (*Session, error) {
-   data, err := json.Marshal(map[string]string{"auth_token": l.AuthToken})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://api.mubi.com/v3/authenticate", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   value := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(value)
-   if err != nil {
-      return nil, err
-   }
-   return value, nil
-}
-
-func (s *Session) SecureUrl(filmId int64) (*SecureUrl, error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.URL.Path = func() string {
-      data := []byte("/v3/films/")
-      data = strconv.AppendInt(data, filmId, 10)
-      data = append(data, "/viewing/secure_url"...)
-      return string(data)
-   }()
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var secure SecureUrl
-   err = json.NewDecoder(resp.Body).Decode(&secure)
-   if err != nil {
-      return nil, err
-   }
-   if secure.UserMessage != "" {
-      return nil, errors.New(secure.UserMessage)
-   }
-   return &secure, nil
-}
-
-type SecureUrl struct {
-   TextTrackUrls []struct {
-      Id  string
-      Url string
-   } `json:"text_track_urls"`
-   Url           string      // MPD
-   UserMessage   string      `json:"user_message"`
 }
