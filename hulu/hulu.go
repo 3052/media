@@ -5,16 +5,38 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
-   "path"
    "strings"
 )
 
-func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
+func (s *Session) DeepLink(id string) (*DeepLink, error) {
+   req, _ := http.NewRequest("", "https://discover.hulu.com", nil)
+   req.URL.Path = "/content/v5/deeplink/playback"
+   req.URL.RawQuery = url.Values{
+      "id":        {id},
+      "namespace": {"entity"},
+   }.Encode()
+   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var deep DeepLink
+   err = json.NewDecoder(resp.Body).Decode(&deep)
+   if err != nil {
+      return nil, err
+   }
+   if deep.Message != "" {
+      return nil, errors.New(deep.Message)
+   }
+   return &deep, nil
+}
+
+func (p *Playlist) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
-      p.DashPrServer, "", bytes.NewReader(data),
+      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
@@ -35,103 +57,6 @@ func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
       return nil, errors.New(value.Message)
    }
    return data, nil
-}
-
-var deejay = []struct {
-   resolution  string
-   device_id   int
-   key_version int
-}{
-   {
-      resolution:  "2160p",
-      device_id:   210,
-      key_version: 1,
-   },
-   {
-      resolution:  "2160p",
-      device_id:   208,
-      key_version: 1,
-   },
-   {
-      resolution:  "2160p",
-      device_id:   204,
-      key_version: 4,
-   },
-   {
-      resolution:  "2160p",
-      device_id:   188,
-      key_version: 17,
-   },
-   {
-      resolution:  "720p",
-      device_id:   214,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   191,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   190,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   142,
-      key_version: 1,
-   },
-   {
-      resolution:  "720p",
-      device_id:   109,
-      key_version: 1,
-   },
-}
-
-type Cache struct {
-   Mpd      *url.URL
-   MpdBody  []byte
-}
-
-///
-
-func FetchSession(email, password string) (SessionData, error) {
-   resp, err := http.PostForm(
-      "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
-         "friendly_name": {"!"},
-         "password":      {password},
-         "serial_number": {"!"},
-         "user_email":    {email},
-      },
-   )
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var data strings.Builder
-      err = resp.Write(&data)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(data.String())
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type SessionData []byte
-
-func (s *Session) Unmarshal(data SessionData) error {
-   var value struct {
-      Data Session
-   }
-   err := json.Unmarshal(data, &value)
-   if err != nil {
-      return err
-   }
-   *s = value.Data
-   return nil
 }
 
 type Playlist struct {
@@ -225,7 +150,7 @@ func (s *Session) Playlist(deep *DeepLink) (*Playlist, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer "+s.UserToken)
+   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
    req.Header.Set("content-type", "application/json")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -261,58 +186,14 @@ func Id(rawUrl string) (string, error) {
    return last_part, nil
 }
 
-type Session struct {
-   DeviceToken string `json:"device_token"`
-   UserToken   string `json:"user_token"`
-}
-
 type DeepLink struct {
    EabId   string `json:"eab_id"`
    Message string
 }
 
-// returns user_token only
-func (s *Session) Refresh() error {
-   resp, err := http.PostForm(
-      "https://auth.hulu.com/v1/device/device_token/authenticate", url.Values{
-         "action":       {"token_refresh"},
-         "device_token": {s.DeviceToken},
-      },
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(s)
-}
-
-func (s *Session) DeepLink(id string) (*DeepLink, error) {
-   req, _ := http.NewRequest("", "https://discover.hulu.com", nil)
-   req.URL.Path = "/content/v5/deeplink/playback"
-   req.URL.RawQuery = url.Values{
-      "id":        {id},
-      "namespace": {"entity"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+s.UserToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var deep DeepLink
-   err = json.NewDecoder(resp.Body).Decode(&deep)
-   if err != nil {
-      return nil, err
-   }
-   if deep.Message != "" {
-      return nil, errors.New(deep.Message)
-   }
-   return &deep, nil
-}
-
-func (p *Playlist) Widevine(data []byte) ([]byte, error) {
+func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
    resp, err := http.Post(
-      p.WvServer, "application/x-protobuf", bytes.NewReader(data),
+      p.DashPrServer, "", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
@@ -333,4 +214,108 @@ func (p *Playlist) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(value.Message)
    }
    return data, nil
+}
+
+var deejay = []struct {
+   resolution  string
+   device_id   int
+   key_version int
+}{
+   {
+      resolution:  "2160p",
+      device_id:   210,
+      key_version: 1,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   208,
+      key_version: 1,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   204,
+      key_version: 4,
+   },
+   {
+      resolution:  "2160p",
+      device_id:   188,
+      key_version: 17,
+   },
+   {
+      resolution:  "720p",
+      device_id:   214,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   191,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   190,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   142,
+      key_version: 1,
+   },
+   {
+      resolution:  "720p",
+      device_id:   109,
+      key_version: 1,
+   },
+}
+
+// returns user_token only
+func (s *Session) TokenRefresh() error {
+   resp, err := http.PostForm(
+      "https://auth.hulu.com/v1/device/device_token/authenticate", url.Values{
+         "action":       {"token_refresh"},
+         "device_token": {s.Data.DeviceToken},
+      },
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(s)
+}
+
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session *Session
+}
+
+type Session struct {
+   Data struct {
+      DeviceToken string `json:"device_token"`
+      UserToken   string `json:"user_token"`
+   }
+}
+
+func (s *Session) Fetch(email, password string) error {
+   resp, err := http.PostForm(
+      "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
+         "friendly_name": {"!"},
+         "password":      {password},
+         "serial_number": {"!"},
+         "user_email":    {email},
+      },
+   )
+   if err != nil {
+      return err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var data strings.Builder
+      err = resp.Write(&data)
+      if err != nil {
+         return err
+      }
+      return errors.New(data.String())
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(s)
 }
