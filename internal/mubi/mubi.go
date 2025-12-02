@@ -14,87 +14,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_code() error {
-   var code mubi.LinkCode
-   err := code.Fetch()
-   if err != nil {
-      return err
-   }
-   fmt.Println(&code)
-   data, err := json.Marshal(mubi.Cache{LinkCode: &code})
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/mubi/Cache", data)
-}
-
-func (f *flag_set) do_session() error {
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
-   if err != nil {
-      return err
-   }
-   var cache mubi.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   cache.Session, err = cache.LinkCode.Session()
-   if err != nil {
-      return err
-   }
-   data, err = json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/mubi/Cache", data)
-}
-
-func (f *flag_set) do_text() error {
-   slug, err := mubi.FilmSlug(f.address)
-   if err != nil {
-      return err
-   }
-   film_id, err := mubi.FilmId(slug)
-   if err != nil {
-      return err
-   }
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
-   if err != nil {
-      return err
-   }
-   var cache mubi.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   secure, err := cache.Session.SecureUrl(film_id)
-   if err != nil {
-      return err
-   }
-   for _, text := range secure.TextTrackUrls {
-      err = get(text.Url)
-      if err != nil {
-         return err
-      }
-   }
-   return nil
-}
-
-type flag_set struct {
-   config  net.Config
-   cache   string
-   // 1
-   code    bool
-   // 2
-   session    bool
-   // 3
-   text    bool
-   // 4
-   address string
-   // 5
-   dash string
-}
-
 func (f *flag_set) do_address() error {
    slug, err := mubi.FilmSlug(f.address)
    if err != nil {
@@ -212,4 +131,83 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
+}
+func (f *flag_set) do_code() error {
+   var code mubi.LinkCode
+   err := code.Fetch()
+   if err != nil {
+      return err
+   }
+   fmt.Println(&code)
+   data, err := json.Marshal(mubi.Cache{LinkCode: &code})
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/mubi/Cache", data)
+}
+func (f *flag_set) do_session() error {
+   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+   if err != nil {
+      return err
+   }
+   var cache mubi.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   cache.Session, err = cache.LinkCode.Session()
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/mubi/Cache", data)
+}
+
+func (f *flag_set) do_text() error {
+   slug, err := mubi.FilmSlug(f.address)
+   if err != nil {
+      return err
+   }
+   film_id, err := mubi.FilmId(slug)
+   if err != nil {
+      return err
+   }
+   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+   if err != nil {
+      return err
+   }
+   var cache mubi.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   secure, err := cache.Session.SecureUrl(film_id)
+   if err != nil {
+      return err
+   }
+   for _, text := range secure.TextTrackUrls {
+      err = get(text.Url)
+      if err != nil {
+         return err
+      }
+   }
+   return nil
+}
+
+type flag_set struct {
+   config  net.Config
+   cache   string
+   // 1
+   code    bool
+   // 2
+   session    bool
+   // 3
+   text    bool
+   // 4
+   address string
+   // 5
+   dash string
 }

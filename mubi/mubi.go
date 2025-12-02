@@ -12,36 +12,15 @@ import (
    "strings"
 )
 
-type Cache struct {
-   LinkCode *LinkCode
-   Mpd      *url.URL
-   MpdBody  []byte
-   Session *Session
-}
-
-func (s *SecureUrl) Mpd(storage *Cache) error {
-   resp, err := http.Get(s.Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
-
 // to get the MPD you have to call this or view video on the website. request
 // is hard geo blocked only the first time
 func (s *Session) Viewing(filmId int64) error {
    req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
    req.URL.Path = func() string {
-      b := []byte("/v3/films/")
-      b = strconv.AppendInt(b, filmId, 10)
-      b = append(b, "/viewing"...)
-      return string(b)
+      data := []byte("/v3/films/")
+      data = strconv.AppendInt(data, filmId, 10)
+      data = append(data, "/viewing"...)
+      return string(data)
    }()
    req.Header.Set("authorization", "Bearer "+s.Token)
    req.Header.Set("client", client)
@@ -233,11 +212,32 @@ var ClientCountry = "US"
 const client = "web"
 
 func (l *LinkCode) String() string {
-   var b strings.Builder
-   b.WriteString("TO LOG IN AND START WATCHING\n")
-   b.WriteString("Go to\n")
-   b.WriteString("mubi.com/android\n")
-   b.WriteString("and enter the code below\n")
-   b.WriteString(l.LinkCode)
-   return b.String()
+   var data strings.Builder
+   data.WriteString("TO LOG IN AND START WATCHING\n")
+   data.WriteString("Go to\n")
+   data.WriteString("mubi.com/android\n")
+   data.WriteString("and enter the code below\n")
+   data.WriteString(l.LinkCode)
+   return data.String()
+}
+
+type Cache struct {
+   LinkCode *LinkCode
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session *Session
+}
+
+func (s *SecureUrl) Mpd(storage *Cache) error {
+   resp, err := http.Get(s.Url)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
 }
