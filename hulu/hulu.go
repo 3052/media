@@ -11,9 +11,46 @@ import (
 )
 
 type Cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
-   Session *Session
+   Mpd      *url.URL
+   MpdBody  []byte
+   Playlist *Playlist
+   Session  *Session
+}
+
+func (p *Playlist) Mpd(session *Cache) error {
+   resp, err := http.Get(p.StreamUrl)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   session.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   session.Mpd = resp.Request.URL
+   return nil
+}
+
+type Playlist struct {
+   DashPrServer string `json:"dash_pr_server"`
+   WvServer     string `json:"wv_server"`
+   Message      string
+   StreamUrl    string `json:"stream_url"` // MPD
+}
+
+// returns user_token only
+func (s *Session) TokenRefresh() error {
+   resp, err := http.PostForm(
+      "https://auth.hulu.com/v1/device/device_token/authenticate", url.Values{
+         "action":       {"token_refresh"},
+         "device_token": {s.Data.DeviceToken},
+      },
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(s)
 }
 
 func (s *Session) DeepLink(id string) (*DeepLink, error) {
@@ -63,13 +100,6 @@ func (p *Playlist) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(value.Message)
    }
    return data, nil
-}
-
-type Playlist struct {
-   DashPrServer string `json:"dash_pr_server"`
-   WvServer     string `json:"wv_server"`
-   Message      string
-   StreamUrl    string `json:"stream_url"` // MPD
 }
 
 // 1080p (FHD) L3, SL2000
@@ -272,21 +302,6 @@ var deejay = []struct {
       device_id:   109,
       key_version: 1,
    },
-}
-
-// returns user_token only
-func (s *Session) TokenRefresh() error {
-   resp, err := http.PostForm(
-      "https://auth.hulu.com/v1/device/device_token/authenticate", url.Values{
-         "action":       {"token_refresh"},
-         "device_token": {s.Data.DeviceToken},
-      },
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(s)
 }
 
 type Session struct {

@@ -12,46 +12,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_session() error {
-   var session hulu.Session
-   err := session.Fetch(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   data, err := json.Marshal(hulu.Cache{Session: &session})
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/hulu/Cache", data)
-}
-
-func main() {
-   net.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
-      return "L"
-   })
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      log.Fatal(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_session()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -64,15 +24,6 @@ func (f *flag_set) email_password() bool {
       }
    }
    return false
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   dash string
-   email    string
-   password string
 }
 
 func (f *flag_set) New() error {
@@ -94,38 +45,113 @@ func (f *flag_set) New() error {
    return nil
 }
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/hulu/Cache")
+func main() {
+   net.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
+      return "L"
+   })
+   log.SetFlags(log.Ltime)
+   var set flag_set
+   err := set.New()
    if err != nil {
-      return err
+      log.Fatal(err)
    }
+   switch {
+   case set.email_password():
+      err = set.do_session()
+   case set.address != "":
+      err = set.do_address()
+   case set.dash != "":
+      err = set.do_dash()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type flag_set struct {
+   cache    string
+   config   net.Config
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   dash     string
+}
+
+func (f *flag_set) do_session() error {
    var session hulu.Session
-   err = session.Unmarshal(data)
+   err := session.Fetch(f.email, f.password)
    if err != nil {
       return err
    }
-   err = session.Refresh()
+   data, err := json.Marshal(hulu.Cache{Session: &session})
    if err != nil {
       return err
    }
+   return write_file(f.cache+"/hulu/Cache", data)
+}
+
+func (f *flag_set) do_address() error {
    id, err := hulu.Id(f.address)
    if err != nil {
       return err
    }
-   deep, err := session.DeepLink(id)
+   data, err := os.ReadFile(f.cache + "/hulu/Cache")
    if err != nil {
       return err
    }
-   playlist, err := session.Playlist(deep)
+   var cache hulu.Cache
+   err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
-   resp, err := http.Get(playlist.StreamUrl)
+   err = cache.Session.TokenRefresh()
+   if err != nil {
+      return err
+   }
+   deep_link, err := cache.Session.DeepLink(id)
+   if err != nil {
+      return err
+   }
+   cache.Playlist, err = cache.Session.Playlist(deep_link)
+   if err != nil {
+      return err
+   }
+   err = cache.Playlist.Mpd(&cache)
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache + "/hulu/Cache", data)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
+}
+
+func (f *flag_set) do_dash() error {
+   data, err := os.ReadFile(f.cache + "/hulu/Cache")
+   if err != nil {
+      return err
+   }
+   var cache hulu.Cache
+   err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
    f.config.Send = func(data []byte) ([]byte, error) {
-      return playlist.Widevine(data)
+      return cache.Playlist.Widevine(data)
    }
-   return f.filters.Filter(resp, &f.config)
+   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
 }
