@@ -41,7 +41,6 @@ func NewContent(id int) (Byte[Content], error) {
          "dash_widevine",
       },
    }.Encode()
-   req.Header.Set("proxy", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
