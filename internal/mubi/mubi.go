@@ -84,20 +84,6 @@ func main() {
    }
 }
 
-type flag_set struct {
-   config  net.Config
-   cache   string
-   // 1
-   code    bool
-   // 2
-   session    bool
-   // 3
-   address string
-   text    bool
-   // 4
-   dash string
-}
-
 func (f *flag_set) do_code() error {
    var cache mubi.Cache
    err = cache.LinkCode.Fetch()
@@ -133,18 +119,7 @@ func (f *flag_set) do_session() error {
    return write_file(f.cache+"/mubi/Cache", data)
 }
 
-///
-
 func (f *flag_set) do_text() error {
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
-   if err != nil {
-      return err
-   }
-   var session mubi.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
    slug, err := mubi.FilmSlug(f.address)
    if err != nil {
       return err
@@ -153,7 +128,16 @@ func (f *flag_set) do_text() error {
    if err != nil {
       return err
    }
-   secure, err := session.SecureUrl(film_id)
+   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+   if err != nil {
+      return err
+   }
+   var cache mubi.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   secure, err := cache.Session.SecureUrl(film_id)
    if err != nil {
       return err
    }
@@ -166,16 +150,24 @@ func (f *flag_set) do_text() error {
    return nil
 }
 
+type flag_set struct {
+   config  net.Config
+   cache   string
+   // 1
+   code    bool
+   // 2
+   session    bool
+   // 3
+   text    bool
+   // 4
+   address string
+   // 5
+   dash string
+}
+
+///
+
 func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
-   if err != nil {
-      return err
-   }
-   var session mubi.Session
-   err = session.Unmarshal(data)
-   if err != nil {
-      return err
-   }
    slug, err := mubi.FilmSlug(f.address)
    if err != nil {
       return err
@@ -184,14 +176,24 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   err = session.Viewing(film_id)
+   data, err := os.ReadFile(f.cache + "/mubi/Cache")
    if err != nil {
       return err
    }
-   secure, err := session.SecureUrl(film_id)
+   var cache mubi.Cache
+   err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
+   err = cache.Session.Viewing(film_id)
+   if err != nil {
+      return err
+   }
+   secure, err := cache.Session.SecureUrl(film_id)
+   if err != nil {
+      return err
+   }
+   
    resp, err := http.Get(secure.Url)
    if err != nil {
       return err
