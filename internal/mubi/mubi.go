@@ -14,54 +14,6 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
-   slug, err := mubi.FilmSlug(f.address)
-   if err != nil {
-      return err
-   }
-   film_id, err := mubi.FilmId(slug)
-   if err != nil {
-      return err
-   }
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
-   if err != nil {
-      return err
-   }
-   var cache mubi.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   err = cache.Session.Viewing(film_id)
-   if err != nil {
-      return err
-   }
-   secure, err := cache.Session.SecureUrl(film_id)
-   if err != nil {
-      return err
-   }
-   err = secure.Mpd(&cache)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
-}
-
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
-   if err != nil {
-      return err
-   }
-   var cache mubi.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Session.Widevine(data)
-   }
-   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
-}
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -73,6 +25,7 @@ func (f *flag_set) New() error {
    f.config.PrivateKey = f.cache + "/L3/private_key.pem"
    flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.IntVar(&f.config.Threads, "T", 2, "threads")
    flag.StringVar(&f.address, "a", "", "address")
    flag.BoolVar(&f.code, "c", false, "link code")
    flag.StringVar(&f.dash, "d", "", "DASH ID")
@@ -105,7 +58,7 @@ func main() {
       if path.Ext(req.URL.Path) == ".dash" {
          return ""
       }
-      return "L"
+      return "LP"
    })
    log.SetFlags(log.Ltime)
    var set flag_set
@@ -132,6 +85,7 @@ func main() {
       log.Fatal(err)
    }
 }
+
 func (f *flag_set) do_code() error {
    var code mubi.LinkCode
    err := code.Fetch()
@@ -145,6 +99,7 @@ func (f *flag_set) do_code() error {
    }
    return write_file(f.cache+"/mubi/Cache", data)
 }
+
 func (f *flag_set) do_session() error {
    data, err := os.ReadFile(f.cache + "/mubi/Cache")
    if err != nil {
@@ -210,4 +165,60 @@ type flag_set struct {
    address string
    // 5
    dash string
+}
+func (f *flag_set) do_address() error {
+   slug, err := mubi.FilmSlug(f.address)
+   if err != nil {
+      return err
+   }
+   film_id, err := mubi.FilmId(slug)
+   if err != nil {
+      return err
+   }
+   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+   if err != nil {
+      return err
+   }
+   var cache mubi.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   err = cache.Session.Viewing(film_id)
+   if err != nil {
+      return err
+   }
+   secure, err := cache.Session.SecureUrl(film_id)
+   if err != nil {
+      return err
+   }
+   err = secure.Mpd(&cache)
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache + "/mubi/Cache", data)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
+}
+
+func (f *flag_set) do_dash() error {
+   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+   if err != nil {
+      return err
+   }
+   var cache mubi.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Session.Widevine(data)
+   }
+   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
 }
