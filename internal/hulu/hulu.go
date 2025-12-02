@@ -12,20 +12,6 @@ import (
    "path/filepath"
 )
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -41,8 +27,23 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.StringVar(&f.email, "e", "", "email")
    flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
 }
 
 func main() {

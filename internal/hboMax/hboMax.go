@@ -13,11 +13,6 @@ import (
    "path/filepath"
 )
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
@@ -35,6 +30,7 @@ func (f *flag_set) New() error {
    flag.BoolVar(&f.initiate, "i", false, "device initiate")
    flag.BoolVar(&f.login, "l", false, "device login")
    flag.IntVar(&f.season, "s", 0, "season")
+   flag.IntVar(&f.config.Threads, "t", 2, "threads")
    flag.Parse()
    return nil
 }
@@ -50,7 +46,7 @@ func main() {
    var set flag_set
    err := set.New()
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
    switch {
    case set.initiate:
@@ -67,23 +63,18 @@ func main() {
       flag.Usage()
    }
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
 }
 
 type flag_set struct {
    cache    string
    config   net.Config
-   // 1
    initiate bool
-   // 2
    login    bool
-   // 3
    address  string
    season   int
-   // 4
    edit     string
-   // 5
    dash     string
 }
 
@@ -177,7 +168,7 @@ func (f *flag_set) do_edit() error {
    if err != nil {
       return err
    }
-   err = cache.Playback.FetchManifest(&cache)
+   err = cache.Playback.Mpd(&cache)
    if err != nil {
       return err
    }
@@ -206,4 +197,9 @@ func (f *flag_set) do_dash() error {
       return cache.Playback.PlayReady(data)
    }
    return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }

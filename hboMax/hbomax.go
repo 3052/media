@@ -13,6 +13,22 @@ import (
    "strings"
 )
 
+func (p *Playback) Mpd(session *Cache) error {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   session.Mpd = resp.Request.URL
+   session.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
 type Cache struct {
    Login    *Login
    Mpd      *url.URL
@@ -380,19 +396,3 @@ type Login struct {
 }
 
 type St [1]*http.Cookie
-
-func (p *Playback) FetchManifest(session *Cache) error {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   session.Mpd = resp.Request.URL
-   session.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
