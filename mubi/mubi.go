@@ -12,83 +12,6 @@ import (
    "strings"
 )
 
-func (l *LinkCode) Fetch() error {
-   req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
-}
-
-type SecureUrl struct {
-   TextTrackUrls []struct {
-      Id  string
-      Url string
-   } `json:"text_track_urls"`
-   Url           string      // MPD
-   UserMessage   string      `json:"user_message"`
-}
-
-const forbidden = "HTTP Status 403 – Forbidden"
-
-func FilmId(slug string) (int64, error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.URL.Path = "/v3/films/" + slug
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   var film struct {
-      Id int64
-   }
-   err = json.NewDecoder(resp.Body).Decode(&film)
-   if err != nil {
-      return 0, err
-   }
-   return film.Id, nil
-}
-
-// https://mubi.com/en/films/perfect-days
-// https://mubi.com/en/us/films/perfect-days
-// https://mubi.com/films/perfect-days
-// https://mubi.com/us/films/perfect-days
-func FilmSlug(address string) (string, error) {
-   _, slug, found := strings.Cut(address, "/films/")
-   if !found {
-      return "", errors.New(`"/films/" not found in URL`)
-   }
-   return slug, nil
-}
-
-type LinkCode struct {
-   AuthToken string `json:"auth_token"`
-   LinkCode  string `json:"link_code"`
-}
-
-var ClientCountry = "US"
-
-// "android" requires headers:
-// client-device-identifier
-// client-version
-const client = "web"
-
-func (l *LinkCode) String() string {
-   var b strings.Builder
-   b.WriteString("TO LOG IN AND START WATCHING\n")
-   b.WriteString("Go to\n")
-   b.WriteString("mubi.com/android\n")
-   b.WriteString("and enter the code below\n")
-   b.WriteString(l.LinkCode)
-   return b.String()
-}
-
 type Cache struct {
    LinkCode *LinkCode
    Mpd      *url.URL
@@ -240,4 +163,81 @@ func (s *Session) Widevine(data []byte) ([]byte, error) {
       return nil, err
    }
    return result.License, nil
+}
+
+func (l *LinkCode) Fetch() error {
+   req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(l)
+}
+
+type SecureUrl struct {
+   TextTrackUrls []struct {
+      Id  string
+      Url string
+   } `json:"text_track_urls"`
+   Url           string      // MPD
+   UserMessage   string      `json:"user_message"`
+}
+
+const forbidden = "HTTP Status 403 – Forbidden"
+
+func FilmId(slug string) (int64, error) {
+   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
+   req.URL.Path = "/v3/films/" + slug
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   var film struct {
+      Id int64
+   }
+   err = json.NewDecoder(resp.Body).Decode(&film)
+   if err != nil {
+      return 0, err
+   }
+   return film.Id, nil
+}
+
+// https://mubi.com/en/films/perfect-days
+// https://mubi.com/en/us/films/perfect-days
+// https://mubi.com/films/perfect-days
+// https://mubi.com/us/films/perfect-days
+func FilmSlug(address string) (string, error) {
+   _, slug, found := strings.Cut(address, "/films/")
+   if !found {
+      return "", errors.New(`"/films/" not found in URL`)
+   }
+   return slug, nil
+}
+
+type LinkCode struct {
+   AuthToken string `json:"auth_token"`
+   LinkCode  string `json:"link_code"`
+}
+
+var ClientCountry = "US"
+
+// "android" requires headers:
+// client-device-identifier
+// client-version
+const client = "web"
+
+func (l *LinkCode) String() string {
+   var b strings.Builder
+   b.WriteString("TO LOG IN AND START WATCHING\n")
+   b.WriteString("Go to\n")
+   b.WriteString("mubi.com/android\n")
+   b.WriteString("and enter the code below\n")
+   b.WriteString(l.LinkCode)
+   return b.String()
 }
