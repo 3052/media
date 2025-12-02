@@ -5,40 +5,21 @@ import (
    "testing"
 )
 
-var tests = []struct {
-   id      string
-   url     string
-   quality string
-}{
-   {
-      url:     "https://hulu.com/movie/stay-5742941d-4b4a-4914-8774-f5d8d57f9382",
-      quality: "2160p",
-   },
-   {
-      id:      "EAB::f70dfd4d-dbfb-46b8-abb3-136c841bba11::61556664::101167038",
-      url:     "https://hulu.com/movie/palm-springs-f70dfd4d-dbfb-46b8-abb3-136c841bba11",
-      quality: "1080p",
-   },
-   {
-      url: "https://hulu.com/series/house-ef39603f-eb90-4248-8237-f6168d7c1be1",
-   },
-}
-
 func TestPlayReady(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(cache + "/hulu/Session")
+   //data, err := os.ReadFile(cache + "/hulu/Session")
    if err != nil {
       t.Fatal(err)
    }
    var session_var Session
-   err = session_var.Unmarshal(data)
+   //err = session_var.Unmarshal(data)
    if err != nil {
       t.Fatal(err)
    }
-   err = session_var.Refresh()
+   err = session_var.TokenRefresh()
    if err != nil {
       t.Fatal(err)
    }
@@ -53,4 +34,23 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
+}
+
+var tests = []struct {
+   id      string
+   url     string
+   quality string
+}{
+   {
+      id:      "EAB::f70dfd4d-dbfb-46b8-abb3-136c841bba11::61556664::101167038",
+      url:     "https://hulu.com/movie/palm-springs-f70dfd4d-dbfb-46b8-abb3-136c841bba11",
+      quality: "1080p",
+   },
+   {
+      url:     "https://hulu.com/movie/stay-5742941d-4b4a-4914-8774-f5d8d57f9382",
+      quality: "2160p",
+   },
+   {
+      url: "https://hulu.com/series/house-ef39603f-eb90-4248-8237-f6168d7c1be1",
+   },
 }

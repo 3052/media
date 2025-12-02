@@ -17,12 +17,12 @@ func main() {
    var set flag_set
    err := set.New()
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
    if set.address != "" {
       err = set.do_address()
       if err != nil {
-         panic(err)
+         log.Fatal(err)
       }
    } else {
       flag.Usage()

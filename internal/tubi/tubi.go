@@ -4,6 +4,7 @@ import (
    "41.neocities.org/media/tubi"
    "41.neocities.org/net"
    "flag"
+   "log"
    "net/http"
    "os"
    "path/filepath"
@@ -13,13 +14,13 @@ func main() {
    var set flag_set
    err := set.New()
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
    http.DefaultTransport = net.Transport(set.bypass)
    if set.tubi >= 1 {
       err = set.do_tubi()
       if err != nil {
-         panic(err)
+         log.Fatal(err)
       }
    } else {
       flag.Usage()

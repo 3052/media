@@ -10,6 +10,12 @@ import (
    "strings"
 )
 
+type Cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
+   Session *Session
+}
+
 func (s *Session) DeepLink(id string) (*DeepLink, error) {
    req, _ := http.NewRequest("", "https://discover.hulu.com", nil)
    req.URL.Path = "/content/v5/deeplink/playback"
@@ -281,12 +287,6 @@ func (s *Session) TokenRefresh() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(s)
-}
-
-type Cache struct {
-   Mpd      *url.URL
-   MpdBody  []byte
-   Session *Session
 }
 
 type Session struct {

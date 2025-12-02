@@ -42,7 +42,7 @@ func main() {
    var set flag_set
    err := set.New()
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
    switch {
    case set.address != "":
@@ -53,7 +53,7 @@ func main() {
       flag.Usage()
    }
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
 }
 

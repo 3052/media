@@ -129,7 +129,7 @@ func main() {
    var set flag_set
    err := set.New()
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
    if set.address != "" {
       if set.text {
@@ -145,7 +145,7 @@ func main() {
       flag.Usage()
    }
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
 }
 

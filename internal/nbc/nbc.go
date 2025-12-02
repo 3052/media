@@ -34,12 +34,12 @@ func main() {
    var set flag_set
    err := set.New()
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
    if set.nbc >= 1 {
       err = set.do_nbc()
       if err != nil {
-         panic(err)
+         log.Fatal(err)
       }
    } else {
       flag.Usage()
