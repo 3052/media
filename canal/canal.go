@@ -16,6 +16,45 @@ import (
    "time"
 )
 
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session *Session
+}
+
+func (s *Session) Fetch(ssoToken string) error {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     ssoToken,
+   })
+   if err != nil {
+      return err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
+
 func (e *Episode) String() string {
    data := []byte("episode = ")
    data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
@@ -87,26 +126,6 @@ type Token struct {
    Label    string
    Message  string
    SsoToken string // this last one day
-}
-
-func FetchSession(ssoToken string) (SessionData, error) {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     ssoToken,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 func (t *Ticket) Fetch() error {
@@ -281,14 +300,6 @@ func TrackingId(address string) (string, error) {
    return value, nil
 }
 
-type Player struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-
 const device_serial = "!!!!"
 
 func (p *Player) Widevine(data []byte) ([]byte, error) {
@@ -304,22 +315,24 @@ type Ticket struct {
    Message string
    Ticket  string
 }
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
-
-func (s *Session) Unmarshal(data SessionData) error {
-   err := json.Unmarshal(data, s)
+func (p *Player) Mpd(storage *Cache) error {
+   resp, err := http.Get(p.Url)
    if err != nil {
       return err
    }
-   if s.Message != "" {
-      return errors.New(s.Message)
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
    }
+   storage.Mpd = resp.Request.URL
    return nil
 }
 
-type SessionData []byte
+type Player struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}

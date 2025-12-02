@@ -21,7 +21,7 @@ type Cache struct {
    St       *St
 }
 
-func (p *Playback) Mpd(session *Cache) error {
+func (p *Playback) Mpd(storage *Cache) error {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
    )
@@ -29,8 +29,8 @@ func (p *Playback) Mpd(session *Cache) error {
       return err
    }
    defer resp.Body.Close()
-   session.Mpd = resp.Request.URL
-   session.MpdBody, err = io.ReadAll(resp.Body)
+   storage.Mpd = resp.Request.URL
+   storage.MpdBody, err = io.ReadAll(resp.Body)
    if err != nil {
       return err
    }

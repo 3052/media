@@ -23,9 +23,8 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.bypass, "b", ".dash", "proxy bypass")
+   flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
    flag.BoolVar(&f.refresh, "r", false, "refresh")
    flag.Int64Var(&f.season, "s", 0, "season")
@@ -34,14 +33,38 @@ func (f *flag_set) New() error {
    return nil
 }
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
+}
+
 func main() {
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return ""
+      }
+      return "L"
+   })
+   log.SetFlags(log.Ltime)
    var set flag_set
    err := set.New()
    if err != nil {
       panic(err)
    }
-   http.DefaultTransport = net.Transport(set.bypass)
-   if set.address != "" {
+   if set.email_password() {
+      err = set.do_session()
+   } else if set.refresh {
+      err = set.do_refresh()
+   } else if set.address != "" {
       err = set.do_address()
    } else if set.tracking_id != "" {
       if set.season >= 1 {
@@ -49,10 +72,8 @@ func main() {
       } else {
          err = set.do_episode_movie()
       }
-   } else if set.email_password() {
-      err = set.do_session()
-   } else if set.refresh {
-      err = set.do_refresh()
+   } else if set.dash != "" {
+      err = set.do_dash()
    } else {
       flag.Usage()
    }
@@ -61,18 +82,21 @@ func main() {
    }
 }
 
-func (f *flag_set) do_address() error {
-   tracking_id, err := canal.TrackingId(f.address)
-   if err != nil {
-      return err
-   }
-   fmt.Println("tracking id =", tracking_id)
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+type flag_set struct {
+   config      net.Config
+   cache       string
+   // 1
+   email       string
+   password    string
+   // 2
+   refresh     bool
+   // 3
+   address     string
+   // 4
+   tracking_id string
+   season      int64
+   // 5
+   dash string
 }
 
 func (f *flag_set) do_session() error {
@@ -85,15 +109,31 @@ func (f *flag_set) do_session() error {
    if err != nil {
       return err
    }
-   data, err := canal.FetchSession(token.SsoToken)
+   var session canal.Session
+   err = session.Fetch(token.SsoToken)
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/canal/Session", data)
+   data, err := json.Marshal(canal.Cache{Session: &session})
+   if err != nil {
+      return err
+   }
+   return write_file(f.cache+"/canal/Cache", data)
+}
+
+///
+
+func (f *flag_set) do_address() error {
+   tracking_id, err := canal.TrackingId(f.address)
+   if err != nil {
+      return err
+   }
+   fmt.Println("tracking id =", tracking_id)
+   return nil
 }
 
 func (f *flag_set) do_refresh() error {
-   data, err := os.ReadFile(f.cache + "/canal/Session")
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
    if err != nil {
       return err
    }
@@ -106,33 +146,11 @@ func (f *flag_set) do_refresh() error {
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/canal/Session", data)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
-type flag_set struct {
-   address     string
-   cache       string
-   config      net.Config
-   email       string
-   filters     net.Filters
-   password    string
-   refresh     bool
-   season      int64
-   tracking_id string
-   bypass string
+   return write_file(f.cache+"/canal/Cache", data)
 }
 
 func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.cache + "/canal/Session")
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
    if err != nil {
       return err
    }
@@ -155,7 +173,31 @@ func (f *flag_set) do_season() error {
 }
 
 func (f *flag_set) do_episode_movie() error {
-   data, err := os.ReadFile(f.cache + "/canal/Session")
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Unmarshal(data)
+   if err != nil {
+      return err
+   }
+   player, err := session.Player(f.tracking_id)
+   if err != nil {
+      return err
+   }
+   resp, err := http.Get(player.Url)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return player.Widevine(data)
+   }
+   return f.filters.Filter(resp, &f.config)
+}
+
+func (f *flag_set) do_dash() error {
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
    if err != nil {
       return err
    }

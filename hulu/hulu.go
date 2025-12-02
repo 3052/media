@@ -17,17 +17,17 @@ type Cache struct {
    Session  *Session
 }
 
-func (p *Playlist) Mpd(session *Cache) error {
+func (p *Playlist) Mpd(storage *Cache) error {
    resp, err := http.Get(p.StreamUrl)
    if err != nil {
       return err
    }
    defer resp.Body.Close()
-   session.MpdBody, err = io.ReadAll(resp.Body)
+   storage.MpdBody, err = io.ReadAll(resp.Body)
    if err != nil {
       return err
    }
-   session.Mpd = resp.Request.URL
+   storage.Mpd = resp.Request.URL
    return nil
 }
 

@@ -20,7 +20,7 @@ type Cache struct {
    MpdBody  []byte
 }
 
-func (i *Item) Mpd(session *Cache) error {
+func (i *Item) Mpd(storage *Cache) error {
    req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
    req.URL.Path = func() string {
       data := []byte("/s/")
@@ -40,11 +40,11 @@ func (i *Item) Mpd(session *Cache) error {
       return err
    }
    defer resp.Body.Close()
-   session.MpdBody, err = io.ReadAll(resp.Body)
+   storage.MpdBody, err = io.ReadAll(resp.Body)
    if err != nil {
       return err
    }
-   session.Mpd = resp.Request.URL
+   storage.Mpd = resp.Request.URL
    return nil
 }
 
