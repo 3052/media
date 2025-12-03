@@ -13,93 +13,12 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.cache + "/canal/Cache")
-   if err != nil {
-      return err
-   }
-   var cache canal.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Player.Widevine(data)
-   }
-   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
-}
-
-func (f *flag_set) do_episode_movie() error {
-   data, err := os.ReadFile(f.cache + "/canal/Cache")
-   if err != nil {
-      return err
-   }
-   var cache canal.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   cache.Player, err = cache.Session.Player(f.tracking_id)
-   if err != nil {
-      return err
-   }
-   err = cache.Player.Mpd(&cache)
-   if err != nil {
-      return err
-   }
-   data, err = json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.cache+"/canal/Cache", data)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.dash, "d", "", "DASH ID")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.BoolVar(&f.refresh, "r", false, "refresh")
-   flag.Int64Var(&f.season, "s", 0, "season")
-   flag.StringVar(&f.tracking_id, "t", "", "tracking ID")
-   flag.Parse()
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
 func main() {
    net.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".dash" {
          return ""
       }
-      return "L"
+      return "LP"
    })
    log.SetFlags(log.Ltime)
    var set flag_set
@@ -214,4 +133,84 @@ type flag_set struct {
    tracking_id string
    season      int64
    dash        string
+}
+func (f *flag_set) do_dash() error {
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
+   if err != nil {
+      return err
+   }
+   var cache canal.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   f.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Player.Widevine(data)
+   }
+   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
+}
+
+func (f *flag_set) do_episode_movie() error {
+   data, err := os.ReadFile(f.cache + "/canal/Cache")
+   if err != nil {
+      return err
+   }
+   var cache canal.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   cache.Player, err = cache.Session.Player(f.tracking_id)
+   if err != nil {
+      return err
+   }
+   err = cache.Player.Mpd(&cache)
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache+"/canal/Cache", data)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
+}
+
+func (f *flag_set) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.dash, "d", "", "DASH ID")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.BoolVar(&f.refresh, "r", false, "refresh")
+   flag.Int64Var(&f.season, "s", 0, "season")
+   flag.StringVar(&f.tracking_id, "t", "", "tracking ID")
+   flag.Parse()
+   return nil
+}
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (f *flag_set) email_password() bool {
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
 }

@@ -16,6 +16,31 @@ import (
    "time"
 )
 
+func TrackingId(address string) (string, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const startKey = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(string(data), startKey)
+   if !found {
+      return "", fmt.Errorf("attribute key '%s' not found", startKey)
+   }
+   value, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", fmt.Errorf("could not find closing quote for the attribute")
+   }
+   return value, nil
+}
+
 type Cache struct {
    Mpd     *url.URL
    MpdBody []byte
@@ -299,28 +324,6 @@ func (s *Session) Player(tracking_id string) (*Player, error) {
       return nil, errors.New(play.Message)
    }
    return &play, nil
-}
-
-func TrackingId(address string) (string, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const startKey = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(string(data), startKey)
-   if !found {
-      return "", fmt.Errorf("attribute key '%s' not found", startKey)
-   }
-   value, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", fmt.Errorf("could not find closing quote for the attribute")
-   }
-   return value, nil
 }
 
 const device_serial = "!!!!"
