@@ -24,10 +24,13 @@ var classificationMap = map[string]int{
 // VideoQuality defines the allowed video qualities for streaming.
 type VideoQuality string
 
-const (
-   VideoQualityHD  VideoQuality = "HD"
-   VideoQualityFHD VideoQuality = "FHD"
-)
+var Quality = struct {
+   FHD VideoQuality
+   HD  VideoQuality
+}{
+   FHD: "FHD",
+   HD:  "HD",
+}
 
 // PlayerType defines the allowed player types/DRM schemes.
 type PlayerType string
