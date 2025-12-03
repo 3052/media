@@ -14,18 +14,121 @@ import (
    "strings"
 )
 
-type StreamInfo struct {
-   // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
-   LicenseUrl string `json:"license_url"`
-   // MPD
-   Url string
-}
-
 type Media struct {
    ContentId   string
    ContentType string
    MarketCode  string
    TvShowId    string
+}
+
+func (m *Media) streamInfo(
+   content_id, audio_language, player string, video Quality,
+) (*StreamInfo, error) {
+   classificationID, err := m.classification_id()
+   if err != nil {
+      return nil, err
+   }
+   data, err := json.Marshal(map[string]string{
+      "audio_quality":               "2.0",
+      "device_serial":               "not implemented",
+      "subtitle_language":           "MIS",
+      "video_type":                  "stream",
+      "content_type":                m.ContentType,
+      "device_identifier":           device_identifier,
+      "audio_language":              audio_language,
+      "content_id":                  content_id,
+      "device_stream_video_quality": string(video),
+      "player":                      device_identifier + player,
+      "classification_id":           strconv.Itoa(classificationID),
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://gizmo.rakuten.tv/v3/avod/streamings",
+      "application/json", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if len(data) == 0 {
+      return nil, errors.New(resp.Status)
+   }
+   var value struct {
+      Data struct {
+         StreamInfos []StreamInfo `json:"stream_infos"`
+      }
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.Unmarshal(data, &value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
+   }
+   return &value.Data.StreamInfos[0], nil
+}
+
+func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (c *Content) String() string {
+   var b strings.Builder
+   b.WriteString("title = ")
+   b.WriteString(c.Title)
+   b.WriteString("\ncontent id = ")
+   b.WriteString(c.Id)
+   id := map[string]struct{}{}
+   for _, stream := range c.ViewOptions.Private.Streams {
+      for _, language := range stream.AudioLanguages {
+         _, ok := id[language.Id]
+         if !ok {
+            b.WriteString("\naudio language = ")
+            b.WriteString(language.Id)
+            id[language.Id] = struct{}{}
+         }
+      }
+   }
+   return b.String()
+}
+
+func (s *Season) String() string {
+   var b strings.Builder
+   b.WriteString("show title = ")
+   b.WriteString(s.TvShowTitle)
+   b.WriteString("\nseason id = ")
+   b.WriteString(s.Id)
+   return b.String()
+}
+
+const device_identifier = "atvui40"
+
+type Season struct {
+   TvShowTitle string `json:"tv_show_title"`
+   Id          string
+}
+
+type StreamInfo struct {
+   // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
+   LicenseUrl string `json:"license_url"`
+   // MPD
+   Url string
 }
 
 func (m *Media) Parse(rawUrl string) error {
@@ -87,43 +190,6 @@ func (m *Media) Parse(rawUrl string) error {
    return fmt.Errorf("could not parse content type and ID from URL")
 }
 
-///
-
-func (m *Media) Movie() (*Content, error) {
-   classificationID, err := m.classification_id()
-   if err != nil {
-      return nil, err
-   }
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/movies/" + m.ContentId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(classificationID),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {m.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data   Content
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Message)
-   }
-   return &value.Data, nil
-}
-
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
 func (m *Media) classification_id() (int, error) {
    switch m.MarketCode {
@@ -147,29 +213,6 @@ func (m *Media) classification_id() (int, error) {
       return 18, nil
    }
    return 0, errors.New("unknown market code")
-}
-
-type Quality string
-
-type Content struct {
-   Id          string
-   Title       string
-   ViewOptions struct {
-      Private struct {
-         Streams []struct {
-            AudioLanguages []struct {
-               Id string
-            } `json:"audio_languages"`
-         }
-      }
-   } `json:"view_options"`
-}
-
-const device_identifier = "atvui40"
-
-type Season struct {
-   TvShowTitle string `json:"tv_show_title"`
-   Id          string
 }
 
 func (m *Media) Seasons() ([]Season, error) {
@@ -209,60 +252,61 @@ func (m *Media) Seasons() ([]Season, error) {
    return value.Data.Seasons, nil
 }
 
-func (m *Media) streamInfo(
-   content_id, audio_language, player string, video Quality,
+type Quality string
+
+func (m *Media) Pr(
+   content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
+   return m.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
+}
+
+func (m *Media) Movie() (*Content, error) {
    classificationID, err := m.classification_id()
    if err != nil {
       return nil, err
    }
-   data, err := json.Marshal(map[string]string{
-      "audio_language":              audio_language,
-      "audio_quality":               "2.0",
-      "device_serial":               "not implemented",
-      "subtitle_language":           "MIS",
-      "video_type":                  "stream",
-      "device_identifier":           device_identifier,
-      "content_id":                  content_id,
-      "device_stream_video_quality": string(video),
-      "player":                      device_identifier + player,
-      "classification_id":           strconv.Itoa(classificationID),
-      "content_type":                m.ContentType,
-   })
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Post(
-      "https://gizmo.rakuten.tv/v3/avod/streamings",
-      "application/json", bytes.NewReader(data),
-   )
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/movies/" + m.ContentId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(classificationID),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {m.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if len(data) == 0 {
-      return nil, errors.New(resp.Status)
-   }
    var value struct {
-      Data struct {
-         StreamInfos []StreamInfo `json:"stream_infos"`
-      }
+      Data   Content
       Errors []struct {
          Message string
       }
    }
-   err = json.Unmarshal(data, &value)
+   err = json.NewDecoder(resp.Body).Decode(&value)
    if err != nil {
       return nil, err
    }
    if len(value.Errors) >= 1 {
       return nil, errors.New(value.Errors[0].Message)
    }
-   return &value.Data.StreamInfos[0], nil
+   return &value.Data, nil
+}
+
+type Content struct {
+   Id          string
+   Title       string
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string
+            } `json:"audio_languages"`
+         }
+      }
+   } `json:"view_options"`
 }
 
 func (m *Media) Episodes(seasonId string) ([]Content, error) {
@@ -295,47 +339,6 @@ func (m *Media) Episodes(seasonId string) ([]Content, error) {
    }
    return value.Data.Episodes, nil
 }
-
-func (s *StreamInfo) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.LicenseUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (c *Content) String() string {
-   var b strings.Builder
-   b.WriteString("title = ")
-   b.WriteString(c.Title)
-   b.WriteString("\ncontent id = ")
-   b.WriteString(c.Id)
-   id := map[string]struct{}{}
-   for _, stream := range c.ViewOptions.Private.Streams {
-      for _, language := range stream.AudioLanguages {
-         _, ok := id[language.Id]
-         if !ok {
-            b.WriteString("\naudio language = ")
-            b.WriteString(language.Id)
-            id[language.Id] = struct{}{}
-         }
-      }
-   }
-   return b.String()
-}
-
-func (s *Season) String() string {
-   var b strings.Builder
-   b.WriteString("show title = ")
-   b.WriteString(s.TvShowTitle)
-   b.WriteString("\nseason id = ")
-   b.WriteString(s.Id)
-   return b.String()
-}
-
 const (
    Fhd Quality = "FHD"
    Hd  Quality = "HD"
@@ -345,10 +348,4 @@ func (m *Media) Wvm(
    content_id, audio_language string, video Quality,
 ) (*StreamInfo, error) {
    return m.streamInfo(content_id, audio_language, ":DASH-CENC:WVM", video)
-}
-
-func (m *Media) Pr(
-   content_id, audio_language string, video Quality,
-) (*StreamInfo, error) {
-   return m.streamInfo(content_id, audio_language, ":DASH-CENC:PR", video)
 }

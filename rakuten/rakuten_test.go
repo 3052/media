@@ -26,29 +26,29 @@ var address_tests = []struct {
 }{
    {
       format: "/movies/",
-      url:    "http://rakuten.tv/nl/movies/made-in-america",
+      url:    "https://rakuten.tv/nl/movies/made-in-america",
    },
    {
       format: "/player/movies/stream/",
-      url:    "http://rakuten.tv/nl/player/movies/stream/made-in-america",
+      url:    "https://rakuten.tv/nl/player/movies/stream/made-in-america",
    },
    {
       format: "/tv_shows/",
-      url:    "http://rakuten.tv/fr/tv_shows/une-femme-d-honneur",
+      url:    "https://rakuten.tv/fr/tv_shows/une-femme-d-honneur",
    },
    {
       format: "?content_id=",
-      url:    "http://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
+      url:    "https://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
    },
    {
       format: "?tv_show_id=",
-      url:    "http://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
+      url:    "https://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
    },
 }
 
 func TestPlayReady(t *testing.T) {
    const (
-      address  = "http://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run"
+      address  = "https://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run"
       language = "SPA"
    )
    user, err := exec.Command(

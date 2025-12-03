@@ -84,23 +84,6 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-type flag_set struct {
-   cache    string
-   config   net.Config
-   filters  net.Filters
-   // 1
-   movie    string
-   // 2
-   show     string
-   // 3
-   season   string
-   // 4
-   content  string
-   language string
-}
-
-///
-
 func (f *flag_set) do_movie() error {
    var media rakuten.Media
    err := media.Parse(f.movie)
@@ -116,6 +99,48 @@ func (f *flag_set) do_movie() error {
       return err
    }
    fmt.Println(content)
+   return nil
+}
+
+type flag_set struct {
+   cache    string
+   config   net.Config
+   filters  net.Filters
+   // 1
+   movie    string
+   
+   // 2
+   show     string
+   // 3
+   season   string
+   // 4
+   content  string
+   language string
+}
+
+///
+
+// print seasons
+func (f *flag_set) do_show() error {
+   var media rakuten.Media
+   err := media.Parse(f.show)
+   if err != nil {
+      return err
+   }
+   err = write_file(f.cache+"/rakuten/Media", []byte(f.show))
+   if err != nil {
+      return err
+   }
+   seasons, err := media.Seasons()
+   if err != nil {
+      return err
+   }
+   for i, season := range seasons {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&season)
+   }
    return nil
 }
 
@@ -139,29 +164,6 @@ func (f *flag_set) do_season() error {
          fmt.Println()
       }
       fmt.Println(&content)
-   }
-   return nil
-}
-
-func (f *flag_set) do_show() error {
-   var media rakuten.Media
-   err := media.Parse(f.show)
-   if err != nil {
-      return err
-   }
-   err = write_file(f.cache+"/rakuten/Media", []byte(f.show))
-   if err != nil {
-      return err
-   }
-   seasons, err := media.Seasons()
-   if err != nil {
-      return err
-   }
-   for i, season := range seasons {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&season)
    }
    return nil
 }
