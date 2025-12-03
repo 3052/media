@@ -14,23 +14,114 @@ import (
    "strings"
 )
 
-var Transport = http.Transport{
-   Protocols: &http.Protocols{}, // github.com/golang/go/issues/25793
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-      default:
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
-}
-
 type StreamInfo struct {
    // THIS URL GETS LOCKED TO DEVICE ON FIRST REQUEST
    LicenseUrl string `json:"license_url"`
    // MPD
    Url string
+}
+
+type Media struct {
+   ContentId   string
+   ContentType string
+   MarketCode  string
+   TvShowId    string
+}
+
+func (m *Media) Parse(rawUrl string) error {
+   parsed, err := url.Parse(rawUrl)
+   if err != nil {
+      return fmt.Errorf("failed to parse URL: %w", err)
+   }
+   if parsed.Scheme == "" {
+      return errors.New("invalid URL: scheme is missing")
+   }
+   path := strings.Trim(parsed.Path, "/")
+   pathParts := strings.Split(path, "/")
+   // The first part of the path is the MarketCode.
+   if len(pathParts) > 0 && len(pathParts[0]) == 2 {
+      m.MarketCode = pathParts[0]
+   } else {
+      return fmt.Errorf("could not determine market code from URL path")
+   }
+   // First, try to parse content info from the path.
+   if len(pathParts) > 1 {
+      // Handle direct content links like /movies/... or /tv_shows/...
+      if pathParts[1] == "movies" && len(pathParts) == 3 {
+         m.ContentType = "movies"
+         m.ContentId = pathParts[2]
+         return nil
+      }
+      if pathParts[1] == "tv_shows" && len(pathParts) == 3 {
+         m.ContentType = "tv_shows"
+         m.TvShowId = pathParts[2]
+         return nil
+      }
+      if pathParts[1] == "player" {
+         if len(pathParts) == 5 {
+            if pathParts[2] == "movies" && pathParts[3] == "stream" {
+               m.ContentType = "movies"
+               m.ContentId = pathParts[4]
+               return nil
+            }
+         }
+      }
+   }
+   // If not in the path, fall back to checking query parameters.
+   query := parsed.Query()
+   contentType := query.Get("content_type")
+   if contentType != "" {
+      m.ContentType = contentType
+      if contentType == "movies" {
+         if contentID := query.Get("content_id"); contentID != "" {
+            m.ContentId = contentID
+            return nil
+         }
+      } else if contentType == "tv_shows" {
+         if tvShowID := query.Get("tv_show_id"); tvShowID != "" {
+            m.TvShowId = tvShowID
+            return nil
+         }
+      }
+   }
+   return fmt.Errorf("could not parse content type and ID from URL")
+}
+
+///
+
+func (m *Media) Movie() (*Content, error) {
+   classificationID, err := m.classification_id()
+   if err != nil {
+      return nil, err
+   }
+   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
+   req.URL.Path = "/v3/movies/" + m.ContentId
+   req.URL.RawQuery = url.Values{
+      "classification_id": {
+         strconv.Itoa(classificationID),
+      },
+      "device_identifier": {device_identifier},
+      "market_code":       {m.MarketCode},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var value struct {
+      Data   Content
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&value)
+   if err != nil {
+      return nil, err
+   }
+   if len(value.Errors) >= 1 {
+      return nil, errors.New(value.Errors[0].Message)
+   }
+   return &value.Data, nil
 }
 
 // github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
@@ -56,72 +147,6 @@ func (m *Media) classification_id() (int, error) {
       return 18, nil
    }
    return 0, errors.New("unknown market code")
-}
-
-func (info *Media) Parse(rawUrl string) error {
-   parsed, err := url.Parse(rawUrl)
-   if err != nil {
-      return fmt.Errorf("failed to parse URL: %w", err)
-   }
-   if parsed.Scheme == "" {
-      return errors.New("invalid URL: scheme is missing")
-   }
-   path := strings.Trim(parsed.Path, "/")
-   pathParts := strings.Split(path, "/")
-   // The first part of the path is the MarketCode.
-   if len(pathParts) > 0 && len(pathParts[0]) == 2 {
-      info.MarketCode = pathParts[0]
-   } else {
-      return fmt.Errorf("could not determine market code from URL path")
-   }
-   // First, try to parse content info from the path.
-   if len(pathParts) > 1 {
-      // Handle direct content links like /movies/... or /tv_shows/...
-      if pathParts[1] == "movies" && len(pathParts) == 3 {
-         info.ContentType = "movies"
-         info.ContentId = pathParts[2]
-         return nil
-      }
-      if pathParts[1] == "tv_shows" && len(pathParts) == 3 {
-         info.ContentType = "tv_shows"
-         info.TvShowId = pathParts[2]
-         return nil
-      }
-      if pathParts[1] == "player" {
-         if len(pathParts) == 5 {
-            if pathParts[2] == "movies" && pathParts[3] == "stream" {
-               info.ContentType = "movies"
-               info.ContentId = pathParts[4]
-               return nil
-            }
-         }
-      }
-   }
-   // If not in the path, fall back to checking query parameters.
-   query := parsed.Query()
-   contentType := query.Get("content_type")
-   if contentType != "" {
-      info.ContentType = contentType
-      if contentType == "movies" {
-         if contentID := query.Get("content_id"); contentID != "" {
-            info.ContentId = contentID
-            return nil
-         }
-      } else if contentType == "tv_shows" {
-         if tvShowID := query.Get("tv_show_id"); tvShowID != "" {
-            info.TvShowId = tvShowID
-            return nil
-         }
-      }
-   }
-   return fmt.Errorf("could not parse content type and ID from URL")
-}
-
-type Media struct {
-   ContentId   string
-   ContentType string
-   MarketCode  string
-   TvShowId    string
 }
 
 type Quality string
@@ -182,41 +207,6 @@ func (m *Media) Seasons() ([]Season, error) {
       return nil, errors.New(value.Errors[0].Code)
    }
    return value.Data.Seasons, nil
-}
-
-func (m *Media) Movie() (*Content, error) {
-   classificationID, err := m.classification_id()
-   if err != nil {
-      return nil, err
-   }
-   req, _ := http.NewRequest("", "https://gizmo.rakuten.tv", nil)
-   req.URL.Path = "/v3/movies/" + m.ContentId
-   req.URL.RawQuery = url.Values{
-      "classification_id": {
-         strconv.Itoa(classificationID),
-      },
-      "device_identifier": {device_identifier},
-      "market_code":       {m.MarketCode},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data   Content
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Message)
-   }
-   return &value.Data, nil
 }
 
 func (m *Media) streamInfo(
