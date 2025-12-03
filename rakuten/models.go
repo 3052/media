@@ -1,5 +1,10 @@
 package rakuten
 
+import (
+   "fmt"
+   "strings"
+)
+
 // DeviceID is the default identifier used for requests.
 const DeviceID = "atvui40"
 
@@ -55,6 +60,24 @@ type VideoItem struct {
    ViewOptions ViewOptions `json:"view_options"`
 }
 
+// String implements the fmt.Stringer interface.
+// It returns the ID, Title, and a unique list of available audio languages.
+func (v VideoItem) String() string {
+   seen := make(map[string]bool)
+   var langs []string
+
+   for _, stream := range v.ViewOptions.Private.Streams {
+      for _, lang := range stream.AudioLanguages {
+         if !seen[lang.Id] {
+            seen[lang.Id] = true
+            langs = append(langs, lang.Id)
+         }
+      }
+   }
+
+   return fmt.Sprintf("%s - %s [%s]", v.Id, v.Title, strings.Join(langs, ", "))
+}
+
 // --- Response Data Structs ---
 
 type SeasonData struct {
@@ -66,6 +89,24 @@ type TvShowData struct {
       TvShowTitle string `json:"tv_show_title"`
       Id          string `json:"id"`
    } `json:"seasons"`
+}
+
+// String implements the fmt.Stringer interface.
+// It returns the TV Show Title followed by a list of Season IDs.
+func (t TvShowData) String() string {
+   if len(t.Seasons) == 0 {
+      return "No seasons available"
+   }
+
+   // Assume the title is the same for all seasons in this response
+   title := t.Seasons[0].TvShowTitle
+   var seasonIDs []string
+
+   for _, s := range t.Seasons {
+      seasonIDs = append(seasonIDs, s.Id)
+   }
+
+   return fmt.Sprintf("%s - Seasons [%s]", title, strings.Join(seasonIDs, ", "))
 }
 
 // StreamData represents the inner data object of a stream request.
