@@ -58,6 +58,14 @@ type TvShowData struct {
    } `json:"seasons"`
 }
 
+// StreamData represents the inner data object of a stream request.
+type StreamData struct {
+   StreamInfos []struct {
+      LicenseUrl string `json:"license_url"`
+      Url        string `json:"url"`
+   } `json:"stream_infos"`
+}
+
 // --- Request Payload Struct ---
 
 type StreamRequestPayload struct {
@@ -93,8 +101,8 @@ func buildURL(marketCode, endpoint, id string) (string, error) {
    return fmt.Sprintf("%s?%s", baseURL, params.Encode()), nil
 }
 
-// makeStreamRequest handles the common logic for the POST stream request.
-func makeStreamRequest(marketCode, contentType, contentId, player, videoQuality, audioLanguage string) (*http.Response, error) {
+// makeStreamRequest handles the common logic for the POST stream request and parsing.
+func makeStreamRequest(marketCode, contentType, contentId, player, videoQuality, audioLanguage string) (*StreamData, error) {
    classID, ok := classificationMap[marketCode]
    if !ok {
       return nil, fmt.Errorf("unsupported market code: %s", marketCode)
@@ -128,7 +136,25 @@ func makeStreamRequest(marketCode, contentType, contentId, player, videoQuality,
    req.Header.Set("Content-Type", "application/json")
 
    client := &http.Client{}
-   return client.Do(req)
+   resp, err := client.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   if resp.StatusCode != http.StatusOK {
+      return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
+   }
+
+   var wrapper struct {
+      Data StreamData `json:"data"`
+   }
+
+   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+      return nil, fmt.Errorf("failed to decode response: %w", err)
+   }
+
+   return &wrapper.Data, nil
 }
 
 // --- Movie Type and Methods ---
@@ -167,7 +193,7 @@ func (m *Movie) Request() (*VideoItem, error) {
 }
 
 // RequestStream requests the stream for this movie (POST).
-func (m *Movie) RequestStream(player, videoQuality, audioLanguage string) (*http.Response, error) {
+func (m *Movie) RequestStream(player, videoQuality, audioLanguage string) (*StreamData, error) {
    return makeStreamRequest(m.MarketCode, "movies", m.Id, player, videoQuality, audioLanguage)
 }
 
@@ -236,7 +262,7 @@ func (t *TvShow) RequestSeason(seasonId string) (*SeasonData, error) {
 
 // RequestStream requests the stream for a specific Episode (POST).
 // Note: You must provide the episodeId (retrieved from RequestSeason).
-func (t *TvShow) RequestStream(episodeId, player, videoQuality, audioLanguage string) (*http.Response, error) {
+func (t *TvShow) RequestStream(episodeId, player, videoQuality, audioLanguage string) (*StreamData, error) {
    // For TV content, the standard Rakuten content_type for streaming an episode is "episodes"
    return makeStreamRequest(t.MarketCode, "episodes", episodeId, player, videoQuality, audioLanguage)
 }
