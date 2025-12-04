@@ -2,14 +2,15 @@ package rakuten
 
 import (
    "fmt"
+   "net/url"
    "strings"
 )
 
 type Cache struct {
-   Mpd      *url.URL
-   MpdBody  []byte
-   Movie *Movie
-   TvShow *TvShow
+   Movie   *Movie
+   Mpd     *url.URL
+   MpdBody []byte
+   TvShow  *TvShow
 }
 
 type StreamData struct {

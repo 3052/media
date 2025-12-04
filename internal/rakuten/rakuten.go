@@ -3,11 +3,13 @@ package main
 import (
    "41.neocities.org/media/rakuten"
    "41.neocities.org/net"
+   "encoding/json"
    "flag"
    "fmt"
    "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
 )
 
@@ -16,9 +18,9 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flag_set) do_movie() error {
+func (o *options) do_movie() error {
    var movie rakuten.Movie
-   err = movie.ParseURL(f.movie)
+   err := movie.ParseURL(o.movie)
    if err != nil {
       return err
    }
@@ -31,13 +33,13 @@ func (f *flag_set) do_movie() error {
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/rakuten/Cache", data)
+   return write_file(o.cache+"/rakuten/Cache", data)
 }
 
 // print seasons
-func (f *flag_set) do_tv_show() error {
+func (o *options) do_show() error {
    var show rakuten.TvShow
-   err = show.ParseURL(f.show)
+   err := show.ParseURL(o.show)
    if err != nil {
       return err
    }
@@ -50,12 +52,12 @@ func (f *flag_set) do_tv_show() error {
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/rakuten/Cache", data)
+   return write_file(o.cache+"/rakuten/Cache", data)
 }
 
 // print episodes
-func (f *flag_set) do_season() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Cache")
+func (o *options) do_season() error {
+   data, err := os.ReadFile(o.cache + "/rakuten/Cache")
    if err != nil {
       return err
    }
@@ -64,7 +66,7 @@ func (f *flag_set) do_season() error {
    if err != nil {
       return err
    }
-   season, err := cache.TvShow.RequestSeason(f.season)
+   season, err := cache.TvShow.RequestSeason(o.season)
    if err != nil {
       return err
    }
@@ -77,8 +79,8 @@ func (f *flag_set) do_season() error {
    return nil
 }
 
-func (f *flag_set) do_movie_dash() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Cache")
+func (o *options) do_language() error {
+   data, err := os.ReadFile(o.cache + "/rakuten/Cache")
    if err != nil {
       return err
    }
@@ -91,11 +93,11 @@ func (f *flag_set) do_movie_dash() error {
    switch {
    case cache.Movie != nil:
       stream, err = cache.Movie.RequestStream(
-         f.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         o.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    case cache.TvShow != nil:
       stream, err = cache.TvShow.RequestStream(
-         f.item, f.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         o.episode, o.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    }
    if err != nil {
@@ -108,8 +110,8 @@ func (f *flag_set) do_movie_dash() error {
    return net.Representations(cache.MpdBody, cache.Mpd)
 }
 
-func (f *flag_set) do_episode_dash() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Cache")
+func (o *options) do_dash() error {
+   data, err := os.ReadFile(o.cache + "/rakuten/Cache")
    if err != nil {
       return err
    }
@@ -122,115 +124,67 @@ func (f *flag_set) do_episode_dash() error {
    switch {
    case cache.Movie != nil:
       stream, err = cache.Movie.RequestStream(
-         f.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         o.language, rakuten.Player.Widevine, rakuten.Quality.HD,
       )
    case cache.TvShow != nil:
       stream, err = cache.TvShow.RequestStream(
-         f.item, f.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         o.episode, o.language, rakuten.Player.Widevine, rakuten.Quality.HD,
       )
    }
    if err != nil {
       return err
    }
-   err = stream.Mpd(&cache)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
-}
-
-func (f *flag_set) do_movie_license() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Cache")
-   if err != nil {
-      return err
-   }
-   var cache rakuten.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch {
-   case cache.Movie != nil:
-      stream, err = cache.Movie.RequestStream(
-         f.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   case cache.TvShow != nil:
-      stream, err = cache.TvShow.RequestStream(
-         f.item, f.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
+   o.config.Send = func(data []byte) ([]byte, error) {
       return stream.Widevine(data)
    }
-   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
+   return o.config.Download(cache.MpdBody, cache.Mpd, o.dash)
 }
 
-func (f *flag_set) do_episode_license() error {
-   data, err := os.ReadFile(f.cache + "/rakuten/Cache")
-   if err != nil {
-      return err
-   }
-   var cache rakuten.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch {
-   case cache.Movie != nil:
-      stream, err = cache.Movie.RequestStream(
-         f.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   case cache.TvShow != nil:
-      stream, err = cache.TvShow.RequestStream(
-         f.item, f.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return stream.Widevine(data)
-   }
-   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
-}
-
-type flag_set struct {
+type options struct {
    cache    string
    config   net.Config
    movie    string
-   tv_show     string
+   show     string
    season   string
+   episode  string
    language string
-   episode string
-   dash string
+   dash     string
 }
 
-///
-
-func (f *flag_set) New() error {
+func (o *options) run() (bool, error) {
    var err error
-   f.cache, err = os.UserCacheDir()
+   o.cache, err = os.UserCacheDir()
    if err != nil {
-      return err
+      return false, err
    }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.season, "S", "", "season ID")
-   flag.StringVar(&f.language, "a", "", "audio language")
-   flag.StringVar(&f.item, "c", "", "item ID")
-   flag.StringVar(&f.dash, "d", "", "DASH ID")
-   flag.StringVar(&f.movie, "m", "", "movie URL")
-   flag.StringVar(&f.show, "s", "", "TV show URL")
-   flag.IntVar(&f.config.Threads, "t", 12, "threads")
-   return nil
+   o.cache = filepath.ToSlash(o.cache)
+   o.config.ClientId = o.cache + "/L3/client_id.bin"
+   o.config.PrivateKey = o.cache + "/L3/private_key.pem"
+   flag.StringVar(&o.config.ClientId, "C", o.config.ClientId, "client ID")
+   flag.StringVar(&o.config.PrivateKey, "P", o.config.PrivateKey, "private key")
+   flag.StringVar(&o.season, "S", "", "season ID")
+   flag.StringVar(&o.language, "a", "", "audio language")
+   flag.StringVar(&o.dash, "d", "", "DASH ID")
+   flag.StringVar(&o.episode, "e", "", "episode ID")
+   flag.StringVar(&o.movie, "m", "", "movie URL")
+   flag.StringVar(&o.show, "s", "", "TV show URL")
+   flag.Parse()
+   if o.movie != "" {
+      return true, o.do_movie()
+   }
+   if o.show != "" {
+      return true, o.do_show()
+   }
+   if o.season != "" {
+      return true, o.do_season()
+   }
+   if o.language != "" {
+      if o.dash != "" {
+         return true, o.do_dash()
+      }
+      return true, o.do_language()
+   }
+   return false, nil
 }
 
 func main() {
@@ -241,33 +195,13 @@ func main() {
       }
       return "L"
    })
-   flag.Parse()
    log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
+   var opts options
+   did_run, err := opts.run()
    if err != nil {
       log.Fatal(err)
    }
-   
-   if set.movie != "" {
-      err = set.do_movie()
-   }
-   
-   
-   switch {
-   case set.movie != "":
-   case set.show != "":
-      err = set.do_show()
-   case set.season != "":
-      err = set.do_season()
-   case set.item_language():
-      err = set.do_item()
-   case set.dash != "":
-      err = set.do_dash()
-   default:
+   if !did_run {
       flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
    }
 }
