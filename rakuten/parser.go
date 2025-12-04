@@ -113,11 +113,12 @@ func (t *TvShow) ParseURL(rawURL string) error {
 // extractMarketCode extracts the first segment of the path (e.g., "nl", "uk").
 func extractMarketCode(path string) (string, error) {
    trimmed := strings.Trim(path, "/")
-   segments := strings.Split(trimmed, "/")
-
-   if len(segments) < 1 || segments[0] == "" {
+   
+   // Check if we have anything left after trimming
+   if trimmed == "" {
       return "", fmt.Errorf("could not determine market code from path")
    }
 
+   segments := strings.Split(trimmed, "/")
    return segments[0], nil
 }

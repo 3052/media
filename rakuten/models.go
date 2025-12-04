@@ -5,6 +5,20 @@ import (
    "strings"
 )
 
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+   Movie *Movie
+   TvShow *TvShow
+}
+
+type StreamData struct {
+   StreamInfos []struct {
+      LicenseUrl string `json:"license_url"`
+      Url        string `json:"url"`
+   } `json:"stream_infos"`
+}
+
 // DeviceID is the default identifier used for requests.
 const DeviceID = "atvui40"
 
@@ -35,10 +49,13 @@ var Quality = struct {
 // PlayerType defines the allowed player types/DRM schemes.
 type PlayerType string
 
-const (
-   PlayerPlayReady PlayerType = DeviceID + ":DASH-CENC:PR"
-   PlayerWidevine  PlayerType = DeviceID + ":DASH-CENC:WVM"
-)
+var Player = struct {
+   PlayReady PlayerType
+   Widevine  PlayerType
+}{
+   PlayReady: DeviceID + ":DASH-CENC:PR",
+   Widevine:  DeviceID + ":DASH-CENC:WVM",
+}
 
 // --- Shared Structs for Nested JSON ---
 
@@ -111,16 +128,6 @@ func (t TvShowData) String() string {
 
    return fmt.Sprintf("%s - Seasons [%s]", title, strings.Join(seasonIDs, ", "))
 }
-
-// StreamData represents the inner data object of a stream request.
-type StreamData struct {
-   StreamInfos []struct {
-      LicenseUrl string `json:"license_url"`
-      Url        string `json:"url"`
-   } `json:"stream_infos"`
-}
-
-// --- Request Payload Struct ---
 
 type StreamRequestPayload struct {
    AudioQuality             string       `json:"audio_quality"`

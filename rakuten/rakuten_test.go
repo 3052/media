@@ -32,12 +32,12 @@ func TestPlayReady(t *testing.T) {
          Host:   "cz103.nordvpn.com:89",
       }),
    }
-   var media_var Media
-   err = media_var.Parse(address)
+   var movie_var Movie
+   err = movie_var.ParseURL(address)
    if err != nil {
       t.Fatal(err)
    }
-   info, err := media_var.Pr(media_var.ContentId, language, Hd)
+   stream, err := movie_var.RequestStream(language, Player.PlayReady, Quality.HD)
    if err != nil {
       t.Fatal(err)
    }
@@ -46,24 +46,18 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      cache+"/rakuten/PlayReady", []byte(info.LicenseUrl), os.ModePerm,
+      cache+"/rakuten/PlayReady",
+      []byte(stream.StreamInfos[0].LicenseUrl), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)
    }
 }
 
-func TestAddress(t *testing.T) {
-   t.Log(classification_tests)
-   for _, test := range address_tests {
-      var media_var Media
-      err := media_var.Parse(test.url)
-      if err != nil {
-         t.Fatal(err)
-      }
-      t.Logf("%+v", media_var)
-   }
+func TestLog(t *testing.T) {
+   t.Log(address_tests, classification_tests)
 }
+
 var classification_tests = []string{
    "https://rakuten.tv/pt/movies/bound",
    "https://rakuten.tv/dk/movies/a-time-to-kill",

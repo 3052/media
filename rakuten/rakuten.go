@@ -10,7 +10,19 @@ import (
    "strconv"
 )
 
-// --- Helper Functions ---
+func (s *StreamData) Mpd(storage *Cache) error {
+   resp, err := http.Get(s.StreamInfos[0].Url)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
+}
 
 // buildURL handles the common logic for constructing GET request URLs.
 func buildURL(marketCode, endpoint, id string) (string, error) {
