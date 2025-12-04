@@ -13,6 +13,61 @@ import (
    "path/filepath"
 )
 
+func (o *options) run() (bool, error) {
+   var err error
+   o.cache, err = os.UserCacheDir()
+   if err != nil {
+      return false, err
+   }
+   o.cache = filepath.ToSlash(o.cache)
+   o.config.ClientId = o.cache + "/L3/client_id.bin"
+   o.config.PrivateKey = o.cache + "/L3/private_key.pem"
+   flag.StringVar(&o.config.ClientId, "C", o.config.ClientId, "client ID")
+   flag.StringVar(&o.config.PrivateKey, "P", o.config.PrivateKey, "private key")
+   flag.StringVar(&o.season, "S", "", "season ID")
+   flag.StringVar(&o.language, "a", "", "audio language")
+   flag.StringVar(&o.dash, "d", "", "DASH ID")
+   flag.StringVar(&o.episode, "e", "", "episode ID")
+   flag.StringVar(&o.movie, "m", "", "movie URL")
+   flag.StringVar(&o.show, "s", "", "TV show URL")
+   flag.IntVar(&o.config.Threads, "t", 2, "threads")
+   flag.Parse()
+   if o.movie != "" {
+      return true, o.do_movie()
+   }
+   if o.show != "" {
+      return true, o.do_show()
+   }
+   if o.season != "" {
+      return true, o.do_season()
+   }
+   if o.language != "" {
+      if o.dash != "" {
+         return true, o.do_dash()
+      }
+      return true, o.do_language()
+   }
+   return false, nil
+}
+func main() {
+   net.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return ""
+      }
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   var opts options
+   did_run, err := opts.run()
+   if err != nil {
+      log.Fatal(err)
+   }
+   if !did_run {
+      flag.Usage()
+   }
+}
+
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
@@ -107,6 +162,14 @@ func (o *options) do_language() error {
    if err != nil {
       return err
    }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(o.cache + "/rakuten/Cache", data)
+   if err != nil {
+      return err
+   }
    return net.Representations(cache.MpdBody, cache.Mpd)
 }
 
@@ -143,65 +206,10 @@ func (o *options) do_dash() error {
 type options struct {
    cache    string
    config   net.Config
-   movie    string
-   show     string
-   season   string
+   dash     string
    episode  string
    language string
-   dash     string
-}
-
-func (o *options) run() (bool, error) {
-   var err error
-   o.cache, err = os.UserCacheDir()
-   if err != nil {
-      return false, err
-   }
-   o.cache = filepath.ToSlash(o.cache)
-   o.config.ClientId = o.cache + "/L3/client_id.bin"
-   o.config.PrivateKey = o.cache + "/L3/private_key.pem"
-   flag.StringVar(&o.config.ClientId, "C", o.config.ClientId, "client ID")
-   flag.StringVar(&o.config.PrivateKey, "P", o.config.PrivateKey, "private key")
-   flag.StringVar(&o.season, "S", "", "season ID")
-   flag.StringVar(&o.language, "a", "", "audio language")
-   flag.StringVar(&o.dash, "d", "", "DASH ID")
-   flag.StringVar(&o.episode, "e", "", "episode ID")
-   flag.StringVar(&o.movie, "m", "", "movie URL")
-   flag.StringVar(&o.show, "s", "", "TV show URL")
-   flag.Parse()
-   if o.movie != "" {
-      return true, o.do_movie()
-   }
-   if o.show != "" {
-      return true, o.do_show()
-   }
-   if o.season != "" {
-      return true, o.do_season()
-   }
-   if o.language != "" {
-      if o.dash != "" {
-         return true, o.do_dash()
-      }
-      return true, o.do_language()
-   }
-   return false, nil
-}
-
-func main() {
-   net.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return ""
-      }
-      return "L"
-   })
-   log.SetFlags(log.Ltime)
-   var opts options
-   did_run, err := opts.run()
-   if err != nil {
-      log.Fatal(err)
-   }
-   if !did_run {
-      flag.Usage()
-   }
+   movie    string
+   season   string
+   show     string
 }

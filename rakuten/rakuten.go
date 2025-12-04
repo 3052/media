@@ -3,6 +3,7 @@ package rakuten
 import (
    "bytes"
    "encoding/json"
+   "errors"
    "fmt"
    "io"
    "net/http"
@@ -10,38 +11,8 @@ import (
    "strconv"
 )
 
-func (s *StreamData) Mpd(storage *Cache) error {
-   resp, err := http.Get(s.StreamInfos[0].Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
-
-// buildURL handles the common logic for constructing GET request URLs.
-func buildURL(marketCode, endpoint, id string) (string, error) {
-   classID, ok := classificationMap[marketCode]
-   if !ok {
-      return "", fmt.Errorf("unsupported market code: %s", marketCode)
-   }
-
-   baseURL := fmt.Sprintf("https://gizmo.rakuten.tv/v3/%s/%s", endpoint, id)
-
-   params := url.Values{}
-   params.Add("device_identifier", DeviceID)
-   params.Add("market_code", marketCode)
-   params.Add("classification_id", strconv.Itoa(classID))
-
-   return fmt.Sprintf("%s?%s", baseURL, params.Encode()), nil
-}
-
-// makeStreamRequest handles the common logic for the POST stream request and parsing.
+// makeStreamRequest handles the common logic for the POST stream request and
+// parsing
 func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
    classID, ok := classificationMap[marketCode]
    if !ok {
@@ -72,28 +43,25 @@ func makeStreamRequest(marketCode, contentType, contentId string, player PlayerT
    if err != nil {
       return nil, err
    }
-
    req.Header.Set("Content-Type", "application/json")
-
-   client := &http.Client{}
-   resp, err := client.Do(req)
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-
-   if resp.StatusCode != http.StatusOK {
-      return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
-   }
-
    var wrapper struct {
       Data StreamData `json:"data"`
+      Errors []struct {
+         Message string
+      }
    }
-
-   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
-      return nil, fmt.Errorf("failed to decode response: %w", err)
+   err = json.NewDecoder(resp.Body).Decode(&wrapper)
+   if err != nil {
+      return nil, err
    }
-
+   if len(wrapper.Errors) >= 1 {
+      return nil, errors.New(wrapper.Errors[0].Message)
+   }
    return &wrapper.Data, nil
 }
 
@@ -218,4 +186,34 @@ func (t *TvShow) RequestSeason(seasonId string) (*SeasonData, error) {
 func (t *TvShow) RequestStream(episodeId string, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
    // For TV content, the standard Rakuten content_type for streaming an episode is "episodes"
    return makeStreamRequest(t.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
+}
+func (s *StreamData) Mpd(storage *Cache) error {
+   resp, err := http.Get(s.StreamInfos[0].Url)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
+}
+
+// buildURL handles the common logic for constructing GET request URLs.
+func buildURL(marketCode, endpoint, id string) (string, error) {
+   classID, ok := classificationMap[marketCode]
+   if !ok {
+      return "", fmt.Errorf("unsupported market code: %s", marketCode)
+   }
+
+   baseURL := fmt.Sprintf("https://gizmo.rakuten.tv/v3/%s/%s", endpoint, id)
+
+   params := url.Values{}
+   params.Add("device_identifier", DeviceID)
+   params.Add("market_code", marketCode)
+   params.Add("classification_id", strconv.Itoa(classID))
+
+   return fmt.Sprintf("%s?%s", baseURL, params.Encode()), nil
 }
