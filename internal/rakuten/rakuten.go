@@ -13,6 +13,25 @@ import (
    "path/filepath"
 )
 
+func main() {
+   net.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return ""
+      }
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   var opts options
+   did_run, err := opts.run()
+   if err != nil {
+      log.Fatal(err)
+   }
+   if !did_run {
+      flag.Usage()
+   }
+}
+
 func (o *options) run() (bool, error) {
    var err error
    o.cache, err = os.UserCacheDir()
@@ -48,24 +67,6 @@ func (o *options) run() (bool, error) {
       return true, o.do_language()
    }
    return false, nil
-}
-func main() {
-   net.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return ""
-      }
-      return "LP"
-   })
-   log.SetFlags(log.Ltime)
-   var opts options
-   did_run, err := opts.run()
-   if err != nil {
-      log.Fatal(err)
-   }
-   if !did_run {
-      flag.Usage()
-   }
 }
 
 func write_file(name string, data []byte) error {
