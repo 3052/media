@@ -22,8 +22,8 @@ func main() {
       return "LP"
    })
    log.SetFlags(log.Ltime)
-   var tool runner
-   err := tool.run()
+   var program runner
+   err := program.run()
    if err != nil {
       log.Fatal(err)
    }
