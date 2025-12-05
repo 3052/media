@@ -13,6 +13,43 @@ import (
 type Cache struct {
    Mpd      *url.URL
    MpdBody  []byte
+   Login *Login
+}
+
+// good for 10 years
+type Login struct {
+   Jwt    string
+   UserId int
+}
+
+func (l *Login) Fetch(email, password string) error {
+   data, err := json.Marshal(map[string]any{
+      "credentialType": "email",
+      "emailUser": map[string]string{
+         "email":    email,
+         "password": password,
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://www.kanopy.com/kapi/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("user-agent", user_agent)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return errors.New(resp.Status)
+   }
+   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 func (m *Manifest) Mpd(storage *Cache) error {
@@ -32,12 +69,6 @@ func (m *Manifest) Mpd(storage *Cache) error {
    }
    storage.Mpd = resp.Request.URL
    return nil
-}
-
-// good for 10 years
-type Login struct {
-   Jwt    string
-   UserId int
 }
 
 type Plays struct {
@@ -149,34 +180,4 @@ func (p *Plays) Dash() (*Manifest, bool) {
       }
    }
    return nil, false
-}
-
-func (l *Login) Fetch(email, password string) error {
-   data, err := json.Marshal(map[string]any{
-      "credentialType": "email",
-      "emailUser": map[string]string{
-         "email":    email,
-         "password": password,
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://www.kanopy.com/kapi/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("user-agent", user_agent)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return errors.New(resp.Status)
-   }
-   return json.NewDecoder(resp.Body).Decode(l)
 }

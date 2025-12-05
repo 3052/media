@@ -22,46 +22,46 @@ func main() {
       return "LP"
    })
    log.SetFlags(log.Ltime)
-   var opts options
-   err := opts.run()
+   var tool runner
+   err := tool.run()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (o *options) run() error {
+func (r *runner) run() error {
    var err error
-   o.cache, err = os.UserCacheDir()
+   r.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   o.cache = filepath.ToSlash(o.cache)
-   o.config.ClientId = o.cache + "/L3/client_id.bin"
-   o.config.PrivateKey = o.cache + "/L3/private_key.pem"
-   flag.StringVar(&o.config.ClientId, "C", o.config.ClientId, "client ID")
-   flag.StringVar(&o.config.PrivateKey, "P", o.config.PrivateKey, "private key")
-   flag.StringVar(&o.season, "S", "", "season ID")
-   flag.StringVar(&o.language, "a", "", "audio language")
-   flag.StringVar(&o.dash, "d", "", "DASH ID")
-   flag.StringVar(&o.episode, "e", "", "episode ID")
-   flag.StringVar(&o.movie, "m", "", "movie URL")
-   flag.StringVar(&o.show, "s", "", "TV show URL")
-   flag.IntVar(&o.config.Threads, "t", 2, "threads")
+   r.cache = filepath.ToSlash(r.cache)
+   r.config.ClientId = r.cache + "/L3/client_id.bin"
+   r.config.PrivateKey = r.cache + "/L3/private_key.pem"
+   flag.StringVar(&r.config.ClientId, "C", r.config.ClientId, "client ID")
+   flag.StringVar(&r.config.PrivateKey, "P", r.config.PrivateKey, "private key")
+   flag.StringVar(&r.season, "S", "", "season ID")
+   flag.StringVar(&r.language, "a", "", "audio language")
+   flag.StringVar(&r.dash, "d", "", "DASH ID")
+   flag.StringVar(&r.episode, "e", "", "episode ID")
+   flag.StringVar(&r.movie, "m", "", "movie URL")
+   flag.StringVar(&r.show, "s", "", "TV show URL")
+   flag.IntVar(&r.config.Threads, "t", 2, "threads")
    flag.Parse()
-   if o.movie != "" {
-      return o.do_movie()
+   if r.movie != "" {
+      return r.do_movie()
    }
-   if o.show != "" {
-      return o.do_show()
+   if r.show != "" {
+      return r.do_show()
    }
-   if o.season != "" {
-      return o.do_season()
+   if r.season != "" {
+      return r.do_season()
    }
-   if o.language != "" {
-      if o.dash != "" {
-         return o.do_dash()
+   if r.language != "" {
+      if r.dash != "" {
+         return r.do_dash()
       }
-      return o.do_language()
+      return r.do_language()
    }
    flag.Usage()
    return nil
@@ -72,9 +72,9 @@ func write_file(name string, data []byte) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (o *options) do_movie() error {
+func (r *runner) do_movie() error {
    var movie rakuten.Movie
-   err := movie.ParseURL(o.movie)
+   err := movie.ParseURL(r.movie)
    if err != nil {
       return err
    }
@@ -87,13 +87,13 @@ func (o *options) do_movie() error {
    if err != nil {
       return err
    }
-   return write_file(o.cache+"/rakuten/Cache", data)
+   return write_file(r.cache+"/rakuten/Cache", data)
 }
 
 // print seasons
-func (o *options) do_show() error {
+func (r *runner) do_show() error {
    var show rakuten.TvShow
-   err := show.ParseURL(o.show)
+   err := show.ParseURL(r.show)
    if err != nil {
       return err
    }
@@ -106,12 +106,12 @@ func (o *options) do_show() error {
    if err != nil {
       return err
    }
-   return write_file(o.cache+"/rakuten/Cache", data)
+   return write_file(r.cache+"/rakuten/Cache", data)
 }
 
 // print episodes
-func (o *options) do_season() error {
-   data, err := os.ReadFile(o.cache + "/rakuten/Cache")
+func (r *runner) do_season() error {
+   data, err := os.ReadFile(r.cache + "/rakuten/Cache")
    if err != nil {
       return err
    }
@@ -120,7 +120,7 @@ func (o *options) do_season() error {
    if err != nil {
       return err
    }
-   season, err := cache.TvShow.RequestSeason(o.season)
+   season, err := cache.TvShow.RequestSeason(r.season)
    if err != nil {
       return err
    }
@@ -133,8 +133,8 @@ func (o *options) do_season() error {
    return nil
 }
 
-func (o *options) do_language() error {
-   data, err := os.ReadFile(o.cache + "/rakuten/Cache")
+func (r *runner) do_language() error {
+   data, err := os.ReadFile(r.cache + "/rakuten/Cache")
    if err != nil {
       return err
    }
@@ -147,11 +147,11 @@ func (o *options) do_language() error {
    switch {
    case cache.Movie != nil:
       stream, err = cache.Movie.RequestStream(
-         o.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         r.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    case cache.TvShow != nil:
       stream, err = cache.TvShow.RequestStream(
-         o.episode, o.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         r.episode, r.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    }
    if err != nil {
@@ -165,15 +165,15 @@ func (o *options) do_language() error {
    if err != nil {
       return err
    }
-   err = write_file(o.cache + "/rakuten/Cache", data)
+   err = write_file(r.cache + "/rakuten/Cache", data)
    if err != nil {
       return err
    }
    return net.Representations(cache.MpdBody, cache.Mpd)
 }
 
-func (o *options) do_dash() error {
-   data, err := os.ReadFile(o.cache + "/rakuten/Cache")
+func (r *runner) do_dash() error {
+   data, err := os.ReadFile(r.cache + "/rakuten/Cache")
    if err != nil {
       return err
    }
@@ -186,23 +186,23 @@ func (o *options) do_dash() error {
    switch {
    case cache.Movie != nil:
       stream, err = cache.Movie.RequestStream(
-         o.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+         r.language, rakuten.Player.Widevine, rakuten.Quality.HD,
       )
    case cache.TvShow != nil:
       stream, err = cache.TvShow.RequestStream(
-         o.episode, o.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+         r.episode, r.language, rakuten.Player.Widevine, rakuten.Quality.HD,
       )
    }
    if err != nil {
       return err
    }
-   o.config.Send = func(data []byte) ([]byte, error) {
+   r.config.Send = func(data []byte) ([]byte, error) {
       return stream.Widevine(data)
    }
-   return o.config.Download(cache.MpdBody, cache.Mpd, o.dash)
+   return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)
 }
 
-type options struct {
+type runner struct {
    cache    string
    config   net.Config
    dash     string
