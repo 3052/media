@@ -16,111 +16,6 @@ import (
    "time"
 )
 
-func TrackingId(address string) (string, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const startKey = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(string(data), startKey)
-   if !found {
-      return "", fmt.Errorf("attribute key '%s' not found", startKey)
-   }
-   value, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", fmt.Errorf("could not find closing quote for the attribute")
-   }
-   return value, nil
-}
-
-type Cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
-   Player  *Player
-   Session *Session
-}
-
-func (p *Player) Mpd(storage *Cache) error {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
-
-type Player struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-
-func (s *Session) Fetch(ssoToken string) error {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     ssoToken,
-   })
-   if err != nil {
-      return err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
-}
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
-
-func (e *Episode) String() string {
-   data := []byte("episode = ")
-   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
-   data = append(data, "\ntitle = "...)
-   data = append(data, e.Title...)
-   data = append(data, "\nid = "...)
-   data = append(data, e.Id...)
-   return string(data)
-}
-
-type Episode struct {
-   Id     string
-   Params struct {
-      SeriesEpisode int64
-   }
-   Title string
-}
-
 func (t *Ticket) Token(username, password string) (*Token, error) {
    value := map[string]any{
       "ticket": t.Ticket,
@@ -134,7 +29,7 @@ func (t *Ticket) Token(username, password string) (*Token, error) {
       return nil, err
    }
    req, err := http.NewRequest(
-      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+      "POST", "https://m7cp.login.solocoo.tv/login", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
@@ -341,3 +236,108 @@ type Ticket struct {
    Message string
    Ticket  string
 }
+func TrackingId(address string) (string, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const startKey = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(string(data), startKey)
+   if !found {
+      return "", fmt.Errorf("attribute key '%s' not found", startKey)
+   }
+   value, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", fmt.Errorf("could not find closing quote for the attribute")
+   }
+   return value, nil
+}
+
+type Cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
+   Player  *Player
+   Session *Session
+}
+
+func (p *Player) Mpd(storage *Cache) error {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
+}
+
+type Player struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message string
+   Url     string // MPD
+}
+
+func (s *Session) Fetch(ssoToken string) error {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     ssoToken,
+   })
+   if err != nil {
+      return err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
+
+func (e *Episode) String() string {
+   data := []byte("episode = ")
+   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
+   data = append(data, "\ntitle = "...)
+   data = append(data, e.Title...)
+   data = append(data, "\nid = "...)
+   data = append(data, e.Id...)
+   return string(data)
+}
+
+type Episode struct {
+   Id     string
+   Params struct {
+      SeriesEpisode int64
+   }
+   Title string
+}
+

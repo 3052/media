@@ -13,30 +13,11 @@ import (
    "path/filepath"
 )
 
-func main() {
-   net.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return ""
-      }
-      return "LP"
-   })
-   log.SetFlags(log.Ltime)
-   var opts options
-   did_run, err := opts.run()
-   if err != nil {
-      log.Fatal(err)
-   }
-   if !did_run {
-      flag.Usage()
-   }
-}
-
-func (o *options) run() (bool, error) {
+func (o *options) run() error {
    var err error
    o.cache, err = os.UserCacheDir()
    if err != nil {
-      return false, err
+      return err
    }
    o.cache = filepath.ToSlash(o.cache)
    o.config.ClientId = o.cache + "/L3/client_id.bin"
@@ -52,21 +33,38 @@ func (o *options) run() (bool, error) {
    flag.IntVar(&o.config.Threads, "t", 2, "threads")
    flag.Parse()
    if o.movie != "" {
-      return true, o.do_movie()
+      return o.do_movie()
    }
    if o.show != "" {
-      return true, o.do_show()
+      return o.do_show()
    }
    if o.season != "" {
-      return true, o.do_season()
+      return o.do_season()
    }
    if o.language != "" {
       if o.dash != "" {
-         return true, o.do_dash()
+         return o.do_dash()
       }
-      return true, o.do_language()
+      return o.do_language()
    }
-   return false, nil
+   flag.Usage()
+   return nil
+}
+
+func main() {
+   net.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return ""
+      }
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   var opts options
+   err := opts.run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 func write_file(name string, data []byte) error {
