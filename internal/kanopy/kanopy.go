@@ -8,8 +8,43 @@ import (
    "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
 )
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+///
+
+func main() {
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   log.SetFlags(log.Ltime)
+   
+   var set flag_set
+   err := set.New()
+   if err != nil {
+      log.Fatal(err)
+   }
+   switch {
+   case set.email_password():
+      err = set.do_login()
+   case set.kanopy >= 1:
+      err = set.do_kanopy()
+   default:
+      flag.Usage()
+   }
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (f *flag_set) New() error {
    var err error
@@ -31,40 +66,12 @@ func (f *flag_set) New() error {
    return nil
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   http.DefaultTransport = net.Proxy(func(req *http.Request) bool {
-      return filepath.Ext(req.URL.Path) == ".m4s"
-   })
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      log.Fatal(err)
-   }
-   switch {
-   case set.email_password():
-      err = set.do_login()
-   case set.kanopy >= 1:
-      err = set.do_kanopy()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (f *flag_set) do_login() error {
    data, err := kanopy.FetchLogin(f.email, f.password)
    if err != nil {
       return err
    }
    return write_file(f.cache+"/kanopy/Login", data)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (f *flag_set) do_kanopy() error {
