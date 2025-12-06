@@ -37,15 +37,15 @@ func (r *runner) run() error {
    flag.StringVar(&r.config.PrivateKey, "P", r.config.PrivateKey, "private key")
    flag.BoolVar(&r.connection, "c", false, "connection")
    flag.StringVar(&r.dash, "d", "", "DASH ID")
-   flag.BoolVar(&r.get_credentials, "g", false, "get credentials")
+   flag.BoolVar(&r.get_user, "g", false, "get user")
    flag.StringVar(&r.roku, "r", "", "Roku ID")
-   flag.BoolVar(&r.set_credentials, "s", false, "set credentials")
+   flag.BoolVar(&r.set_user, "s", false, "set user")
    flag.Parse()
    if r.connection {
       return r.do_connection()
    }
-   if r.set_credentials {
-      return r.do_credentials()
+   if r.set_user {
+      return r.do_user()
    }
    if r.roku != "" {
       return r.do_roku()
@@ -82,10 +82,10 @@ func (r *runner) read() (*roku.Cache, error) {
 func (r *runner) do_connection() error {
    var (
       cache roku.Cache
-      credentials *roku.Credentials
+      user *roku.user
       err error
    )
-   cache.Connection, err = credentials.NewConnection()
+   cache.Connection, err = user.NewConnection()
    if err != nil {
       return err
    }
@@ -97,88 +97,61 @@ func (r *runner) do_connection() error {
    return r.write(&cache)
 }
 
+func (r *runner) do_user() error {
+   cache, err := r.read()
+   if err != nil {
+      return err
+   }
+   cache.User, err = cache.Connection.GetUser(cache.LinkCode)
+   if err != nil {
+      return err
+   }
+   return r.write(cache)
+}
+
 type runner struct {
    cache       string
    config      net.Config
    // 1
    connection  bool
    // 2
-   set_credentials bool
+   set_user bool
    // 3
    roku        string
-   get_credentials  bool
+   get_user  bool
    // 4
    dash string
 }
 
-///
-
-func (r *runner) do_credentials() error {
-   data, err := os.ReadFile(r.cache + "/roku/AccountToken")
-   if err != nil {
-      return err
-   }
-   var token roku.AccountToken
-   err = token.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = os.ReadFile(r.cache + "/roku/Activation")
-   if err != nil {
-      return err
-   }
-   var activation roku.Activation
-   err = activation.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = token.Code(&activation)
-   if err != nil {
-      return err
-   }
-   return write_file(r.cache+"/roku/Code", data)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (r *runner) do_roku() error {
-   var code *roku.Code
-   if r.get_credentials {
-      data, err := os.ReadFile(r.cache + "/roku/Code")
-      if err != nil {
-         return err
-      }
-      code = &roku.Code{}
-      err = code.Unmarshal(data)
-      if err != nil {
-         return err
-      }
-   }
-   data, err := code.AccountToken()
-   if err != nil {
-      return err
-   }
-   var token roku.AccountToken
-   err = token.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data1, err := token.Playback(r.roku)
-   if err != nil {
-      return err
-   }
-   var play roku.Playback
-   err = play.Unmarshal(data1)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Url)
-   if err != nil {
-      return err
-   }
+    cache := &roku.Cache{} 
+    if r.get_user {
+        var err error
+        cache, err = r.read()
+        if err != nil {
+            return err
+        }
+    }
+    connection, err := cache.User.NewConnection()
+    if err != nil {
+        return err
+    }
+    playback, err := connection.Playback(r.roku)
+    if err != nil {
+        return err
+    }
+    err = playback.Mpd(cache)
+    if err != nil {
+        return err
+    }
+    err = r.write(cache)
+    if err != nil {
+        return err
+    }
+    return net.Representations(cache.MpdBody, cache.Mpd)
+}
+
+func (r *runner) do_dash() error {
    r.config.Send = func(data []byte) ([]byte, error) {
       return play.Widevine(data)
    }
