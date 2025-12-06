@@ -32,7 +32,7 @@ func main() {
       err = set.do_refresh()
    } else if set.address != "" {
       err = set.do_address()
-   } else if set.tracking_id != "" {
+   } else if set.tracking != "" {
       if set.season >= 1 {
          err = set.do_season()
       } else {
@@ -92,11 +92,11 @@ func (f *flag_set) do_refresh() error {
 }
 
 func (f *flag_set) do_address() error {
-   tracking_id, err := canal.TrackingId(f.address)
+   tracking, err := canal.Tracking(f.address)
    if err != nil {
       return err
    }
-   fmt.Println("tracking id =", tracking_id)
+   fmt.Println("tracking =", tracking)
    return nil
 }
 
@@ -110,7 +110,7 @@ func (f *flag_set) do_season() error {
    if err != nil {
       return err
    }
-   episodes, err := cache.Session.Episodes(f.tracking_id, f.season)
+   episodes, err := cache.Session.Episodes(f.tracking, f.season)
    if err != nil {
       return err
    }
@@ -130,7 +130,7 @@ type flag_set struct {
    password    string
    refresh     bool
    address     string
-   tracking_id string
+   tracking string
    season      int64
    dash        string
 }
@@ -160,7 +160,7 @@ func (f *flag_set) do_episode_movie() error {
    if err != nil {
       return err
    }
-   cache.Player, err = cache.Session.Player(f.tracking_id)
+   cache.Player, err = cache.Session.Player(f.tracking)
    if err != nil {
       return err
    }
@@ -196,7 +196,7 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.password, "p", "", "password")
    flag.BoolVar(&f.refresh, "r", false, "refresh")
    flag.Int64Var(&f.season, "s", 0, "season")
-   flag.StringVar(&f.tracking_id, "t", "", "tracking ID")
+   flag.StringVar(&f.tracking, "t", "", "tracking")
    flag.Parse()
    return nil
 }
