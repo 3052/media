@@ -16,50 +16,15 @@ import (
    "time"
 )
 
-func (e *Episode) String() string {
-   data := []byte("episode = ")
-   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
-   data = append(data, "\ntitle = "...)
-   data = append(data, e.Title...)
-   data = append(data, "\ndesc = "...)
-   data = append(data, e.Desc...)
-   data = append(data, "\ntracking = "...)
-   data = append(data, e.Id...)
-   return string(data)
-}
-
-type Episode struct {
-   Desc string
-   Id     string
-   Params struct {
-      SeriesEpisode int64
+type Player struct {
+   Drm struct {
+      LicenseUrl string
    }
-   Title string
-}
-
-func Tracking(address string) (string, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return "", err
+   Message string
+   Subtitles []struct {
+      Url string
    }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const startKey = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(string(data), startKey)
-   if !found {
-      return "", fmt.Errorf("attribute key '%s' not found", startKey)
-   }
-   value, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", fmt.Errorf("could not find closing quote for the attribute")
-   }
-   return value, nil
+   Url     string // MPD
 }
 
 func (s *Session) Player(tracking string) (*Player, error) {
@@ -304,14 +269,6 @@ func (p *Player) Mpd(storage *Cache) error {
    return nil
 }
 
-type Player struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message string
-   Url     string // MPD
-}
-
 func (s *Session) Fetch(ssoToken string) error {
    data, err := json.Marshal(map[string]string{
       "brand":        "m7cp",
@@ -345,3 +302,48 @@ type Session struct {
    Token    string // this last one hour
 }
 
+func (e *Episode) String() string {
+   data := []byte("episode = ")
+   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
+   data = append(data, "\ntitle = "...)
+   data = append(data, e.Title...)
+   data = append(data, "\ndesc = "...)
+   data = append(data, e.Desc...)
+   data = append(data, "\ntracking = "...)
+   data = append(data, e.Id...)
+   return string(data)
+}
+
+type Episode struct {
+   Desc string
+   Id     string
+   Params struct {
+      SeriesEpisode int64
+   }
+   Title string
+}
+
+func Tracking(address string) (string, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const startKey = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(string(data), startKey)
+   if !found {
+      return "", fmt.Errorf("attribute key '%s' not found", startKey)
+   }
+   value, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", fmt.Errorf("could not find closing quote for the attribute")
+   }
+   return value, nil
+}
