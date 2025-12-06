@@ -11,49 +11,9 @@ import (
 )
 
 type Cache struct {
+   Client *Client
    Mpd      *url.URL
    MpdBody  []byte
-}
-
-func (s *Source) Mpd(storage *Cache) error {
-   resp, err := http.Get(s.Src)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
-
-type Source struct {
-   KeySystems *struct {
-      ComWidevineAlpha struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string   // URL to the MPD manifest
-   Type string  // e.g., "application/dash+xml"
-}
-
-func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("bcov-auth", header.Get("x-amcn-bc-jwt"))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 func (c *Client) Login(email, password string) error {
@@ -350,4 +310,44 @@ func (c *Client) Unauth() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(c)
+}
+func (s *Source) Mpd(storage *Cache) error {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
+}
+
+type Source struct {
+   KeySystems *struct {
+      ComWidevineAlpha struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string   // URL to the MPD manifest
+   Type string  // e.g., "application/dash+xml"
+}
+
+func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("bcov-auth", header.Get("x-amcn-bc-jwt"))
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
