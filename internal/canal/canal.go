@@ -13,6 +13,62 @@ import (
    "path/filepath"
 )
 
+func (r *runner) do_episode_movie() error {
+   data, err := os.ReadFile(r.cache + "/canal/Cache")
+   if err != nil {
+      return err
+   }
+   var cache canal.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   cache.Player, err = cache.Session.Player(r.tracking)
+   if err != nil {
+      return err
+   }
+   if r.subtitles {
+      for _, subtitles := range cache.Player.Subtitles {
+         err = get(subtitles.Url)
+         if err != nil {
+            return err
+         }
+      }
+      return nil
+   }
+   err = cache.Player.Mpd(&cache)
+   if err != nil {
+      return err
+   }
+   data, err = json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   err = write_file(r.cache+"/canal/Cache", data)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.MpdBody, cache.Mpd)
+}
+
+func get(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   file, err := os.Create(path.Base(address))
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
 func (r *runner) run() error {
    var err error
    r.cache, err = os.UserCacheDir()
@@ -24,6 +80,7 @@ func (r *runner) run() error {
    r.config.PrivateKey = r.cache + "/L3/private_key.pem"
    flag.StringVar(&r.config.ClientId, "C", r.config.ClientId, "client ID")
    flag.StringVar(&r.config.PrivateKey, "P", r.config.PrivateKey, "private key")
+   flag.BoolVar(&r.subtitles, "S", false, "subtitles")
    flag.StringVar(&r.address, "a", "", "address")
    flag.StringVar(&r.dash, "d", "", "DASH ID")
    flag.StringVar(&r.email, "e", "", "email")
@@ -160,6 +217,7 @@ type runner struct {
    password string
    refresh  bool
    season   int64
+   subtitles bool
    tracking string
 }
 
@@ -177,33 +235,4 @@ func (r *runner) do_dash() error {
       return cache.Player.Widevine(data)
    }
    return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)
-}
-
-func (r *runner) do_episode_movie() error {
-   data, err := os.ReadFile(r.cache + "/canal/Cache")
-   if err != nil {
-      return err
-   }
-   var cache canal.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   cache.Player, err = cache.Session.Player(r.tracking)
-   if err != nil {
-      return err
-   }
-   err = cache.Player.Mpd(&cache)
-   if err != nil {
-      return err
-   }
-   data, err = json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   err = write_file(r.cache+"/canal/Cache", data)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
 }
