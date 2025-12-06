@@ -11,9 +11,47 @@ import (
 )
 
 type Cache struct {
-   Client *Client
-   Mpd      *url.URL
-   MpdBody  []byte
+   Client  *Client
+   Header  http.Header
+   Mpd     *url.URL
+   MpdBody []byte
+   Source  []Source
+}
+
+func (s *Source) Mpd(storage *Cache) error {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
+}
+
+type Source struct {
+   KeySystems *struct {
+      ComWidevineAlpha struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // URL to the MPD manifest
+   Type string // e.g., "application/dash+xml"
+}
+
+func (c *Client) Refresh() error {
+   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
+   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
 }
 
 func (c *Client) Login(email, password string) error {
@@ -42,18 +80,6 @@ func (c *Client) Login(email, password string) error {
    req.Header.Set("x-amcn-service-id", "amcplus")
    req.Header.Set("x-amcn-tenant", "amcn")
    req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-func (c *Client) Refresh() error {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
-   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
@@ -129,7 +155,6 @@ func Dash(sources []Source) (*Source, bool) {
    }
    return nil, false
 }
-
 func (c *Client) Playback(id int64) (http.Header, []Source, error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
@@ -216,11 +241,11 @@ func (m *Metadata) String() string {
 }
 
 type Node struct {
-   Type     string `json:"type"`
+   Type       string  `json:"type"`
    Children   []*Node `json:"children,omitempty"`
    Properties struct {
       ManifestType string `json:"manifestType,omitempty"`
-      Text *struct {
+      Text         *struct {
          Title struct {
             Title string `json:"title"`
          } `json:"title"`
@@ -310,29 +335,6 @@ func (c *Client) Unauth() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(c)
-}
-func (s *Source) Mpd(storage *Cache) error {
-   resp, err := http.Get(s.Src)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
-
-type Source struct {
-   KeySystems *struct {
-      ComWidevineAlpha struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string   // URL to the MPD manifest
-   Type string  // e.g., "application/dash+xml"
 }
 
 func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
