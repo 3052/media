@@ -14,6 +14,26 @@ type Cache struct {
    Mpd      *url.URL
    MpdBody  []byte
    Login *Login
+   Manifest *Manifest
+}
+
+func (m *Manifest) Mpd(storage *Cache) error {
+   req, err := http.NewRequest("", m.Url, nil)
+   if err != nil {
+      return err
+   }
+   req.Header.Set("user-agent", "Mozilla")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
 }
 
 // good for 10 years
@@ -50,25 +70,6 @@ func (l *Login) Fetch(email, password string) error {
       return errors.New(resp.Status)
    }
    return json.NewDecoder(resp.Body).Decode(l)
-}
-
-func (m *Manifest) Mpd(storage *Cache) error {
-   req, err := http.NewRequest("", m.Url, nil)
-   if err != nil {
-      return err
-   }
-   req.Header.Set("user-agent", "Mozilla")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
 }
 
 type Plays struct {
