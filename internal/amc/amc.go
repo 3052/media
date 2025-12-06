@@ -12,6 +12,15 @@ import (
    "path/filepath"
 )
 
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".m4f" {
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
 func (f *flag_set) do_episode() error {
    data, err := os.ReadFile(f.cache + "/amc/Client")
    if err != nil {
