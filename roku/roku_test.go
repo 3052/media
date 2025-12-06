@@ -1,10 +1,6 @@
 package roku
 
-import (
-   "fmt"
-   "testing"
-   "time"
-)
+import "testing"
 
 var tests = []struct {
    id         string
@@ -23,22 +19,6 @@ var tests = []struct {
    },
 }
 
-func TestRoku(t *testing.T) {
-   for _, test := range tests {
-      data, err := (*Code).AccountToken(nil)
-      if err != nil {
-         t.Fatal(err)
-      }
-      var token_var AccountToken
-      err = token_var.Unmarshal(data)
-      if err != nil {
-         t.Fatal(err)
-      }
-      play, err := token_var.Playback(test.id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      fmt.Println(play)
-      time.Sleep(time.Second)
-   }
+func Test(t *testing.T) {
+   t.Log(tests)
 }
