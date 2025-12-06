@@ -10,11 +10,35 @@ import (
    "strings"
 )
 
+// NewConnection initializes a session. User can be nil
+func NewConnection(current *User) (*Connection, error) {
+   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
+   req.URL.Path = "/api/v1/account/token"
+   req.Header.Set("user-agent", userAgent)
+   if current != nil {
+      req.Header.Set("x-roku-content-token", current.Token)
+   }
+
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   connector := &Connection{}
+   err = json.NewDecoder(resp.Body).Decode(connector)
+   if err != nil {
+      return nil, err
+   }
+   return connector, nil
+}
+
 type Cache struct {
    Connection *Connection
    LinkCode   *LinkCode
    Mpd        *url.URL
    MpdBody    []byte
+   Playback   *Playback
    User       *User
 }
 
@@ -79,6 +103,7 @@ type LinkCode struct {
 type User struct {
    Token string
 }
+
 // Playback fetches the DASH manifest and DRM information.
 func (c *Connection) Playback(rokuId string) (*Playback, error) {
    payload, err := json.Marshal(map[string]string{
@@ -172,27 +197,4 @@ func (c *Connection) RequestLinkCode() (*LinkCode, error) {
       return nil, err
    }
    return link, nil
-}
-
-// NewConnection initializes a session. User can be nil
-func (u *User) NewConnection() (*Connection, error) {
-   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
-   req.URL.Path = "/api/v1/account/token"
-   req.Header.Set("user-agent", userAgent)
-   if u != nil {
-      req.Header.Set("x-roku-content-token", u.Token)
-   }
-
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   connector := &Connection{}
-   err = json.NewDecoder(resp.Body).Decode(connector)
-   if err != nil {
-      return nil, err
-   }
-   return connector, nil
 }
