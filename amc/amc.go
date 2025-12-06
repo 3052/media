@@ -5,12 +5,102 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
-   "path"
    "strconv"
 )
+
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+}
+
+func (s *Source) Mpd(storage *Cache) error {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   storage.MpdBody, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   storage.Mpd = resp.Request.URL
+   return nil
+}
+
+type Source struct {
+   KeySystems *struct {
+      ComWidevineAlpha struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string   // URL to the MPD manifest
+   Type string  // e.g., "application/dash+xml"
+}
+
+func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("bcov-auth", header.Get("x-amcn-bc-jwt"))
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (c *Client) Login(email, password string) error {
+   data, err := json.Marshal(map[string]string{
+      "email":    email,
+      "password": password,
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.URL.Path = "/auth-orchestration-id/api/v1/login"
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-group-id", "10")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+func (c *Client) Refresh() error {
+   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
+   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
 
 func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    for _, child := range n.Children {
@@ -179,35 +269,6 @@ type Node struct {
    } `json:"properties"`
 }
 
-type Source struct {
-   KeySystems *struct {
-      ComWidevineAlpha struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string   // URL to the MPD manifest
-   Type string  // e.g., "application/dash+xml"
-}
-
-func Widevine(
-   header http.Header, sourceVar *Source, data []byte,
-) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", sourceVar.KeySystems.ComWidevineAlpha.LicenseUrl,
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("bcov-auth", header.Get("x-amcn-bc-jwt"))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
 func (c *Client) SeasonEpisodes(id int64) (*Node, error) {
    req, _ := http.NewRequest("", "https://gw.cds.amcn.com", nil)
    req.URL.Path = func() string {
@@ -289,56 +350,4 @@ func (c *Client) Unauth() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(c)
-}
-
-///
-
-func (c *Client) Login(email, password string) (ClientData, error) {
-   data, err := json.Marshal(map[string]string{
-      "email":    email,
-      "password": password,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.Path = "/auth-orchestration-id/api/v1/login"
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-amcn-device-ad-id", "-")
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-service-group-id", "10")
-   req.Header.Set("x-amcn-service-id", "amcplus")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (c *Client) Unmarshal(data ClientData) error {
-   return json.Unmarshal(data, c)
-}
-
-func (c *Client) Refresh() (ClientData, error) {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
-   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
