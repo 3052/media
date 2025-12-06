@@ -13,7 +13,7 @@ import (
 
 // Helper: Reads and unmarshals the cache
 func (r *runner) read() (*amc.Cache, error) {
-   p := r.cacheDir + "/amc/Cache"
+   p := r.cache + "/amc/Cache"
 
    data, err := os.ReadFile(p)
    if err != nil {
@@ -29,7 +29,7 @@ func (r *runner) read() (*amc.Cache, error) {
 
 // Helper: Writes to the cache file
 func (r *runner) write(cache *amc.Cache) error {
-   p := r.cacheDir + "/amc/Cache"
+   p := r.cache + "/amc/Cache"
 
    data, err := json.Marshal(cache)
    if err != nil {
@@ -137,8 +137,8 @@ func (r *runner) do_dash() error {
    if err != nil {
       return err
    }
-   source, _ := amc.Dash(cache.Source)
    r.config.Send = func(data []byte) ([]byte, error) {
+      source, _ := amc.Dash(cache.Source)
       return source.Widevine(cache.Header, data)
    }
    return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)

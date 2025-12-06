@@ -1,34 +1,22 @@
 package main
 
 import (
+   "41.neocities.org/net"
    "flag"
    "log"
    "net/http"
    "os"
    "path"
-
-   "41.neocities.org/net"
+   "path/filepath"
 )
-
-type runner struct {
-   config   net.Config
-   dash     string
-   email    string
-   episode  int64
-   password string
-   refresh  bool
-   season   int64
-   series   int64
-   cacheDir string
-}
 
 func main() {
    log.SetFlags(log.Ltime)
    net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) != ".m4f" {
+      if path.Ext(req.URL.Path) == ".m4f" {
          return ""
       }
-      return "L"
+      return "LP"
    })
    var program runner
    err := program.run()
@@ -39,14 +27,13 @@ func main() {
 
 func (r *runner) run() error {
    var err error
-   r.cacheDir, err = os.UserCacheDir()
+   r.cache, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-
-   // Direct concatenation
-   r.config.ClientId = r.cacheDir + "/L3/client_id.bin"
-   r.config.PrivateKey = r.cacheDir + "/L3/private_key.pem"
+   r.cache = filepath.ToSlash(r.cache)
+   r.config.ClientId = r.cache + "/L3/client_id.bin"
+   r.config.PrivateKey = r.cache + "/L3/private_key.pem"
 
    flag.StringVar(&r.email, "E", "", "email")
    flag.StringVar(&r.password, "P", "", "password")
@@ -81,4 +68,16 @@ func (r *runner) run() error {
    }
    flag.Usage()
    return nil
+}
+
+type runner struct {
+   config   net.Config
+   dash     string
+   email    string
+   episode  int64
+   password string
+   refresh  bool
+   season   int64
+   series   int64
+   cache string
 }
