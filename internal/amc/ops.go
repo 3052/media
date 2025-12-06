@@ -11,11 +11,8 @@ import (
    "41.neocities.org/net"
 )
 
-// Helper: Reads and unmarshals the cache
 func (r *runner) read() (*amc.Cache, error) {
-   p := r.cache + "/amc/Cache"
-
-   data, err := os.ReadFile(p)
+   data, err := os.ReadFile(r.cache + "/amc/Cache")
    if err != nil {
       return nil, err
    }
@@ -27,16 +24,13 @@ func (r *runner) read() (*amc.Cache, error) {
    return &cache, nil
 }
 
-// Helper: Writes to the cache file
 func (r *runner) write(cache *amc.Cache) error {
-   p := r.cache + "/amc/Cache"
-
    data, err := json.Marshal(cache)
    if err != nil {
       return err
    }
-   log.Println("WriteFile", p)
-   return os.WriteFile(p, data, os.ModePerm)
+   log.Println("WriteFile", r.cache + "/amc/Cache")
+   return os.WriteFile(r.cache + "/amc/Cache", data, os.ModePerm)
 }
 
 func (r *runner) do_auth() error {

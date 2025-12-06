@@ -9,6 +9,86 @@ import (
    "strings"
 )
 
+type Cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
+   Connection *Connection
+   LinkCode *LinkCode
+}
+
+// RequestLinkCode requests a new activation code from the server.
+func (c *Connection) RequestLinkCode() (*LinkCode, error) {
+   payload, err := json.Marshal(map[string]string{"platform": "googletv"})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://googletv.web.roku.com/api/v1/account/activation",
+      bytes.NewReader(payload),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("user-agent", userAgent)
+   req.Header.Set("x-roku-content-token", c.AuthToken)
+
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   link := &LinkCode{}
+   err = json.NewDecoder(resp.Body).Decode(link)
+   if err != nil {
+      return nil, err
+   }
+   return link, nil
+}
+// NewConnection initializes a session. Credentials can be nil.
+func (c *Credentials) NewConnection() (*Connection, error) {
+   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
+   req.URL.Path = "/api/v1/account/token"
+   req.Header.Set("user-agent", userAgent)
+   if c != nil {
+      req.Header.Set("x-roku-content-token", c.Token)
+   }
+
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   connector := &Connection{}
+   err = json.NewDecoder(resp.Body).Decode(connector)
+   if err != nil {
+      return nil, err
+   }
+   return connector, nil
+}
+
+// GetCredentials exchanges the LinkCode for permanent Credentials.
+func (c *Connection) GetCredentials(link *LinkCode) (*Credentials, error) {
+   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
+   req.URL.Path = "/api/v1/account/activation/" + link.Code
+   req.Header.Set("user-agent", userAgent)
+   req.Header.Set("x-roku-content-token", c.AuthToken)
+
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   account := &Credentials{}
+   err = json.NewDecoder(resp.Body).Decode(account)
+   if err != nil {
+      return nil, err
+   }
+   return account, nil
+}
 const userAgent = "trc-googletv; production; 0"
 
 // Connection represents the active session with the Roku API.
@@ -100,77 +180,3 @@ func (p *Playback) Widevine(payload []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-// RequestLinkCode requests a new activation code from the server.
-func (c *Connection) RequestLinkCode() (*LinkCode, error) {
-   payload, err := json.Marshal(map[string]string{"platform": "googletv"})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://googletv.web.roku.com/api/v1/account/activation",
-      bytes.NewReader(payload),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("user-agent", userAgent)
-   req.Header.Set("x-roku-content-token", c.AuthToken)
-
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   link := &LinkCode{}
-   err = json.NewDecoder(resp.Body).Decode(link)
-   if err != nil {
-      return nil, err
-   }
-   return link, nil
-}
-
-// NewConnection initializes a session. Credentials can be nil.
-func (c *Credentials) NewConnection() (*Connection, error) {
-   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
-   req.URL.Path = "/api/v1/account/token"
-   req.Header.Set("user-agent", userAgent)
-   if c != nil {
-      req.Header.Set("x-roku-content-token", c.Token)
-   }
-
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   connector := &Connection{}
-   err = json.NewDecoder(resp.Body).Decode(connector)
-   if err != nil {
-      return nil, err
-   }
-   return connector, nil
-}
-
-// GetCredentials exchanges the LinkCode for permanent Credentials.
-func (c *Connection) GetCredentials(link *LinkCode) (*Credentials, error) {
-   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
-   req.URL.Path = "/api/v1/account/activation/" + link.Code
-   req.Header.Set("user-agent", userAgent)
-   req.Header.Set("x-roku-content-token", c.AuthToken)
-
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   account := &Credentials{}
-   err = json.NewDecoder(resp.Body).Decode(account)
-   if err != nil {
-      return nil, err
-   }
-   return account, nil
-}
