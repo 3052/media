@@ -45,6 +45,10 @@ func main() {
 
 var data = `
 fragment videoPageMetaData on VideoPageMetaData {
+  mpxAccountId
+  mpxGuid
+  programmingType
+
   title
   secondaryTitle
   tertiaryTitle
@@ -69,14 +73,12 @@ fragment videoPageMetaData on VideoPageMetaData {
   rating
   copyright
   locked
-  programmingType
   genre
   amazonGenre
   duration
   permalink
   image
   labelBadge
-  mpxGuid
   authEnds
   externalAdvertiserId
   mpxEntitlementWindows {
@@ -118,7 +120,6 @@ fragment videoPageMetaData on VideoPageMetaData {
   numberOfSeasons
   channelId
   resourceId
-  mpxAccountId
   mpxAdPolicy
   brandDisplayTitle
   brandMachineName
@@ -150,61 +151,10 @@ fragment image on Image {
   altText
 }
 
-
-
-fragment videoPageAnalyticsAttributes on VideoPageAnalyticsAttributes {
-  series
-  brand {
-    title
-  }
-  title
-  movie
-  programmingType
-  episodeNumber
-  seasonNumber
-  mpxGuid
-  locked
-  duration
-  playlistTitle
-  playlistPosition
-  tmsId
-  isLongFormContent
-  durationInMilliseconds
-  airDate
-  dayPart
-  webBrandDomain
-  permalink
-  genre
-  secondaryGenre
-  titleTmsId
-  clipCategory
-  adobeVideoPlatform
-  adobeContentType
-  adobeBrand
-  convivaAssetName
-  videoBroadcast
-  isOlympics
-  listOfGenres
-  rating
-  ratingAdvisories
-  nielsenProgen
-  nielsenBrand
-  nielsenSfCode
-  nielsenClientId
-  nielsenChannel
-  ottPlatform
-  sport
-  event
-  league
-  language
-  entitlement
-}
-
-
-
 fragment streamPageAnalyticsAttributes on StreamPageAnalyticsAttributes {
-  pageType
   programmingType
+
+  pageType
   brand {
     title
   }
@@ -224,6 +174,10 @@ fragment coreSDKPlayer on CoreSDKPlayer {
   CoreSDKPlayerData: data {
     ...componentData
     player {
+      mpxAccountId
+      mpxGuid
+      programmingType
+      
       v4ID
       contentType
       title
@@ -232,7 +186,6 @@ fragment coreSDKPlayer on CoreSDKPlayer {
       description
       secondaryTitle
       secondaryGenre
-      programmingType
       pid
       image
       airDate
@@ -262,7 +215,6 @@ fragment coreSDKPlayer on CoreSDKPlayer {
       ratingAdvisories
       nielsenSfCode
       ariaLabel
-      mpxGuid
       seasonNumber
       episodeNumber
       genre
@@ -275,7 +227,6 @@ fragment coreSDKPlayer on CoreSDKPlayer {
       seriesShortTitle
       seriesUrlAlias
       lightPrimaryColor
-      mpxAccountId
       mpxAdPolicy
       allowMobileWebPlayback
       startRecapTiming
@@ -307,66 +258,7 @@ fragment coreSDKPlayer on CoreSDKPlayer {
       ...lazyEndCard
     }
   }
-  analytics {
-    offerType
-    title
-    status
-    permalink
-    pid
-    airDate
-    programmingType
-    resourceId
-    regionEntitlementId
-    genre
-    secondaryGenre
-    listOfGenres
-    sport
-    league
-    isOlympics
-    videoBroadcast
-    isFullEpisode
-    durationInMilliseconds
-    programTitle
-    nielsenProgen
-    nielsenChannel
-    nielsenSfCode
-    videoTitle
-    clipCategory
-    webBrandDomain
-    episodeNumber
-    seasonNumber
-    adobeVideoPlatform
-    adobeVideoResearchTitle
-    adobeContentType
-    ottPlatform
-    callSign
-    dayPart
-    entitlement
-    locked
-    rating
-    ratingAdvisories
-    brand {
-      title
-    }
-    duration
-    tmsId
-    isLongFormContent
-    mpxGuid
-    series
-    movie
-    titleTmsId
-    convivaAssetName
-    nielsenBrand
-    nielsenClientId
-    event
-    language
-    adobeBrand
-    playerUrl
-    comscoreCallSign
-  }
 }
-
-
 
 fragment component on Component {
   component
@@ -423,6 +315,9 @@ fragment ctaLink on CTALink {
     ...ctaData
   }
   analytics {
+    mpxGuid
+    programmingType
+   
     ctaTitle
     destinationType
     destination
@@ -434,10 +329,8 @@ fragment ctaLink on CTALink {
     isMovie
     videoTitle
     locked
-    programmingType
     seasonNumber
     episodeNumber
-    mpxGuid
     duration
     isPlaylist
     playlistMachineName
@@ -568,9 +461,9 @@ fragment onAirNowTile on OnAirNowTile {
   }
 }
 
-
-
 fragment onAirNowItem on OnAirNowItem {
+  mpxGuid
+
   ...componentData
   v4ID
   image
@@ -591,7 +484,6 @@ fragment onAirNowItem on OnAirNowItem {
   badge
   resourceId
   channelId
-  mpxGuid
   nextEpisodeMpxGuid
   relativePath
   nextEpisodeRelativePath
@@ -722,15 +614,16 @@ fragment videoTile on VideoTile {
     ...videoItem
   }
   analytics {
+    mpxGuid
+    programmingType
+   
     brand {
       title
     }
     series
     title
-    programmingType
     episodeNumber
     seasonNumber
-    mpxGuid
     locked
     duration
     movie
@@ -747,15 +640,15 @@ fragment videoTile on VideoTile {
   }
 }
 
-
-
 fragment videoItem on VideoItem {
+  mpxAccountId
+  mpxGuid
+  programmingType
+
   ...componentData
   ...item
   secondaryTitleTag
   locked
-  mpxGuid
-  programmingType
   episodeNumber
   seasonNumber
   airDate
@@ -772,7 +665,6 @@ fragment videoItem on VideoItem {
   whiteBrandLogo
   colorBrandLogo
   brandDisplayTitle
-  mpxAccountId
   mpxAdPolicy
   resourceId
   channelId
@@ -1230,6 +1122,8 @@ fragment replayTile on ReplayTile {
     ...replayTileData
   }
   analytics {
+    programmingType
+   
     analyticsType
     title
     brand {
@@ -1240,7 +1134,6 @@ fragment replayTile on ReplayTile {
     sport
     league
     event
-    programmingType
     secondaryGenre
     listOfGenres
     entitlement
@@ -1254,9 +1147,9 @@ fragment replayTile on ReplayTile {
   }
 }
 
-
-
 fragment replayTileData on ReplayTileData {
+  programmingType
+
   ...componentData
   v4ID
   ariaLabel
@@ -1270,7 +1163,6 @@ fragment replayTileData on ReplayTileData {
   whiteBrandLogo
   tertiaryTitle
   labelBadge
-  programmingType
   locked
   listTitle
   isOlympics
@@ -1573,7 +1465,6 @@ query page(
       ...videoPageMetaData
     }
     analytics {
-      ...videoPageAnalyticsAttributes
       ...streamPageAnalyticsAttributes
     }
     data {
