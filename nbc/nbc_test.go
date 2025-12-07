@@ -12,7 +12,7 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      cache + "/nbc/PlayReady", []byte(playReady().String()), os.ModePerm,
+      cache+"/nbc/PlayReady", []byte(playReady().String()), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)
