@@ -30,14 +30,14 @@ func main() {
 }
 
 func (r *runner) run() error {
-   var err error
-   r.cache, err = os.UserCacheDir()
+   cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   r.cache = filepath.ToSlash(r.cache)
-   r.config.ClientId = r.cache + "/L3/client_id.bin"
-   r.config.PrivateKey = r.cache + "/L3/private_key.pem"
+   cache = filepath.ToSlash(cache)
+   r.config.ClientId = cache + "/L3/client_id.bin"
+   r.config.PrivateKey = cache + "/L3/private_key.pem"
+   r.cache = cache + "/amc/Cache.json"
 
    flag.StringVar(&r.email, "E", "", "email")
    flag.StringVar(&r.password, "P", "", "password")
@@ -74,28 +74,12 @@ func (r *runner) run() error {
    return nil
 }
 
-type runner struct {
-   config   net.Config
-   dash     string
-   email    string
-   episode  int64
-   password string
-   refresh  bool
-   season   int64
-   series   int64
-   cache string
-}
-func (r *runner) read() (*amc.Cache, error) {
-   data, err := os.ReadFile(r.cache + "/amc/Cache")
+func (r *runner) read(cache *amc.Cache) error {
+   data, err := os.ReadFile(r.cache)
    if err != nil {
-      return nil, err
+      return err
    }
-   var cache amc.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return nil, err
-   }
-   return &cache, nil
+   return json.Unmarshal(data, cache)
 }
 
 func (r *runner) write(cache *amc.Cache) error {
@@ -103,8 +87,8 @@ func (r *runner) write(cache *amc.Cache) error {
    if err != nil {
       return err
    }
-   log.Println("WriteFile", r.cache + "/amc/Cache")
-   return os.WriteFile(r.cache + "/amc/Cache", data, os.ModePerm)
+   log.Println("WriteFile", r.cache)
+   return os.WriteFile(r.cache, data, os.ModePerm)
 }
 
 func (r *runner) do_auth() error {
@@ -121,7 +105,8 @@ func (r *runner) do_auth() error {
 }
 
 func (r *runner) do_refresh() error {
-   cache, err := r.read()
+   var cache amc.Cache
+   err := r.read(&cache)
    if err != nil {
       return err
    }
@@ -129,11 +114,12 @@ func (r *runner) do_refresh() error {
    if err != nil {
       return err
    }
-   return r.write(cache)
+   return r.write(&cache)
 }
 
 func (r *runner) do_series() error {
-   cache, err := r.read()
+   var cache amc.Cache
+   err := r.read(&cache)
    if err != nil {
       return err
    }
@@ -155,7 +141,8 @@ func (r *runner) do_series() error {
 }
 
 func (r *runner) do_season() error {
-   cache, err := r.read()
+   var cache amc.Cache
+   err := r.read(&cache)
    if err != nil {
       return err
    }
@@ -177,7 +164,8 @@ func (r *runner) do_season() error {
 }
 
 func (r *runner) do_episode() error {
-   cache, err := r.read()
+   var cache amc.Cache
+   err := r.read(&cache)
    if err != nil {
       return err
    }
@@ -189,19 +177,32 @@ func (r *runner) do_episode() error {
    if !ok {
       return errors.New("amc.Dash")
    }
-   err = source.Mpd(cache)
+   err = source.Mpd(&cache)
    if err != nil {
       return err
    }
-   err = r.write(cache)
+   err = r.write(&cache)
    if err != nil {
       return err
    }
    return net.Representations(cache.MpdBody, cache.Mpd)
 }
 
+type runner struct {
+   cache    string
+   config   net.Config
+   dash     string
+   email    string
+   episode  int64
+   password string
+   refresh  bool
+   season   int64
+   series   int64
+}
+
 func (r *runner) do_dash() error {
-   cache, err := r.read()
+   var cache amc.Cache
+   err := r.read(&cache)
    if err != nil {
       return err
    }

@@ -13,28 +13,19 @@ import (
    "strings"
 )
 
-type Cache struct {
-   Login    *Login
-   Mpd      *url.URL
-   MpdBody  []byte
-   Playback *Playback
-   St       *St
-}
-
-func (p *Playback) Mpd(storage *Cache) error {
+func (p *Playback) Dash() (*url.URL, []byte, error) {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
    )
    if err != nil {
-      return err
+      return nil, nil, err
    }
    defer resp.Body.Close()
-   storage.Mpd = resp.Request.URL
-   storage.MpdBody, err = io.ReadAll(resp.Body)
+   data, err := io.ReadAll(resp.Body)
    if err != nil {
-      return err
+      return nil, nil, err
    }
-   return nil
+   return resp.Request.URL, data, nil
 }
 
 type Playback struct {

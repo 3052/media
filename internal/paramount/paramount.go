@@ -12,6 +12,39 @@ import (
    "path/filepath"
 )
 
+// INTL does NOT allow anonymous key request, so if you are INTL you
+// will need to use US VPN until someone codes the INTL login
+func (r *runner) do_dash() error {
+   data, err := os.ReadFile(r.cache)
+   if err != nil {
+      return err
+   }
+   var cache paramount.Cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   at, err := paramount.ComCbsApp.At()
+   if err != nil {
+      return err
+   }
+   token, err := at.Token(r.paramount)
+   if err != nil {
+      return err
+   }
+   r.config.Send = func(data []byte) ([]byte, error) {
+      return token.Widevine(data)
+   }
+   return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)
+}
+
+func (r *runner) secret() paramount.AppSecret {
+   if r.intl {
+      return paramount.ComCbsCa
+   }
+   return paramount.ComCbsApp
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    net.Transport(func(req *http.Request) string {
@@ -68,13 +101,6 @@ type runner struct {
    dash      string
 }
 
-///
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (r *runner) do_paramount() error {
    at, err := r.secret().At()
    if err != nil {
@@ -93,42 +119,10 @@ func (r *runner) do_paramount() error {
    if err != nil {
       return err
    }
-   err = write_file(r.cache + "/paramount/Cache", data)
+   log.Println("WriteFile", r.cache)
+   err = os.WriteFile(r.cache, data, os.ModePerm)
    if err != nil {
       return err
    }
    return net.Representations(cache.MpdBody, cache.Mpd)
-}
-
-// INTL does NOT allow anonymous key request, so if you are INTL you
-// will need to use US VPN until someone codes the INTL login
-func (r *runner) do_dash() error {
-   data, err := os.ReadFile(r.cache + "/paramount/Cache")
-   if err != nil {
-      return err
-   }
-   var cache paramount.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   at, err := paramount.ComCbsApp.At()
-   if err != nil {
-      return err
-   }
-   token, err := at.Token(r.paramount)
-   if err != nil {
-      return err
-   }
-   r.config.Send = func(data []byte) ([]byte, error) {
-      return token.Widevine(data)
-   }
-   return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)
-}
-
-func (r *runner) secret() paramount.AppSecret {
-   if r.intl {
-      return paramount.ComCbsCa
-   }
-   return paramount.ComCbsApp
 }
