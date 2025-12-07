@@ -15,33 +15,89 @@ import (
    "time"
 )
 
-func (s StreamInfo) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(s.PlaybackUrl)
-   if err != nil {
-      return nil, nil, err
+const bonanza_page = `
+query bonanzaPage(
+   $app: NBCUBrands!
+   $name: String!
+   $oneApp: Boolean
+   $platform: SupportedPlatforms!
+   $type: EntityPageType!
+   $userId: String!
+) {
+   bonanzaPage(
+      app: $app
+      name: $name
+      oneApp: $oneApp
+      platform: $platform
+      type: $type
+      userId: $userId
+   ) {
+      metadata {
+         ... on VideoPageData {
+            mpxAccountId
+            mpxGuid
+            programmingType
+         }
+      }
    }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
-
-type StreamInfo struct {
-   PlaybackUrl string // MPD
-}
+`
 
 func FetchMetadata(name int) (*Metadata, error) {
+   variables, err := json.Marshal(map[string]any{
+      "app":      "nbc",
+      "name":     strconv.Itoa(name),
+      "oneApp":   true,
+      "platform": "android",
+      "type":     "VIDEO",
+      "userId":   "",
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, _ := http.NewRequest("", "https://friendship.nbc.com/v3/graphql", nil)
+   req.URL.RawQuery = url.Values{
+      "query": {graphql_compact(bonanza_page)},
+      "variables": {string(variables)},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var body struct {
+      Data struct {
+         BonanzaPage struct {
+            Metadata Metadata
+         }
+      }
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&body)
+   if err != nil {
+      return nil, err
+   }
+   if err := body.Errors; len(err) >= 1 {
+      return nil, errors.New(err[0].Message)
+   }
+   return &body.Data.BonanzaPage.Metadata, nil
+}
+
+func Android(name int) (*Metadata, error) {
    request_body := map[string]any{
       "query": graphql_compact(bonanza_page),
       "variables": map[string]any{
+         "userId":   "",
          "app":      "nbc",
          "name":     strconv.Itoa(name),
          "oneApp":   true,
          "platform": "android",
          "type":     "VIDEO",
-         "userId":   "",
       },
    }
    data, err := json.MarshalIndent(request_body, "", " ")
@@ -56,6 +112,9 @@ func FetchMetadata(name int) (*Metadata, error) {
       return nil, err
    }
    defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
    var body struct {
       Data struct {
          BonanzaPage struct {
@@ -155,34 +214,6 @@ func Widevine(data []byte) ([]byte, error) {
 
 const drm_proxy_secret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
 
-const bonanza_page = `
-query bonanzaPage(
-   $app: NBCUBrands!
-   $name: String!
-   $oneApp: Boolean
-   $platform: SupportedPlatforms!
-   $type: EntityPageType!
-   $userId: String!
-) {
-   bonanzaPage(
-      app: $app
-      name: $name
-      oneApp: $oneApp
-      platform: $platform
-      type: $type
-      userId: $userId
-   ) {
-      metadata {
-         ... on VideoPageData {
-            mpxAccountId
-            mpxGuid
-            programmingType
-         }
-      }
-   }
-}
-` // do not use `query(`
-
 // this is better than strings.Replace and strings.ReplaceAll
 func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
@@ -192,4 +223,20 @@ type Metadata struct {
    MpxAccountId    int64 `json:",string"`
    MpxGuid         int64 `json:",string"`
    ProgrammingType string
+}
+func (s StreamInfo) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(s.PlaybackUrl)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
+type StreamInfo struct {
+   PlaybackUrl string // MPD
 }

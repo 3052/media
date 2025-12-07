@@ -3,79 +3,103 @@ package main
 import (
    "41.neocities.org/media/nbc"
    "41.neocities.org/net"
+   "encoding/json"
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
+   "path"
    "path/filepath"
 )
 
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) != ".mp4" {
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.IntVar(&f.nbc, "n", 0, "NBC ID")
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.IntVar(&f.config.Threads, "t", 2, "threads")
-   flag.Parse()
-   return nil
-}
-
 func main() {
-   http.DefaultTransport = &nbc.Transport
    log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
-   if set.nbc >= 1 {
-      err = set.do_nbc()
-      if err != nil {
-         log.Fatal(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }
 
-type flag_set struct {
-   cache   string
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/nbc/mpd.json"
+
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.nbc, "n", 0, "NBC ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.Parse()
+   if c.nbc >= 1 {
+      return c.do_nbc()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+type command struct {
+   name   string
    config  net.Config
-   filters net.Filters
+   dash string
    nbc     int
 }
 
-func (f *flag_set) do_nbc() error {
-   var metadata nbc.Metadata
-   err := metadata.New(f.nbc)
+type mpd struct {
+   Body []byte
+   Url *url.URL
+}
+
+func (c *command) do_nbc() error {
+   metadata, err := nbc.FetchMetadata(c.nbc)
    if err != nil {
       return err
    }
-   vod, err := metadata.Vod()
+   stream_info, err := metadata.StreamInfo()
    if err != nil {
       return err
    }
-   resp, err := http.Get(vod.PlaybackUrl)
+   var cache mpd
+   cache.Url, cache.Body, err = stream_info.Mpd()
    if err != nil {
       return err
    }
-   f.config.Send = nbc.Widevine
-   return f.filters.Filter(resp, &f.config)
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Url, cache.Body)
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache mpd
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = nbc.Widevine
+   return c.config.Download(cache.Url, cache.Body, c.dash)
 }
