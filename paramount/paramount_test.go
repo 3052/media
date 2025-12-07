@@ -90,23 +90,23 @@ type apk struct {
 }
 
 var location_tests = []struct {
-   location   []string
-   url        string
+   location []string
+   url      string
 }{
    {
-      location:   []string{"USA"},
-      url:        "https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q",
+      location: []string{"USA"},
+      url:      "https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q",
    },
    {
-      location:   []string{"USA"},
-      url:        "https://paramountplus.com/shows/video/esJvFlqdrcS_kFHnpxSuYp449E7tTexD",
+      location: []string{"USA"},
+      url:      "https://paramountplus.com/shows/video/esJvFlqdrcS_kFHnpxSuYp449E7tTexD",
    },
    {
-      url:        "https://paramountplus.com/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ",
-      location:   []string{"Australia", "United Kingdom"},
+      url:      "https://paramountplus.com/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ",
+      location: []string{"Australia", "United Kingdom"},
    },
    {
-      url:        "https://paramountplus.com/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
+      url: "https://paramountplus.com/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
       location: []string{
          "Brazil", "Canada", "Chile", "Colombia", "Mexico", "Peru",
       },

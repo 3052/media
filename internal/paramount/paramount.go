@@ -12,6 +12,11 @@ import (
    "path/filepath"
 )
 
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+}
+
 // INTL does NOT allow anonymous key request, so if you are INTL you
 // will need to use US VPN until someone codes the INTL login
 func (r *runner) do_dash() error {
