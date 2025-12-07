@@ -14,60 +14,6 @@ import (
    "path/filepath"
 )
 
-type user_cache struct {
-   Login *hboMax.Login
-   Mpd   struct {
-      Body []byte
-      Url  *url.URL
-   }
-   Playback *hboMax.Playback
-   St       *hboMax.St
-}
-
-func (c *command) do_edit() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   cache.Playback, err = cache.Login.PlayReady(c.edit)
-   if err != nil {
-      return err
-   }
-   cache.Mpd.Url, cache.Mpd.Body, err = cache.Playback.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.PlayReady(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-func main() {
-   log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -86,6 +32,7 @@ func (c *command) run() error {
    flag.BoolVar(&c.initiate, "i", false, "device initiate")
    flag.BoolVar(&c.login, "l", false, "device login")
    flag.IntVar(&c.season, "s", 0, "season")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
    if c.initiate {
       return c.do_initiate()
@@ -194,4 +141,58 @@ type command struct {
    login    bool
    name     string
    season   int
+}
+type user_cache struct {
+   Login *hboMax.Login
+   Mpd   struct {
+      Body []byte
+      Url  *url.URL
+   }
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
+func (c *command) do_edit() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   cache.Playback, err = cache.Login.PlayReady(c.edit)
+   if err != nil {
+      return err
+   }
+   cache.Mpd.Url, cache.Mpd.Body, err = cache.Playback.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.PlayReady(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
