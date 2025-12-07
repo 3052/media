@@ -7,12 +7,66 @@ import (
    "errors"
    "flag"
    "fmt"
+   "io"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_episode() error {
+   cache, err := read(c.path)
+   if err != nil {
+      return err
+   }
+   cache.Header, cache.Source, err = cache.Client.Playback(c.episode)
+   if err != nil {
+      return err
+   }
+   source, ok := amc.Dash(cache.Source)
+   if !ok {
+      return errors.New("amc.Dash")
+   }
+   resp, err := http.Get(source.Src)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   cache.Mpd.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   cache.Mpd.Url = resp.Request.URL
+   err = write(c.path, cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+
+type user_cache struct {
+   Client *amc.Client
+   Header http.Header
+   Mpd    struct {
+      Body []byte
+      Url  *url.URL
+   }
+   Source []amc.Source
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.path)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      source, _ := amc.Dash(cache.Source)
+      return source.Widevine(cache.Header, data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -22,91 +76,106 @@ func main() {
       }
       return "LP"
    })
-   var program runner
-   err := program.run()
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (r *runner) run() error {
+func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   r.config.ClientId = cache + "/L3/client_id.bin"
-   r.config.PrivateKey = cache + "/L3/private_key.pem"
-   r.cache = cache + "/amc/Cache.json"
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.path = cache + "/amc/user_cache.json"
 
-   flag.StringVar(&r.email, "E", "", "email")
-   flag.StringVar(&r.password, "P", "", "password")
-   flag.Int64Var(&r.series, "S", 0, "series ID")
-   flag.StringVar(&r.config.ClientId, "c", r.config.ClientId, "client ID")
-   flag.StringVar(&r.dash, "d", "", "DASH ID")
-   flag.Int64Var(&r.episode, "e", 0, "episode or movie ID")
-   flag.StringVar(&r.config.PrivateKey, "p", r.config.PrivateKey, "private key")
-   flag.BoolVar(&r.refresh, "r", false, "refresh")
-   flag.Int64Var(&r.season, "s", 0, "season ID")
+   flag.StringVar(&c.email, "E", "", "email")
+   flag.StringVar(&c.password, "P", "", "password")
+   flag.Int64Var(&c.series, "S", 0, "series ID")
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.Int64Var(&c.episode, "e", 0, "episode or movie ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   flag.Int64Var(&c.season, "s", 0, "season ID")
    flag.Parse()
 
-   if r.email != "" {
-      if r.password != "" {
-         return r.do_auth()
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
       }
    }
-   if r.refresh {
-      return r.do_refresh()
+   if c.refresh {
+      return c.do_refresh()
    }
-   if r.series >= 1 {
-      return r.do_series()
+   if c.series >= 1 {
+      return c.do_series()
    }
-   if r.season >= 1 {
-      return r.do_season()
+   if c.season >= 1 {
+      return c.do_season()
    }
-   if r.episode >= 1 {
-      return r.do_episode()
+   if c.episode >= 1 {
+      return c.do_episode()
    }
-   if r.dash != "" {
-      return r.do_dash()
+   if c.dash != "" {
+      return c.do_dash()
    }
    flag.Usage()
    return nil
 }
 
-func (r *runner) read(cache *amc.Cache) error {
-   data, err := os.ReadFile(r.cache)
-   if err != nil {
-      return err
-   }
-   return json.Unmarshal(data, cache)
+type command struct {
+   config   net.Config
+   dash     string
+   email    string
+   episode  int64
+   password string
+   path     string
+   refresh  bool
+   season   int64
+   series   int64
 }
 
-func (r *runner) write(cache *amc.Cache) error {
-   data, err := json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", r.cache)
-   return os.WriteFile(r.cache, data, os.ModePerm)
-}
-
-func (r *runner) do_auth() error {
+func (c *command) do_email_password() error {
    var client amc.Client
    err := client.Unauth()
    if err != nil {
       return err
    }
-   err = client.Login(r.email, r.password)
+   err = client.Login(c.email, c.password)
    if err != nil {
       return err
    }
-   return r.write(&amc.Cache{Client: &client})
+   return write(c.path, &user_cache{Client: &client})
 }
 
-func (r *runner) do_refresh() error {
-   var cache amc.Cache
-   err := r.read(&cache)
+func write(name string, cache *user_cache) error {
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = json.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func (c *command) do_refresh() error {
+   cache, err := read(c.path)
    if err != nil {
       return err
    }
@@ -114,16 +183,15 @@ func (r *runner) do_refresh() error {
    if err != nil {
       return err
    }
-   return r.write(&cache)
+   return write(c.path, cache)
 }
 
-func (r *runner) do_series() error {
-   var cache amc.Cache
-   err := r.read(&cache)
+func (c *command) do_series() error {
+   cache, err := read(c.path)
    if err != nil {
       return err
    }
-   series, err := cache.Client.SeriesDetail(r.series)
+   series, err := cache.Client.SeriesDetail(c.series)
    if err != nil {
       return err
    }
@@ -140,13 +208,12 @@ func (r *runner) do_series() error {
    return nil
 }
 
-func (r *runner) do_season() error {
-   var cache amc.Cache
-   err := r.read(&cache)
+func (c *command) do_season() error {
+   cache, err := read(c.path)
    if err != nil {
       return err
    }
-   season, err := cache.Client.SeasonEpisodes(r.season)
+   season, err := cache.Client.SeasonEpisodes(c.season)
    if err != nil {
       return err
    }
@@ -161,54 +228,4 @@ func (r *runner) do_season() error {
       fmt.Println(episode)
    }
    return nil
-}
-
-func (r *runner) do_episode() error {
-   var cache amc.Cache
-   err := r.read(&cache)
-   if err != nil {
-      return err
-   }
-   cache.Header, cache.Source, err = cache.Client.Playback(r.episode)
-   if err != nil {
-      return err
-   }
-   source, ok := amc.Dash(cache.Source)
-   if !ok {
-      return errors.New("amc.Dash")
-   }
-   err = source.Mpd(&cache)
-   if err != nil {
-      return err
-   }
-   err = r.write(&cache)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
-}
-
-type runner struct {
-   cache    string
-   config   net.Config
-   dash     string
-   email    string
-   episode  int64
-   password string
-   refresh  bool
-   season   int64
-   series   int64
-}
-
-func (r *runner) do_dash() error {
-   var cache amc.Cache
-   err := r.read(&cache)
-   if err != nil {
-      return err
-   }
-   r.config.Send = func(data []byte) ([]byte, error) {
-      source, _ := amc.Dash(cache.Source)
-      return source.Widevine(cache.Header, data)
-   }
-   return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)
 }

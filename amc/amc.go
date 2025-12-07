@@ -6,31 +6,8 @@ import (
    "errors"
    "io"
    "net/http"
-   "net/url"
    "strconv"
 )
-
-type Cache struct {
-   Client  *Client
-   Header  http.Header
-   Mpd     *url.URL
-   MpdBody []byte
-   Source  []Source
-}
-
-func (s *Source) Mpd(storage *Cache) error {
-   resp, err := http.Get(s.Src)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
 
 type Source struct {
    KeySystems *struct {
