@@ -52,6 +52,7 @@ func (c *command) run() error {
    flag.Usage()
    return nil
 }
+
 func write(name string, cache *user_cache) error {
    data, err := json.Marshal(cache)
    if err != nil {
@@ -142,6 +143,7 @@ type command struct {
    name     string
    season   int
 }
+
 type user_cache struct {
    Login *hboMax.Login
    Mpd   struct {
