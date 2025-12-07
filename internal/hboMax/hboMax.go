@@ -32,7 +32,7 @@ func (c *command) run() error {
    flag.BoolVar(&c.initiate, "i", false, "device initiate")
    flag.BoolVar(&c.login, "l", false, "device login")
    flag.IntVar(&c.season, "s", 0, "season")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   flag.IntVar(&c.config.Threads, "t", 4, "threads")
    flag.Parse()
    if c.initiate {
       return c.do_initiate()
