@@ -92,12 +92,12 @@ func Android(name int) (*Metadata, error) {
    request_body := map[string]any{
       "query": graphql_compact(bonanza_page),
       "variables": map[string]any{
-         "userId":   "",
          "app":      "nbc",
          "name":     strconv.Itoa(name),
          "oneApp":   true,
          "platform": "android",
          "type":     "VIDEO",
+         "userId":   "",
       },
    }
    data, err := json.MarshalIndent(request_body, "", " ")
