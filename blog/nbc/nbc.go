@@ -151,23 +151,6 @@ fragment image on Image {
   altText
 }
 
-fragment streamPageAnalyticsAttributes on StreamPageAnalyticsAttributes {
-  programmingType
-
-  pageType
-  brand {
-    title
-  }
-  genre
-  secondaryGenre
-  sport
-  league
-  rating
-  ratingAdvisories
-}
-
-
-
 fragment coreSDKPlayer on CoreSDKPlayer {
   ...component
   ...section
@@ -509,31 +492,6 @@ fragment videoTile on VideoTile {
   ...component
   data {
     ...videoItem
-  }
-  analytics {
-    mpxGuid
-    programmingType
-   
-    brand {
-      title
-    }
-    series
-    title
-    episodeNumber
-    seasonNumber
-    locked
-    duration
-    movie
-    genre
-    sport
-    league
-    language
-    event
-    permalink
-    game
-    gameType
-    gamesList
-    isOlympics
   }
 }
 
@@ -1011,62 +969,9 @@ fragment upcomingLiveItem on UpcomingLiveItem {
   isOlympics
 }
 
-
-
 fragment replayTile on ReplayTile {
   ...component
-  replayTileData: data {
-    ...replayTileData
-  }
-  analytics {
-    programmingType
-   
-    analyticsType
-    title
-    brand {
-      title
-    }
-    genre
-    nielsenSfCode
-    sport
-    league
-    event
-    secondaryGenre
-    listOfGenres
-    entitlement
-    locked
-    duration
-    pid
-    game
-    gameType
-    gamesList
-    isOlympics
-  }
 }
-
-fragment replayTileData on ReplayTileData {
-  programmingType
-
-  ...componentData
-  v4ID
-  ariaLabel
-  brandDisplayTitle
-  colorBrandLogo
-  image
-  pid
-  relativePath
-  secondaryTitle
-  title
-  whiteBrandLogo
-  tertiaryTitle
-  labelBadge
-  locked
-  listTitle
-  isOlympics
-  audioLanguage
-}
-
-
 
 fragment lazyShelf on LazyShelf {
   ...component
@@ -1074,23 +979,17 @@ fragment lazyShelf on LazyShelf {
   ...lazyComponent
 }
 
-
-
 fragment lazyGrid on LazyGrid {
   ...component
   ...section
   ...lazyComponent
 }
 
-
-
 fragment lazyStack on LazyStack {
   ...component
   ...section
   ...lazyComponent
 }
-
-
 
 fragment shelfGroup on ShelfGroup {
   ...component
@@ -1099,8 +998,6 @@ fragment shelfGroup on ShelfGroup {
     ...shelfList
   }
 }
-
-
 
 fragment shelfList on ShelfList {
   ...componentData
@@ -1360,9 +1257,6 @@ query page(
     metadata {
       __typename
       ...videoPageMetaData
-    }
-    analytics {
-      ...streamPageAnalyticsAttributes
     }
     data {
       sections {
