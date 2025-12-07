@@ -13,7 +13,7 @@ import (
    "strings"
 )
 
-func (p *Playback) Dash() (*url.URL, []byte, error) {
+func (p *Playback) Mpd() (*url.URL, []byte, error) {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
    )

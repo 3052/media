@@ -6,8 +6,22 @@ import (
    "errors"
    "io"
    "net/http"
+   "net/url"
    "strconv"
 )
+
+func (s *Source) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
 
 type Source struct {
    KeySystems *struct {

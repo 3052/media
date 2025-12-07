@@ -7,7 +7,6 @@ import (
    "errors"
    "flag"
    "fmt"
-   "io"
    "log"
    "net/http"
    "net/url"
@@ -17,7 +16,7 @@ import (
 )
 
 func (c *command) do_episode() error {
-   cache, err := read(c.path)
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
@@ -29,17 +28,11 @@ func (c *command) do_episode() error {
    if !ok {
       return errors.New("amc.Dash")
    }
-   resp, err := http.Get(source.Src)
+   cache.Mpd.Url, cache.Mpd.Body, err = source.Mpd()
    if err != nil {
       return err
    }
-   defer resp.Body.Close()
-   cache.Mpd.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   cache.Mpd.Url = resp.Request.URL
-   err = write(c.path, cache)
+   err = write(c.name, cache)
    if err != nil {
       return err
    }
@@ -57,7 +50,7 @@ type user_cache struct {
 }
 
 func (c *command) do_dash() error {
-   cache, err := read(c.path)
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
@@ -90,7 +83,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.path = cache + "/amc/user_cache.json"
+   c.name = cache + "/amc/user_cache.json"
 
    flag.StringVar(&c.email, "E", "", "email")
    flag.StringVar(&c.password, "P", "", "password")
@@ -132,8 +125,8 @@ type command struct {
    dash     string
    email    string
    episode  int64
+   name     string
    password string
-   path     string
    refresh  bool
    season   int64
    series   int64
@@ -149,7 +142,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.path, &user_cache{Client: &client})
+   return write(c.name, &user_cache{Client: &client})
 }
 
 func write(name string, cache *user_cache) error {
@@ -175,7 +168,7 @@ func read(name string) (*user_cache, error) {
 }
 
 func (c *command) do_refresh() error {
-   cache, err := read(c.path)
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
@@ -183,11 +176,11 @@ func (c *command) do_refresh() error {
    if err != nil {
       return err
    }
-   return write(c.path, cache)
+   return write(c.name, cache)
 }
 
 func (c *command) do_series() error {
-   cache, err := read(c.path)
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
@@ -209,7 +202,7 @@ func (c *command) do_series() error {
 }
 
 func (c *command) do_season() error {
-   cache, err := read(c.path)
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
