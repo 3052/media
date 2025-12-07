@@ -266,20 +266,14 @@ fragment component on Component {
   treatments
 }
 
-
-
 fragment section on Section {
   logicName
   deepLinkHandle
 }
 
-
-
 fragment componentData on ComponentData {
   instanceID
 }
-
-
 
 fragment notification on Notification {
   ...component
@@ -307,47 +301,12 @@ fragment notification on Notification {
   }
 }
 
-
-
 fragment ctaLink on CTALink {
   ...component
   data {
     ...ctaData
   }
-  analytics {
-    mpxGuid
-    programmingType
-   
-    ctaTitle
-    destinationType
-    destination
-    brand {
-      title
-    }
-    series
-    movie
-    isMovie
-    videoTitle
-    locked
-    seasonNumber
-    episodeNumber
-    duration
-    isPlaylist
-    playlistMachineName
-    playlistTitle
-    isLive
-    sponsorName
-    isSponsoredTitle
-    isSportVideo
-    language
-    league
-    event
-    sport
-    pid
-  }
 }
-
-
 
 fragment ctaData on CTAData {
   ...componentData
@@ -376,14 +335,10 @@ fragment ctaData on CTAData {
   ariaLabel
 }
 
-
-
 fragment lazyEndCard on LazyEndCard {
   ...component
   ...lazyComponent
 }
-
-
 
 fragment lazyComponent on LazyComponent {
   targetComponent
@@ -396,15 +351,11 @@ fragment lazyComponent on LazyComponent {
   }
 }
 
-
-
 fragment lazyOnAirNowShelf on LazyOnAirNowShelf {
   ...component
   ...section
   ...lazyComponent
 }
-
-
 
 fragment onAirNowShelf on OnAirNowShelf {
   ...component
@@ -419,8 +370,6 @@ fragment onAirNowShelf on OnAirNowShelf {
   }
 }
 
-
-
 fragment onAirNowList on OnAirNowList {
   ...componentData
   machineName
@@ -432,13 +381,8 @@ fragment onAirNowList on OnAirNowList {
   }
 }
 
-
-
 fragment onAirNowTile on OnAirNowTile {
   ...component
-  onAirNowTileData: data {
-    ...onAirNowItem
-  }
   analytics {
     isLive
     entitlement
@@ -461,45 +405,6 @@ fragment onAirNowTile on OnAirNowTile {
   }
 }
 
-fragment onAirNowItem on OnAirNowItem {
-  mpxGuid
-
-  ...componentData
-  v4ID
-  image
-  switchToNationalStream
-  title
-  secondaryTitle
-  startTime
-  endTime
-  brandV4ID
-  machineName
-  whiteBrandLogo
-  brandDisplayTitle
-  brandLightPrimary
-  brandDarkPrimary
-  isNew
-  audioDescription
-  ratingWithAdvisories
-  badge
-  resourceId
-  channelId
-  nextEpisodeMpxGuid
-  relativePath
-  nextEpisodeRelativePath
-  watchTagline
-  ariaLabel
-  streamAccessName
-  stationId
-  callSign
-  contentType
-  notification {
-    ...notification
-  }
-}
-
-
-
 fragment linksSelectableGroup on LinksSelectableGroup {
   ...component
   ...section
@@ -510,8 +415,6 @@ fragment linksSelectableGroup on LinksSelectableGroup {
     itemLabels
   }
 }
-
-
 
 fragment stringSelectableComponentList on StringSelectableComponentList {
   ...componentData
@@ -537,16 +440,12 @@ fragment stringSelectableComponentList on StringSelectableComponentList {
   }
 }
 
-
-
 fragment itemLabelsConfigItem on ItemLabelsConfigItem {
   itemLabel
   menuItemType
   index
   isSelected
 }
-
-
 
 fragment shelf on Shelf {
   ...component
@@ -565,8 +464,6 @@ fragment shelf on Shelf {
     itemsList
   }
 }
-
-
 
 fragment tileList on TileList {
   ...componentData
