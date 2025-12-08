@@ -27,7 +27,7 @@ var tests = []struct {
    },
    {
       category: "films",
-      path: "/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
-      url: "https://auvio.rtbf.be/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
+      path:     "/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
+      url:      "https://auvio.rtbf.be/media/l-affaire-thomas-crown-avec-steve-mcqueen-et-faye-dunawa-3381405",
    },
 }

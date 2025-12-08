@@ -10,29 +10,6 @@ import (
    "strconv"
 )
 
-func (s *Source) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(s.Src)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
-}
-
-type Source struct {
-   KeySystems *struct {
-      ComWidevineAlpha struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // URL to the MPD manifest
-   Type string // e.g., "application/dash+xml"
-}
-
 func (c *Client) Refresh() error {
    req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
    req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
@@ -78,6 +55,31 @@ func (c *Client) Login(email, password string) error {
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(c)
 }
+
+func (s *Source) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
+type Source struct {
+   KeySystems *struct {
+      ComWidevineAlpha struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // URL to the MPD manifest
+   Type string // e.g., "application/dash+xml"
+}
+
+///
 
 func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    for _, child := range n.Children {

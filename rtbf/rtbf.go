@@ -10,54 +10,20 @@ import (
    "strings"
 )
 
-func (c *charlie) Fetch(id, password string) error {
-   resp, err := http.PostForm(
-      "https://login.auvio.rtbf.be/accounts.login", url.Values{
-         "APIKey":   {api_key},
-         "loginID":  {id},
-         "password": {password},
-      },
-   )
+// hard coded in JavaScript
+const api_key = "4_Ml_fJ47GnBAW6FrPzMxh0w"
+
+func GetPath(rawUrl string) (string, error) {
+   u, err := url.Parse(rawUrl)
    if err != nil {
-      return err
+      return "", err
    }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(c)
-   if err != nil {
-      return err
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
    }
-   if c.ErrorMessage != "" {
-      return errors.New(c.ErrorMessage)
-   }
-   return nil
+   return u.Path, nil
 }
 
-func (a *alfa) Entitlement(assetId string) (*Entitlement, error) {
-   req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/v2/customer/RTBF/businessunit/Auvio/entitlement/")
-      data.WriteString(assetId)
-      data.WriteString("/play")
-      return data.String()
-   }()
-   req.Header.Set("x-forwarded-for", "91.90.123.17")
-   req.Header.Set("authorization", "Bearer "+a.SessionToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   title := &Entitlement{}
-   err = json.NewDecoder(resp.Body).Decode(title)
-   if err != nil {
-      return nil, err
-   }
-   if title.Message != "" {
-      return nil, errors.New(title.Message)
-   }
-   return title, nil
-}
 func FetchAssetId(path string) (string, error) {
    resp, err := http.Get(
       "https://bff-service.rtbf.be/auvio/v1.23/pages" + path,
@@ -93,18 +59,55 @@ func FetchAssetId(path string) (string, error) {
    return "", errors.New("assetId not found")
 }
 
-// hard coded in JavaScript
-const api_key = "4_Ml_fJ47GnBAW6FrPzMxh0w"
-
-func GetPath(rawUrl string) (string, error) {
-   u, err := url.Parse(rawUrl)
+func (a *Account) Identity() (*Identity, error) {
+   resp, err := http.PostForm(
+      "https://login.auvio.rtbf.be/accounts.getJWT", url.Values{
+         "APIKey":      {api_key},
+         "login_token": {a.SessionInfo.CookieValue},
+      },
+   )
    if err != nil {
-      return "", err
+      return nil, err
    }
-   if u.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
+   defer resp.Body.Close()
+   var result Identity
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
    }
-   return u.Path, nil
+   if result.ErrorMessage != "" {
+      return nil, errors.New(result.ErrorMessage)
+   }
+   return &result, nil
+}
+
+type Account struct {
+   ErrorMessage string
+   SessionInfo  struct {
+      CookieValue string
+   }
+}
+
+func (a *Account) Fetch(id, password string) error {
+   resp, err := http.PostForm(
+      "https://login.auvio.rtbf.be/accounts.login", url.Values{
+         "APIKey":   {api_key},
+         "loginID":  {id},
+         "password": {password},
+      },
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(a)
+   if err != nil {
+      return err
+   }
+   if a.ErrorMessage != "" {
+      return errors.New(a.ErrorMessage)
+   }
+   return nil
 }
 
 func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
@@ -137,12 +140,6 @@ func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
    }
    return io.ReadAll(resp.Body)
 }
-
-type Format struct {
-   Format       string
-   MediaLocator string // MPD
-}
-
 type Entitlement struct {
    AssetId   string
    Formats   []Format
@@ -159,35 +156,18 @@ func (e *Entitlement) Dash() (*Format, bool) {
    return nil, false
 }
 
-func (c *charlie) bravo() (*bravo, error) {
-   resp, err := http.PostForm(
-      "https://login.auvio.rtbf.be/accounts.getJWT", url.Values{
-         "APIKey":      {api_key},
-         "login_token": {c.SessionInfo.CookieValue},
-      },
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var bravo2 bravo
-   err = json.NewDecoder(resp.Body).Decode(&bravo2)
-   if err != nil {
-      return nil, err
-   }
-   if bravo2.ErrorMessage != "" {
-      return nil, errors.New(bravo2.ErrorMessage)
-   }
-   return &bravo2, nil
+type Format struct {
+   Format       string
+   MediaLocator string // MPD
 }
 
-func (b *bravo) alfa() (*alfa, error) {
+func (i *Identity) Session() (*Session, error) {
    data, err := json.Marshal(map[string]any{
       "device": map[string]string{
          "deviceId": "",
          "type":     "WEB",
       },
-      "jwt": b.IdToken,
+      "jwt": i.IdToken,
    })
    if err != nil {
       return nil, err
@@ -205,26 +185,46 @@ func (b *bravo) alfa() (*alfa, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   alfa2 := &alfa{}
-   err = json.NewDecoder(resp.Body).Decode(alfa2)
+   result := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
    }
-   return alfa2, nil
+   return result, nil
 }
 
-type alfa struct {
-   SessionToken string
-}
-
-type bravo struct {
+type Identity struct {
    ErrorMessage string
    IdToken      string `json:"id_token"`
 }
 
-type charlie struct {
-   ErrorMessage string
-   SessionInfo  struct {
-      CookieValue string
+type Session struct {
+   SessionToken string
+}
+
+func (s *Session) Entitlement(assetId string) (*Entitlement, error) {
+   req, _ := http.NewRequest("", "https://exposure.api.redbee.live", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v2/customer/RTBF/businessunit/Auvio/entitlement/")
+      data.WriteString(assetId)
+      data.WriteString("/play")
+      return data.String()
+   }()
+   req.Header.Set("x-forwarded-for", "91.90.123.17")
+   req.Header.Set("authorization", "Bearer "+s.SessionToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
    }
+   defer resp.Body.Close()
+   title := &Entitlement{}
+   err = json.NewDecoder(resp.Body).Decode(title)
+   if err != nil {
+      return nil, err
+   }
+   if title.Message != "" {
+      return nil, errors.New(title.Message)
+   }
+   return title, nil
 }
