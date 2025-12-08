@@ -11,14 +11,27 @@ import (
    "path/filepath"
 )
 
+type command struct {
+   address string
+   config  net.Config
+   dash string
+   name   string
+}
+
 func main() {
    log.SetFlags(log.Ltime)
-   http.DefaultTransport = net.Proxy(nil)
-   var set flag_set
-   err := set.New()
+   net.Transport(func(*http.Request) string {
+      return "L"
+   })
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
+}
+
+///
+
+func (f *command) New() error {
    if set.address != "" {
       err = set.do_address()
       if err != nil {
@@ -27,24 +40,14 @@ func main() {
    } else {
       flag.Usage()
    }
-}
-
-type flag_set struct {
-   address string
-   cache   string
-   config  net.Config
-   filters net.Filters
-}
-
-func (f *flag_set) New() error {
    var err error
-   f.cache, err = os.UserCacheDir()
+   f.name, err = os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   f.name = filepath.ToSlash(f.name)
+   f.config.ClientId = f.name + "/L3/client_id.bin"
+   f.config.PrivateKey = f.name + "/L3/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
    flag.Var(&f.filters, "f", net.FilterUsage)
@@ -54,7 +57,7 @@ func (f *flag_set) New() error {
    return nil
 }
 
-func (f *flag_set) do_address() error {
+func (f *command) do_address() error {
    data, err := plex.NewUser()
    if err != nil {
       return err
