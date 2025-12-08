@@ -10,13 +10,42 @@ import (
    "strings"
 )
 
-func Path(data string) string {
-   data = strings.TrimPrefix(data, "https://")
-   data = strings.TrimPrefix(data, "watch.plex.tv")
-   return strings.TrimPrefix(data, "/watch")
+type MediaPart struct {
+   Key     string
+   License string
 }
 
-func (u User) Match(path string) (*Match, error) {
+// https://watch.plex.tv/movie/memento-2000
+// https://watch.plex.tv/watch/movie/memento-2000
+func GetPath(inputUrl string) (string, error) {
+   u, err := url.Parse(inputUrl)
+   if err != nil {
+      return "", err
+   }
+   return strings.TrimPrefix(u.Path, "/watch"), nil
+}
+
+type MediaMatch struct {
+   RatingKey string
+}
+
+type ItemMetadata struct {
+   Media []struct {
+      Part     []MediaPart
+      Protocol string
+   }
+}
+
+func (a *ItemMetadata) Dash() (*MediaPart, bool) {
+   for _, media := range a.Media {
+      if media.Protocol == "dash" {
+         return &media.Part[0], true
+      }
+   }
+   return nil, false
+}
+
+func (u User) MediaMatch(path string) (*MediaMatch, error) {
    req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
    req.URL.Path = "/library/metadata/matches"
    req.URL.RawQuery = url.Values{
@@ -29,41 +58,47 @@ func (u User) Match(path string) (*Match, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var value struct {
+   var media struct {
       Error struct {
          Message string
       }
       MediaContainer struct {
-         Metadata []Match
+         Metadata []MediaMatch
       }
    }
-   err = json.NewDecoder(resp.Body).Decode(&value)
+   err = json.NewDecoder(resp.Body).Decode(&media)
    if err != nil {
       return nil, err
    }
-   if value.Error.Message != "" {
-      return nil, errors.New(value.Error.Message)
+   if media.Error.Message != "" {
+      return nil, errors.New(media.Error.Message)
    }
-   return &value.MediaContainer.Metadata[0], nil
+   return &media.MediaContainer.Metadata[0], nil
 }
 
-func (m *Metadata) Unmarshal(data Byte[Metadata]) error {
-   var value struct {
-      MediaContainer struct {
-         Metadata []Metadata
-      }
-   }
-   err := json.Unmarshal(data, &value)
+func (u *User) Fetch() error {
+   req, _ := http.NewRequest("POST", "https://plex.tv", nil)
+   req.URL.Path = "/api/v2/users/anonymous"
+   req.Header.Set("accept", "application/json")
+   req.Header.Set("x-plex-product", "Plex Mediaverse")
+   req.Header.Set("x-plex-client-identifier", "!")
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
    }
-   *m = value.MediaContainer.Metadata[0]
-   return nil
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(u)
 }
 
-func (u User) Metadata(matchVar *Match) (Byte[Metadata], error) {
+type User struct {
+   AuthToken string
+}
+
+var ForwardedFor string
+
+func (u User) ItemMetadata(media *MediaMatch) (*ItemMetadata, error) {
    req, _ := http.NewRequest("", "https://vod.provider.plex.tv", nil)
-   req.URL.Path = "/library/metadata/" + matchVar.RatingKey
+   req.URL.Path = "/library/metadata/" + media.RatingKey
    req.Header.Set("accept", "application/json")
    req.Header.Set("x-plex-token", u.AuthToken)
    if ForwardedFor != "" {
@@ -77,38 +112,20 @@ func (u User) Metadata(matchVar *Match) (Byte[Metadata], error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   return io.ReadAll(resp.Body)
-}
-
-type Metadata struct {
-   Media []struct {
-      Part     []Part
-      Protocol string
+   var item struct {
+      MediaContainer struct {
+         Metadata []ItemMetadata
+      }
    }
-}
-
-func (u *User) Unmarshal(data Byte[User]) error {
-   return json.Unmarshal(data, u)
-}
-
-type Byte[T any] []byte
-
-func NewUser() (Byte[User], error) {
-   req, _ := http.NewRequest("POST", "https://plex.tv", nil)
-   req.URL.Path = "/api/v2/users/anonymous"
-   req.Header.Set("accept", "application/json")
-   req.Header.Set("x-plex-product", "Plex Mediaverse")
-   req.Header.Set("x-plex-client-identifier", "!")
-   resp, err := http.DefaultClient.Do(req)
+   err = json.NewDecoder(resp.Body).Decode(&item)
    if err != nil {
       return nil, err
    }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   return &item.MediaContainer.Metadata[0], nil
 }
 
-func (u User) Widevine(partVar *Part, data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", partVar.License, bytes.NewReader(data))
+func (u User) Widevine(part *MediaPart, data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", part.License, bytes.NewReader(data))
    if err != nil {
       return nil, err
    }
@@ -126,8 +143,8 @@ func (u User) Widevine(partVar *Part, data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (u User) Mpd(partVar *Part) (*http.Response, error) {
-   req, err := http.NewRequest("", partVar.Key, nil)
+func (u User) Mpd(part *MediaPart) (*http.Response, error) {
+   req, err := http.NewRequest("", part.Key, nil)
    if err != nil {
       return nil, err
    }
@@ -139,28 +156,4 @@ func (u User) Mpd(partVar *Part) (*http.Response, error) {
       req.Header.Set("x-forwarded-for", ForwardedFor)
    }
    return http.DefaultClient.Do(req)
-}
-
-func (m *Metadata) Dash() (*Part, bool) {
-   for _, media := range m.Media {
-      if media.Protocol == "dash" {
-         return &media.Part[0], true
-      }
-   }
-   return nil, false
-}
-
-var ForwardedFor string
-
-type Match struct {
-   RatingKey string
-}
-
-type Part struct {
-   Key     string
-   License string
-}
-
-type User struct {
-   AuthToken string
 }
