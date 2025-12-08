@@ -14,6 +14,7 @@ import (
 )
 
 func main() {
+   log.SetFlags(log.Ltime)
    net.Transport(func(req *http.Request) string {
       switch path.Ext(req.URL.Path) {
       case ".isma", ".ismv":
@@ -21,60 +22,63 @@ func main() {
       }
       return "LP"
    })
-   log.SetFlags(log.Ltime)
-   var program runner
-   err := program.run()
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (r *runner) run() error {
-   var err error
-   r.cache, err = os.UserCacheDir()
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   r.cache = filepath.ToSlash(r.cache)
-   r.config.ClientId = r.cache + "/L3/client_id.bin"
-   r.config.PrivateKey = r.cache + "/L3/private_key.pem"
-   flag.StringVar(&r.config.ClientId, "C", r.config.ClientId, "client ID")
-   flag.StringVar(&r.config.PrivateKey, "P", r.config.PrivateKey, "private key")
-   flag.StringVar(&r.season, "S", "", "season ID")
-   flag.StringVar(&r.language, "a", "", "audio language")
-   flag.StringVar(&r.dash, "d", "", "DASH ID")
-   flag.StringVar(&r.episode, "e", "", "episode ID")
-   flag.StringVar(&r.movie, "m", "", "movie URL")
-   flag.StringVar(&r.show, "s", "", "TV show URL")
-   flag.IntVar(&r.config.Threads, "t", 2, "threads")
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rakuten/user_cache.json"
+
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.season, "S", "", "season ID")
+   flag.StringVar(&c.language, "a", "", "audio language")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.episode, "e", "", "episode ID")
+   flag.StringVar(&c.movie, "m", "", "movie URL")
+   flag.StringVar(&c.show, "s", "", "TV show URL")
    flag.Parse()
-   if r.movie != "" {
-      return r.do_movie()
+
+   if c.movie != "" {
+      return c.do_movie()
    }
-   if r.show != "" {
-      return r.do_show()
+   if c.show != "" {
+      return c.do_show()
    }
-   if r.season != "" {
-      return r.do_season()
+   if c.season != "" {
+      return c.do_season()
    }
-   if r.language != "" {
-      if r.dash != "" {
-         return r.do_dash()
+   if c.language != "" {
+      if c.dash != "" {
+         return c.do_dash()
       }
-      return r.do_language()
+      return c.do_language()
    }
    flag.Usage()
    return nil
 }
 
-func write_file(name string, data []byte) error {
+func write(name string, cache *user_cache) error {
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
+   }
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (r *runner) do_movie() error {
+func (c *command) do_movie() error {
    var movie rakuten.Movie
-   err := movie.ParseURL(r.movie)
+   err := movie.ParseURL(c.movie)
    if err != nil {
       return err
    }
@@ -83,17 +87,13 @@ func (r *runner) do_movie() error {
       return err
    }
    fmt.Println(item)
-   data, err := json.Marshal(rakuten.Cache{Movie: &movie})
-   if err != nil {
-      return err
-   }
-   return write_file(r.cache+"/rakuten/Cache", data)
+   return write(c.name, &user_cache{Movie: &movie})
 }
 
 // print seasons
-func (r *runner) do_show() error {
+func (c *command) do_show() error {
    var show rakuten.TvShow
-   err := show.ParseURL(r.show)
+   err := show.ParseURL(c.show)
    if err != nil {
       return err
    }
@@ -102,25 +102,29 @@ func (r *runner) do_show() error {
       return err
    }
    fmt.Println(show_data)
-   data, err := json.Marshal(rakuten.Cache{TvShow: &show})
+   return write(c.name, &user_cache{TvShow: &show})
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
    if err != nil {
-      return err
+      return nil, err
    }
-   return write_file(r.cache+"/rakuten/Cache", data)
+   cache := &user_cache{}
+   err = json.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
 }
 
 // print episodes
-func (r *runner) do_season() error {
-   data, err := os.ReadFile(r.cache + "/rakuten/Cache")
+func (c *command) do_season() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   var cache rakuten.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   season, err := cache.TvShow.RequestSeason(r.season)
+   season, err := cache.TvShow.RequestSeason(c.season)
    if err != nil {
       return err
    }
@@ -133,12 +137,38 @@ func (r *runner) do_season() error {
    return nil
 }
 
-func (r *runner) do_language() error {
-   data, err := os.ReadFile(r.cache + "/rakuten/Cache")
+type user_cache struct {
+   Movie   *rakuten.Movie
+   Mpd     *url.URL
+   MpdBody []byte
+   TvShow  *rakuten.TvShow
+}
+
+type command struct {
+   config   net.Config
+   name    string
+   // 1
+   movie    string
+   // 2
+   show     string
+   // 3
+   season   string
+   
+   // 4
+   episode  string
+   // 5
+   language string
+   dash     string
+}
+
+///
+
+func (c *command) do_language() error {
+   data, err := os.ReadFile(c.name + "/rakuten/user_cache")
    if err != nil {
       return err
    }
-   var cache rakuten.Cache
+   var cache rakuten.user_cache
    err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
@@ -147,11 +177,11 @@ func (r *runner) do_language() error {
    switch {
    case cache.Movie != nil:
       stream, err = cache.Movie.RequestStream(
-         r.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    case cache.TvShow != nil:
       stream, err = cache.TvShow.RequestStream(
-         r.episode, r.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    }
    if err != nil {
@@ -165,19 +195,19 @@ func (r *runner) do_language() error {
    if err != nil {
       return err
    }
-   err = write_file(r.cache + "/rakuten/Cache", data)
+   err = write_file(c.name + "/rakuten/user_cache", data)
    if err != nil {
       return err
    }
    return net.Representations(cache.MpdBody, cache.Mpd)
 }
 
-func (r *runner) do_dash() error {
-   data, err := os.ReadFile(r.cache + "/rakuten/Cache")
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name + "/rakuten/user_cache")
    if err != nil {
       return err
    }
-   var cache rakuten.Cache
+   var cache rakuten.user_cache
    err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
@@ -186,29 +216,18 @@ func (r *runner) do_dash() error {
    switch {
    case cache.Movie != nil:
       stream, err = cache.Movie.RequestStream(
-         r.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+         c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
       )
    case cache.TvShow != nil:
       stream, err = cache.TvShow.RequestStream(
-         r.episode, r.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
       )
    }
    if err != nil {
       return err
    }
-   r.config.Send = func(data []byte) ([]byte, error) {
+   c.config.Send = func(data []byte) ([]byte, error) {
       return stream.Widevine(data)
    }
-   return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)
-}
-
-type runner struct {
-   cache    string
-   config   net.Config
-   dash     string
-   episode  string
-   language string
-   movie    string
-   season   string
-   show     string
+   return c.config.Download(cache.MpdBody, cache.Mpd, c.dash)
 }

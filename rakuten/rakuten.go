@@ -11,6 +11,19 @@ import (
    "strconv"
 )
 
+func (s *StreamData) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(s.StreamInfos[0].Url)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
 // makeStreamRequest handles the common logic for the POST stream request and
 // parsing
 func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
@@ -186,19 +199,6 @@ func (t *TvShow) RequestSeason(seasonId string) (*SeasonData, error) {
 func (t *TvShow) RequestStream(episodeId string, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
    // For TV content, the standard Rakuten content_type for streaming an episode is "episodes"
    return makeStreamRequest(t.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
-}
-func (s *StreamData) Mpd(storage *Cache) error {
-   resp, err := http.Get(s.StreamInfos[0].Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
 }
 
 // buildURL handles the common logic for constructing GET request URLs.

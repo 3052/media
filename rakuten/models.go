@@ -1,9 +1,6 @@
 package rakuten
 
-import (
-   "net/url"
-   "strings"
-)
+import "strings"
 
 // String implements the fmt.Stringer interface.
 // It returns the ID, Title, and a unique list of available audio languages.
@@ -62,13 +59,6 @@ type TvShowData struct {
    Seasons []struct {
       Id          string `json:"id"`
    } `json:"seasons"`
-}
-
-type Cache struct {
-   Movie   *Movie
-   Mpd     *url.URL
-   MpdBody []byte
-   TvShow  *TvShow
 }
 
 type StreamData struct {
