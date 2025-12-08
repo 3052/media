@@ -44,7 +44,7 @@ query bonanzaPage(
 `
 
 func Android(name int) (*Metadata, error) {
-   request_body := map[string]any{
+   data, err := json.Marshal(map[string]any{
       "query": graphql_compact(bonanza_page),
       "variables": map[string]any{
          "app":      "nbc",
@@ -54,8 +54,7 @@ func Android(name int) (*Metadata, error) {
          "type":     "VIDEO",
          "userId":   "",
       },
-   }
-   data, err := json.MarshalIndent(request_body, "", " ")
+   })
    if err != nil {
       return nil, err
    }
@@ -88,6 +87,12 @@ func Android(name int) (*Metadata, error) {
       return nil, errors.New(err[0].Message)
    }
    return &body.Data.BonanzaPage.Metadata, nil
+}
+
+type Metadata struct {
+   MpxAccountId    int64 `json:",string"`
+   MpxGuid         int64 `json:",string"`
+   ProgrammingType string
 }
 
 func (m *Metadata) StreamInfo() (*StreamInfo, error) {
@@ -174,11 +179,6 @@ func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
 }
 
-type Metadata struct {
-   MpxAccountId    int64 `json:",string"`
-   MpxGuid         int64 `json:",string"`
-   ProgrammingType string
-}
 func (s StreamInfo) Mpd() (*url.URL, []byte, error) {
    resp, err := http.Get(s.PlaybackUrl)
    if err != nil {

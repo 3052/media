@@ -8,24 +8,25 @@ import (
    "strconv"
 )
 
-func FetchMetadata(name int) (*Metadata, error) {
-   variables, err := json.Marshal(map[string]any{
-      "app":      "nbc",
-      "name":     strconv.Itoa(name),
-      "oneApp":   true,
-      "platform": "android",
-      "type":     "VIDEO",
-      "userId":   "",
+// saturday-night-live/video/november-15-glen-powell/9000454161
+func FetchMetadata(name string) (*Metadata, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": query_page,
+      "variables": map[string]string{
+         "app": "nbc",
+         "name": name,
+         "platform": "web",
+         "type": "VIDEO",
+         "userId": "",
+      },
    })
    if err != nil {
       return nil, err
    }
-   req, _ := http.NewRequest("", "https://friendship.nbc.com/v3/graphql", nil)
-   req.URL.RawQuery = url.Values{
-      "query": {graphql_compact(bonanza_page)},
-      "variables": {string(variables)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
+   resp, err := http.Post(
+      "https://friendship.nbc.com/v3/graphql", "application/json",
+      bytes.NewReader(data),
+   )
    if err != nil {
       return nil, err
    }
@@ -35,20 +36,40 @@ func FetchMetadata(name int) (*Metadata, error) {
    }
    var body struct {
       Data struct {
-         BonanzaPage struct {
+         Page struct {
             Metadata Metadata
          }
-      }
-      Errors []struct {
-         Message string
       }
    }
    err = json.NewDecoder(resp.Body).Decode(&body)
    if err != nil {
       return nil, err
    }
-   if err := body.Errors; len(err) >= 1 {
-      return nil, errors.New(err[0].Message)
-   }
-   return &body.Data.BonanzaPage.Metadata, nil
+   return &body.Data.Page.Metadata, nil
 }
+
+const query_page = `
+query page(
+   $app: NBCUBrands!
+   $name: String!
+   $platform: SupportedPlatforms!
+   $type: PageType!
+   $userId: String!
+) {
+  page(
+    app: $app
+    name: $name
+    platform: $platform
+    type: $type
+    userId: $userId
+  ) {
+    metadata {
+      ...on VideoPageMetaData {
+        mpxAccountId
+        mpxGuid
+        programmingType
+      }
+    }
+  }
+}
+`
