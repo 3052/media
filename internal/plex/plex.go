@@ -3,20 +3,15 @@ package main
 import (
    "41.neocities.org/media/plex"
    "41.neocities.org/net"
+   "encoding/json"
    "errors"
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path/filepath"
 )
-
-type command struct {
-   address string
-   config  net.Config
-   dash string
-   name   string
-}
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -29,67 +24,102 @@ func main() {
    }
 }
 
-///
-
-func (f *command) New() error {
-   if set.address != "" {
-      err = set.do_address()
-      if err != nil {
-         log.Fatal(err)
-      }
-   } else {
-      flag.Usage()
-   }
-   var err error
-   f.name, err = os.UserCacheDir()
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.name = filepath.ToSlash(f.name)
-   f.config.ClientId = f.name + "/L3/client_id.bin"
-   f.config.PrivateKey = f.name + "/L3/private_key.pem"
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.StringVar(&plex.ForwardedFor, "x", "", "x-forwarded-for")
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/plex/mpd.json"
+
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.forwarded_for, "x", "", "x-forwarded-for")
    flag.Parse()
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
    return nil
 }
 
-func (f *command) do_address() error {
-   data, err := plex.NewUser()
+type command struct {
+   address string
+   config  net.Config
+   dash string
+   forwarded_for string
+   name   string
+}
+
+func (c *command) do_address() error {
+   var cache user_cache
+   err := cache.User.Fetch()
    if err != nil {
       return err
    }
-   var user plex.User
-   err = user.Unmarshal(data)
+   address, err := plex.GetPath(c.address)
    if err != nil {
       return err
    }
-   match, err := user.Match(plex.Path(f.address))
+   metadata, err := cache.User.RatingKey(address)
    if err != nil {
       return err
    }
-   data1, err := user.Metadata(match)
+   metadata, err = cache.User.Media(metadata, c.forwarded_for)
    if err != nil {
       return err
    }
-   var metadata plex.Metadata
-   err = metadata.Unmarshal(data1)
-   if err != nil {
-      return err
-   }
-   part, ok := metadata.Dash()
+   var ok bool
+   cache.MediaPart, ok = metadata.Dash()
    if !ok {
       return errors.New(".Dash()")
    }
-   resp, err := user.Mpd(part)
+   cache.Mpd.Url, cache.Mpd.Body, err = cache.User.Mpd(
+      cache.MediaPart, c.forwarded_for,
+   )
    if err != nil {
       return err
    }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return user.Widevine(part, data)
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
    }
-   return f.filters.Filter(resp, &f.config)
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+
+type user_cache struct {
+   Mpd struct {
+      Body []byte
+      Url *url.URL
+   }
+   User plex.User
+   MediaPart *plex.MediaPart
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
 }
