@@ -11,8 +11,87 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/rtbf/Login")
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(*http.Request) string {
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rtbf/user_cache.json"
+   
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.Parse()
+
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   flag.Usage()
+   return nil
+}
+
+type user_cache struct {
+   Account rtbf.Account
+   Mpd *url.URL
+   MpdBody []byte
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (c *command) do_email_password() error {
+   var account rtbf.Account
+   err = account.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &user_cache{Account: account})
+}
+
+type command struct {
+   config   net.Config
+   name    string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   dash string
+}
+
+///
+
+func (c *command) do_address() error {
+   data, err := os.ReadFile(c.name + "/rtbf/Login")
    if err != nil {
       return err
    }
@@ -29,7 +108,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   path, err := rtbf.GetPath(f.address)
+   path, err := rtbf.GetPath(c.address)
    if err != nil {
       return err
    }
@@ -54,78 +133,11 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.config.Send = func(data []byte) ([]byte, error) {
+}
+
+func (c *command) do_dash() error {
+   c.config.Send = func(data []byte) ([]byte, error) {
       return title.Widevine(data)
    }
-   return f.filters.Filter(resp, &f.config)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   email    string
-   filters  net.Filters
-   password string
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-func main() {
-   http.DefaultTransport = &rtbf.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      log.Fatal(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_login()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
-func (f *flag_set) do_login() error {
-   data, err := rtbf.NewLogin(f.email, f.password)
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/rtbf/Login", data)
+   return c.filters.Filter(resp, &c.config)
 }

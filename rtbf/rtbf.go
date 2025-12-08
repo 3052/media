@@ -10,77 +10,6 @@ import (
    "strings"
 )
 
-// hard coded in JavaScript
-const api_key = "4_Ml_fJ47GnBAW6FrPzMxh0w"
-
-func GetPath(rawUrl string) (string, error) {
-   u, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   if u.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return u.Path, nil
-}
-
-func FetchAssetId(path string) (string, error) {
-   resp, err := http.Get(
-      "https://bff-service.rtbf.be/auvio/v1.23/pages" + path,
-   )
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   var page struct {
-      Data struct {
-         Content struct {
-            AssetId string
-            Media   *struct {
-               AssetId string
-            }
-         }
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&page)
-   if err != nil {
-      return "", err
-   }
-   content := page.Data.Content
-   if content.AssetId != "" {
-      return content.AssetId, nil
-   }
-   if content.Media != nil {
-      return content.Media.AssetId, nil
-   }
-   return "", errors.New("assetId not found")
-}
-
-func (a *Account) Identity() (*Identity, error) {
-   resp, err := http.PostForm(
-      "https://login.auvio.rtbf.be/accounts.getJWT", url.Values{
-         "APIKey":      {api_key},
-         "login_token": {a.SessionInfo.CookieValue},
-      },
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Identity
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.ErrorMessage != "" {
-      return nil, errors.New(result.ErrorMessage)
-   }
-   return &result, nil
-}
-
 type Account struct {
    ErrorMessage string
    SessionInfo  struct {
@@ -228,3 +157,74 @@ func (s *Session) Entitlement(assetId string) (*Entitlement, error) {
    }
    return title, nil
 }
+// hard coded in JavaScript
+const api_key = "4_Ml_fJ47GnBAW6FrPzMxh0w"
+
+func GetPath(rawUrl string) (string, error) {
+   u, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   if u.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return u.Path, nil
+}
+
+func FetchAssetId(path string) (string, error) {
+   resp, err := http.Get(
+      "https://bff-service.rtbf.be/auvio/v1.23/pages" + path,
+   )
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   var page struct {
+      Data struct {
+         Content struct {
+            AssetId string
+            Media   *struct {
+               AssetId string
+            }
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&page)
+   if err != nil {
+      return "", err
+   }
+   content := page.Data.Content
+   if content.AssetId != "" {
+      return content.AssetId, nil
+   }
+   if content.Media != nil {
+      return content.Media.AssetId, nil
+   }
+   return "", errors.New("assetId not found")
+}
+
+func (a *Account) Identity() (*Identity, error) {
+   resp, err := http.PostForm(
+      "https://login.auvio.rtbf.be/accounts.getJWT", url.Values{
+         "APIKey":      {api_key},
+         "login_token": {a.SessionInfo.CookieValue},
+      },
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Identity
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.ErrorMessage != "" {
+      return nil, errors.New(result.ErrorMessage)
+   }
+   return &result, nil
+}
+
