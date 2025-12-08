@@ -10,12 +10,16 @@ import (
    "net/http"
    "net/url"
    "os"
+   "path"
    "path/filepath"
 )
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(*http.Request) string {
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
       return "L"
    })
    err := new(command).run()
@@ -32,7 +36,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/plex/mpd.json"
+   c.name = cache + "/plex/user_cache.json"
 
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
@@ -51,11 +55,11 @@ func (c *command) run() error {
 }
 
 type command struct {
-   address string
-   config  net.Config
-   dash string
+   address       string
+   config        net.Config
+   dash          string
    forwarded_for string
-   name   string
+   name          string
 }
 
 func (c *command) do_address() error {
@@ -100,12 +104,12 @@ func (c *command) do_address() error {
 }
 
 type user_cache struct {
+   MediaPart *plex.MediaPart
    Mpd struct {
       Body []byte
-      Url *url.URL
+      Url  *url.URL
    }
-   User plex.User
-   MediaPart *plex.MediaPart
+   User      plex.User
 }
 
 func (c *command) do_dash() error {
