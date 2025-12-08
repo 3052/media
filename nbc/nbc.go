@@ -11,10 +11,19 @@ import (
    "net/http"
    "net/url"
    "strconv"
+   "strings"
    "time"
 )
 
-// saturday-night-live/video/november-15-glen-powell/9000454161
+// https://nbc.com/saturday-night-live/video/november-15-glen-powell/9000454161
+func GetName(rawUrl string) (string, error) {
+   parsed, err := url.Parse(rawUrl)
+   if err != nil {
+      return "", err
+   }
+   return strings.TrimPrefix(parsed.Path, "/"), nil
+}
+
 func FetchMetadata(name string) (*Metadata, error) {
    data, err := json.Marshal(map[string]any{
       "query": query_page,

@@ -27,6 +27,13 @@ func main() {
    }
 }
 
+type command struct {
+   address string
+   config  net.Config
+   dash    string
+   name    string
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -39,11 +46,12 @@ func (c *command) run() error {
 
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.nbc, "n", 0, "NBC ID")
    flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.address, "a", "", "address")
    flag.Parse()
-   if c.nbc >= 1 {
-      return c.do_nbc()
+
+   if c.address != "" {
+      return c.do_address()
    }
    if c.dash != "" {
       return c.do_dash()
@@ -52,20 +60,17 @@ func (c *command) run() error {
    return nil
 }
 
-type command struct {
-   name   string
-   config  net.Config
-   dash string
-   nbc     int
-}
-
 type mpd struct {
    Body []byte
-   Url *url.URL
+   Url  *url.URL
 }
 
-func (c *command) do_nbc() error {
-   metadata, err := nbc.FetchMetadata(c.nbc)
+func (c *command) do_address() error {
+   name, err := nbc.GetName(c.address)
+   if err != nil {
+      return err
+   }
+   metadata, err := nbc.FetchMetadata(name)
    if err != nil {
       return err
    }
