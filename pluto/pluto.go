@@ -5,15 +5,13 @@ import (
    "encoding/json"
    "errors"
    "io"
-   "log"
    "net/http"
    "net/url"
-   "path"
    "strconv"
    "strings"
 )
 
-func NewAlfa(id string) (*Alfa, error) {
+func NewSeries(id string) (*Series, error) {
    req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
    req.URL.RawQuery = url.Values{
       "appName":           {"web"},
@@ -29,7 +27,7 @@ func NewAlfa(id string) (*Alfa, error) {
    }
    defer resp.Body.Close()
    var result struct {
-      Vod []Alfa
+      Vod []Series
    }
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
@@ -41,7 +39,7 @@ func NewAlfa(id string) (*Alfa, error) {
    return &result.Vod[0], nil
 }
 
-type Alfa struct {
+type Series struct {
    Id string
    Seasons []struct {
       Number   int64
@@ -53,12 +51,12 @@ type Alfa struct {
    }
 }
 
-func (a *Alfa) String() string {
+func (s *Series) String() string {
    var (
       data     []byte
       lines bool
    )
-   for _, season := range a.Seasons {
+   for _, season := range s.Seasons {
       for _, episode := range season.Episodes {
          if lines {
             data = append(data, "\n\n"...)
@@ -90,14 +88,7 @@ func Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-type Bravo struct {
-   Sources []struct {
-      File File
-      Type string
-   }
-}
-
-func (c *Bravo) Dash() (*File, bool) {
+func (c *Clip) Dash() (*File, bool) {
    for _, source := range c.Sources {
       if source.Type == "DASH" {
          return &source.File, true
@@ -105,30 +96,6 @@ func (c *Bravo) Dash() (*File, bool) {
    }
    return nil, false
 }
-
-func NewBravo(id string) (*Bravo, error) {
-   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/v2/episodes/")
-      data.WriteString(id)
-      data.WriteString("/clips.json")
-      return data.String()
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var bravo2 []Bravo
-   err = json.NewDecoder(resp.Body).Decode(&bravo2)
-   if err != nil {
-      return nil, err
-   }
-   return &bravo2[0], nil
-}
-
-type File [1]url.URL
 
 // The Request's URL and Header fields must be initialized
 func (f *File) Mpd() (*http.Response, error) {
@@ -138,6 +105,8 @@ func (f *File) Mpd() (*http.Response, error) {
    req.Header = http.Header{}
    return http.DefaultClient.Do(&req)
 }
+
+type File [1]url.URL
 
 // these return a valid response body, but response status is "403 OK":
 // http://siloh-fs.plutotv.net
@@ -152,4 +121,32 @@ func (f *File) UnmarshalText(data []byte) error {
    f[0].Scheme = "http"
    f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
    return nil
+}
+func NewClip(id string) (*Clip, error) {
+   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v2/episodes/")
+      data.WriteString(id)
+      data.WriteString("/clips.json")
+      return data.String()
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var clips []Clip
+   err = json.NewDecoder(resp.Body).Decode(&clips)
+   if err != nil {
+      return nil, err
+   }
+   return &clips[0], nil
+}
+
+type Clip struct {
+   Sources []struct {
+      File File
+      Type string
+   }
 }

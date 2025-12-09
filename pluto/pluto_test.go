@@ -1,9 +1,6 @@
 package pluto
 
-import (
-   "fmt"
-   "testing"
-)
+import "testing"
 
 var tests = []string{
    "https://pluto.tv/on-demand/movies/6495eff09263a40013cf63a5",
