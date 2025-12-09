@@ -8,57 +8,14 @@ import (
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
 )
 
-type Cache struct {
-   Mpd      *url.URL
-   MpdBody  []byte
-   Login *Login
-   Manifest *Manifest
-}
-
-func (r *runner) run() error {
-   var err error
-   r.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   r.cache = filepath.ToSlash(r.cache)
-   r.config.ClientId = r.cache + "/L3/client_id.bin"
-   r.config.PrivateKey = r.cache + "/L3/private_key.pem"
-   flag.StringVar(&r.config.ClientId, "C", r.config.ClientId, "client ID")
-   flag.StringVar(&r.config.PrivateKey, "P", r.config.PrivateKey, "private key")
-   flag.StringVar(&r.dash, "d", "", "DASH ID")
-   flag.StringVar(&r.email, "e", "", "email")
-   flag.IntVar(&r.kanopy, "k", 0, "Kanopy ID")
-   flag.StringVar(&r.password, "p", "", "password")
-   flag.IntVar(&r.config.Threads, "t", 2, "threads")
-   flag.Parse()
-   if r.email != "" {
-      if r.password != "" {
-         return r.do_login()
-      }
-   }
-   if r.kanopy >= 1 {
-      return r.do_kanopy()
-   }
-   if r.dash != "" {
-      return r.do_dash()
-   }
-   flag.Usage()
-   return nil
-}
-
-func (r *runner) do_kanopy() error {
-   data, err := os.ReadFile(r.cache + "/kanopy/Cache")
-   if err != nil {
-      return err
-   }
-   var cache kanopy.Cache
-   err = json.Unmarshal(data, &cache)
+func (c *command) do_kanopy() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
@@ -66,49 +23,53 @@ func (r *runner) do_kanopy() error {
    if err != nil {
       return err
    }
-   plays, err := cache.Login.Plays(member, r.kanopy)
+   play, err := cache.Login.PlayResponse(member, c.kanopy)
    if err != nil {
       return err
    }
    var ok bool
-   cache.Manifest, ok = plays.Dash()
+   cache.StreamInfo, ok = play.Dash()
    if !ok {
       return errors.New(".Dash()")
    }
-   err = cache.Manifest.Mpd(&cache)
+   cache.Mpd, cache.MpdBody, err = cache.StreamInfo.Mpd()
    if err != nil {
       return err
    }
-   data, err = json.Marshal(cache)
+   err = write(c.name, cache)
    if err != nil {
       return err
    }
-   err = write_file(r.cache + "/kanopy/Cache", data)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
+   return net.Representations(cache.Mpd, cache.MpdBody)
 }
 
-func (r *runner) do_dash() error {
-   data, err := os.ReadFile(r.cache + "/kanopy/Cache")
+type command struct {
+   name    string
+   config   net.Config
+   // 1
+   email    string
+   password string
+   // 2
+   kanopy   int
+   // 3
+   dash string
+}
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   var cache kanopy.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Login.Widevine(cache.StreamInfo, data)
    }
-   r.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Login.Widevine(cache.Manifest, data)
-   }
-   return r.config.Download(cache.MpdBody, cache.Mpd, r.dash)
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }
 
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+type user_cache struct {
+   Login kanopy.Login
+   Mpd      *url.URL
+   MpdBody  []byte
+   StreamInfo *kanopy.StreamInfo
 }
 
 func main() {
@@ -119,34 +80,72 @@ func main() {
       return "L"
    })
    log.SetFlags(log.Ltime)
-   var tool runner
-   err := tool.run()
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (r *runner) do_login() error {
-   var login kanopy.Login
-   err := login.Fetch(r.email, r.password)
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   data, err := json.Marshal(kanopy.Cache{Login: &login})
-   if err != nil {
-      return err
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/kanopy/user_cache.json"
+
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.IntVar(&c.kanopy, "k", 0, "Kanopy ID")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.Parse()
+
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
    }
-   return write_file(r.cache+"/kanopy/Cache", data)
+   if c.kanopy >= 1 {
+      return c.do_kanopy()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
 }
 
-type runner struct {
-   cache    string
-   config   net.Config
-   // 1
-   email    string
-   password string
-   // 2
-   kanopy   int
-   // 3
-   dash string
+func write(name string, cache *user_cache) error {
+   data, err := json.Marshal(cache)
+   if err != nil {   
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (c *command) do_email_password() error {
+   var cache user_cache
+   err := cache.Login.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &cache)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = json.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
 }

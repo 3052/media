@@ -13,16 +13,7 @@ import (
    "strings"
 )
 
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) != ".m4s" {
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
-}
-
-func NewVod(id string) (*Vod, error) {
+func NewAlfa(id string) (*Alfa, error) {
    req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
    req.URL.RawQuery = url.Values{
       "appName":           {"web"},
@@ -37,20 +28,20 @@ func NewVod(id string) (*Vod, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var value struct {
-      Vod []Vod
+   var result struct {
+      Vod []Alfa
    }
-   err = json.NewDecoder(resp.Body).Decode(&value)
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if value.Vod[0].Id != id {
+   if result.Vod[0].Id != id {
       return nil, errors.New("id mismatch")
    }
-   return &value.Vod[0], nil
+   return &result.Vod[0], nil
 }
 
-type Vod struct {
+type Alfa struct {
    Id string
    Seasons []struct {
       Number   int64
@@ -62,29 +53,29 @@ type Vod struct {
    }
 }
 
-func (v *Vod) String() string {
+func (a *Alfa) String() string {
    var (
-      b     []byte
+      data     []byte
       lines bool
    )
-   for _, season := range v.Seasons {
+   for _, season := range a.Seasons {
       for _, episode := range season.Episodes {
          if lines {
-            b = append(b, "\n\n"...)
+            data = append(data, "\n\n"...)
          } else {
             lines = true
          }
-         b = append(b, "season = "...)
-         b = strconv.AppendInt(b, season.Number, 10)
-         b = append(b, "\nepisode = "...)
-         b = strconv.AppendInt(b, episode.Number, 10)
-         b = append(b, "\nname = "...)
-         b = append(b, episode.Name...)
-         b = append(b, "\nid = "...)
-         b = append(b, episode.Id...)
+         data = append(data, "season = "...)
+         data = strconv.AppendInt(data, season.Number, 10)
+         data = append(data, "\nepisode = "...)
+         data = strconv.AppendInt(data, episode.Number, 10)
+         data = append(data, "\nname = "...)
+         data = append(data, episode.Name...)
+         data = append(data, "\nid = "...)
+         data = append(data, episode.Id...)
       }
    }
-   return string(b)
+   return string(data)
 }
 
 func Widevine(data []byte) ([]byte, error) {
@@ -99,20 +90,42 @@ func Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-type Clips struct {
+type Bravo struct {
    Sources []struct {
       File File
       Type string
    }
 }
 
-func (c *Clips) Dash() (*File, bool) {
+func (c *Bravo) Dash() (*File, bool) {
    for _, source := range c.Sources {
       if source.Type == "DASH" {
          return &source.File, true
       }
    }
    return nil, false
+}
+
+func NewBravo(id string) (*Bravo, error) {
+   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v2/episodes/")
+      data.WriteString(id)
+      data.WriteString("/clips.json")
+      return data.String()
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var bravo2 []Bravo
+   err = json.NewDecoder(resp.Body).Decode(&bravo2)
+   if err != nil {
+      return nil, err
+   }
+   return &bravo2[0], nil
 }
 
 type File [1]url.URL
@@ -139,26 +152,4 @@ func (f *File) UnmarshalText(data []byte) error {
    f[0].Scheme = "http"
    f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
    return nil
-}
-
-func NewClips(id string) (*Clips, error) {
-   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
-   req.URL.Path = func() string {
-      var b strings.Builder
-      b.WriteString("/v2/episodes/")
-      b.WriteString(id)
-      b.WriteString("/clips.json")
-      return b.String()
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var clips_var []Clips
-   err = json.NewDecoder(resp.Body).Decode(&clips_var)
-   if err != nil {
-      return nil, err
-   }
-   return &clips_var[0], nil
 }
