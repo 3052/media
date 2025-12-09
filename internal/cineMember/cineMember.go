@@ -11,6 +11,15 @@ import (
    "path/filepath"
 )
 
+var Transport = http.Transport{
+   Proxy: func(req *http.Request) (*url.URL, error) {
+      if path.Ext(req.URL.Path) != ".m4s" {
+         log.Println(req.Method, req.URL)
+      }
+      return http.ProxyFromEnvironment(req)
+   },
+}
+
 func (f *flag_set) do_user() error {
    var session cineMember.Session
    err := session.Fetch()

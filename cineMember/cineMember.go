@@ -5,10 +5,8 @@ import (
    "errors"
    "fmt"
    "io"
-   "log"
    "net/http"
    "net/url"
-   "path"
    "strings"
 )
 
@@ -27,15 +25,6 @@ func (s *Session) Fetch() error {
       }
    }
    return http.ErrNoCookie
-}
-
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) != ".m4s" {
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
 }
 
 func Id(address string) (int, error) {
@@ -88,20 +77,7 @@ func (s Session) Login(email, password string) error {
    return nil
 }
 
-func (s Session) String() string {
-   return s[0].String()
-}
-
-func (s *Session) Set(data string) error {
-   var err error
-   s[0], err = http.ParseSetCookie(data)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-type Stream struct {
+type StreamInfo struct {
    Error string
    Links []struct {
       MimeType string
@@ -110,7 +86,7 @@ type Stream struct {
    NoAccess bool
 }
 
-func (s *Stream) Vtt() (string, bool) {
+func (s *StreamInfo) Vtt() (string, bool) {
    for _, link := range s.Links {
       if link.MimeType == "text/vtt" {
          return link.Url, true
@@ -119,7 +95,7 @@ func (s *Stream) Vtt() (string, bool) {
    return "", false
 }
 
-func (s *Stream) Dash() (string, bool) {
+func (s *StreamInfo) Dash() (string, bool) {
    for _, link := range s.Links {
       if link.MimeType == "application/dash+xml" {
          return link.Url, true
@@ -129,7 +105,7 @@ func (s *Stream) Dash() (string, bool) {
 }
 
 // must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
+func (s Session) StreamInfo(id int) (*StreamInfo, error) {
    req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
    req.URL.Path = "/elements/films/stream.php"
    req.URL.RawQuery = "id=" + fmt.Sprint(id)
@@ -139,16 +115,16 @@ func (s Session) Stream(id int) (*Stream, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var stream_var Stream
-   err = json.NewDecoder(resp.Body).Decode(&stream_var)
+   var info StreamInfo
+   err = json.NewDecoder(resp.Body).Decode(&info)
    if err != nil {
       return nil, err
    }
-   if stream_var.Error != "" {
-      return nil, errors.New(stream_var.Error)
+   if info.Error != "" {
+      return nil, errors.New(info.Error)
    }
-   if stream_var.NoAccess {
+   if info.NoAccess {
       return nil, errors.New("no access")
    }
-   return &stream_var, nil
+   return &info, nil
 }

@@ -13,6 +13,44 @@ import (
    "strings"
 )
 
+func graphql_compact(data string) string {
+   return strings.Join(strings.Fields(data), " ")
+}
+
+func Titles(legacyId string) ([]Title, error) {
+   data, err := json.Marshal(map[string]string{
+      "brandLegacyId": legacyId,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = url.Values{
+      "query":     {graphql_compact(programme_page)},
+      "variables": {string(data)},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var payload struct {
+      Data struct {
+         Titles []Title
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&payload)
+   if err != nil {
+      return nil, err
+   }
+   return payload.Data.Titles, nil
+}
+
 func (m *MediaFile) Mpd() (*url.URL, []byte, error) {
    var err error
    http.DefaultClient.Jar, err = cookiejar.New(nil)
@@ -144,40 +182,6 @@ func (p *Playlist) playReady(id string) error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(p)
-}
-
-func Titles(legacyId string) ([]Title, error) {
-   data, err := json.Marshal(map[string]string{
-      "brandLegacyId": legacyId,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = url.Values{
-      "query":     {programme_page},
-      "variables": {string(data)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var payload struct {
-      Data struct {
-         Titles []Title
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&payload)
-   if err != nil {
-      return nil, err
-   }
-   return payload.Data.Titles, nil
 }
 
 type Playlist struct {

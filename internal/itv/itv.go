@@ -16,13 +16,14 @@ import (
 )
 
 func main() {
-   log.SetFlags(log.Ltime)
+   // ALL REQUEST ARE GEO BLOCKED
    net.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".dash" {
          return ""
       }
       return "L"
    })
+   log.SetFlags(log.Ltime)
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -44,6 +45,7 @@ func (c *command) run() error {
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.playlist, "p", "", "playlist URL")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.address != "" {
@@ -78,14 +80,11 @@ func (c *command) do_address() error {
 }
 
 type command struct {
-   config net.Config
-   name   string
-   // 1
-   address string
-   // 2
+   config   net.Config
+   name     string
+   address  string
    playlist string
-   // 3
-   dash string
+   dash     string
 }
 
 func (c *command) do_playlist() error {

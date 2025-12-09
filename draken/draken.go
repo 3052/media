@@ -93,7 +93,7 @@ query GetCustomIdFullMovie($customId: ID!) {
       }
    }
 }
-` // do not do `query(`
+`
 
 func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
