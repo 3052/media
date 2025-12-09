@@ -3,17 +3,64 @@ package main
 import (
    "41.neocities.org/media/itv"
    "41.neocities.org/net"
+   "encoding/json"
    "errors"
    "flag"
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
+   "path"
    "path/filepath"
 )
 
-func (f *flag_set) do_address() error {
-   legacy_id, err := itv.LegacyId(f.address)
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/itv/user_cache.json"
+
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.playlist, "p", "", "playlist URL")
+   flag.Parse()
+
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.playlist != "" {
+      return c.do_playlist()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+func (c *command) do_address() error {
+   legacy_id, err := itv.LegacyId(c.address)
    if err != nil {
       return err
    }
@@ -30,69 +77,66 @@ func (f *flag_set) do_address() error {
    return nil
 }
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.playlist, "p", "", "playlist URL")
-   flag.Parse()
-   return nil
-}
-func main() {
-   http.DefaultTransport = &itv.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.playlist != "":
-      err = set.do_playlist()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
+type command struct {
+   config net.Config
+   name   string
+   // 1
+   address string
+   // 2
+   playlist string
+   // 3
+   dash string
 }
 
-func (f *flag_set) do_playlist() error {
+func (c *command) do_playlist() error {
    var title itv.Title
-   title.LatestAvailableVersion.PlaylistUrl = f.playlist
+   title.LatestAvailableVersion.PlaylistUrl = c.playlist
    playlist, err := title.Playlist()
    if err != nil {
       return err
    }
-   file, ok := playlist.FullHd()
+   var (
+      cache user_cache
+      ok    bool
+   )
+   cache.MediaFile, ok = playlist.FullHd()
    if !ok {
       return errors.New(".FullHd()")
    }
-   resp, err := file.Mpd()
+   cache.Mpd, cache.MpdBody, err = cache.MediaFile.Mpd()
    if err != nil {
       return err
    }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return file.Widevine(data)
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
    }
-   return f.filters.Filter(resp, &f.config)
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd, cache.MpdBody)
 }
 
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   filters  net.Filters
-   playlist string
+type user_cache struct {
+   MediaFile *itv.MediaFile
+   Mpd       *url.URL
+   MpdBody   []byte
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.MediaFile.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }
