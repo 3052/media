@@ -13,6 +13,13 @@ import (
    "path/filepath"
 )
 
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+   Login *Login
+   Manifest *Manifest
+}
+
 func (r *runner) run() error {
    var err error
    r.cache, err = os.UserCacheDir()
