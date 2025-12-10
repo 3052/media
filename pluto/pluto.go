@@ -76,36 +76,6 @@ func (s *Series) String() string {
    return string(data)
 }
 
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
-      "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (c *Clip) Dash() (*File, bool) {
-   for _, source := range c.Sources {
-      if source.Type == "DASH" {
-         return &source.File, true
-      }
-   }
-   return nil, false
-}
-
-// The Request's URL and Header fields must be initialized
-func (f *File) Mpd() (*http.Response, error) {
-   var req http.Request
-   req.Method = "GET"
-   req.URL = &f[0]
-   req.Header = http.Header{}
-   return http.DefaultClient.Do(&req)
-}
-
 type File [1]url.URL
 
 // these return a valid response body, but response status is "403 OK":
@@ -122,6 +92,25 @@ func (f *File) UnmarshalText(data []byte) error {
    f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
    return nil
 }
+
+// The Request's URL and Header fields must be initialized
+func (f *File) Mpd() (*http.Response, error) {
+   var req http.Request
+   req.Method = "GET"
+   req.URL = &f[0]
+   req.Header = http.Header{}
+   return http.DefaultClient.Do(&req)
+}
+
+func (c *Clip) Dash() (*File, bool) {
+   for _, source := range c.Sources {
+      if source.Type == "DASH" {
+         return &source.File, true
+      }
+   }
+   return nil, false
+}
+
 func NewClip(id string) (*Clip, error) {
    req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
    req.URL.Path = func() string {
@@ -149,4 +138,16 @@ type Clip struct {
       File File
       Type string
    }
+}
+
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
+      "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
