@@ -26,6 +26,36 @@ func main() {
    }
 }
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/pluto/mpd.json"
+
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.episode, "e", "", "episode/movie ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.show, "s", "", "show ID")
+   flag.Parse()
+
+   if c.show != "" {
+      return c.do_show()
+   }
+   if c.episode != "" {
+      return c.do_episode()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
 type command struct {
    config  net.Config
    name   string
@@ -39,32 +69,12 @@ type command struct {
 
 ///
 
-func (c *command) run() error {
-   c.cache, err = os.UserCacheDir()
+func (c *command) do_show() error {
+   vod, err := pluto.NewVod(c.show)
    if err != nil {
       return err
    }
-   c.cache = filepath.ToSlash(c.cache)
-   c.config.ClientId = c.cache + "/L3/client_id.bin"
-   c.config.PrivateKey = c.cache + "/L3/private_key.pem"
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
-   flag.StringVar(&c.episode, "e", "", "episode/movie ID")
-   flag.Var(&c.filters, "f", net.FilterUsage)
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.StringVar(&c.show, "s", "", "show ID")
-   flag.Parse()
-   switch {
-   case set.episode != "":
-      err = set.do_episode()
-   case set.show != "":
-      err = set.do_show()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
-   }
-   var err error
+   fmt.Println(vod)
    return nil
 }
 
@@ -83,13 +93,4 @@ func (c *command) do_episode() error {
    }
    c.config.Send = pluto.Widevine
    return c.filters.Filter(resp, &c.config)
-}
-
-func (c *command) do_show() error {
-   vod, err := pluto.NewVod(c.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(vod)
-   return nil
 }
