@@ -41,7 +41,20 @@ and notably, it has 1080p:
 
 ## new web client
 
-begin:
+first try:
+
+~~~
+https://boot.pluto.tv/v4/start?
+seriesIDs=6495eff09263a40013cf63a5
+~~~
+
+result:
+
+~~~
+"invalid params: [AppName AppVersion ClientID ClientModelNumber]"
+~~~
+
+second try:
 
 ~~~
 https://boot.pluto.tv/v4/start?
@@ -49,99 +62,126 @@ appName=web&
 appVersion=9.18.0-32296d47c9882754e360f1b28a33027c54cbad16&
 clientID=e0292ffd-7e8b-4607-ab89-fcd441a74b40&
 clientModelNumber=1.0.0&
+seriesIDs=6495eff09263a40013cf63a5
+~~~
+
+then:
+
+~~~
+"stitcherDash": "https://cfd-v4-service-stitcher-dash-use1-1.prd.pluto.tv",
+/v2
+"path": "/stitch/dash/episode/6495eff09263a40013cf63a5/main.mpd"
+?jwt=
+"sessionToken": "eyJhbGciOiJIUzI1NiIsImtpZCI6ImQzYzBlZDU2LTIwYWItNDNmMC05Mzg0LTRiOTNhMmQyZTQ5MyIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSUQiOiIwMzgzZTY2YS1kNTYzLTExZjAtYjBhNS0xZTUxYjU5MjExOTAiLCJjbGllbnRJUCI6IjcyLjE4MS4yMy4zOCIsImNpdHkiOiJJcnZpbmciLCJwb3N0YWxDb2RlIjoiNzUwNjMiLCJjb3VudHJ5IjoiVVMiLCJkbWEiOjYyMywiYWN0aXZlUmVnaW9uIjoiVVMiLCJkZXZpY2VMYXQiOjMyLjkxOTk5ODE2ODk0NTMxLCJkZXZpY2VMb24iOi05Ni45NzAwMDEyMjA3MDMxMiwicHJlZmVycmVkTGFuZ3VhZ2UiOiJlbiIsImRldmljZVR5cGUiOiJ3ZWIiLCJkZXZpY2VWZXJzaW9uIjoiIiwiZGV2aWNlTWFrZSI6IiIsImRldmljZU1vZGVsIjoiIiwiYXBwTmFtZSI6IndlYiIsImFwcFZlcnNpb24iOiI5LjE4LjAtMzIyOTZkNDdjOTg4Mjc1NGUzNjBmMWIyOGEzMzAyN2M1NGNiYWQxNiIsImNsaWVudElEIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiY21BdWRpZW5jZUlEIjoiIiwiaXNDbGllbnRETlQiOmZhbHNlLCJ1c2VySUQiOiIiLCJsb2dMZXZlbCI6IkRFRkFVTFQiLCJ0aW1lWm9uZSI6IkFtZXJpY2EvQ2hpY2FnbyIsInNlcnZlclNpZGVBZHMiOmZhbHNlLCJlMmVCZWFjb25zIjpmYWxzZSwiZmVhdHVyZXMiOnsiYWRMb2FkIjp7ImNvaG9ydCI6IiJ9LCJtdWx0aUF1ZGlvIjp7ImVuYWJsZWQiOnRydWV9LCJtdWx0aVBvZEFkcyI6eyJlbmFibGVkIjp0cnVlfSwic2VhcmNoQVBJIjp7InF1ZXJ5VmVyc2lvbiI6Imh5YnJpZCJ9LCJzdGl0Y2hlckhsc05nIjp7ImRlbXV4ZWRBdWRpbyI6ImppdCJ9LCJzdGl0Y2hlckhsc05nVmxsIjp7ImVuYWJsZWQiOnRydWV9LCJzdGl0Y2hlckhsc05nVm9kIjp7ImVuYWJsZWQiOnRydWV9fSwiZm1zUGFyYW1zIjp7ImZ3VmNJRDIiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJmd1ZjSUQyQ29wcGEiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJjdXN0b21QYXJhbXMiOnsiZm1zX2xpdmVyYW1wX2lkbCI6IiIsImZtc19lbWFpbGhhc2giOiIiLCJmbXNfc3Vic2NyaWJlcmlkIjoiIiwiZm1zX2lmYSI6IiIsImZtc19pZGZ2IjoiIiwiZm1zX3VzZXJpZCI6ImUwMjkyZmZkLTdlOGItNDYwNy1hYjg5LWZjZDQ0MWE3NGI0MCIsImZtc192Y2lkMnR5cGUiOiJ1c2VyaWQiLCJmbXNfcmFtcF9pZCI6IiIsImZtc19oaF9yYW1wX2lkIjoiIiwiZm1zX2JpZGlkdHlwZSI6IiIsIl9md18zUF9VSUQiOiIiLCJmbXNfcnVsZWlkIjoiMTAwMDAsMTAwMDkifX0sImlzcyI6ImJvb3QucGx1dG8udHYiLCJzdWIiOiJwcmk6djE6cGx1dG86ZGV2aWNlczpVUzpaVEF5T1RKbVptUXROMlU0WWkwME5qQTNMV0ZpT0RrdFptTmtORFF4WVRjMFlqUXciLCJhdWQiOiIqLnBsdXRvLnR2IiwiZXhwIjoxNzY1NDE0NTY4LCJpYXQiOjE3NjUzMjgxNjgsImp0aSI6ImUxNDg2ZjgxLTcwMmQtNGE0NC1hMjc0LWU2MzVlODY5NGYxMiJ9.DwkNwrz_3ZYHcOdr1unCQE7la8SMdczVEwzoXTtC5dQ"
+~~~
+
+then:
+
+https://cfd-v4-service-stitcher-dash-use1-1.prd.pluto.tv/v2/stitch/dash/episode/6495eff09263a40013cf63a5/main.mpd?jwt=eyJhbGciOiJIUzI1NiIsImtpZCI6ImQzYzBlZDU2LTIwYWItNDNmMC05Mzg0LTRiOTNhMmQyZTQ5MyIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSUQiOiIwMzgzZTY2YS1kNTYzLTExZjAtYjBhNS0xZTUxYjU5MjExOTAiLCJjbGllbnRJUCI6IjcyLjE4MS4yMy4zOCIsImNpdHkiOiJJcnZpbmciLCJwb3N0YWxDb2RlIjoiNzUwNjMiLCJjb3VudHJ5IjoiVVMiLCJkbWEiOjYyMywiYWN0aXZlUmVnaW9uIjoiVVMiLCJkZXZpY2VMYXQiOjMyLjkxOTk5ODE2ODk0NTMxLCJkZXZpY2VMb24iOi05Ni45NzAwMDEyMjA3MDMxMiwicHJlZmVycmVkTGFuZ3VhZ2UiOiJlbiIsImRldmljZVR5cGUiOiJ3ZWIiLCJkZXZpY2VWZXJzaW9uIjoiIiwiZGV2aWNlTWFrZSI6IiIsImRldmljZU1vZGVsIjoiIiwiYXBwTmFtZSI6IndlYiIsImFwcFZlcnNpb24iOiI5LjE4LjAtMzIyOTZkNDdjOTg4Mjc1NGUzNjBmMWIyOGEzMzAyN2M1NGNiYWQxNiIsImNsaWVudElEIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiY21BdWRpZW5jZUlEIjoiIiwiaXNDbGllbnRETlQiOmZhbHNlLCJ1c2VySUQiOiIiLCJsb2dMZXZlbCI6IkRFRkFVTFQiLCJ0aW1lWm9uZSI6IkFtZXJpY2EvQ2hpY2FnbyIsInNlcnZlclNpZGVBZHMiOmZhbHNlLCJlMmVCZWFjb25zIjpmYWxzZSwiZmVhdHVyZXMiOnsiYWRMb2FkIjp7ImNvaG9ydCI6IiJ9LCJtdWx0aUF1ZGlvIjp7ImVuYWJsZWQiOnRydWV9LCJtdWx0aVBvZEFkcyI6eyJlbmFibGVkIjp0cnVlfSwic2VhcmNoQVBJIjp7InF1ZXJ5VmVyc2lvbiI6Imh5YnJpZCJ9LCJzdGl0Y2hlckhsc05nIjp7ImRlbXV4ZWRBdWRpbyI6ImppdCJ9LCJzdGl0Y2hlckhsc05nVmxsIjp7ImVuYWJsZWQiOnRydWV9LCJzdGl0Y2hlckhsc05nVm9kIjp7ImVuYWJsZWQiOnRydWV9fSwiZm1zUGFyYW1zIjp7ImZ3VmNJRDIiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJmd1ZjSUQyQ29wcGEiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJjdXN0b21QYXJhbXMiOnsiZm1zX2xpdmVyYW1wX2lkbCI6IiIsImZtc19lbWFpbGhhc2giOiIiLCJmbXNfc3Vic2NyaWJlcmlkIjoiIiwiZm1zX2lmYSI6IiIsImZtc19pZGZ2IjoiIiwiZm1zX3VzZXJpZCI6ImUwMjkyZmZkLTdlOGItNDYwNy1hYjg5LWZjZDQ0MWE3NGI0MCIsImZtc192Y2lkMnR5cGUiOiJ1c2VyaWQiLCJmbXNfcmFtcF9pZCI6IiIsImZtc19oaF9yYW1wX2lkIjoiIiwiZm1zX2JpZGlkdHlwZSI6IiIsIl9md18zUF9VSUQiOiIiLCJmbXNfcnVsZWlkIjoiMTAwMDAsMTAwMDkifX0sImlzcyI6ImJvb3QucGx1dG8udHYiLCJzdWIiOiJwcmk6djE6cGx1dG86ZGV2aWNlczpVUzpaVEF5T1RKbVptUXROMlU0WWkwME5qQTNMV0ZpT0RrdFptTmtORFF4WVRjMFlqUXciLCJhdWQiOiIqLnBsdXRvLnR2IiwiZXhwIjoxNzY1NDE0NTY4LCJpYXQiOjE3NjUzMjgxNjgsImp0aSI6ImUxNDg2ZjgxLTcwMmQtNGE0NC1hMjc0LWU2MzVlODY5NGYxMiJ9.DwkNwrz_3ZYHcOdr1unCQE7la8SMdczVEwzoXTtC5dQ
+
+then:
+
+~~~json
+{
+  "statusCode": 400,
+  "message": "Invalid params",
+  "errors": [
+    {
+      "param": "deviceModel",
+      "source": "jwt",
+      "reason": "empty",
+      "message": "deviceModel is empty"
+    },
+    {
+      "param": "deviceVersion",
+      "source": "jwt",
+      "reason": "empty",
+      "message": "deviceVersion is empty"
+    },
+    {
+      "param": "deviceMake",
+      "source": "jwt",
+      "reason": "empty",
+      "message": "deviceMake is empty"
+    }
+  ]
+}
+~~~
+
+third try:
+
+~~~
+https://boot.pluto.tv/v4/start?
+appName=web&
+appVersion=9.18.0-32296d47c9882754e360f1b28a33027c54cbad16&
+clientID=e0292ffd-7e8b-4607-ab89-fcd441a74b40&
+clientModelNumber=1.0.0&
+deviceMake=firefox&
+deviceModel=web&
+deviceVersion=128.0.0&
+seriesIDs=6495eff09263a40013cf63a5
+~~~
+
+then:
+
+https://cfd-v4-service-stitcher-dash-use1-1.prd.pluto.tv/v2/stitch/dash/episode/6495eff09263a40013cf63a5/main.mpd?jwt=eyJhbGciOiJIUzI1NiIsImtpZCI6ImQzYzBlZDU2LTIwYWItNDNmMC05Mzg0LTRiOTNhMmQyZTQ5MyIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSUQiOiI4YTQ3Y2Q1MC1kNTYzLTExZjAtYmJkYi1iNjZiNWIyMDM2OTMiLCJjbGllbnRJUCI6IjcyLjE4MS4yMy4zOCIsImNpdHkiOiJJcnZpbmciLCJwb3N0YWxDb2RlIjoiNzUwNjMiLCJjb3VudHJ5IjoiVVMiLCJkbWEiOjYyMywiYWN0aXZlUmVnaW9uIjoiVVMiLCJkZXZpY2VMYXQiOjMyLjkxOTk5ODE2ODk0NTMxLCJkZXZpY2VMb24iOi05Ni45NzAwMDEyMjA3MDMxMiwicHJlZmVycmVkTGFuZ3VhZ2UiOiJlbiIsImRldmljZVR5cGUiOiJmaXJlZm94LHdlYiIsImRldmljZVZlcnNpb24iOiIxMjguMC4wIiwiZGV2aWNlTWFrZSI6ImZpcmVmb3giLCJkZXZpY2VNb2RlbCI6IndlYiIsImFwcE5hbWUiOiJ3ZWIiLCJhcHBWZXJzaW9uIjoiOS4xOC4wLTMyMjk2ZDQ3Yzk4ODI3NTRlMzYwZjFiMjhhMzMwMjdjNTRjYmFkMTYiLCJjbGllbnRJRCI6ImUwMjkyZmZkLTdlOGItNDYwNy1hYjg5LWZjZDQ0MWE3NGI0MCIsImNtQXVkaWVuY2VJRCI6IiIsImlzQ2xpZW50RE5UIjpmYWxzZSwidXNlcklEIjoiIiwibG9nTGV2ZWwiOiJERUZBVUxUIiwidGltZVpvbmUiOiJBbWVyaWNhL0NoaWNhZ28iLCJzZXJ2ZXJTaWRlQWRzIjpmYWxzZSwiZTJlQmVhY29ucyI6ZmFsc2UsImZlYXR1cmVzIjp7ImFkTG9hZCI6eyJjb2hvcnQiOiIifSwibXVsdGlBdWRpbyI6eyJlbmFibGVkIjp0cnVlfSwibXVsdGlQb2RBZHMiOnsiZW5hYmxlZCI6dHJ1ZX0sInNlYXJjaEFQSSI6eyJxdWVyeVZlcnNpb24iOiJoeWJyaWQifSwic3RpdGNoZXJIbHNOZyI6eyJkZW11eGVkQXVkaW8iOiJqaXQifSwic3RpdGNoZXJIbHNOZ1ZsbCI6eyJlbmFibGVkIjp0cnVlfSwic3RpdGNoZXJIbHNOZ1ZvZCI6eyJlbmFibGVkIjp0cnVlfX0sImZtc1BhcmFtcyI6eyJmd1ZjSUQyIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiZndWY0lEMkNvcHBhIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiY3VzdG9tUGFyYW1zIjp7ImZtc19saXZlcmFtcF9pZGwiOiIiLCJmbXNfZW1haWxoYXNoIjoiIiwiZm1zX3N1YnNjcmliZXJpZCI6IiIsImZtc19pZmEiOiIiLCJmbXNfaWRmdiI6IiIsImZtc191c2VyaWQiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJmbXNfdmNpZDJ0eXBlIjoidXNlcmlkIiwiZm1zX3JhbXBfaWQiOiIiLCJmbXNfaGhfcmFtcF9pZCI6IiIsImZtc19iaWRpZHR5cGUiOiIiLCJfZndfM1BfVUlEIjoiIiwiZm1zX3J1bGVpZCI6IjEwMDAwLDEwMDA5In19LCJpc3MiOiJib290LnBsdXRvLnR2Iiwic3ViIjoicHJpOnYxOnBsdXRvOmRldmljZXM6VVM6WlRBeU9USm1abVF0TjJVNFlpMDBOakEzTFdGaU9Ea3RabU5rTkRReFlUYzBZalF3IiwiYXVkIjoiKi5wbHV0by50diIsImV4cCI6MTc2NTQxNDc5NCwiaWF0IjoxNzY1MzI4Mzk0LCJqdGkiOiIwYjA0NjFlNi1iYjlkLTQ0MTctYmJiZS01YTIxZWMzMWIzOTUifQ.9XTRA2r04KPTtEXHQYzTsf2MY3nAlbm2iw-rBNOQLg8
+
+576p:
+
+~~~xml
+<Representation id="3" width="1024" height="576" sar="1:1" mimeType="video/mp4" codecs="avc1.64001f" bandwidth="1531860">
+   <SegmentTemplate timescale="15360" startNumber="1" media="video/576p-1600/$Number%05d$.m4s" initialization="video/576p-1600/init.mp4" presentationTimeOffset="0">
+   </SegmentTemplate>
+</Representation>
+~~~
+
+fourth try:
+
+~~~
+https://boot.pluto.tv/v4/start?
+appName=web&
+appVersion=9.18.0-32296d47c9882754e360f1b28a33027c54cbad16&
+clientID=e0292ffd-7e8b-4607-ab89-fcd441a74b40&
+clientModelNumber=1.0.0&
+deviceMake=firefox&
+deviceModel=web&
+deviceVersion=128.0.0&
 drmCapabilities=widevine%3AL3&
 seriesIDs=6495eff09263a40013cf63a5
 ~~~
 
-next:
+then:
 
-https://cfd-v4-service-stitcher-dash-use1-1.prd.pluto.tv/v2/stitch/dash/episode/6495eff09263a40013cf63a5/main.mpd?jwt=eyJhbGciOiJIUzI1NiIsImtpZCI6ImQzYzBlZDU2LTIwYWItNDNmMC05Mzg0LTRiOTNhMmQyZTQ5MyIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSUQiOiIyMWVlNjAyMS1kNTVjLTExZjAtOWZmYy00MjEwNTIyOTYwMTkiLCJjbGllbnRJUCI6IjcyLjE4MS4yMy4zOCIsImNpdHkiOiJJcnZpbmciLCJwb3N0YWxDb2RlIjoiNzUwNjMiLCJjb3VudHJ5IjoiVVMiLCJkbWEiOjYyMywiYWN0aXZlUmVnaW9uIjoiVVMiLCJkZXZpY2VMYXQiOjMyLjkxOTk5ODE2ODk0NTMxLCJkZXZpY2VMb24iOi05Ni45NzAwMDEyMjA3MDMxMiwicHJlZmVycmVkTGFuZ3VhZ2UiOiJlbiIsImRldmljZVR5cGUiOiJ3ZWIiLCJkZXZpY2VWZXJzaW9uIjoiMTI4LjAuMCIsImRldmljZU1ha2UiOiJmaXJlZm94IiwiZGV2aWNlTW9kZWwiOiJ3ZWIiLCJhcHBOYW1lIjoid2ViIiwiYXBwVmVyc2lvbiI6IjkuMTguMC0zMjI5NmQ0N2M5ODgyNzU0ZTM2MGYxYjI4YTMzMDI3YzU0Y2JhZDE2IiwiY2xpZW50SUQiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJjbUF1ZGllbmNlSUQiOiIiLCJpc0NsaWVudEROVCI6ZmFsc2UsInVzZXJJRCI6IiIsImxvZ0xldmVsIjoiREVGQVVMVCIsInRpbWVab25lIjoiQW1lcmljYS9DaGljYWdvIiwic2VydmVyU2lkZUFkcyI6ZmFsc2UsImUyZUJlYWNvbnMiOmZhbHNlLCJmZWF0dXJlcyI6eyJhZExvYWQiOnsiY29ob3J0IjoiIn0sIm11bHRpQXVkaW8iOnsiZW5hYmxlZCI6dHJ1ZX0sIm11bHRpUG9kQWRzIjp7ImVuYWJsZWQiOnRydWV9LCJzZWFyY2hBUEkiOnsicXVlcnlWZXJzaW9uIjoiaHlicmlkIn0sInN0aXRjaGVySGxzTmciOnsiZGVtdXhlZEF1ZGlvIjoiaml0In0sInN0aXRjaGVySGxzTmdWbGwiOnsiZW5hYmxlZCI6dHJ1ZX0sInN0aXRjaGVySGxzTmdWb2QiOnsiZW5hYmxlZCI6dHJ1ZX19LCJmbXNQYXJhbXMiOnsiZndWY0lEMiI6ImUwMjkyZmZkLTdlOGItNDYwNy1hYjg5LWZjZDQ0MWE3NGI0MCIsImZ3VmNJRDJDb3BwYSI6ImUwMjkyZmZkLTdlOGItNDYwNy1hYjg5LWZjZDQ0MWE3NGI0MCIsImN1c3RvbVBhcmFtcyI6eyJmbXNfbGl2ZXJhbXBfaWRsIjoiIiwiZm1zX2VtYWlsaGFzaCI6IiIsImZtc19zdWJzY3JpYmVyaWQiOiIiLCJmbXNfaWZhIjoiIiwiZm1zX2lkZnYiOiIiLCJmbXNfdXNlcmlkIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiZm1zX3ZjaWQydHlwZSI6InVzZXJpZCIsImZtc19yYW1wX2lkIjoiIiwiZm1zX2hoX3JhbXBfaWQiOiIiLCJmbXNfYmlkaWR0eXBlIjoiIiwiX2Z3XzNQX1VJRCI6IiIsImZtc19ydWxlaWQiOiIxMDAwMCwxMDAwOSJ9fSwiZHJtIjp7Im5hbWUiOiJ3aWRldmluZSIsImxldmVsIjoiTDMifSwiaXNzIjoiYm9vdC5wbHV0by50diIsInN1YiI6InByaTp2MTpwbHV0bzpkZXZpY2VzOlVTOlpUQXlPVEptWm1RdE4yVTRZaTAwTmpBM0xXRmlPRGt0Wm1Oa05EUXhZVGMwWWpRdyIsImF1ZCI6IioucGx1dG8udHYiLCJleHAiOjE3NjU0MTE2MTMsImlhdCI6MTc2NTMyNTIxMywianRpIjoiN2Y3MTg2M2YtMDkyZS00ZGUwLTkxYTMtOGViZGRmZTQyNjgzIn0.dmBaB4riaecyC-gumLwYfG8_SL4yTg69b4XTy6DTxgo
+https://cfd-v4-service-stitcher-dash-use1-1.prd.pluto.tv/v2/stitch/dash/episode/6495eff09263a40013cf63a5/main.mpd?jwt=eyJhbGciOiJIUzI1NiIsImtpZCI6ImQzYzBlZDU2LTIwYWItNDNmMC05Mzg0LTRiOTNhMmQyZTQ5MyIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSUQiOiI1ZDhmMDVmYS1kNTY2LTExZjAtYmZlNi01NjRmNzdiOTQxNjEiLCJjbGllbnRJUCI6IjcyLjE4MS4yMy4zOCIsImNpdHkiOiJJcnZpbmciLCJwb3N0YWxDb2RlIjoiNzUwNjMiLCJjb3VudHJ5IjoiVVMiLCJkbWEiOjYyMywiYWN0aXZlUmVnaW9uIjoiVVMiLCJkZXZpY2VMYXQiOjMyLjkxOTk5ODE2ODk0NTMxLCJkZXZpY2VMb24iOi05Ni45NzAwMDEyMjA3MDMxMiwicHJlZmVycmVkTGFuZ3VhZ2UiOiJlbiIsImRldmljZVR5cGUiOiJmaXJlZm94LHdlYiIsImRldmljZVZlcnNpb24iOiIxMjguMC4wIiwiZGV2aWNlTWFrZSI6ImZpcmVmb3giLCJkZXZpY2VNb2RlbCI6IndlYiIsImFwcE5hbWUiOiJ3ZWIiLCJhcHBWZXJzaW9uIjoiOS4xOC4wLTMyMjk2ZDQ3Yzk4ODI3NTRlMzYwZjFiMjhhMzMwMjdjNTRjYmFkMTYiLCJjbGllbnRJRCI6ImUwMjkyZmZkLTdlOGItNDYwNy1hYjg5LWZjZDQ0MWE3NGI0MCIsImNtQXVkaWVuY2VJRCI6IiIsImlzQ2xpZW50RE5UIjpmYWxzZSwidXNlcklEIjoiIiwibG9nTGV2ZWwiOiJERUZBVUxUIiwidGltZVpvbmUiOiJBbWVyaWNhL0NoaWNhZ28iLCJzZXJ2ZXJTaWRlQWRzIjpmYWxzZSwiZTJlQmVhY29ucyI6ZmFsc2UsImZlYXR1cmVzIjp7ImFkTG9hZCI6eyJjb2hvcnQiOiIifSwibXVsdGlBdWRpbyI6eyJlbmFibGVkIjp0cnVlfSwibXVsdGlQb2RBZHMiOnsiZW5hYmxlZCI6dHJ1ZX0sInNlYXJjaEFQSSI6eyJxdWVyeVZlcnNpb24iOiJoeWJyaWQifSwic3RpdGNoZXJIbHNOZyI6eyJkZW11eGVkQXVkaW8iOiJqaXQifSwic3RpdGNoZXJIbHNOZ1ZsbCI6eyJlbmFibGVkIjp0cnVlfSwic3RpdGNoZXJIbHNOZ1ZvZCI6eyJlbmFibGVkIjp0cnVlfX0sImZtc1BhcmFtcyI6eyJmd1ZjSUQyIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiZndWY0lEMkNvcHBhIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiY3VzdG9tUGFyYW1zIjp7ImZtc19saXZlcmFtcF9pZGwiOiIiLCJmbXNfZW1haWxoYXNoIjoiIiwiZm1zX3N1YnNjcmliZXJpZCI6IiIsImZtc19pZmEiOiIiLCJmbXNfaWRmdiI6IiIsImZtc191c2VyaWQiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJmbXNfdmNpZDJ0eXBlIjoidXNlcmlkIiwiZm1zX3JhbXBfaWQiOiIiLCJmbXNfaGhfcmFtcF9pZCI6IiIsImZtc19iaWRpZHR5cGUiOiIiLCJfZndfM1BfVUlEIjoiIiwiZm1zX3J1bGVpZCI6IjEwMDAwLDEwMDA5In19LCJkcm0iOnsibmFtZSI6IndpZGV2aW5lIiwibGV2ZWwiOiJMMyJ9LCJpc3MiOiJib290LnBsdXRvLnR2Iiwic3ViIjoicHJpOnYxOnBsdXRvOmRldmljZXM6VVM6WlRBeU9USm1abVF0TjJVNFlpMDBOakEzTFdGaU9Ea3RabU5rTkRReFlUYzBZalF3IiwiYXVkIjoiKi5wbHV0by50diIsImV4cCI6MTc2NTQxNjAwOCwiaWF0IjoxNzY1MzI5NjA4LCJqdGkiOiJlZGIzMjg1Zi1hZjZiLTRmNDYtYjE3Yy1iOWVhNGYyODQyYTUifQ.eSzkshlh8Zuo6YA7m3VGE8JO9IHRnYDomHChHWetaec
 
-best quality is 576p:
+576p also. fifth try:
+
+~~~
+https://boot.pluto.tv/v4/start?
+appName=web&
+appVersion=9.18.0-32296d47c9882754e360f1b28a33027c54cbad16&
+clientID=e0292ffd-7e8b-4607-ab89-fcd441a74b40&
+clientModelNumber=1.0.0&
+deviceMake=firefox&
+deviceModel=web&
+deviceVersion=128.0.0&
+drmCapabilities=widevine%3AL1&
+seriesIDs=6495eff09263a40013cf63a5
+~~~
+
+then:
+
+https://cfd-v4-service-stitcher-dash-use1-1.prd.pluto.tv/v2/stitch/dash/episode/6495eff09263a40013cf63a5/main.mpd?jwt=eyJhbGciOiJIUzI1NiIsImtpZCI6ImQzYzBlZDU2LTIwYWItNDNmMC05Mzg0LTRiOTNhMmQyZTQ5MyIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uSUQiOiI5OTAzM2EyNi1kNTY0LTExZjAtYTZhNi03ZWE5MjIxYjE4MGMiLCJjbGllbnRJUCI6IjcyLjE4MS4yMy4zOCIsImNpdHkiOiJJcnZpbmciLCJwb3N0YWxDb2RlIjoiNzUwNjMiLCJjb3VudHJ5IjoiVVMiLCJkbWEiOjYyMywiYWN0aXZlUmVnaW9uIjoiVVMiLCJkZXZpY2VMYXQiOjMyLjkxOTk5ODE2ODk0NTMxLCJkZXZpY2VMb24iOi05Ni45NzAwMDEyMjA3MDMxMiwicHJlZmVycmVkTGFuZ3VhZ2UiOiJlbiIsImRldmljZVR5cGUiOiJmaXJlZm94LHdlYiIsImRldmljZVZlcnNpb24iOiIxMjguMC4wIiwiZGV2aWNlTWFrZSI6ImZpcmVmb3giLCJkZXZpY2VNb2RlbCI6IndlYiIsImFwcE5hbWUiOiJ3ZWIiLCJhcHBWZXJzaW9uIjoiOS4xOC4wLTMyMjk2ZDQ3Yzk4ODI3NTRlMzYwZjFiMjhhMzMwMjdjNTRjYmFkMTYiLCJjbGllbnRJRCI6ImUwMjkyZmZkLTdlOGItNDYwNy1hYjg5LWZjZDQ0MWE3NGI0MCIsImNtQXVkaWVuY2VJRCI6IiIsImlzQ2xpZW50RE5UIjpmYWxzZSwidXNlcklEIjoiIiwibG9nTGV2ZWwiOiJERUZBVUxUIiwidGltZVpvbmUiOiJBbWVyaWNhL0NoaWNhZ28iLCJzZXJ2ZXJTaWRlQWRzIjpmYWxzZSwiZTJlQmVhY29ucyI6ZmFsc2UsImZlYXR1cmVzIjp7ImFkTG9hZCI6eyJjb2hvcnQiOiIifSwibXVsdGlBdWRpbyI6eyJlbmFibGVkIjp0cnVlfSwibXVsdGlQb2RBZHMiOnsiZW5hYmxlZCI6dHJ1ZX0sInNlYXJjaEFQSSI6eyJxdWVyeVZlcnNpb24iOiJoeWJyaWQifSwic3RpdGNoZXJIbHNOZyI6eyJkZW11eGVkQXVkaW8iOiJqaXQifSwic3RpdGNoZXJIbHNOZ1ZsbCI6eyJlbmFibGVkIjp0cnVlfSwic3RpdGNoZXJIbHNOZ1ZvZCI6eyJlbmFibGVkIjp0cnVlfX0sImZtc1BhcmFtcyI6eyJmd1ZjSUQyIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiZndWY0lEMkNvcHBhIjoiZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQwIiwiY3VzdG9tUGFyYW1zIjp7ImZtc19saXZlcmFtcF9pZGwiOiIiLCJmbXNfZW1haWxoYXNoIjoiIiwiZm1zX3N1YnNjcmliZXJpZCI6IiIsImZtc19pZmEiOiIiLCJmbXNfaWRmdiI6IiIsImZtc191c2VyaWQiOiJlMDI5MmZmZC03ZThiLTQ2MDctYWI4OS1mY2Q0NDFhNzRiNDAiLCJmbXNfdmNpZDJ0eXBlIjoidXNlcmlkIiwiZm1zX3JhbXBfaWQiOiIiLCJmbXNfaGhfcmFtcF9pZCI6IiIsImZtc19iaWRpZHR5cGUiOiIiLCJfZndfM1BfVUlEIjoiIiwiZm1zX3J1bGVpZCI6IjEwMDAwLDEwMDA5In19LCJkcm0iOnsibmFtZSI6IndpZGV2aW5lIiwibGV2ZWwiOiJMMSJ9LCJpc3MiOiJib290LnBsdXRvLnR2Iiwic3ViIjoicHJpOnYxOnBsdXRvOmRldmljZXM6VVM6WlRBeU9USm1abVF0TjJVNFlpMDBOakEzTFdGaU9Ea3RabU5rTkRReFlUYzBZalF3IiwiYXVkIjoiKi5wbHV0by50diIsImV4cCI6MTc2NTQxNTI0OCwiaWF0IjoxNzY1MzI4ODQ4LCJqdGkiOiJmMmRlMDBmMy1hYzc3LTRiOGUtOGUzYy1lODkzMmM5ZmM4MDQifQ.6ZHB8DD2lP4dA_jJ30088fMNn4VMjtaWww8dX6CnaT8
+
+720p:
 
 ~~~xml
-<Representation id="0" width="1024" height="576" sar="1:1" mimeType="video/mp4"
-codecs="avc1.64001f" bandwidth="1537432">
+<AdaptationSet id="4" width="1280" height="720" frameRate="15360/512" segmentAlignment="true" par="16:9" contentType="video">
+   <Representation id="7" sar="1:1" mimeType="video/mp4" codecs="avc1.64001f" bandwidth="2584954">
+      <SegmentTemplate timescale="15360" startNumber="1" media="video/720p-2400/$Number%05d$.m4s" initialization="video/720p-2400/init.mp4" presentationTimeOffset="0">
+      </SegmentTemplate>
+   </Representation>
+</AdaptationSet>
 ~~~
 
-if you base64 decode the `jwt` you get this:
-
-~~~json
-{
-  "sessionID": "21ee6021-d55c-11f0-9ffc-421052296019",
-  "clientIP": "72.181.23.38",
-  "city": "Irving",
-  "postalCode": "75063",
-  "country": "US",
-  "dma": 623,
-  "activeRegion": "US",
-  "deviceLat": 32.91999816894531,
-  "deviceLon": -96.97000122070312,
-  "preferredLanguage": "en",
-  "deviceType": "web",
-  "deviceVersion": "128.0.0",
-  "deviceMake": "firefox",
-  "deviceModel": "web",
-  "appName": "web",
-  "appVersion": "9.18.0-32296d47c9882754e360f1b28a33027c54cbad16",
-  "clientID": "e0292ffd-7e8b-4607-ab89-fcd441a74b40",
-  "cmAudienceID": "",
-  "isClientDNT": false,
-  "userID": "",
-  "logLevel": "DEFAULT",
-  "timeZone": "America/Chicago",
-  "serverSideAds": false,
-  "e2eBeacons": false,
-  "features": {
-    "adLoad": {
-      "cohort": ""
-    },
-    "multiAudio": {
-      "enabled": true
-    },
-    "multiPodAds": {
-      "enabled": true
-    },
-    "searchAPI": {
-      "queryVersion": "hybrid"
-    },
-    "stitcherHlsNg": {
-      "demuxedAudio": "jit"
-    },
-    "stitcherHlsNgVll": {
-      "enabled": true
-    },
-    "stitcherHlsNgVod": {
-      "enabled": true
-    }
-  },
-  "fmsParams": {
-    "fwVcID2": "e0292ffd-7e8b-4607-ab89-fcd441a74b40",
-    "fwVcID2Coppa": "e0292ffd-7e8b-4607-ab89-fcd441a74b40",
-    "customParams": {
-      "fms_liveramp_idl": "",
-      "fms_emailhash": "",
-      "fms_subscriberid": "",
-      "fms_ifa": "",
-      "fms_idfv": "",
-      "fms_userid": "e0292ffd-7e8b-4607-ab89-fcd441a74b40",
-      "fms_vcid2type": "userid",
-      "fms_ramp_id": "",
-      "fms_hh_ramp_id": "",
-      "fms_bididtype": "",
-      "_fw_3P_UID": "",
-      "fms_ruleid": "10000,10009"
-    }
-  },
-  "drm": {
-    "name": "widevine",
-    "level": "L3"
-  },
-  "iss": "boot.pluto.tv",
-  "sub": "pri:v1:pluto:devices:US:ZTAyOTJmZmQtN2U4Yi00NjA3LWFiODktZmNkNDQxYTc0YjQw",
-  "aud": "*.pluto.tv",
-  "exp": 1765411613,
-  "iat": 1765325213,
-  "jti": "7f71863f-092e-4de0-91a3-8ebddfe42683"
-}
-~~~
+next we need to check the phone client.
