@@ -1,8 +1,6 @@
 package pluto
 
 import (
-   "io"
-   "net/http"
    "strings"
    "testing"
 )
@@ -13,12 +11,7 @@ func Test(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := http.Get(value.String())
-   if err != nil {
-      t.Fatal(err)
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
+   _, data, err := value.Mpd()
    if err != nil {
       t.Fatal(err)
    }

@@ -1,32 +1,30 @@
 package pluto
 
 import (
+   "bytes"
    "encoding/json"
+   "io"
    "net/http"
    "net/url"
-   "strings"
 )
 
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
-      "application/x-protobuf", bytes.NewReader(data),
-   )
+func (s *Series) Mpd() (*url.URL, []byte, error) {
+   req, err := http.NewRequest("", s.Servers.StitcherDash, nil)
    if err != nil {
-      return nil, err
+      return nil, nil, err
+   }
+   req.URL.Path = "/v2" + s.Vod[0].Stitched.Paths[0].Path
+   req.URL.RawQuery = "jwt=" + s.SessionToken
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, nil, err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (s *Series) String() string {
-   var data strings.Builder
-   data.WriteString(s.Servers.StitcherDash)
-   data.WriteString("/v2")
-   data.WriteString(s.Vod[0].Stitched.Paths[0].Path)
-   data.WriteString("?jwt=")
-   data.WriteString(s.SessionToken)
-   return data.String()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
 }
 
 type Series struct {
@@ -41,6 +39,18 @@ type Series struct {
          }
       }
    }
+}
+
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
+      "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
 
 func (s *Series) Fetch(id string) error {
