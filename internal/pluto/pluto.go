@@ -1,94 +1,122 @@
 package main
 
 import (
-   "41.neocities.org/media/pluto"
+   "41.neocities.org/media/blog/pluto"
    "41.neocities.org/net"
-   "errors"
+   "encoding/json"
    "flag"
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
+   "path"
    "path/filepath"
 )
 
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) != ".m4s" {
-         log.Println(req.Method, req.URL)
-      }
-      return http.ProxyFromEnvironment(req)
-   },
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = pluto.Widevine
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
 }
 
 func main() {
-   http.DefaultTransport = &pluto.Transport
    log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      log.Fatal(err)
-   }
-   switch {
-   case set.episode != "":
-      err = set.do_episode()
-   case set.show != "":
-      err = set.do_show()
-   default:
-      flag.Usage()
-   }
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (f *flag_set) do_episode() error {
-   clips, err := pluto.NewClips(f.episode)
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   file, ok := clips.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   resp, err := file.Mpd()
-   if err != nil {
-      return err
-   }
-   f.config.Send = pluto.Widevine
-   return f.filters.Filter(resp, &f.config)
-}
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/pluto/mpd.json"
 
-type flag_set struct {
-   cache   string
-   config  net.Config
-   episode string
-   filters net.Filters
-   show    string
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.StringVar(&f.episode, "e", "", "episode/movie ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.show, "s", "", "show ID")
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.episode_movie, "e", "", "episode/movie ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.show, "s", "", "show ID")
    flag.Parse()
+
+   if c.show != "" {
+      return c.do_show()
+   }
+   if c.episode_movie != "" {
+      return c.do_episode_movie()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
    return nil
 }
-func (f *flag_set) do_show() error {
-   vod, err := pluto.NewVod(f.show)
+
+func (c *command) do_show() error {
+   var series pluto.Series
+   err := series.Fetch(c.show)
    if err != nil {
       return err
    }
-   fmt.Println(vod)
+   fmt.Println(&series) // FIXME
    return nil
+}
+
+func (c *command) do_episode_movie() error {
+   var series pluto.Series
+   err := series.Fetch(c.episode_movie)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Mpd, cache.MpdBody, err = series.Mpd()
+   if err != nil {
+      return err
+   }
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd, cache.MpdBody)
+}
+
+type command struct {
+   config net.Config
+   name   string
+   // 1
+   show string
+   // 2
+   episode_movie string
+   // 3
+   dash string
 }
