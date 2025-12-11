@@ -1,59 +1,5 @@
 # pluto reductio ad absurdum
 
-## old client
-
-we start with this:
-
-https://pluto.tv/on-demand/movies/6495eff09263a40013cf63a5
-
-then:
-
-https://api.pluto.tv/v2/episodes/6495eff09263a40013cf63a5/clips.json
-
-we get this:
-
-<https://siloh.pluto.tv/735_Paramount_Pictures_LF/clip/6495efee9263a40013cf638d_Jack_Reacher/1080pDRM/20241115_113001/dash/0-end/main.mpd>
-
-which is not valid:
-
-~~~
-> curl -i https://siloh.pluto.tv/735_Paramount_Pictures_LF/clip/6495efee9263a40013cf638d_Jack_Reacher/1080pDRM/20241115_113001/dash/0-end/main.mpd
-HTTP/2 403
-~~~
-
-but if we change the scheme and host it works:
-
-~~~
-> curl -i http://silo-hybrik.pluto.tv.s3.amazonaws.com/735_Paramount_Pictures_LF/clip/6495efee9263a40013cf638d_Jack_Reacher/1080pDRM/20241115_113001/dash/0-end/main.mpd
-HTTP/1.1 200 OK
-~~~
-
-and notably, it has 1080p:
-
-~~~xml
-<AdaptationSet id="5" contentType="video" width="1920" height="1080" frameRate="15360/512" segmentAlignment="true" par="16:9">
-   <Representation id="8" bandwidth="4586756" codecs="avc1.640028" mimeType="video/mp4" sar="1:1">
-      <SegmentTemplate timescale="15360" initialization="video/1080p-4500/init.mp4" media="video/1080p-4500/$Number%05d$.m4s" startNumber="1">
-      </SegmentTemplate>
-   </Representation>
-</AdaptationSet>
-~~~
-
-## new web client
-
-try 1:
-
-~~~
-https://boot.pluto.tv/v4/start?
-seriesIDs=6495eff09263a40013cf63a5
-~~~
-
-result:
-
-~~~
-"invalid params: [AppName AppVersion ClientID ClientModelNumber]"
-~~~
-
 try 2:
 
 ~~~

@@ -8,35 +8,6 @@ import (
    "net/url"
 )
 
-var (
-   app_name = "androidtv"
-   drm_capabilities = "widevine:L1"
-)
-
-func (s *Series) Fetch(id string) error {
-   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
-   req.URL.RawQuery = url.Values{
-      "appName": {app_name},
-      "appVersion": {"9"},
-      "clientID": {"9"},
-      "clientModelNumber": {"9"},
-      "deviceMake": {"9"},
-      "deviceModel": {"9"},
-      "deviceVersion": {"9"},
-      "drmCapabilities": {drm_capabilities},
-      "seriesIDs": {id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   //if result.Vod[0].Id != id {
-   //   return nil, errors.New("id mismatch")
-   //}
-   return json.NewDecoder(resp.Body).Decode(s)
-}
-
 func (s *Series) Mpd() (*url.URL, []byte, error) {
    req, err := http.NewRequest("", s.Servers.StitcherDash, nil)
    if err != nil {
@@ -56,6 +27,39 @@ func (s *Series) Mpd() (*url.URL, []byte, error) {
    return resp.Request.URL, data, nil
 }
 
+var (
+   app_name = "androidtv"
+   drm_capabilities = "widevine:L1"
+)
+
+func (s *Series) Fetch(id string) error {
+   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
+   req.URL.RawQuery = url.Values{
+      "appName": {app_name},
+      "appVersion": {"9"},
+      "clientID": {"9"},
+      "clientModelNumber": {"9"},
+      "deviceMake": {"9"},
+      "deviceModel": {"9"},
+      "deviceVersion": {"9"},
+      "drmCapabilities": {drm_capabilities},
+      "seriesIDs": {id},
+      
+      //"serverSideAds": {"false"},
+      //"serverSideAds": {"true"},
+      
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   //if result.Vod[0].Id != id {
+   //   return nil, errors.New("id mismatch")
+   //}
+   return json.NewDecoder(resp.Body).Decode(s)
+}
+
 func Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
@@ -67,6 +71,7 @@ func Widevine(data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
+
 func (s *Series) String() string {
    var (
       data     []byte

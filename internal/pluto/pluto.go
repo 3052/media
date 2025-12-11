@@ -1,7 +1,7 @@
 package main
 
 import (
-   "41.neocities.org/media/blog/pluto"
+   "41.neocities.org/media/pluto"
    "41.neocities.org/net"
    "encoding/json"
    "flag"
