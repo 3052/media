@@ -11,6 +11,24 @@ import (
    "strings"
 )
 
+// The Request's URL and Header fields must be initialized
+func (f *File) Mpd() (*url.URL, []byte, error) {
+   var req http.Request
+   req.Method = "GET"
+   req.URL = &f[0]
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
 func NewSeries(id string) (*Series, error) {
    req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
    req.URL.RawQuery = url.Values{
@@ -76,6 +94,47 @@ func (s *Series) String() string {
    return string(data)
 }
 
+func NewClip(id string) (*Clip, error) {
+   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v2/episodes/")
+      data.WriteString(id)
+      data.WriteString("/clips.json")
+      return data.String()
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result []Clip
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result[0], nil
+}
+
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
+      "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Clip struct {
+   Sources []struct {
+      File File
+      Type string
+   }
+}
+
 type File [1]url.URL
 
 // these return a valid response body, but response status is "403 OK":
@@ -93,15 +152,6 @@ func (f *File) UnmarshalText(data []byte) error {
    return nil
 }
 
-// The Request's URL and Header fields must be initialized
-func (f *File) Mpd() (*http.Response, error) {
-   var req http.Request
-   req.Method = "GET"
-   req.URL = &f[0]
-   req.Header = http.Header{}
-   return http.DefaultClient.Do(&req)
-}
-
 func (c *Clip) Dash() (*File, bool) {
    for _, source := range c.Sources {
       if source.Type == "DASH" {
@@ -110,45 +160,3 @@ func (c *Clip) Dash() (*File, bool) {
    }
    return nil, false
 }
-
-func NewClip(id string) (*Clip, error) {
-   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/v2/episodes/")
-      data.WriteString(id)
-      data.WriteString("/clips.json")
-      return data.String()
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var clips []Clip
-   err = json.NewDecoder(resp.Body).Decode(&clips)
-   if err != nil {
-      return nil, err
-   }
-   return &clips[0], nil
-}
-
-type Clip struct {
-   Sources []struct {
-      File File
-      Type string
-   }
-}
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
-      "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-

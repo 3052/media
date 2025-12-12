@@ -3,8 +3,9 @@ package main
 import (
    "41.neocities.org/media/pluto"
    "41.neocities.org/net"
-   "encoding/json"
+   "encoding/xml"
    "flag"
+   "errors"
    "fmt"
    "log"
    "net/http"
@@ -13,6 +14,58 @@ import (
    "path"
    "path/filepath"
 )
+
+func (c *command) do_episode_movie() error {
+   clip, err := pluto.NewClip(c.episode_movie)
+   if err != nil {
+      return err
+   }
+   file, ok := clip.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   var cache mpd
+   cache.Url, cache.Body, err = file.Mpd()
+   if err != nil {
+      return err
+   }
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Url, cache.Body)
+}
+
+type command struct {
+   config net.Config
+   name   string
+   show string
+   episode_movie string
+   dash string
+}
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache mpd
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = pluto.Widevine
+   return c.config.Download(cache.Url, cache.Body, c.dash)
+}
+
+type mpd struct {
+   Body []byte
+   Url     *url.URL
+}
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -36,7 +89,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/pluto/mpd.json"
+   c.name = cache + "/pluto/mpd.xml"
 
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
@@ -59,63 +112,10 @@ func (c *command) run() error {
 }
 
 func (c *command) do_show() error {
-   var series pluto.Series
-   err := series.Fetch(c.show)
+   series, err := pluto.NewSeries(c.show)
    if err != nil {
       return err
    }
-   fmt.Println(&series) // FIXME
+   fmt.Println(series)
    return nil
-}
-
-func (c *command) do_episode_movie() error {
-   var series pluto.Series
-   err := series.Fetch(c.episode_movie)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.Mpd, cache.MpdBody, err = series.Mpd()
-   if err != nil {
-      return err
-   }
-   data, err := json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Mpd, cache.MpdBody)
-}
-
-type command struct {
-   config net.Config
-   name   string
-   // 1
-   show string
-   // 2
-   episode_movie string
-   // 3
-   dash string
-}
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = pluto.Widevine
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-type user_cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
 }
