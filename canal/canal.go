@@ -16,6 +16,73 @@ import (
    "time"
 )
 
+type Login struct {
+   Label    string
+   Message  string
+   SsoToken string // this last one day
+}
+
+func (t *Ticket) Login(username, password string) (*Login, error) {
+   data, err := json.Marshal(map[string]any{
+      "ticket": t.Ticket,
+      "userInput": map[string]string{
+         "username": username,
+         "password": password,
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cp.login.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   var client client_token
+   err = client.New(req.URL, data)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", client.String())
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Login
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, &result
+   }
+   return &result, nil
+}
+
+func (l *Login) Error() string {
+   var data strings.Builder
+   data.WriteString("label = ")
+   data.WriteString(l.Label)
+   data.WriteString("\nmessage = ")
+   data.WriteString(l.Message)
+   return data.String()
+}
+
+func (p *Player) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
 type Player struct {
    Drm struct {
       LicenseUrl string
@@ -59,70 +126,15 @@ func (s *Session) Player(tracking string) (*Player, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var play Player
-   err = json.NewDecoder(resp.Body).Decode(&play)
+   var result Player
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if play.Message != "" {
-      return nil, errors.New(play.Message)
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
    }
-   return &play, nil
-}
-
-func (t *Ticket) Token(username, password string) (*Token, error) {
-   value := map[string]any{
-      "ticket": t.Ticket,
-      "userInput": map[string]string{
-         "username": username,
-         "password": password,
-      },
-   }
-   data, err := json.MarshalIndent(value, "", " ")
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cp.login.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   var client client_token
-   err = client.New(req.URL, data)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", client.String())
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var token_var Token
-   err = json.NewDecoder(resp.Body).Decode(&token_var)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, &token_var
-   }
-   return &token_var, nil
-}
-
-func (t *Token) Error() string {
-   var data strings.Builder
-   data.WriteString("label = ")
-   data.WriteString(t.Label)
-   data.WriteString("\nmessage = ")
-   data.WriteString(t.Message)
-   return data.String()
-}
-
-type Token struct {
-   Label    string
-   Message  string
-   SsoToken string // this last one day
+   return &result, nil
 }
 
 func (t *Ticket) Fetch() error {
@@ -181,18 +193,18 @@ func (s *Session) Episodes(tracking string, season int64) ([]Episode, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var value struct {
+   var result struct {
       Assets  []Episode
       Message string
    }
-   err = json.NewDecoder(resp.Body).Decode(&value)
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if value.Message != "" {
-      return nil, errors.New(value.Message)
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
    }
-   return value.Assets, nil
+   return result.Assets, nil
 }
 
 type client_token struct {
@@ -207,21 +219,6 @@ const (
    secretKey = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
 )
 
-func (c *client_token) New(address *url.URL, body []byte) error {
-   bodyHash := sha256.Sum256(body)
-   c.time = time.Now().Unix()
-   decodedSecret, err := base64.RawURLEncoding.DecodeString(secretKey)
-   if err != nil {
-      return err
-   }
-   hasher := hmac.New(sha256.New, decodedSecret)
-   fmt.Fprint(hasher, address)
-   fmt.Fprint(hasher, base64.RawURLEncoding.EncodeToString(bodyHash[:]))
-   fmt.Fprint(hasher, c.time)
-   c.sig = hasher.Sum(nil)
-   return nil
-}
-
 func (c *client_token) String() string {
    data := []byte("Client key=")
    data = append(data, clientKey...)
@@ -234,6 +231,11 @@ func (c *client_token) String() string {
 
 const device_serial = "!!!!"
 
+type Ticket struct {
+   Message string
+   Ticket  string
+}
+
 func (p *Player) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
    if err != nil {
@@ -241,59 +243,6 @@ func (p *Player) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-type Ticket struct {
-   Message string
-   Ticket  string
-}
-
-type Cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
-   Player  *Player
-   Session *Session
-}
-
-func (p *Player) Mpd(storage *Cache) error {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
-}
-
-func (s *Session) Fetch(ssoToken string) error {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     ssoToken,
-   })
-   if err != nil {
-      return err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
 }
 
 type Session struct {
@@ -323,6 +272,33 @@ type Episode struct {
    Title string
 }
 
+func (s *Session) Fetch(ssoToken string) error {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     ssoToken,
+   })
+   if err != nil {
+      return err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
 func Tracking(address string) (string, error) {
    resp, err := http.Get(address)
    if err != nil {
@@ -341,9 +317,24 @@ func Tracking(address string) (string, error) {
    if !found {
       return "", fmt.Errorf("attribute key '%s' not found", startKey)
    }
-   value, _, found := strings.Cut(after, `"`)
+   before, _, found := strings.Cut(after, `"`)
    if !found {
       return "", fmt.Errorf("could not find closing quote for the attribute")
    }
-   return value, nil
+   return before, nil
+}
+
+func (c *client_token) New(address *url.URL, body []byte) error {
+   hash := sha256.Sum256(body)
+   c.time = time.Now().Unix()
+   secret, err := base64.RawURLEncoding.DecodeString(secretKey)
+   if err != nil {
+      return err
+   }
+   hasher := hmac.New(sha256.New, secret)
+   fmt.Fprint(hasher, address)
+   fmt.Fprint(hasher, base64.RawURLEncoding.EncodeToString(hash[:]))
+   fmt.Fprint(hasher, c.time)
+   c.sig = hasher.Sum(nil)
+   return nil
 }
