@@ -21,7 +21,7 @@ func main() {
       if path.Ext(req.URL.Path) == ".dash" {
          return ""
       }
-      return "L"
+      return "LP"
    })
    log.SetFlags(log.Ltime)
    err := new(command).run()

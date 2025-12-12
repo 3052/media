@@ -14,32 +14,13 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = pluto.Widevine
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-type user_cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
-}
-
 func main() {
    log.SetFlags(log.Ltime)
    net.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".m4s" {
          return ""
       }
-      return "L"
+      return "LP"
    })
    err := new(command).run()
    if err != nil {
@@ -119,4 +100,22 @@ type command struct {
    episode_movie string
    // 3
    dash string
+}
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = json.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = pluto.Widevine
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
 }

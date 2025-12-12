@@ -1,13 +1,35 @@
 package itv
 
 import (
-   "fmt"
    "net/http"
    "net/url"
    "os"
    "os/exec"
    "testing"
 )
+
+// props.pageProps.seriesList[0].titles[0].playlistUrl
+var watch_tests = []struct {
+   category string
+   watch      string
+}{
+   {
+      category: "ENTERTAINMENT",
+      watch: "https://itv.com/watch/im-a-celebrity-get-me-out-of-here/L2649/L2649a0039",
+   },
+   {
+      category: "FILM",
+      watch: "https://itv.com/watch/love-actually/27304",
+   },
+   {
+      category: "DRAMA_AND_SOAPS",
+      watch: "https://itv.com/watch/joan/10a3918",
+   },
+}
+
+func TestWatch(t *testing.T) {
+   t.Log(watch_tests)
+}
 
 func TestPlayReady(t *testing.T) {
    user, err := exec.Command(
@@ -48,30 +70,4 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-}
-
-func TestWatch(t *testing.T) {
-   fmt.Println(watch_tests)
-}
-
-var watch_tests = []struct {
-   category string
-   id       string
-   url      string
-}{
-   {
-      category: "FILM",
-      url:      "http://itv.com/watch/solo-a-star-wars-story/10a6201a0001B",
-      id:       "10/6201/0001B",
-   },
-   {
-      category: "DRAMA_AND_SOAPS",
-      url:      "http://itv.com/watch/grace/2a7610",
-      id:       "2/7610",
-   },
-   {
-      category: "DRAMA_AND_SOAPS",
-      url:      "http://itv.com/watch/joan/10a3918",
-      id:       "10/3918",
-   },
 }
