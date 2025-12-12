@@ -3,15 +3,150 @@ package main
 import (
    "41.neocities.org/media/canal"
    "41.neocities.org/net"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "fmt"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_email_password() error {
+   var ticket canal.Ticket
+   err := ticket.Fetch()
+   if err != nil {
+      return err
+   }
+   login, err := ticket.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = cache.Session.Fetch(login.SsoToken)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &cache)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func (c *command) do_refresh() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   err = cache.Session.Fetch(cache.Session.SsoToken)
+   if err != nil {
+      return err
+   }
+   return write(c.name, cache)
+}
+
+func (c *command) do_address() error {
+   tracking, err := canal.Tracking(c.address)
+   if err != nil {
+      return err
+   }
+   fmt.Println("tracking =", tracking)
+   return nil
+}
+
+func (c *command) do_tracking_season() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   episodes, err := cache.Session.Episodes(c.tracking, c.season)
+   if err != nil {
+      return err
+   }
+   for i, episode := range episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&episode)
+   }
+   return nil
+}
+
+func (c *command) do_tracking() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   cache.Player, err = cache.Session.Player(c.tracking)
+   if err != nil {
+      return err
+   }
+   cache.Mpd, cache.MpdBody, err = cache.Player.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd, cache.MpdBody)
+}
+
+func (c *command) do_subtitles() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   for _, subtitles := range cache.Player.Subtitles {
+      err = get(subtitles.Url)
+      if err != nil {
+         return err
+      }
+   }
+   return nil
+}
+
+type command struct {
+   address   string
+   config    net.Config
+   dash      string
+   email     string
+   name      string
+   password  string
+   refresh   bool
+   season    int64
+   subtitles bool
+   tracking  string
+}
+type user_cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
+   Player  *canal.Player
+   Session canal.Session
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Player.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
 
 func get(address string) error {
    resp, err := http.Get(address)
@@ -43,13 +178,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-type user_cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
-   Player  *Player
-   Session Session
 }
 
 func (c *command) run() error {
@@ -108,151 +236,4 @@ func write(name string, cache *user_cache) error {
    }
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (c *command) do_email_password() error {
-   var ticket canal.Ticket
-   err := ticket.Fetch()
-   if err != nil {
-      return err
-   }
-   token, err := ticket.Token(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = cache.Session.Fetch(token.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &cache)
-}
-
-type command struct {
-   config   net.Config
-   name    string
-   // 1
-   email    string
-   password string
-
-   // 2
-   refresh  bool
-   // 3
-   address  string
-   // 4
-   tracking string
-   season   int64
-   // 5
-   subtitles bool
-   // 6
-   dash     string
-}
-
-///
-
-func (c *command) do_refresh() error {
-   data, err := os.ReadFile(c.name + "/canal/user_cache")
-   if err != nil {
-      return err
-   }
-   var cache canal.user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   err = cache.Session.Fetch(cache.Session.SsoToken)
-   if err != nil {
-      return err
-   }
-   data, err = json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   return write_file(c.name+"/canal/user_cache", data)
-}
-
-func (c *command) do_address() error {
-   tracking, err := canal.Tracking(c.address)
-   if err != nil {
-      return err
-   }
-   fmt.Println("tracking =", tracking)
-   return nil
-}
-
-func (c *command) do_tracking_season() error {
-   data, err := os.ReadFile(c.name + "/canal/user_cache")
-   if err != nil {
-      return err
-   }
-   var cache canal.user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   episodes, err := cache.Session.Episodes(c.tracking, c.season)
-   if err != nil {
-      return err
-   }
-   for i, episode := range episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&episode)
-   }
-   return nil
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name + "/canal/user_cache")
-   if err != nil {
-      return err
-   }
-   var cache canal.user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Player.Widevine(data)
-   }
-   return c.config.Download(cache.MpdBody, cache.Mpd, c.dash)
-}
-
-func (c *command) do_tracking() error {
-   data, err := os.ReadFile(c.name + "/canal/user_cache")
-   if err != nil {
-      return err
-   }
-   var cache canal.user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   cache.Player, err = cache.Session.Player(c.tracking)
-   if err != nil {
-      return err
-   }
-   if c.subtitles {
-      for _, subtitles := range cache.Player.Subtitles {
-         err = get(subtitles.Url)
-         if err != nil {
-            return err
-         }
-      }
-      return nil
-   }
-   err = cache.Player.Mpd(&cache)
-   if err != nil {
-      return err
-   }
-   data, err = json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   err = write_file(c.name+"/canal/user_cache", data)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
 }
