@@ -8,10 +8,25 @@ import (
    "net/http"
    "net/http/cookiejar"
    "net/url"
-   "path"
    "strconv"
    "strings"
 )
+
+func LegacyId(inputLink string) (string, error) {
+   // 1. Parse the URL to safely access the path
+   parsed, err := url.Parse(inputLink)
+   if err != nil {
+      return "", err
+   }
+   // 2. Split the path segments
+   // Path: /watch/joan/10a3918  -> ["", "watch", "joan", "10a3918"]
+   segments := strings.Split(parsed.Path, "/")
+   // We need at least 4 segments to ensure the ID exists at index 3
+   if len(segments) < 4 {
+      return "", errors.New("url path structure invalid")
+   }
+   return strings.Replace(segments[3], "a", "/", 1), nil
+}
 
 func graphql_compact(data string) string {
    return strings.Join(strings.Fields(data), " ")
@@ -134,16 +149,6 @@ func (t *Title) Playlist() (*Playlist, error) {
    }
    return &play, nil
 }
-func LegacyId(rawUrl string) (string, error) {
-   parsed, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   if parsed.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return strings.ReplaceAll(path.Base(parsed.Path), "a", "/"), nil
-}
 
 func (p *Playlist) playReady(id string) error {
    data, err := json.Marshal(map[string]any{
@@ -213,15 +218,21 @@ type Title struct {
 const programme_page = `
 query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
    titles(
-      filter: { brandLegacyId: $brandLegacyId }
+      filter: {
+         brandLegacyId: $brandLegacyId
+      }
       sortBy: SEQUENCE_ASC
    ) {
       ... on Episode {
-         series { seriesNumber }
+         series {
+            seriesNumber
+         }
          episodeNumber
       }
       title
-      latestAvailableVersion { playlistUrl }
+      latestAvailableVersion {
+         playlistUrl
+      }
    }
 }
 `

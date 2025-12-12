@@ -8,22 +8,20 @@ import (
    "testing"
 )
 
-// props.pageProps.seriesList[0].titles[0].playlistUrl
 var watch_tests = []struct {
    category string
-   watch      string
+   watch []string
 }{
    {
-      category: "ENTERTAINMENT",
-      watch: "https://itv.com/watch/im-a-celebrity-get-me-out-of-here/L2649/L2649a0039",
-   },
-   {
       category: "FILM",
-      watch: "https://itv.com/watch/love-actually/27304",
+      watch: []string{"https://itv.com/watch/love-actually/27304"},
    },
    {
       category: "DRAMA_AND_SOAPS",
-      watch: "https://itv.com/watch/joan/10a3918",
+      watch: []string{
+         "https://itv.com/watch/joan/10a3918",
+         "https://itv.com/watch/joan/10a3918/10a3918a0001",
+      },
    },
 }
 

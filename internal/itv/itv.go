@@ -80,11 +80,11 @@ func (c *command) do_address() error {
 }
 
 type command struct {
-   config   net.Config
-   name     string
    address  string
-   playlist string
+   config   net.Config
    dash     string
+   name     string
+   playlist string
 }
 
 func (c *command) do_playlist() error {
