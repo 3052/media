@@ -15,121 +15,14 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_episode() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   cache.Header, cache.Source, err = cache.Client.Playback(c.episode)
-   if err != nil {
-      return err
-   }
-   source, ok := amc.Dash(cache.Source)
-   if !ok {
-      return errors.New("amc.Dash")
-   }
-   cache.Mpd.Url, cache.Mpd.Body, err = source.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-
 type user_cache struct {
-   Client *amc.Client
    Header http.Header
    Mpd    struct {
       Body []byte
       Url  *url.URL
    }
    Source []amc.Source
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      source, _ := amc.Dash(cache.Source)
-      return source.Widevine(cache.Header, data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4f" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/amc/user_cache.json"
-
-   flag.StringVar(&c.email, "E", "", "email")
-   flag.StringVar(&c.password, "P", "", "password")
-   flag.Int64Var(&c.series, "S", 0, "series ID")
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.Int64Var(&c.episode, "e", 0, "episode or movie ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   flag.Int64Var(&c.season, "s", 0, "season ID")
-   flag.Parse()
-
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.refresh {
-      return c.do_refresh()
-   }
-   if c.series >= 1 {
-      return c.do_series()
-   }
-   if c.season >= 1 {
-      return c.do_season()
-   }
-   if c.episode >= 1 {
-      return c.do_episode()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   flag.Usage()
-   return nil
-}
-
-type command struct {
-   config   net.Config
-   dash     string
-   email    string
-   episode  int64
-   name     string
-   password string
-   refresh  bool
-   season   int64
-   series   int64
+   Client amc.Client
 }
 
 func (c *command) do_email_password() error {
@@ -142,7 +35,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Client: &client})
+   return write(c.name, &user_cache{Client: client})
 }
 
 func write(name string, cache *user_cache) error {
@@ -221,4 +114,110 @@ func (c *command) do_season() error {
       fmt.Println(episode)
    }
    return nil
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4f" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_episode() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   cache.Header, cache.Source, err = cache.Client.Playback(c.episode)
+   if err != nil {
+      return err
+   }
+   source, ok := amc.Dash(cache.Source)
+   if !ok {
+      return errors.New("amc.Dash")
+   }
+   cache.Mpd.Url, cache.Mpd.Body, err = source.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      source, _ := amc.Dash(cache.Source)
+      return source.Widevine(cache.Header, data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/amc/user_cache.json"
+
+   flag.StringVar(&c.email, "E", "", "email")
+   flag.StringVar(&c.password, "P", "", "password")
+   flag.Int64Var(&c.series, "S", 0, "series ID")
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.Int64Var(&c.episode, "e", 0, "episode or movie ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   flag.Int64Var(&c.season, "s", 0, "season ID")
+   flag.Parse()
+
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.refresh {
+      return c.do_refresh()
+   }
+   if c.series >= 1 {
+      return c.do_series()
+   }
+   if c.season >= 1 {
+      return c.do_season()
+   }
+   if c.episode >= 1 {
+      return c.do_episode()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+type command struct {
+   config   net.Config
+   dash     string
+   email    string
+   episode  int64
+   name     string
+   password string
+   refresh  bool
+   season   int64
+   series   int64
 }
