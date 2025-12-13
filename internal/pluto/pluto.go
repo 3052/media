@@ -4,8 +4,8 @@ import (
    "41.neocities.org/media/pluto"
    "41.neocities.org/net"
    "encoding/xml"
-   "flag"
    "errors"
+   "flag"
    "fmt"
    "log"
    "net/http"
@@ -95,11 +95,11 @@ func (c *command) do_episode_movie() error {
 }
 
 type command struct {
-   config net.Config
-   name   string
-   show string
+   config        net.Config
+   dash          string
    episode_movie string
-   dash string
+   name          string
+   show          string
 }
 
 func (c *command) do_dash() error {
@@ -118,5 +118,5 @@ func (c *command) do_dash() error {
 
 type mpd struct {
    Body []byte
-   Url     *url.URL
+   Url  *url.URL
 }
