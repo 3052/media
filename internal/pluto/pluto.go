@@ -15,20 +15,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -44,6 +30,7 @@ func (c *command) run() error {
    flag.StringVar(&c.episode_movie, "e", "", "episode/movie ID")
    flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
    flag.StringVar(&c.show, "s", "", "show ID")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.show != "" {
@@ -119,4 +106,17 @@ func (c *command) do_dash() error {
 type mpd struct {
    Body []byte
    Url  *url.URL
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
