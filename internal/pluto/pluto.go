@@ -15,58 +15,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_episode_movie() error {
-   clip, err := pluto.NewClip(c.episode_movie)
-   if err != nil {
-      return err
-   }
-   file, ok := clip.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   var cache mpd
-   cache.Url, cache.Body, err = file.Mpd()
-   if err != nil {
-      return err
-   }
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Url, cache.Body)
-}
-
-type command struct {
-   config net.Config
-   name   string
-   show string
-   episode_movie string
-   dash string
-}
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = pluto.Widevine
-   return c.config.Download(cache.Url, cache.Body, c.dash)
-}
-
-type mpd struct {
-   Body []byte
-   Url     *url.URL
-}
-
 func main() {
    log.SetFlags(log.Ltime)
    net.Transport(func(req *http.Request) string {
@@ -118,4 +66,57 @@ func (c *command) do_show() error {
    }
    fmt.Println(series)
    return nil
+}
+
+func (c *command) do_episode_movie() error {
+   clip, err := pluto.NewClip(c.episode_movie)
+   if err != nil {
+      return err
+   }
+   file, ok := clip.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   var cache mpd
+   cache.Url, cache.Body, err = file.Mpd()
+   if err != nil {
+      return err
+   }
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Url, cache.Body)
+}
+
+type command struct {
+   config net.Config
+   name   string
+   show string
+   episode_movie string
+   dash string
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache mpd
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = pluto.Widevine
+   return c.config.Download(cache.Url, cache.Body, c.dash)
+}
+
+type mpd struct {
+   Body []byte
+   Url     *url.URL
 }

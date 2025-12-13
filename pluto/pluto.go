@@ -11,13 +11,93 @@ import (
    "strings"
 )
 
-// The Request's URL and Header fields must be initialized
-func (f *File) Mpd() (*url.URL, []byte, error) {
-   var req http.Request
-   req.Method = "GET"
-   req.URL = &f[0]
-   req.Header = http.Header{}
-   resp, err := http.DefaultClient.Do(&req)
+// these return a valid response body, but response status is "403 OK":
+// http://siloh-fs.plutotv.net
+// http://siloh-ns1.plutotv.net
+// https://siloh-fs.plutotv.net
+// https://siloh-ns1.plutotv.net
+const (
+   // HybrikScheme is the target protocol scheme.
+   HybrikScheme = "http"
+   // HybrikHost is the target host for the modified location.
+   HybrikHost = "silo-hybrik.pluto.tv.s3.amazonaws.com"
+)
+
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
+      "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func NewClip(id string) (*Clip, error) {
+   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/v2/episodes/")
+      data.WriteString(id)
+      data.WriteString("/clips.json")
+      return data.String()
+   }()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result []Clip
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result[0], nil
+}
+
+// Clip represents the top-level metadata structure.
+type Clip struct {
+   ID            string   `json:"_id"`
+   Author        string   `json:"author"`
+   Name          string   `json:"name"`
+   Duration      int      `json:"duration"`
+   LiveBroadcast bool     `json:"liveBroadcast"`
+   Provider      string   `json:"provider"`
+   Code          string   `json:"code"`
+   InternalCode  string   `json:"internalCode,omitempty"`
+   InPoint       int      `json:"inPoint"`
+   OutPoint      int      `json:"outPoint"`
+   Thumbnail     string   `json:"thumbnail"`
+   Sources       []Resource 
+   URL           string   `json:"url"`
+   PartnerCode   string   `json:"partnerCode,omitempty"`
+}
+
+func (c *Clip) Dash() (*Resource, bool) {
+   for _, source := range c.Sources {
+      if source.Type == "DASH" {
+         return &source, true
+      }
+   }
+   return nil, false
+}
+type Resource struct {
+   File       string `json:"file"`
+   Type       string `json:"type"`
+   Encryption string `json:"encryption"`
+   ID         string `json:"_id"`
+}
+
+func (r *Resource) Mpd() (*url.URL, []byte, error) {
+   req, err := http.NewRequest("", r.File, nil)
+   if err != nil {
+      return nil, nil, err
+   }
+   req.URL.Scheme = HybrikScheme
+   req.URL.Host = HybrikHost
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, nil, err
    }
@@ -92,71 +172,4 @@ func (s *Series) String() string {
       }
    }
    return string(data)
-}
-
-func NewClip(id string) (*Clip, error) {
-   req, _ := http.NewRequest("", "https://api.pluto.tv", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/v2/episodes/")
-      data.WriteString(id)
-      data.WriteString("/clips.json")
-      return data.String()
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result []Clip
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result[0], nil
-}
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://service-concierge.clusters.pluto.tv/v1/wv/alt",
-      "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Clip struct {
-   Sources []struct {
-      File File
-      Type string
-   }
-}
-
-type File [1]url.URL
-
-// these return a valid response body, but response status is "403 OK":
-// http://siloh-fs.plutotv.net
-// http://siloh-ns1.plutotv.net
-// https://siloh-fs.plutotv.net
-// https://siloh-ns1.plutotv.net
-func (f *File) UnmarshalText(data []byte) error {
-   err := f[0].UnmarshalBinary(data)
-   if err != nil {
-      return err
-   }
-   f[0].Scheme = "http"
-   f[0].Host = "silo-hybrik.pluto.tv.s3.amazonaws.com"
-   return nil
-}
-
-func (c *Clip) Dash() (*File, bool) {
-   for _, source := range c.Sources {
-      if source.Type == "DASH" {
-         return &source.File, true
-      }
-   }
-   return nil, false
 }
