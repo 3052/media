@@ -14,31 +14,18 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
+   c.name = filepath.ToSlash(cache) + "/cineMember/user_cache.xml"
 
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
+   flag.IntVar(&c.config.Threads, "t", 5, "threads")
    flag.Parse()
 
    if c.email != "" {
@@ -65,19 +52,6 @@ func write(name string, cache *user_cache) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (c *command) do_email_password() error {
-   var session cineMember.Session
-   err := session.Fetch()
-   if err != nil {
-      return err
-   }
-   err = session.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &user_cache{Session: &session})
-}
-
 func read(name string) (*user_cache, error) {
    data, err := os.ReadFile(name)
    if err != nil {
@@ -91,6 +65,56 @@ func read(name string) (*user_cache, error) {
    return cache, nil
 }
 
+type command struct {
+   address string
+   config net.Config
+   dash string
+   email    string
+   name   string
+   password string
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_email_password() error {
+   var session cineMember.Session
+   err := session.Fetch()
+   if err != nil {
+      return err
+   }
+   err = session.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &user_cache{Cookie: session[0]})
+}
+
+type user_cache struct {
+   Cookie *http.Cookie
+   Mpd     *url.URL
+   MpdBody []byte
+}
+
 func (c *command) do_address() error {
    cache, err := read(c.name)
    if err != nil {
@@ -100,7 +124,8 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   stream, err := cache.Session.Stream(id)
+   session := cineMember.Session{cache.Cookie}
+   stream, err := session.Stream(id)
    if err != nil {
       return err
    }
@@ -117,30 +142,4 @@ func (c *command) do_address() error {
       return err
    }
    return net.Representations(cache.Mpd, cache.MpdBody)
-}
-
-type command struct {
-   name   string
-   config net.Config
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-type user_cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
-   Session *cineMember.Session
 }

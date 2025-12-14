@@ -10,6 +10,8 @@ import (
    "strings"
 )
 
+type Session [1]*http.Cookie
+
 func (s *Stream) Dash() (*MediaLink, bool) {
    for _, link := range s.Links {
       if link.MimeType == "application/dash+xml" {
@@ -100,8 +102,6 @@ func Id(address string) (int, error) {
    }
    return id, nil
 }
-
-type Session [1]*http.Cookie
 
 func (s Session) Login(email, password string) error {
    data := url.Values{
