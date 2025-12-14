@@ -14,58 +14,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) do_episode() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   address, err := cache.Series.GetEpisodeURL(c.episode)
-   if err != nil {
-      return err
-   }
-   cache.Mpd, cache.MpdBody, err = pluto.Mpd(address)
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Mpd, cache.MpdBody)
-}
-
-type command struct {
-   config  net.Config
-   dash    string
-   episode string
-   movie   string
-   name    string
-   show    string
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = pluto.Widevine
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -82,6 +30,7 @@ func (c *command) run() error {
    flag.StringVar(&c.movie, "m", "", "movie ID")
    flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
    flag.StringVar(&c.show, "s", "", "show ID")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.movie != "" {
@@ -154,4 +103,55 @@ type user_cache struct {
    Mpd     *url.URL
    MpdBody []byte
    Series  *pluto.Series
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_episode() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   address, err := cache.Series.GetEpisodeURL(c.episode)
+   if err != nil {
+      return err
+   }
+   cache.Mpd, cache.MpdBody, err = pluto.Mpd(address)
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd, cache.MpdBody)
+}
+
+type command struct {
+   config  net.Config
+   dash    string
+   episode string
+   movie   string
+   name    string
+   show    string
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = pluto.Widevine
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }

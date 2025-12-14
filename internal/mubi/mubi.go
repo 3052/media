@@ -14,6 +14,20 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 type command struct {
    config  net.Config
    name   string
@@ -29,14 +43,21 @@ type command struct {
 
 ///
 
-type user_cache struct {
-   LinkCode *LinkCode
-   Mpd      *url.URL
-   MpdBody  []byte
-   Session *Session
-}
-
 func (f *command) New() error {
+   if set.code {
+      err = set.do_code()
+   } else if set.session {
+      err = set.do_session()
+   } else if set.address != "" {
+      err = set.do_address()
+   } else if set.dash != "" {
+      err = set.do_dash()
+   } else {
+      flag.Usage()
+   }
+   if err != nil {
+      log.Fatal(err)
+   }
    var err error
    f.cache, err = os.UserCacheDir()
    if err != nil {
@@ -56,51 +77,11 @@ func (f *command) New() error {
    return nil
 }
 
-func get(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   return write_file(path.Base(address), data)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func main() {
-   net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".dash" {
-         return ""
-      }
-      return "LP"
-   })
-   log.SetFlags(log.Ltime)
-   var set command
-   err := set.New()
-   if err != nil {
-      log.Fatal(err)
-   }
-   if set.code {
-      err = set.do_code()
-   } else if set.session {
-      err = set.do_session()
-   } else if set.address != "" {
-      err = set.do_address()
-   } else if set.dash != "" {
-      err = set.do_dash()
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
-   }
+type user_cache struct {
+   LinkCode *LinkCode
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session *Session
 }
 
 func (f *command) do_code() error {
