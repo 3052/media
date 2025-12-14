@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/molotov"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "log"
    "net/http"
@@ -13,20 +13,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -35,7 +21,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/molotov/user_cache.json"
+   c.name = cache + "/molotov/user_cache.xml"
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
@@ -43,6 +29,7 @@ func (c *command) run() error {
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
+   flag.IntVar(&c.config.Threads, "t", 8, "threads")
    flag.Parse()
 
    if c.email != "" {
@@ -61,7 +48,7 @@ func (c *command) run() error {
 }
 
 func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -84,7 +71,7 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    cache := &user_cache{}
-   err = json.Unmarshal(data, cache)
+   err = xml.Unmarshal(data, cache)
    if err != nil {
       return nil, err
    }
@@ -118,11 +105,11 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   cache.Playback, err = cache.Login.Playback(view)
+   cache.Asset, err = cache.Login.Asset(view)
    if err != nil {
       return err
    }
-   cache.Mpd, cache.MpdBody, err = cache.Playback.Mpd()
+   cache.Mpd, cache.MpdBody, err = cache.Asset.Mpd()
    if err != nil {
       return err
    }
@@ -138,14 +125,27 @@ func (c *command) do_dash() error {
       return err
    }
    c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.Widevine(data)
+      return cache.Asset.Widevine(data)
    }
    return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }
 
 type user_cache struct {
+   Asset *molotov.Asset
    Login    *molotov.Login
    Mpd      *url.URL
    MpdBody  []byte
-   Playback *molotov.Playback
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

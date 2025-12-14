@@ -10,8 +10,23 @@ import (
    "strconv"
 )
 
-func (c *Content) Unmarshal(data Byte[Content]) error {
-   err := json.Unmarshal(data, c)
+func (c *Content) Fetch(id int) error {
+   req, _ := http.NewRequest("", "https://uapi.adrise.tv/cms/content", nil)
+   req.URL.RawQuery = url.Values{
+      "content_id": {strconv.Itoa(id)},
+      "deviceId":   {"!"},
+      "platform":   {"android"},
+      "video_resources[]": {
+         "dash",
+         "dash_widevine",
+      },
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(c)
    if err != nil {
       return err
    }
@@ -28,25 +43,6 @@ type Content struct {
    SeriesId     int    `json:"series_id,string"`
    // these should already be in reverse order by resolution
    VideoResources []VideoResource `json:"video_resources"`
-}
-
-func NewContent(id int) (Byte[Content], error) {
-   req, _ := http.NewRequest("", "https://uapi.adrise.tv/cms/content", nil)
-   req.URL.RawQuery = url.Values{
-      "content_id": {strconv.Itoa(id)},
-      "deviceId":   {"!"},
-      "platform":   {"android"},
-      "video_resources[]": {
-         "dash",
-         "dash_widevine",
-      },
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 func (v *VideoResource) Widevine(data []byte) ([]byte, error) {
@@ -69,5 +65,3 @@ type VideoResource struct {
    }
    Type string
 }
-
-type Byte[T any] []byte

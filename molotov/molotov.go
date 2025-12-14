@@ -12,19 +12,40 @@ import (
 )
 
 type Asset struct {
+   Drm struct {
+      Token string
+   }
    Error *AssetError
    Stream struct {
       Url string // MPD
    }
-   UpDrm struct {
-      KeySystems struct {
-         Widevine struct {
-            License struct {
-               HttpHeaders map[string]string `json:"http_headers"`
-            }
-         }
-      } `json:"key_systems"`
-   } `json:"up_drm"`
+}
+
+func (a *Asset) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-dt-auth-token", a.Drm.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      License []byte
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return result.License, nil
 }
 
 func (l *Login) Asset(view *ProgramView) (*Asset, error) {
@@ -135,36 +156,6 @@ func (l *Login) Fetch(email, password string) error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(l)
-}
-
-func (a *Asset) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   for key, value := range a.UpDrm.KeySystems.Widevine.License.HttpHeaders {
-      req.Header.Set(key, value)
-   }
-   req.Header.Set("content-type", "application/x-protobuf")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      License []byte
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return result.License, nil
 }
 
 const (
