@@ -10,6 +10,58 @@ import (
    "strings"
 )
 
+func (s *Stream) Dash() (*MediaLink, bool) {
+   for _, link := range s.Links {
+      if link.MimeType == "application/dash+xml" {
+         return &link, true
+      }
+   }
+   return nil, false
+}
+
+func (m *MediaLink) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(m.Url)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
+type MediaLink struct {
+   MimeType string
+   Url      string
+}
+
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
+   req.URL.Path = "/elements/films/stream.php"
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s[0])
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
+}
+
 func (s *Session) Fetch() error {
    req, _ := http.NewRequest("HEAD", "https://www.cinemember.nl/nl", nil)
    // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
@@ -79,52 +131,15 @@ func (s Session) Login(email, password string) error {
 
 type Stream struct {
    Error string
-   Links []struct {
-      MimeType string
-      Url      string
-   }
+   Links []MediaLink
    NoAccess bool
 }
 
-func (s *Stream) Vtt() (string, bool) {
+func (s *Stream) Vtt() (*MediaLink, bool) {
    for _, link := range s.Links {
       if link.MimeType == "text/vtt" {
-         return link.Url, true
+         return &link, true
       }
    }
-   return "", false
-}
-
-func (s *Stream) Dash() (string, bool) {
-   for _, link := range s.Links {
-      if link.MimeType == "application/dash+xml" {
-         return link.Url, true
-      }
-   }
-   return "", false
-}
-
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
-   req.URL.Path = "/elements/films/stream.php"
-   req.URL.RawQuery = "id=" + fmt.Sprint(id)
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Stream
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != "" {
-      return nil, errors.New(result.Error)
-   }
-   if result.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &result, nil
+   return nil, false
 }

@@ -3,11 +3,14 @@ package main
 import (
    "41.neocities.org/media/cineMember"
    "41.neocities.org/net"
+   "encoding/xml"
    "errors"
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
+   "path"
    "path/filepath"
 )
 
@@ -25,20 +28,19 @@ func main() {
    }
 }
 
-func (c *command) New() error {
+func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   
+
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
-   flag.BoolVar(&c.vtt, "v", false, "VTT")
    flag.Parse()
-   
+
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
@@ -47,9 +49,6 @@ func (c *command) New() error {
    if c.address != "" {
       return c.do_address()
    }
-   if c.vtt {
-      return c.do_vtt()
-   }
    if c.dash != "" {
       return c.do_dash()
    }
@@ -57,22 +56,14 @@ func (c *command) New() error {
    return nil
 }
 
-type command struct {
-   name    string
-   config   net.Config
-   
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   vtt      bool
-   // 4
-   dash string
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
-
-///
 
 func (c *command) do_email_password() error {
    var session cineMember.Session
@@ -84,18 +75,24 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write_file(
-      c.name+"/cineMember/Session", []byte(session.String()),
-   )
+   return write(c.name, &user_cache{Session: &session})
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
 }
 
 func (c *command) do_address() error {
-   data, err := os.ReadFile(c.name + "/cineMember/Session")
-   if err != nil {
-      return err
-   }
-   var session cineMember.Session
-   err = session.Set(string(data))
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
@@ -103,42 +100,47 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   stream, err := session.Stream(id)
+   stream, err := cache.Session.Stream(id)
    if err != nil {
       return err
    }
-   if c.vtt {
-      return vtt(stream)
-   }
-   address, ok := stream.Dash()
+   link, ok := stream.Dash()
    if !ok {
       return errors.New(".Dash()")
    }
-   resp, err := http.Get(address)
+   cache.Mpd, cache.MpdBody, err = link.Mpd()
    if err != nil {
       return err
    }
-   return c.filters.Filter(resp, &c.config)
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd, cache.MpdBody)
 }
 
-func vtt(stream *cineMember.Stream) error {
-   address, ok := stream.Vtt()
-   if !ok {
-      return errors.New(".Vtt()")
-   }
-   resp, err := http.Get(address)
+type command struct {
+   name   string
+   config net.Config
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   defer resp.Body.Close()
-   file, err := os.Create(filepath.Base(address))
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = file.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
+   Session *cineMember.Session
 }
