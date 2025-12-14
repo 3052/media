@@ -27,29 +27,6 @@ func Mpd(address *url.URL) (*url.URL, []byte, error) {
    return resp.Request.URL, data, nil
 }
 
-// GetMovieURL generates the Stitcher URL object for a movie.
-// It assumes Vod and Stitched.Paths always have at least one entry.
-func (s *Series) GetMovieURL() *url.URL {
-   // Directly access the required path based on the data guarantees
-   path := s.Vod[0].Stitched.Paths[0].Path
-   return s.buildStitcherURL(path)
-}
-
-// GetEpisodeURL generates the Stitcher URL object for a specific episode by its ID.
-func (s *Series) GetEpisodeURL(episodeID string) (*url.URL, error) {
-   // Iterate through all seasons and episodes to find the matching ID
-   for _, season := range s.Vod[0].Seasons {
-      for _, episode := range season.Episodes {
-         if episode.Id == episodeID {
-            // Directly access the path based on the data guarantees
-            path := episode.Stitched.Paths[0].Path
-            return s.buildStitcherURL(path), nil
-         }
-      }
-   }
-   return nil, errors.New("episode not found")
-}
-
 // Define constants for the hardcoded URL parts
 const (
    stitcherScheme = "https"
@@ -63,12 +40,32 @@ func (s *Series) buildStitcherURL(path string) *url.URL {
       Host:   stitcherHost,
       Path:   path,
    }
-
-   q := url.Values{}
-   q.Set("jwt", s.SessionToken)
-   u.RawQuery = q.Encode()
-
+   values := url.Values{}
+   values.Set("jwt", s.SessionToken)
+   u.RawQuery = values.Encode()
    return u
+}
+
+// GetMovieURL generates the Stitcher URL object for a movie.
+// It assumes Vod and Stitched.Paths always have at least one entry.
+func (s *Series) GetMovieURL() *url.URL {
+   // Directly access the required path based on the data guarantees
+   path := s.Vod[0].Stitched.Paths[0].Path
+   return s.buildStitcherURL(path)
+}
+// GetEpisodeURL generates the Stitcher URL object for a specific episode by its ID.
+func (s *Series) GetEpisodeURL(episodeID string) (*url.URL, error) {
+   // Iterate through all seasons and episodes to find the matching ID
+   for _, season := range s.Vod[0].Seasons {
+      for _, episode := range season.Episodes {
+         if episode.Id == episodeID {
+            // Directly access the path based on the data guarantees
+            path := episode.Stitched.Paths[0].Path
+            return s.buildStitcherURL(path), nil
+         }
+      }
+   }
+   return nil, errors.New("episode not found")
 }
 
 type Stitched struct {

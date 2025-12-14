@@ -14,6 +14,95 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_movie() error {
+   var series pluto.Series
+   err := series.Fetch(c.movie)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Mpd, cache.MpdBody, err = pluto.Mpd(series.GetMovieURL())
+   if err != nil {
+      return err
+   }
+   err = write(c.name, &cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd, cache.MpdBody)
+}
+
+func (c *command) do_show() error {
+   var series pluto.Series
+   err := series.Fetch(c.show)
+   if err != nil {
+      return err
+   }
+   fmt.Println(&series.Vod[0])
+   return write(c.name, &user_cache{Series: &series})
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func (c *command) do_episode() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   address, err := cache.Series.GetEpisodeURL(c.episode)
+   if err != nil {
+      return err
+   }
+   cache.Mpd, cache.MpdBody, err = pluto.Mpd(address)
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Mpd, cache.MpdBody)
+}
+
+type command struct {
+   config net.Config
+   name   string
+   // 1
+   movie string
+   // 2
+   show string
+   // 3
+   episode string
+   // 4
+   dash string
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = pluto.Widevine
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
+   Series  *pluto.Series
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    net.Transport(func(req *http.Request) string {
@@ -62,95 +151,11 @@ func (c *command) run() error {
    return nil
 }
 
-type user_cache struct {
-   Mpd *url.URL
-   MpdBody []byte
-}
-
-type command struct {
-   config        net.Config
-   name          string
-   // 1
-   movie string
-   // 2
-   show          string
-   // 3
-   episode string
-   // 4
-   dash          string
-}
-
-///
-
-func (c *command) do_movie() error {
-   var series pluto.Series
-   err := series.Fetch(c.episode_movie)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   
-   cache.Mpd, cache.MpdBody, err = series.Mpd()
-   
-   cache.Url, cache.Body, err = series.Mpd()
-   if err != nil {
-      return err
-   }
+func write(name string, cache *user_cache) error {
    data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Url, cache.Body)
-}
-
-func (c *command) do_episode() error {
-   var series pluto.Series
-   err := series.Fetch(c.episode_movie)
-   if err != nil {
-      return err
-   }
-   var cache mpd
-   cache.Url, cache.Body, err = series.Mpd()
-   if err != nil {
-      return err
-   }
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Url, cache.Body)
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = pluto.Widevine
-   return c.config.Download(cache.Url, cache.Body, c.dash)
-}
-
-func (c *command) do_show() error {
-   var series pluto.Series
-   err := series.Fetch(c.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(&series.Vod[0])
-   return nil
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
