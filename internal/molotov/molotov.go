@@ -11,25 +11,19 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&f.config.Threads, "t", 9, "threads")
-   flag.Parse()
-   return nil
+type command struct {
+   name    string
+   config   net.Config
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   dash string
 }
+
+///
 
 func main() {
    http.DefaultTransport = net.Transport(func(req *http.Request) string {
@@ -39,7 +33,7 @@ func main() {
       return "L"
    })
    log.SetFlags(log.Ltime)
-   var set flag_set
+   var set command
    err := set.New()
    if err != nil {
       log.Fatal(err)
@@ -57,7 +51,7 @@ func main() {
    }
 }
 
-func (f *flag_set) do_refresh() error {
+func (f *command) do_refresh() error {
    login, err := molotov.FetchLogin(f.email, f.password)
    if err != nil {
       return err
@@ -66,19 +60,10 @@ func (f *flag_set) do_refresh() error {
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/molotov/Login", data)
+   return write_file(f.name+"/molotov/Login", data)
 }
 
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   email    string
-   filters  net.Filters
-   password string
-}
-
-func (f *flag_set) email_password() bool {
+func (f *command) email_password() bool {
    if f.email != "" {
       if f.password != "" {
          return true
@@ -87,8 +72,8 @@ func (f *flag_set) email_password() bool {
    return false
 }
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/molotov/Login")
+func (f *command) do_address() error {
+   data, err := os.ReadFile(f.name + "/molotov/Login")
    if err != nil {
       return err
    }
@@ -101,7 +86,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   err = write_file(f.cache+"/molotov/Login", data)
+   err = write_file(f.name+"/molotov/Login", data)
    if err != nil {
       return err
    }
@@ -132,3 +117,23 @@ func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
+func (f *command) New() error {
+   var err error
+   f.cache, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.cache = filepath.ToSlash(f.cache)
+   f.config.ClientId = f.cache + "/L3/client_id.bin"
+   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
+   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
+   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.IntVar(&f.config.Threads, "t", 9, "threads")
+   flag.Parse()
+   return nil
+}
+

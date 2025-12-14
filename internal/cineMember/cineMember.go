@@ -66,20 +66,12 @@ func read(name string) (*user_cache, error) {
 }
 
 type command struct {
-   address string
-   config net.Config
-   dash string
+   address  string
+   config   net.Config
+   dash     string
    email    string
-   name   string
+   name     string
    password string
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }
 
 func main() {
@@ -106,13 +98,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Cookie: session[0]})
-}
-
-type user_cache struct {
-   Cookie *http.Cookie
-   Mpd     *url.URL
-   MpdBody []byte
+   return write(c.name, &user_cache{Session: &session})
 }
 
 func (c *command) do_address() error {
@@ -124,8 +110,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   session := cineMember.Session{cache.Cookie}
-   stream, err := session.Stream(id)
+   stream, err := cache.Session.Stream(id)
    if err != nil {
       return err
    }
@@ -142,4 +127,18 @@ func (c *command) do_address() error {
       return err
    }
    return net.Representations(cache.Mpd, cache.MpdBody)
+}
+
+type user_cache struct {
+   Mpd     *url.URL
+   MpdBody []byte
+   Session *cineMember.Session
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }

@@ -4,7 +4,6 @@ import (
    "bytes"
    "encoding/json"
    "errors"
-   "io"
    "net/http"
    "net/url"
    "strconv"
@@ -20,7 +19,7 @@ func (l *Login) Refresh() error {
    req.Header.Set("x-molotov-agent", customer_area)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(l)

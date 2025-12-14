@@ -10,7 +10,97 @@ import (
    "strings"
 )
 
-type Session [1]*http.Cookie
+// Session holds the cookie data.
+type Session struct {
+   Cookie *http.Cookie
+}
+
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
+   req.URL.Path = "/elements/films/stream.php"
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s.Cookie)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
+}
+
+// Fetch performs the HEAD request to cinemember.nl and populates the Session with the PHPSESSID cookie.
+func (s *Session) Fetch() error {
+   const targetURL = "https://www.cinemember.nl/nl"
+   // Create a new HEAD request
+   // We ignore the error here because the method and URL are hardcoded and known to be valid.
+   req, _ := http.NewRequest("HEAD", targetURL, nil)
+   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
+   // Set the User-Agent header
+   req.Header.Set("User-Agent", "Windows")
+   // Perform the request using the DefaultClient
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   // Iterate through cookies to find PHPSESSID
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "PHPSESSID" {
+         s.Cookie = cookie
+         return nil
+      }
+   }
+   return errors.New("PHPSESSID cookie not found in response")
+}
+
+type Stream struct {
+   Error    string
+   Links    []MediaLink
+   NoAccess bool
+}
+
+func (s *Stream) Vtt() (*MediaLink, bool) {
+   for _, link := range s.Links {
+      if link.MimeType == "text/vtt" {
+         return &link, true
+      }
+   }
+   return nil, false
+}
+
+func Id(address string) (int, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return 0, err
+   }
+   _, after, found := strings.Cut(string(data), "app.play('")
+   if !found {
+      return 0, errors.New("could not find the start marker")
+   }
+   var id int
+   _, err = fmt.Sscan(after, &id)
+   if err != nil {
+      return 0, err
+   }
+   return id, nil
+}
 
 func (s *Stream) Dash() (*MediaLink, bool) {
    for _, link := range s.Links {
@@ -39,70 +129,6 @@ type MediaLink struct {
    Url      string
 }
 
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
-   req.URL.Path = "/elements/films/stream.php"
-   req.URL.RawQuery = "id=" + fmt.Sprint(id)
-   req.AddCookie(s[0])
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Stream
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != "" {
-      return nil, errors.New(result.Error)
-   }
-   if result.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &result, nil
-}
-
-func (s *Session) Fetch() error {
-   req, _ := http.NewRequest("HEAD", "https://www.cinemember.nl/nl", nil)
-   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
-   req.Header.Add("user-agent", "Windows")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "PHPSESSID" {
-         s[0] = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
-
-func Id(address string) (int, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return 0, err
-   }
-   _, after, found := strings.Cut(string(data), "app.play('")
-   if !found {
-      return 0, errors.New("could not find the start marker")
-   }
-   var id int
-   _, err = fmt.Sscan(after, &id)
-   if err != nil {
-      return 0, err
-   }
-   return id, nil
-}
-
 func (s Session) Login(email, password string) error {
    data := url.Values{
       "emaillogin": {email},
@@ -115,7 +141,7 @@ func (s Session) Login(email, password string) error {
    if err != nil {
       return err
    }
-   req.AddCookie(s[0])
+   req.AddCookie(s.Cookie)
    req.Header.Set("content-type", "application/x-www-form-urlencoded")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -127,19 +153,4 @@ func (s Session) Login(email, password string) error {
       return err
    }
    return nil
-}
-
-type Stream struct {
-   Error string
-   Links []MediaLink
-   NoAccess bool
-}
-
-func (s *Stream) Vtt() (*MediaLink, bool) {
-   for _, link := range s.Links {
-      if link.MimeType == "text/vtt" {
-         return &link, true
-      }
-   }
-   return nil, false
 }
