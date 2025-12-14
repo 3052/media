@@ -11,6 +11,24 @@ import (
    "strings"
 )
 
+type Playback struct {
+   Error struct {
+      DeveloperMessage string `json:"developer_message"`
+   }
+   Stream struct {
+      Url string // MPD
+   }
+   UpDrm struct {
+      KeySystems struct {
+         Widevine struct {
+            License struct {
+               HttpHeaders map[string]string `json:"http_headers"`
+            }
+         }
+      } `json:"key_systems"`
+   } `json:"up_drm"`
+}
+
 func (p *Playback) Mpd() (*url.URL, []byte, error) {
    resp, err := http.Get(strings.Replace(p.Stream.Url, "high", "fhdready", 1))
    if err != nil {
@@ -29,7 +47,7 @@ func (p *Playback) Mpd() (*url.URL, []byte, error) {
 // refresh token
 func (l *Login) Refresh() error {
    req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = "/v3/auth/refresh/" + l.RefreshToken
+   req.URL.Path = "/v3/auth/refresh/" + l.Auth.RefreshToken
    req.Header.Set("x-molotov-agent", customer_area)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -39,54 +57,36 @@ func (l *Login) Refresh() error {
    return json.NewDecoder(resp.Body).Decode(l)
 }
 
-func FetchLogin(email, password string) (*Login, error) {
+type Login struct {
+   Auth struct {
+      AccessToken  string `json:"access_token"`
+      RefreshToken string `json:"refresh_token"`
+   }
+}
+
+func (l *Login) Fetch(email, password string) error {
    data, err := json.Marshal(map[string]string{
       "grant_type": "password",
       "email":      email,
       "password":   password,
    })
    if err != nil {
-      return nil, err
+      return err
    }
    req, err := http.NewRequest(
       "POST", "https://fapi.molotov.tv/v3.1/auth/login",
       bytes.NewReader(data),
    )
    if err != nil {
-      return nil, err
+      return err
    }
    req.Header.Set("x-molotov-agent", customer_area)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   var result struct {
-      Auth Login
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Auth, nil
-}
-
-type Playback struct {
-   Error struct {
-      DeveloperMessage string `json:"developer_message"`
-   }
-   Stream struct {
-      Url string // MPD
-   }
-   UpDrm struct {
-      KeySystems struct {
-         Widevine struct {
-            License struct {
-               HttpHeaders map[string]string `json:"http_headers"`
-            }
-         }
-      } `json:"key_systems"`
-   } `json:"up_drm"`
+   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 func (p *Playback) Widevine(data []byte) ([]byte, error) {
@@ -124,37 +124,6 @@ const (
    customer_area = `{ "app_build": 1, "app_id": "customer_area" }`
 )
 
-type Login struct {
-   AccessToken  string `json:"access_token"`
-   RefreshToken string `json:"refresh_token"`
-}
-
-func (l *Login) Playback(playUrl string) (*Playback, error) {
-   req, err := http.NewRequest("", playUrl, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("x-forwarded-for", "138.199.15.158")
-   req.Header.Set("x-molotov-agent", browser_app)
-   query := req.URL.Query() // keep existing query string
-   query.Set("access_token", l.AccessToken)
-   req.URL.RawQuery = query.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Playback
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error.DeveloperMessage != "" {
-      return nil, errors.New(result.Error.DeveloperMessage)
-   }
-   return &result, nil
-}
-
 type MediaId struct {
    Channel int64
    Program int64
@@ -184,7 +153,7 @@ func (m *MediaId) Parse(rawUrl string) error {
    return nil
 }
 
-func (l *Login) PlayUrl(media *MediaId) (string, error) {
+func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
    req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
    req.URL.Path = func() string {
       data := []byte("/v2/channels/")
@@ -196,28 +165,56 @@ func (l *Login) PlayUrl(media *MediaId) (string, error) {
    }()
    req.Header.Set("x-molotov-agent", customer_area)
    req.URL.RawQuery = url.Values{
-      "access_token": {l.AccessToken},
+      "access_token": {l.Auth.AccessToken},
    }.Encode()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return "", err
+      return nil, err
    }
    defer resp.Body.Close()
-   var result struct {
-      Program struct {
-         Actions struct {
-            Play *struct {
-               Url string // fapi.molotov.tv/v2/me/assets
-            }
+   result := &ProgramView{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Program.Actions.Play == nil {
+      return nil, errors.New("program is not available for playback")
+   }
+   return result, nil
+}
+
+type ProgramView struct {
+   Program struct {
+      Actions struct {
+         Play *struct { // FIXME check for nil
+            Url string // fapi.molotov.tv/v2/me/assets
          }
       }
    }
+}
+
+func (l *Login) Playback(view ProgramView) (*Playback, error) {
+   req, err := http.NewRequest("", view.Program.Actions.Play.Url, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-forwarded-for", "138.199.15.158")
+   req.Header.Set("x-molotov-agent", browser_app)
+   query := req.URL.Query() // keep existing query string
+   query.Set("access_token", l.Auth.AccessToken)
+   req.URL.RawQuery = query.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Playback
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
-      return "", err
+      return nil, err
    }
-   if result.Program.Actions.Play == nil {
-      return "", errors.New("Program.Actions.Play")
+   if result.Error.DeveloperMessage != "" {
+      return nil, errors.New(result.Error.DeveloperMessage)
    }
-   return result.Program.Actions.Play.Url, nil
+   return &result, nil
 }

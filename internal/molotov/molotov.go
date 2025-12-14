@@ -58,32 +58,48 @@ func (c *command) New() error {
    return nil
 }
 
+func write(name string, cache *user_cache) error {
+   data, err := json.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (c *command) do_email_password() error {
+   var login molotiv.Login
+   err := login.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   err = login.Refresh()
+   if err != nil {
+      return err
+   }
+   return write(c.name, &user_cache{Login: &login})
+}
+
 type command struct {
    name   string
    config maya.Config
-
    // 1
    email    string
    password string
+   
    // 2
    address string
    // 3
    dash string
 }
 
-///
-
-func (c *command) do_email_password() error {
-   login, err := molotov.FetchLogin(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   data, err := login.Refresh()
-   if err != nil {
-      return err
-   }
-   return write_file(c.name+"/molotov/Login", data)
+type user_cache struct {
+   Login *Login
+   Mpd *url.URL
+   MpdBody []byte
 }
+
+///
 
 func (c *command) do_address() error {
    data, err := os.ReadFile(c.name + "/molotov/Login")
