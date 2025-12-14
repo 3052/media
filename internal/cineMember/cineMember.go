@@ -11,93 +11,86 @@ import (
    "path/filepath"
 )
 
-var Transport = http.Transport{
-   Proxy: func(req *http.Request) (*url.URL, error) {
-      if path.Ext(req.URL.Path) != ".m4s" {
-         log.Println(req.Method, req.URL)
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
       }
-      return http.ProxyFromEnvironment(req)
-   },
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
-func (f *flag_set) do_user() error {
+func (c *command) New() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.BoolVar(&c.vtt, "v", false, "VTT")
+   flag.Parse()
+   
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.vtt {
+      return c.do_vtt()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+type command struct {
+   name    string
+   config   net.Config
+   
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   vtt      bool
+   // 4
+   dash string
+}
+
+///
+
+func (c *command) do_email_password() error {
    var session cineMember.Session
    err := session.Fetch()
    if err != nil {
       return err
    }
-   err = session.Login(f.email, f.password)
+   err = session.Login(c.email, c.password)
    if err != nil {
       return err
    }
    return write_file(
-      f.cache+"/cineMember/Session", []byte(session.String()),
+      c.name+"/cineMember/Session", []byte(session.String()),
    )
 }
 
-func main() {
-   http.DefaultTransport = &cineMember.Transport
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_user()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
-   }
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   net.Config
-   filters  net.Filters
-   email    string
-   password string
-   vtt      bool
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&f.config.Threads, "t", 12, "threads")
-   flag.BoolVar(&f.vtt, "v", false, "VTT")
-   flag.Parse()
-   return nil
-}
-
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/cineMember/Session")
+func (c *command) do_address() error {
+   data, err := os.ReadFile(c.name + "/cineMember/Session")
    if err != nil {
       return err
    }
@@ -106,7 +99,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   id, err := cineMember.Id(f.address)
+   id, err := cineMember.Id(c.address)
    if err != nil {
       return err
    }
@@ -114,7 +107,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   if f.vtt {
+   if c.vtt {
       return vtt(stream)
    }
    address, ok := stream.Dash()
@@ -125,7 +118,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   return f.filters.Filter(resp, &f.config)
+   return c.filters.Filter(resp, &c.config)
 }
 
 func vtt(stream *cineMember.Stream) error {

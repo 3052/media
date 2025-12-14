@@ -77,7 +77,7 @@ func (s Session) Login(email, password string) error {
    return nil
 }
 
-type StreamInfo struct {
+type Stream struct {
    Error string
    Links []struct {
       MimeType string
@@ -86,7 +86,7 @@ type StreamInfo struct {
    NoAccess bool
 }
 
-func (s *StreamInfo) Vtt() (string, bool) {
+func (s *Stream) Vtt() (string, bool) {
    for _, link := range s.Links {
       if link.MimeType == "text/vtt" {
          return link.Url, true
@@ -95,7 +95,7 @@ func (s *StreamInfo) Vtt() (string, bool) {
    return "", false
 }
 
-func (s *StreamInfo) Dash() (string, bool) {
+func (s *Stream) Dash() (string, bool) {
    for _, link := range s.Links {
       if link.MimeType == "application/dash+xml" {
          return link.Url, true
@@ -105,7 +105,7 @@ func (s *StreamInfo) Dash() (string, bool) {
 }
 
 // must run Session.Login first
-func (s Session) StreamInfo(id int) (*StreamInfo, error) {
+func (s Session) Stream(id int) (*Stream, error) {
    req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
    req.URL.Path = "/elements/films/stream.php"
    req.URL.RawQuery = "id=" + fmt.Sprint(id)
@@ -115,16 +115,16 @@ func (s Session) StreamInfo(id int) (*StreamInfo, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var info StreamInfo
-   err = json.NewDecoder(resp.Body).Decode(&info)
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if info.Error != "" {
-      return nil, errors.New(info.Error)
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
    }
-   if info.NoAccess {
+   if result.NoAccess {
       return nil, errors.New("no access")
    }
-   return &info, nil
+   return &result, nil
 }

@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/media/nbc"
    "41.neocities.org/net"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "log"
    "net/http"
@@ -13,27 +13,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   address string
-   config  net.Config
-   dash    string
-   name    string
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -42,12 +21,13 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/nbc/mpd.json"
+   c.name = cache + "/nbc/mpd.xml"
 
+   flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.StringVar(&c.address, "a", "", "address")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.address != "" {
@@ -74,16 +54,16 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   stream_info, err := metadata.StreamInfo()
+   stream, err := metadata.Stream()
    if err != nil {
       return err
    }
    var cache mpd
-   cache.Url, cache.Body, err = stream_info.Mpd()
+   cache.Url, cache.Body, err = stream.Mpd()
    if err != nil {
       return err
    }
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -95,16 +75,38 @@ func (c *command) do_address() error {
    return net.Representations(cache.Url, cache.Body)
 }
 
+type command struct {
+   config  net.Config
+   name    string
+   // 1
+   address string
+   // 2
+   dash    string
+}
 func (c *command) do_dash() error {
    data, err := os.ReadFile(c.name)
    if err != nil {
       return err
    }
    var cache mpd
-   err = json.Unmarshal(data, &cache)
+   err = xml.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
    c.config.Send = nbc.Widevine
    return c.config.Download(cache.Url, cache.Body, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
