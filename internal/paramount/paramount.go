@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/media/paramount"
    "41.neocities.org/net"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "log"
    "net/http"
@@ -13,30 +13,12 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_paramount() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   item, err := paramount.FetchItem(at, c.paramount)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.Mpd.Url, cache.Mpd.Body, err = item.Mpd()
-   if err != nil {
-      return err
-   }
-   data, err := json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+type command struct {
+   config    net.Config
+   dash      string
+   intl      bool
+   name      string
+   paramount string
 }
 
 func (c *command) do_dash() error {
@@ -44,8 +26,8 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   err = json.Unmarshal(data, &cache)
+   var cache mpd
+   err = xml.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
@@ -63,30 +45,7 @@ func (c *command) do_dash() error {
    c.config.Send = func(data []byte) ([]byte, error) {
       return token.Widevine(data)
    }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-type user_cache struct {
-   Mpd struct {
-      Body  []byte
-      Url *url.URL
-   }
-}
-
-type command struct {
-   name     string
-   config    net.Config
-   // 1
-   paramount string
-   intl      bool
-   // 2
-   dash      string
-}
-
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.ComCbsCa.AppSecret
-   }
-   return paramount.ComCbsApp.AppSecret
+   return c.config.Download(cache.Url, cache.Body, c.dash)
 }
 
 func main() {
@@ -117,13 +76,14 @@ func (c *command) run() error {
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/paramount/user_cache.json"
-   
+
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.intl, "i", false, "intl")
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
    flag.Parse()
+
    if c.paramount != "" {
       return c.do_paramount()
    }
@@ -132,4 +92,42 @@ func (c *command) run() error {
    }
    flag.Usage()
    return nil
+}
+
+func (c *command) app_secret() string {
+   if c.intl {
+      return paramount.ComCbsCa.AppSecret
+   }
+   return paramount.ComCbsApp.AppSecret
+}
+
+type mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (c *command) do_paramount() error {
+   at, err := paramount.GetAt(c.app_secret())
+   if err != nil {
+      return err
+   }
+   item, err := paramount.FetchItem(at, c.paramount)
+   if err != nil {
+      return err
+   }
+   var cache mpd
+   cache.Url, cache.Body, err = item.Mpd()
+   if err != nil {
+      return err
+   }
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return net.Representations(cache.Url, cache.Body)
 }

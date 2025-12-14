@@ -6,11 +6,12 @@ import (
 )
 
 func TestPlayReady(t *testing.T) {
-   token, err := ComCbsApp.At()
+   at, err := GetAt(ComCbsApp.AppSecret)
    if err != nil {
       t.Fatal(err)
    }
-   session_var, err := token.playReady("wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
+   var session SessionToken
+   err = session.playReady(at, "wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
    if err != nil {
       t.Fatal(err)
    }
@@ -19,7 +20,7 @@ func TestPlayReady(t *testing.T) {
       t.Fatal(err)
    }
    err = os.WriteFile(
-      cache+"/paramount/PlayReady", []byte(session_var.LsSession), os.ModePerm,
+      cache+"/paramount/PlayReady", []byte(session.LsSession), os.ModePerm,
    )
    if err != nil {
       t.Fatal(err)
