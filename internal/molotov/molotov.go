@@ -3,9 +3,11 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/molotov"
+   "encoding/json"
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
@@ -17,7 +19,7 @@ func main() {
       if path.Ext(req.URL.Path) == ".m4s" {
          return ""
       }
-      return "L"
+      return "LP"
    })
    err := new(command).run()
    if err != nil {
@@ -25,7 +27,7 @@ func main() {
    }
 }
 
-func (c *command) New() error {
+func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
@@ -33,7 +35,7 @@ func (c *command) New() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/molotov/user_cache.xml"
+   c.name = cache + "/molotov/user_cache.json"
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
@@ -68,54 +70,42 @@ func write(name string, cache *user_cache) error {
 }
 
 func (c *command) do_email_password() error {
-   var login molotiv.Login
+   var login molotov.Login
    err := login.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   err = login.Refresh()
    if err != nil {
       return err
    }
    return write(c.name, &user_cache{Login: &login})
 }
 
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = json.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
 type command struct {
-   name   string
-   config maya.Config
-   // 1
+   address  string
+   config   maya.Config
+   dash     string
    email    string
+   name     string
    password string
-   
-   // 2
-   address string
-   // 3
-   dash string
 }
-
-type user_cache struct {
-   Login *Login
-   Mpd *url.URL
-   MpdBody []byte
-}
-
-///
 
 func (c *command) do_address() error {
-   data, err := os.ReadFile(c.name + "/molotov/Login")
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   var login molotov.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   data, err = login.Refresh()
-   if err != nil {
-      return err
-   }
-   err = write_file(c.name+"/molotov/Login", data)
+   err = cache.Login.Refresh()
    if err != nil {
       return err
    }
@@ -124,20 +114,38 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   play_url, err := login.PlayUrl(&media)
+   view, err := cache.Login.ProgramView(&media)
    if err != nil {
       return err
    }
-   playback, err := login.Playback(play_url)
+   cache.Playback, err = cache.Login.Playback(view)
    if err != nil {
       return err
    }
-   resp, err := http.Get(playback.FhdReady())
+   cache.Mpd, cache.MpdBody, err = cache.Playback.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.Representations(cache.Mpd, cache.MpdBody)
+}
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
    c.config.Send = func(data []byte) ([]byte, error) {
-      return playback.Widevine(data)
+      return cache.Playback.Widevine(data)
    }
-   return c.filters.Filter(resp, &c.config)
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   Login    *molotov.Login
+   Mpd      *url.URL
+   MpdBody  []byte
+   Playback *molotov.Playback
 }

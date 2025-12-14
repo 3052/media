@@ -11,10 +11,8 @@ import (
    "strings"
 )
 
-type Playback struct {
-   Error struct {
-      DeveloperMessage string `json:"developer_message"`
-   }
+type Asset struct {
+   Error *AssetError
    Stream struct {
       Url string // MPD
    }
@@ -29,8 +27,58 @@ type Playback struct {
    } `json:"up_drm"`
 }
 
-func (p *Playback) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(strings.Replace(p.Stream.Url, "high", "fhdready", 1))
+func (l *Login) Asset(view *ProgramView) (*Asset, error) {
+   req, err := http.NewRequest("", view.Program.Actions.Play.Url, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-forwarded-for", "138.199.15.158")
+   req.Header.Set("x-molotov-agent", browser_app)
+   query := req.URL.Query() // keep existing query string
+   query.Set("access_token", l.Auth.AccessToken)
+   req.URL.RawQuery = query.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Asset
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != nil {
+      return nil, result.Error
+   }
+   return &result, nil
+}
+
+func (a *AssetError) Error() string {
+   var data strings.Builder
+   data.WriteString("developer message = ")
+   data.WriteString(a.DeveloperMessage)
+   data.WriteString("\nuser message = ")
+   data.WriteString(a.UserMessage)
+   return data.String()
+}
+
+type AssetError struct {
+   DeveloperMessage string `json:"developer_message"`
+   UserMessage string `json:"user_message"`
+}
+
+type ProgramView struct {
+   Program struct {
+      Actions struct {
+         Play *struct { // FIXME check for nil
+            Url string // fapi.molotov.tv/v2/me/assets
+         }
+      }
+   }
+}
+
+func (a *Asset) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
    if err != nil {
       return nil, nil, err
    }
@@ -89,7 +137,7 @@ func (l *Login) Fetch(email, password string) error {
    return json.NewDecoder(resp.Body).Decode(l)
 }
 
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
+func (a *Asset) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://lic.drmtoday.com/license-proxy-widevine/cenc/",
       bytes.NewReader(data),
@@ -97,7 +145,7 @@ func (p *Playback) Widevine(data []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   for key, value := range p.UpDrm.KeySystems.Widevine.License.HttpHeaders {
+   for key, value := range a.UpDrm.KeySystems.Widevine.License.HttpHeaders {
       req.Header.Set(key, value)
    }
    req.Header.Set("content-type", "application/x-protobuf")
@@ -183,38 +231,3 @@ func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
    return result, nil
 }
 
-type ProgramView struct {
-   Program struct {
-      Actions struct {
-         Play *struct { // FIXME check for nil
-            Url string // fapi.molotov.tv/v2/me/assets
-         }
-      }
-   }
-}
-
-func (l *Login) Playback(view ProgramView) (*Playback, error) {
-   req, err := http.NewRequest("", view.Program.Actions.Play.Url, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("x-forwarded-for", "138.199.15.158")
-   req.Header.Set("x-molotov-agent", browser_app)
-   query := req.URL.Query() // keep existing query string
-   query.Set("access_token", l.Auth.AccessToken)
-   req.URL.RawQuery = query.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Playback
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error.DeveloperMessage != "" {
-      return nil, errors.New(result.Error.DeveloperMessage)
-   }
-   return &result, nil
-}
