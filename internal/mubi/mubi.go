@@ -3,16 +3,43 @@ package main
 import (
    "41.neocities.org/media/mubi"
    "41.neocities.org/net"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "fmt"
-   "io"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+type command struct {
+   address string
+   code    bool
+   config  net.Config
+   dash    string
+   name    string
+   session bool
+}
+
+type user_cache struct {
+   LinkCode *mubi.LinkCode
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session  *mubi.Session
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Session.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -28,83 +55,74 @@ func main() {
    }
 }
 
-type command struct {
-   config  net.Config
-   name   string
-   // 1
-   code    bool
-   // 2
-   session    bool
-   // 3
-   address string
-   // 4
-   dash string
-}
-
-///
-
-func (f *command) New() error {
-   if set.code {
-      err = set.do_code()
-   } else if set.session {
-      err = set.do_session()
-   } else if set.address != "" {
-      err = set.do_address()
-   } else if set.dash != "" {
-      err = set.do_dash()
-   } else {
-      flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
-   }
-   var err error
-   f.cache, err = os.UserCacheDir()
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.IntVar(&f.config.Threads, "T", 2, "threads")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.BoolVar(&f.code, "c", false, "link code")
-   flag.StringVar(&f.dash, "d", "", "DASH ID")
-   flag.BoolVar(&f.session, "s", false, "session")
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/mubi/user_cache.xml"
+
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.BoolVar(&c.code, "c", false, "link code")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.BoolVar(&c.session, "s", false, "session")
    flag.Parse()
+
+   if c.code {
+      return c.do_code()
+   }
+   if c.session {
+      return c.do_session()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
    return nil
 }
 
-type user_cache struct {
-   LinkCode *LinkCode
-   Mpd      *url.URL
-   MpdBody  []byte
-   Session *Session
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *command) do_code() error {
+func (c *command) do_code() error {
    var code mubi.LinkCode
    err := code.Fetch()
    if err != nil {
       return err
    }
    fmt.Println(&code)
-   data, err := json.Marshal(mubi.user_cache{LinkCode: &code})
-   if err != nil {
-      return err
-   }
-   return write_file(f.name+"/mubi/user_cache", data)
+   return write(c.name, &user_cache{LinkCode: &code})
 }
 
-func (f *command) do_session() error {
-   data, err := os.ReadFile(f.name + "/mubi/user_cache")
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
    if err != nil {
-      return err
+      return nil, err
    }
-   var cache mubi.user_cache
-   err = json.Unmarshal(data, &cache)
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func (c *command) do_session() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
@@ -112,28 +130,19 @@ func (f *command) do_session() error {
    if err != nil {
       return err
    }
-   data, err = json.Marshal(cache)
+   return write(c.name, cache)
+}
+
+func (c *command) do_address() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   return write_file(f.name+"/mubi/user_cache", data)
-}
-
-func (f *command) do_address() error {
-   slug, err := mubi.FilmSlug(f.address)
+   slug, err := mubi.FilmSlug(c.address)
    if err != nil {
       return err
    }
    film_id, err := mubi.FilmId(slug)
-   if err != nil {
-      return err
-   }
-   data, err := os.ReadFile(f.name + "/mubi/user_cache")
-   if err != nil {
-      return err
-   }
-   var cache mubi.user_cache
-   err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
@@ -145,33 +154,13 @@ func (f *command) do_address() error {
    if err != nil {
       return err
    }
-   err = secure.Mpd(&cache)
+   cache.Mpd, cache.MpdBody, err = secure.Mpd()
    if err != nil {
       return err
    }
-   data, err = json.Marshal(cache)
+   err = write(c.name, cache)
    if err != nil {
       return err
    }
-   err = write_file(f.name + "/mubi/user_cache", data)
-   if err != nil {
-      return err
-   }
-   return net.Representations(cache.MpdBody, cache.Mpd)
-}
-
-func (f *command) do_dash() error {
-   data, err := os.ReadFile(f.name + "/mubi/user_cache")
-   if err != nil {
-      return err
-   }
-   var cache mubi.user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Session.Widevine(data)
-   }
-   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
+   return net.Representations(cache.Mpd, cache.MpdBody)
 }

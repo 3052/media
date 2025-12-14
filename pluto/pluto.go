@@ -75,9 +75,6 @@ func (s *Series) GetEpisodeURL(episodeID string) (*url.URL, error) {
 }
 
 type Series struct {
-   Servers struct {
-      StitcherDash string
-   }
    SessionToken string
    Vod          []Vod
 }
