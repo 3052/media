@@ -37,12 +37,12 @@ func Id(address string) (int, error) {
    if err != nil {
       return 0, err
    }
-   _, afterMarker, found := strings.Cut(string(data), "app.play('")
+   _, after, found := strings.Cut(string(data), "app.play('")
    if !found {
       return 0, errors.New("could not find the start marker")
    }
    var id int
-   _, err = fmt.Sscan(afterMarker, &id)
+   _, err = fmt.Sscan(after, &id)
    if err != nil {
       return 0, err
    }
