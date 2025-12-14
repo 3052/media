@@ -10,52 +10,20 @@ import (
    "strings"
 )
 
-// Session holds the cookie data.
-type Session struct {
-   Cookie *http.Cookie
-}
-
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
-   req.URL.Path = "/elements/films/stream.php"
-   req.URL.RawQuery = "id=" + fmt.Sprint(id)
-   req.AddCookie(s.Cookie)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Stream
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != "" {
-      return nil, errors.New(result.Error)
-   }
-   if result.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &result, nil
-}
-
-// Fetch performs the HEAD request to cinemember.nl and populates the Session with the PHPSESSID cookie.
+// Fetch performs the HEAD request to cinemember.nl and populates the Session
+// with the PHPSESSID cookie.
 func (s *Session) Fetch() error {
    const targetURL = "https://www.cinemember.nl/nl"
-   // Create a new HEAD request
-   // We ignore the error here because the method and URL are hardcoded and known to be valid.
+   // We ignore the error here because the method and URL are hardcoded and
+   // known to be valid.
    req, _ := http.NewRequest("HEAD", targetURL, nil)
    // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
-   // Set the User-Agent header
    req.Header.Set("User-Agent", "Windows")
-   // Perform the request using the DefaultClient
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
    }
    defer resp.Body.Close()
-   // Iterate through cookies to find PHPSESSID
    for _, cookie := range resp.Cookies() {
       if cookie.Name == "PHPSESSID" {
          s.Cookie = cookie
@@ -153,4 +121,33 @@ func (s Session) Login(email, password string) error {
       return err
    }
    return nil
+}
+// Session holds the cookie data.
+type Session struct {
+   Cookie *http.Cookie
+}
+
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
+   req.URL.Path = "/elements/films/stream.php"
+   req.URL.RawQuery = "id=" + fmt.Sprint(id)
+   req.AddCookie(s.Cookie)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
 }

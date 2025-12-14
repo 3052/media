@@ -4,11 +4,25 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "io"
    "net/http"
    "net/url"
    "strconv"
    "strings"
 )
+
+func (p *Playback) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(strings.Replace(p.Stream.Url, "high", "fhdready", 1))
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
 
 // authorization server issues a new refresh token, in which case the
 // client MUST discard the old refresh token and replace it with the new
@@ -23,10 +37,6 @@ func (l *Login) Refresh() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(l)
-}
-
-func (p *Playback) FhdReady() string {
-   return strings.Replace(p.Stream.Url, "high", "fhdready", 1)
 }
 
 func FetchLogin(email, password string) (*Login, error) {

@@ -11,9 +11,57 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   net.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) New() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/molotov/user_cache.xml"
+
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.Parse()
+
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
 type command struct {
    name    string
    config   net.Config
+   
    // 1
    email    string
    password string
@@ -25,34 +73,8 @@ type command struct {
 
 ///
 
-func main() {
-   http.DefaultTransport = net.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   log.SetFlags(log.Ltime)
-   var set command
-   err := set.New()
-   if err != nil {
-      log.Fatal(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_refresh()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (f *command) do_refresh() error {
-   login, err := molotov.FetchLogin(f.email, f.password)
+func (c *command) do_email_password() error {
+   login, err := molotov.FetchLogin(c.email, c.password)
    if err != nil {
       return err
    }
@@ -60,20 +82,11 @@ func (f *command) do_refresh() error {
    if err != nil {
       return err
    }
-   return write_file(f.name+"/molotov/Login", data)
+   return write_file(c.name+"/molotov/Login", data)
 }
 
-func (f *command) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
-func (f *command) do_address() error {
-   data, err := os.ReadFile(f.name + "/molotov/Login")
+func (c *command) do_address() error {
+   data, err := os.ReadFile(c.name + "/molotov/Login")
    if err != nil {
       return err
    }
@@ -86,12 +99,12 @@ func (f *command) do_address() error {
    if err != nil {
       return err
    }
-   err = write_file(f.name+"/molotov/Login", data)
+   err = write_file(c.name+"/molotov/Login", data)
    if err != nil {
       return err
    }
    var media molotov.MediaId
-   err = media.Parse(f.address)
+   err = media.Parse(c.address)
    if err != nil {
       return err
    }
@@ -107,33 +120,8 @@ func (f *command) do_address() error {
    if err != nil {
       return err
    }
-   f.config.Send = func(data []byte) ([]byte, error) {
+   c.config.Send = func(data []byte) ([]byte, error) {
       return playback.Widevine(data)
    }
-   return f.filters.Filter(resp, &f.config)
+   return c.filters.Filter(resp, &c.config)
 }
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-func (f *command) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&f.config.Threads, "t", 9, "threads")
-   flag.Parse()
-   return nil
-}
-
