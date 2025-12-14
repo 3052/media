@@ -19,8 +19,8 @@ const drmProxySecret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
 
 // buildAuthQuery generates the signed query parameters (hash, time, device).
 func buildAuthQuery(drmType string) string {
-   timestamp := fmt.Sprint(time.Now().UnixMilli()) 
-   mac := hmac.New(sha256.New, []byte(drmProxySecret)) 
+   timestamp := fmt.Sprint(time.Now().UnixMilli())
+   mac := hmac.New(sha256.New, []byte(drmProxySecret))
    fmt.Fprint(mac, timestamp, drmType)
    hash := fmt.Sprintf("%x", mac.Sum(nil))
    return url.Values{

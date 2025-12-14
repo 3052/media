@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/canal"
-   "41.neocities.org/net"
    "encoding/xml"
    "flag"
    "fmt"
@@ -101,7 +101,7 @@ func (c *command) do_tracking() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd, cache.MpdBody)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
 func (c *command) do_subtitles() error {
@@ -120,7 +120,7 @@ func (c *command) do_subtitles() error {
 
 type command struct {
    address   string
-   config    net.Config
+   config    maya.Config
    dash      string
    email     string
    name      string
@@ -168,7 +168,7 @@ func get(address string) error {
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".dash" {
          return ""
       }

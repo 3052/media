@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/hboMax"
-   "41.neocities.org/net"
    "encoding/json"
    "flag"
    "fmt"
@@ -135,7 +135,7 @@ func (c *command) do_address() error {
 
 type command struct {
    address  string
-   config   net.Config
+   config   maya.Config
    dash     string
    edit     string
    initiate bool
@@ -171,7 +171,7 @@ func (c *command) do_edit() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
 
 func (c *command) do_dash() error {
@@ -187,7 +187,7 @@ func (c *command) do_dash() error {
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".mp4" {
          return ""
       }

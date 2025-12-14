@@ -5,7 +5,32 @@
 >
 > [Paint it Black][1] (2016)
 
-Download media or send API requests
+Go packages for streaming API authentication, metadata, and DRM playback.
+
+**Key functionalities implemented across the packages include:**
+
+- **Authentication & Session Management:** Methods to handle user logins,
+   device linking (e.g., Roku, HBO Max), token exchanges, and session
+   refreshing. It handles various authentication schemes including OAuth, JWT, and
+   cookie-based sessions.
+
+- **Content Discovery & Metadata:** Functions to resolve URLs (slugs) to
+   internal content IDs, fetch series/episode details via JSON or GraphQL
+   endpoints, and extract available video qualities.
+
+- **Playback Extraction:** Logic to retrieve streaming manifests, specifically
+   **MPEG-DASH (.mpd)** files, for movies and TV shows.
+
+- **DRM Licensing:** implementations for interacting with Digital Rights
+   Management systems (primarily **Widevine** and **PlayReady**). This includes
+   generating challenge payloads, signing requests (HMAC/AES), and communicating
+   with license servers to authorize playback.
+
+- **HTTP Client Customization:** configuration of HTTP requests with specific
+   headers (User-Agents, platform identifiers, custom tokens) required to
+   masquerade as legitimate client devices (e.g., Android, Web, TV apps).
+
+**Supported Services identified in the file structure include:**
 
 1. PlutoTV: Live TV & Free Movies
 2. Tubi: Free Movies & Live TV

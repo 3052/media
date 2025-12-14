@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/kanopy"
-   "41.neocities.org/net"
    "encoding/json"
    "errors"
    "flag"
@@ -40,20 +40,21 @@ func (c *command) do_kanopy() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd, cache.MpdBody)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
 type command struct {
-   name    string
-   config   net.Config
+   name   string
+   config maya.Config
    // 1
    email    string
    password string
    // 2
-   kanopy   int
+   kanopy int
    // 3
    dash string
 }
+
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -66,14 +67,14 @@ func (c *command) do_dash() error {
 }
 
 type user_cache struct {
-   Login kanopy.Login
-   Mpd      *url.URL
-   MpdBody  []byte
+   Login      kanopy.Login
+   Mpd        *url.URL
+   MpdBody    []byte
    StreamInfo *kanopy.StreamInfo
 }
 
 func main() {
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".m4s" {
          return ""
       }
@@ -121,7 +122,7 @@ func (c *command) run() error {
 
 func write(name string, cache *user_cache) error {
    data, err := json.Marshal(cache)
-   if err != nil {   
+   if err != nil {
       return err
    }
    log.Println("WriteFile", name)

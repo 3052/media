@@ -57,7 +57,7 @@ func (t TvShowData) String() string {
 
 type TvShowData struct {
    Seasons []struct {
-      Id          string `json:"id"`
+      Id string `json:"id"`
    } `json:"seasons"`
 }
 

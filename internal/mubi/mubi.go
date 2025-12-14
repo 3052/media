@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/mubi"
-   "41.neocities.org/net"
    "encoding/xml"
    "flag"
    "fmt"
@@ -17,7 +17,7 @@ import (
 type command struct {
    address string
    code    bool
-   config  net.Config
+   config  maya.Config
    dash    string
    name    string
    session bool
@@ -43,7 +43,7 @@ func (c *command) do_dash() error {
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".dash" {
          return ""
       }
@@ -162,5 +162,5 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd, cache.MpdBody)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }

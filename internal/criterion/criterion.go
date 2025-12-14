@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/criterion"
-   "41.neocities.org/net"
    "errors"
    "flag"
    "log"
@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = net.Transport(func(req *http.Request) string {
+   http.DefaultTransport = maya.Transport(func(req *http.Request) string {
       return "LP"
    })
    log.SetFlags(log.Ltime)
@@ -105,7 +105,7 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.Var(&f.filters, "f", maya.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    return nil
@@ -113,9 +113,9 @@ func (f *flag_set) New() error {
 
 type flag_set struct {
    address  string
-   config   net.Config
+   config   maya.Config
    email    string
-   filters  net.Filters
+   filters  maya.Filters
    cache    string
    password string
 }

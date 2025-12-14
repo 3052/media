@@ -15,8 +15,8 @@ var tests = []struct {
    locations []string
 }{
    {
-      id:     325455,
-      url:    "mubi.com/films/passages-2022",
+      id:  325455,
+      url: "mubi.com/films/passages-2022",
       locations: []string{
          "Austria",
          "Belgium",

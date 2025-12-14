@@ -42,8 +42,8 @@ func (l *Login) Refresh() error {
 func FetchLogin(email, password string) (*Login, error) {
    data, err := json.Marshal(map[string]string{
       "grant_type": "password",
-      "email": email,
-      "password": password,
+      "email":      email,
+      "password":   password,
    })
    if err != nil {
       return nil, err
@@ -120,12 +120,12 @@ func (p *Playback) Widevine(data []byte) ([]byte, error) {
 }
 
 const (
-   browser_app = `{ "app_build": 4, "app_id": "browser_app", "inner_app_version_name": "5.7.0" }`
+   browser_app   = `{ "app_build": 4, "app_id": "browser_app", "inner_app_version_name": "5.7.0" }`
    customer_area = `{ "app_build": 1, "app_id": "customer_area" }`
 )
 
 type Login struct {
-   AccessToken string `json:"access_token"`
+   AccessToken  string `json:"access_token"`
    RefreshToken string `json:"refresh_token"`
 }
 

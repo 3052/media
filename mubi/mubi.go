@@ -112,8 +112,8 @@ type SecureUrl struct {
       Id  string
       Url string
    } `json:"text_track_urls"`
-   Url           string      // MPD
-   UserMessage   string      `json:"user_message"`
+   Url         string // MPD
+   UserMessage string `json:"user_message"`
 }
 
 func (s *SecureUrl) Mpd() (*url.URL, []byte, error) {

@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/roku"
-   "41.neocities.org/net"
    "encoding/json"
    "flag"
    "fmt"
@@ -25,7 +25,7 @@ func (r *runner) do_dash() error {
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       return "L"
    })
    var program runner
@@ -49,7 +49,7 @@ func (r *runner) do_user() error {
 
 type runner struct {
    cache  string
-   config net.Config
+   config maya.Config
    // 1
    connection bool
    // 2
@@ -103,7 +103,7 @@ func (r *runner) do_roku() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.MpdBody, cache.Mpd)
+   return maya.Representations(cache.MpdBody, cache.Mpd)
 }
 
 func (r *runner) run() error {

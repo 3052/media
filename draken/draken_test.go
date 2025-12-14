@@ -6,16 +6,16 @@ import (
 )
 
 var tests = []struct {
-   custom_id  string
-   url        string
+   custom_id string
+   url       string
 }{
    {
-      custom_id:  "moon",
-      url:        "drakenfilm.se/film/moon",
+      custom_id: "moon",
+      url:       "drakenfilm.se/film/moon",
    },
    {
-      custom_id:  "the-card-counter",
-      url:        "drakenfilm.se/film/the-card-counter",
+      custom_id: "the-card-counter",
+      url:       "drakenfilm.se/film/the-card-counter",
    },
 }
 

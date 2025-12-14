@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/paramount"
-   "41.neocities.org/net"
    "encoding/xml"
    "flag"
    "log"
@@ -14,7 +14,7 @@ import (
 )
 
 type command struct {
-   config    net.Config
+   config    maya.Config
    dash      string
    intl      bool
    name      string
@@ -50,7 +50,7 @@ func (c *command) do_dash() error {
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       switch path.Ext(req.URL.Path) {
       case ".m4s", ".mp4":
          return ""
@@ -129,5 +129,5 @@ func (c *command) do_paramount() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Url, cache.Body)
+   return maya.Representations(cache.Url, cache.Body)
 }

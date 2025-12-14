@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/hulu"
-   "41.neocities.org/net"
    "encoding/json"
    "flag"
    "log"
@@ -47,7 +47,7 @@ func (f *flag_set) email_password() bool {
 }
 
 func main() {
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       switch path.Ext(req.URL.Path) {
       case ".mp4", ".mp4a":
          return ""
@@ -76,15 +76,15 @@ func main() {
 }
 
 type flag_set struct {
-   cache    string
-   config   net.Config
+   cache  string
+   config maya.Config
    // 1
    email    string
    password string
    // 2
-   address  string
+   address string
    // 3
-   dash     string
+   dash string
 }
 
 func (f *flag_set) do_session() error {
@@ -134,11 +134,11 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   err = write_file(f.cache + "/hulu/Cache", data)
+   err = write_file(f.cache+"/hulu/Cache", data)
    if err != nil {
       return err
    }
-   return net.Representations(cache.MpdBody, cache.Mpd)
+   return maya.Representations(cache.MpdBody, cache.Mpd)
 }
 
 func (f *flag_set) do_dash() error {

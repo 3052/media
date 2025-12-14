@@ -69,6 +69,7 @@ func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
    }
    return io.ReadAll(resp.Body)
 }
+
 type Entitlement struct {
    AssetId   string
    Formats   []Format
@@ -157,6 +158,7 @@ func (s *Session) Entitlement(assetId string) (*Entitlement, error) {
    }
    return title, nil
 }
+
 // hard coded in JavaScript
 const api_key = "4_Ml_fJ47GnBAW6FrPzMxh0w"
 
@@ -227,4 +229,3 @@ func (a *Account) Identity() (*Identity, error) {
    }
    return &result, nil
 }
-

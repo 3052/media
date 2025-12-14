@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/plex"
-   "41.neocities.org/net"
    "encoding/json"
    "errors"
    "flag"
@@ -16,7 +16,7 @@ import (
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".m4s" {
          return ""
       }
@@ -56,7 +56,7 @@ func (c *command) run() error {
 
 type command struct {
    address       string
-   config        net.Config
+   config        maya.Config
    dash          string
    forwarded_for string
    name          string
@@ -100,16 +100,16 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
 
 type user_cache struct {
    MediaPart *plex.MediaPart
-   Mpd struct {
+   Mpd       struct {
       Body []byte
       Url  *url.URL
    }
-   User      plex.User
+   User plex.User
 }
 
 func (c *command) do_dash() error {

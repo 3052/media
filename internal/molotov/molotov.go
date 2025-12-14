@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/molotov"
-   "41.neocities.org/net"
    "flag"
    "log"
    "net/http"
@@ -13,7 +13,7 @@ import (
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".m4s" {
          return ""
       }
@@ -59,14 +59,14 @@ func (c *command) New() error {
 }
 
 type command struct {
-   name    string
-   config   net.Config
-   
+   name   string
+   config maya.Config
+
    // 1
    email    string
    password string
    // 2
-   address  string
+   address string
    // 3
    dash string
 }

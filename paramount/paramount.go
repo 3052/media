@@ -18,13 +18,13 @@ import (
 )
 
 const (
-   encoding = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+   encoding   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
    secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
 )
 
 func cms_account(id string) int {
    var (
-      result = 0
+      result     = 0
       multiplier = 1
    )
    for _, digit := range id {

@@ -63,7 +63,7 @@ func makeStreamRequest(marketCode, contentType, contentId string, player PlayerT
    }
    defer resp.Body.Close()
    var wrapper struct {
-      Data StreamData `json:"data"`
+      Data   StreamData `json:"data"`
       Errors []struct {
          Message string
       }

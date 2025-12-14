@@ -54,7 +54,7 @@ func (l Login) Widevine(play *Playback, data []byte) ([]byte, error) {
    for key, value := range play.Headers {
       req.Header.Set(key, value)
    }
-   req.Header.Set("authorization", "Bearer " + l.Token)
+   req.Header.Set("authorization", "Bearer "+l.Token)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -223,4 +223,3 @@ func (l *Login) Unmarshal(data LoginData) error {
 }
 
 type LoginData []byte
-

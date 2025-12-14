@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/itv"
-   "41.neocities.org/net"
    "encoding/json"
    "errors"
    "flag"
@@ -17,7 +17,7 @@ import (
 
 func main() {
    // ALL REQUEST ARE GEO BLOCKED
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".dash" {
          return ""
       }
@@ -81,7 +81,7 @@ func (c *command) do_address() error {
 
 type command struct {
    address  string
-   config   net.Config
+   config   maya.Config
    dash     string
    name     string
    playlist string
@@ -115,7 +115,7 @@ func (c *command) do_playlist() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd, cache.MpdBody)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
 type user_cache struct {

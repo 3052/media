@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/nbc"
-   "41.neocities.org/net"
    "encoding/xml"
    "flag"
    "log"
@@ -72,17 +72,18 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Url, cache.Body)
+   return maya.Representations(cache.Url, cache.Body)
 }
 
 type command struct {
-   config  net.Config
-   name    string
+   config maya.Config
+   name   string
    // 1
    address string
    // 2
-   dash    string
+   dash string
 }
+
 func (c *command) do_dash() error {
    data, err := os.ReadFile(c.name)
    if err != nil {
@@ -99,7 +100,7 @@ func (c *command) do_dash() error {
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".mp4" {
          return ""
       }

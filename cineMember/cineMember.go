@@ -122,6 +122,7 @@ func (s Session) Login(email, password string) error {
    }
    return nil
 }
+
 // Session holds the cookie data.
 type Session struct {
    Cookie *http.Cookie

@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/amc"
-   "41.neocities.org/net"
    "encoding/json"
    "errors"
    "flag"
@@ -117,7 +117,7 @@ func (c *command) do_season() error {
 }
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".m4f" {
          return ""
       }
@@ -150,7 +150,7 @@ func (c *command) do_episode() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
 
 func (c *command) do_dash() error {
@@ -211,7 +211,7 @@ func (c *command) run() error {
 }
 
 type command struct {
-   config   net.Config
+   config   maya.Config
    dash     string
    email    string
    episode  int64

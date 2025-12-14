@@ -111,7 +111,7 @@ func (s *Series) Fetch(id string) error {
 func (s *Series) buildStitcherURL(path string) *url.URL {
    stitcher := &url.URL{
       Host:   stitcherHost,
-      Path: "/v2" + path,
+      Path:   "/v2" + path,
       Scheme: stitcherScheme,
    }
    values := url.Values{}

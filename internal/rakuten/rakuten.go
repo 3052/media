@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/rakuten"
-   "41.neocities.org/net"
    "encoding/json"
    "flag"
    "fmt"
@@ -15,7 +15,7 @@ import (
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       switch path.Ext(req.URL.Path) {
       case ".isma", ".ismv":
          return ""
@@ -145,17 +145,17 @@ type user_cache struct {
 }
 
 type command struct {
-   config   net.Config
-   name    string
+   config maya.Config
+   name   string
    // 1
-   movie    string
+   movie string
    // 2
-   show     string
+   show string
    // 3
-   season   string
-   
+   season string
+
    // 4
-   episode  string
+   episode string
    // 5
    language string
    dash     string
@@ -195,11 +195,11 @@ func (c *command) do_language() error {
    if err != nil {
       return err
    }
-   err = write_file(c.name + "/rakuten/user_cache", data)
+   err = write_file(c.name+"/rakuten/user_cache", data)
    if err != nil {
       return err
    }
-   return net.Representations(cache.MpdBody, cache.Mpd)
+   return maya.Representations(cache.MpdBody, cache.Mpd)
 }
 
 func (c *command) do_dash() error {

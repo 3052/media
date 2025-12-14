@@ -87,11 +87,11 @@ type Player struct {
    Drm struct {
       LicenseUrl string
    }
-   Message string
+   Message   string
    Subtitles []struct {
       Url string
    }
-   Url     string // MPD
+   Url string // MPD
 }
 
 func (s *Session) Player(tracking string) (*Player, error) {
@@ -264,7 +264,7 @@ func (e *Episode) String() string {
 }
 
 type Episode struct {
-   Desc string
+   Desc   string
    Id     string
    Params struct {
       SeriesEpisode int64

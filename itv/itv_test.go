@@ -10,11 +10,11 @@ import (
 
 var watch_tests = []struct {
    category string
-   watch []string
+   watch    []string
 }{
    {
       category: "FILM",
-      watch: []string{"https://itv.com/watch/love-actually/27304"},
+      watch:    []string{"https://itv.com/watch/love-actually/27304"},
    },
    {
       category: "DRAMA_AND_SOAPS",

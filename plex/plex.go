@@ -46,6 +46,7 @@ type MediaPart struct {
 type User struct {
    AuthToken string
 }
+
 func (u User) Media(item *ItemMetadata, forwardedFor string) (*ItemMetadata, error) {
    req, _ := http.NewRequest("", "https://vod.provider.plex.tv", nil)
    req.URL.Path = "/library/metadata/" + item.RatingKey

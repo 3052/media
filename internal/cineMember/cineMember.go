@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/cineMember"
-   "41.neocities.org/net"
    "encoding/xml"
    "errors"
    "flag"
@@ -67,7 +67,7 @@ func read(name string) (*user_cache, error) {
 
 type command struct {
    address  string
-   config   net.Config
+   config   maya.Config
    dash     string
    email    string
    name     string
@@ -76,7 +76,7 @@ type command struct {
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".m4s" {
          return ""
       }
@@ -126,7 +126,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd, cache.MpdBody)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
 type user_cache struct {

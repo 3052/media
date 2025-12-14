@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/rtbf"
-   "41.neocities.org/net"
    "errors"
    "flag"
    "log"
@@ -13,7 +13,7 @@ import (
 
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(*http.Request) string {
+   maya.Transport(func(*http.Request) string {
       return "L"
    })
    err := new(command).run()
@@ -31,7 +31,7 @@ func (c *command) run() error {
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/rtbf/user_cache.json"
-   
+
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
    flag.StringVar(&c.address, "a", "", "address")
@@ -54,7 +54,7 @@ func (c *command) run() error {
 
 type user_cache struct {
    Account rtbf.Account
-   Mpd *url.URL
+   Mpd     *url.URL
    MpdBody []byte
 }
 
@@ -77,13 +77,13 @@ func (c *command) do_email_password() error {
 }
 
 type command struct {
-   config   net.Config
-   name    string
+   config maya.Config
+   name   string
    // 1
    email    string
    password string
    // 2
-   address  string
+   address string
    // 3
    dash string
 }

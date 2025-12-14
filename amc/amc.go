@@ -150,7 +150,7 @@ func (n *Node) ExtractEpisodes() ([]*Metadata, error) {
 }
 
 type Node struct {
-   Type       string  `json:"type"`
+   Type       string `json:"type"`
    Children   []Node `json:"children,omitempty"`
    Properties struct {
       ManifestType string `json:"manifestType,omitempty"`

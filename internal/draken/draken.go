@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/draken"
-   "41.neocities.org/net"
    "flag"
    "log"
    "net/http"
@@ -90,9 +90,9 @@ func (f *flag_set) email_password() bool {
 type flag_set struct {
    address  string
    cache    string
-   config   net.Config
+   config   maya.Config
    email    string
-   filters  net.Filters
+   filters  maya.Filters
    password string
 }
 
@@ -109,7 +109,7 @@ func (f *flag_set) New() error {
    flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.Var(&f.filters, "f", maya.FilterUsage)
    flag.StringVar(&f.password, "p", "", "password")
    flag.Parse()
    return nil

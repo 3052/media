@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/ctv"
-   "41.neocities.org/net"
    "flag"
    "log"
    "net/http"
@@ -21,7 +21,7 @@ func (f *flag_set) New() error {
    f.config.PrivateKey = cache + "/L3/private_key.pem"
    flag.StringVar(&f.address, "a", "", "address")
    flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.Var(&f.filters, "f", net.FilterUsage)
+   flag.Var(&f.filters, "f", maya.FilterUsage)
    flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
    flag.IntVar(&f.config.Threads, "t", 2, "threads")
    flag.Parse()
@@ -29,7 +29,7 @@ func (f *flag_set) New() error {
 }
 
 func main() {
-   http.DefaultTransport = net.Transport(func(req *http.Request) string {
+   http.DefaultTransport = maya.Transport(func(req *http.Request) string {
       switch path.Ext(req.URL.Path) {
       case ".m4a", ".m4v":
          return ""
@@ -83,6 +83,6 @@ func (f *flag_set) do_address() error {
 
 type flag_set struct {
    address string
-   config  net.Config
-   filters net.Filters
+   config  maya.Config
+   filters maya.Filters
 }

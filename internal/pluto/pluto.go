@@ -1,8 +1,8 @@
 package main
 
 import (
+   "41.neocities.org/maya"
    "41.neocities.org/media/pluto"
-   "41.neocities.org/net"
    "encoding/xml"
    "flag"
    "fmt"
@@ -64,7 +64,7 @@ func (c *command) do_movie() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd, cache.MpdBody)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
 func (c *command) do_show() error {
@@ -104,9 +104,10 @@ type user_cache struct {
    MpdBody []byte
    Series  *pluto.Series
 }
+
 func main() {
    log.SetFlags(log.Ltime)
-   net.Transport(func(req *http.Request) string {
+   maya.Transport(func(req *http.Request) string {
       if path.Ext(req.URL.Path) == ".m4s" {
          return ""
       }
@@ -135,11 +136,11 @@ func (c *command) do_episode() error {
    if err != nil {
       return err
    }
-   return net.Representations(cache.Mpd, cache.MpdBody)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
 type command struct {
-   config  net.Config
+   config  maya.Config
    dash    string
    episode string
    movie   string
