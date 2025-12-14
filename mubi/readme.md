@@ -3,7 +3,7 @@
 ## privacy.com
 
 1. mubi.com/memberships
-2. disable uBlock Origin
+2. enable JavaScript
 3. start your membership
 4. mubi
 5. next

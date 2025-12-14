@@ -12,42 +12,17 @@ import (
    "strings"
 )
 
-// to get the MPD you have to call this or view video on the website. request
-// is hard geo blocked only the first time
-func (s *Session) Viewing(filmId int64) error {
-   req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
-   req.URL.Path = func() string {
-      data := []byte("/v3/films/")
-      data = strconv.AppendInt(data, filmId, 10)
-      data = append(data, "/viewing"...)
-      return string(data)
-   }()
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
+func (s *SecureUrl) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(s.Url)
    if err != nil {
-      return err
+      return nil, nil, err
    }
    defer resp.Body.Close()
-   var viewing struct {
-      UserMessage string `json:"user_message"`
-   }
-   err = json.NewDecoder(resp.Body).Decode(&viewing)
+   data, err := io.ReadAll(resp.Body)
    if err != nil {
-      return err
+      return nil, nil, err
    }
-   if viewing.UserMessage != "" {
-      return errors.New(viewing.UserMessage)
-   }
-   return nil
-}
-
-type Session struct {
-   Token string
-   User  struct {
-      Id int
-   }
+   return resp.Request.URL, data, nil
 }
 
 func (l *LinkCode) Session() (*Session, error) {
@@ -69,12 +44,12 @@ func (l *LinkCode) Session() (*Session, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   current := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(current)
+   result := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
    }
-   return current, nil
+   return result, nil
 }
 
 func (s *Session) SecureUrl(filmId int64) (*SecureUrl, error) {
@@ -93,15 +68,15 @@ func (s *Session) SecureUrl(filmId int64) (*SecureUrl, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var secure SecureUrl
-   err = json.NewDecoder(resp.Body).Decode(&secure)
+   var result SecureUrl
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if secure.UserMessage != "" {
-      return nil, errors.New(secure.UserMessage)
+   if result.UserMessage != "" {
+      return nil, errors.New(result.UserMessage)
    }
-   return &secure, nil
+   return &result, nil
 }
 
 func (s *Session) Widevine(data []byte) ([]byte, error) {
@@ -167,26 +142,6 @@ type SecureUrl struct {
 
 const forbidden = "HTTP Status 403 – Forbidden"
 
-func FilmId(slug string) (int64, error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.URL.Path = "/v3/films/" + slug
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   var film struct {
-      Id int64
-   }
-   err = json.NewDecoder(resp.Body).Decode(&film)
-   if err != nil {
-      return 0, err
-   }
-   return film.Id, nil
-}
-
 // https://mubi.com/en/films/perfect-days
 // https://mubi.com/en/us/films/perfect-days
 // https://mubi.com/films/perfect-days
@@ -197,6 +152,26 @@ func FilmSlug(address string) (string, error) {
       return "", errors.New(`"/films/" not found in URL`)
    }
    return slug, nil
+}
+
+func FilmId(slug string) (int64, error) {
+   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
+   req.URL.Path = "/v3/films/" + slug
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Id int64
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return 0, err
+   }
+   return result.Id, nil
 }
 
 type LinkCode struct {
@@ -221,23 +196,40 @@ func (l *LinkCode) String() string {
    return data.String()
 }
 
-type Cache struct {
-   LinkCode *LinkCode
-   Mpd      *url.URL
-   MpdBody  []byte
-   Session *Session
+type Session struct {
+   Token string
+   User  struct {
+      Id int
+   }
 }
 
-func (s *SecureUrl) Mpd(storage *Cache) error {
-   resp, err := http.Get(s.Url)
+// to get the MPD you have to call this or view video on the website. request
+// is hard geo blocked only the first time
+func (s *Session) Viewing(filmId int64) error {
+   req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
+   req.URL.Path = func() string {
+      data := []byte("/v3/films/")
+      data = strconv.AppendInt(data, filmId, 10)
+      data = append(data, "/viewing"...)
+      return string(data)
+   }()
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
    }
    defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
+   var result struct {
+      UserMessage string `json:"user_message"`
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return err
    }
-   storage.Mpd = resp.Request.URL
+   if result.UserMessage != "" {
+      return errors.New(result.UserMessage)
+   }
    return nil
 }

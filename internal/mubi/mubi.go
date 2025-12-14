@@ -14,7 +14,29 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
+type command struct {
+   config  net.Config
+   name   string
+   // 1
+   code    bool
+   // 2
+   session    bool
+   // 3
+   address string
+   // 4
+   dash string
+}
+
+///
+
+type user_cache struct {
+   LinkCode *LinkCode
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session *Session
+}
+
+func (f *command) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
    if err != nil {
@@ -30,7 +52,6 @@ func (f *flag_set) New() error {
    flag.BoolVar(&f.code, "c", false, "link code")
    flag.StringVar(&f.dash, "d", "", "DASH ID")
    flag.BoolVar(&f.session, "s", false, "session")
-   flag.BoolVar(&f.text, "t", false, "text")
    flag.Parse()
    return nil
 }
@@ -61,7 +82,7 @@ func main() {
       return "LP"
    })
    log.SetFlags(log.Ltime)
-   var set flag_set
+   var set command
    err := set.New()
    if err != nil {
       log.Fatal(err)
@@ -71,11 +92,7 @@ func main() {
    } else if set.session {
       err = set.do_session()
    } else if set.address != "" {
-      if set.text {
-         err = set.do_text()
-      } else {
-         err = set.do_address()
-      }
+      err = set.do_address()
    } else if set.dash != "" {
       err = set.do_dash()
    } else {
@@ -86,26 +103,26 @@ func main() {
    }
 }
 
-func (f *flag_set) do_code() error {
+func (f *command) do_code() error {
    var code mubi.LinkCode
    err := code.Fetch()
    if err != nil {
       return err
    }
    fmt.Println(&code)
-   data, err := json.Marshal(mubi.Cache{LinkCode: &code})
+   data, err := json.Marshal(mubi.user_cache{LinkCode: &code})
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/mubi/Cache", data)
+   return write_file(f.name+"/mubi/user_cache", data)
 }
 
-func (f *flag_set) do_session() error {
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+func (f *command) do_session() error {
+   data, err := os.ReadFile(f.name + "/mubi/user_cache")
    if err != nil {
       return err
    }
-   var cache mubi.Cache
+   var cache mubi.user_cache
    err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
@@ -118,10 +135,10 @@ func (f *flag_set) do_session() error {
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/mubi/Cache", data)
+   return write_file(f.name+"/mubi/user_cache", data)
 }
 
-func (f *flag_set) do_text() error {
+func (f *command) do_address() error {
    slug, err := mubi.FilmSlug(f.address)
    if err != nil {
       return err
@@ -130,56 +147,11 @@ func (f *flag_set) do_text() error {
    if err != nil {
       return err
    }
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+   data, err := os.ReadFile(f.name + "/mubi/user_cache")
    if err != nil {
       return err
    }
-   var cache mubi.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   secure, err := cache.Session.SecureUrl(film_id)
-   if err != nil {
-      return err
-   }
-   for _, text := range secure.TextTrackUrls {
-      err = get(text.Url)
-      if err != nil {
-         return err
-      }
-   }
-   return nil
-}
-
-type flag_set struct {
-   config  net.Config
-   cache   string
-   // 1
-   code    bool
-   // 2
-   session    bool
-   // 3
-   text    bool
-   // 4
-   address string
-   // 5
-   dash string
-}
-func (f *flag_set) do_address() error {
-   slug, err := mubi.FilmSlug(f.address)
-   if err != nil {
-      return err
-   }
-   film_id, err := mubi.FilmId(slug)
-   if err != nil {
-      return err
-   }
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
-   if err != nil {
-      return err
-   }
-   var cache mubi.Cache
+   var cache mubi.user_cache
    err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
@@ -200,19 +172,19 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   err = write_file(f.cache + "/mubi/Cache", data)
+   err = write_file(f.name + "/mubi/user_cache", data)
    if err != nil {
       return err
    }
    return net.Representations(cache.MpdBody, cache.Mpd)
 }
 
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.cache + "/mubi/Cache")
+func (f *command) do_dash() error {
+   data, err := os.ReadFile(f.name + "/mubi/user_cache")
    if err != nil {
       return err
    }
-   var cache mubi.Cache
+   var cache mubi.user_cache
    err = json.Unmarshal(data, &cache)
    if err != nil {
       return err
