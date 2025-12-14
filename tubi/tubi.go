@@ -10,6 +10,29 @@ import (
    "strconv"
 )
 
+func (v *VideoResource) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(v.Manifest.Url)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
+type VideoResource struct {
+   LicenseServer *struct {
+      Url string
+   } `json:"license_server"`
+   Manifest struct {
+      Url string // MPD
+   }
+   Type string
+}
+
 func (c *Content) Fetch(id int) error {
    req, _ := http.NewRequest("", "https://uapi.adrise.tv/cms/content", nil)
    req.URL.RawQuery = url.Values{
@@ -31,7 +54,7 @@ func (c *Content) Fetch(id int) error {
       return err
    }
    if len(c.VideoResources) == 0 {
-      return errors.New("video_resources")
+      return errors.New("no video resources found")
    }
    return nil
 }
@@ -54,14 +77,4 @@ func (v *VideoResource) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-type VideoResource struct {
-   LicenseServer *struct {
-      Url string
-   } `json:"license_server"`
-   Manifest struct {
-      Url string // MPD
-   }
-   Type string
 }

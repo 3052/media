@@ -131,11 +131,12 @@ func (c *command) do_dash() error {
 }
 
 type user_cache struct {
-   Asset *molotov.Asset
-   Login    *molotov.Login
-   Mpd      *url.URL
-   MpdBody  []byte
+   Asset   *molotov.Asset
+   Login   *molotov.Login
+   Mpd     *url.URL
+   MpdBody []byte
 }
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {

@@ -3,71 +3,107 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/tubi"
+   "encoding/xml"
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
+   "path"
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.VideoResource.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   Mpd *url.URL
+   MpdBody []byte
+   VideoResource *tubi.VideoResource
+}
+
 func main() {
-   var set flag_set
-   err := set.New()
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
-   http.DefaultTransport = maya.Transport(set.bypass)
-   if set.tubi >= 1 {
-      err = set.do_tubi()
-      if err != nil {
-         log.Fatal(err)
-      }
-   } else {
-      flag.Usage()
-   }
 }
 
-type flag_set struct {
-   bypass  string
-   cache   string
-   config  maya.Config
-   filters maya.Filters
-   tubi    int
-}
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/tubi/user_cache.xml"
 
-func (f *flag_set) do_tubi() error {
-   data, err := tubi.NewContent(f.tubi)
-   if err != nil {
-      return err
-   }
-   var content tubi.Content
-   err = content.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(content.VideoResources[0].Manifest.Url)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return content.VideoResources[0].Widevine(data)
-   }
-   return f.filters.Filter(resp, &f.config)
-}
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.Var(&f.filters, "f", maya.FilterUsage)
-   flag.StringVar(&f.bypass, "b", ".mp4", "proxy bypass")
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.IntVar(&f.tubi, "t", 0, "Tubi ID")
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
    flag.Parse()
+
+   if c.tubi >= 1 {
+      return c.do_tubi()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
    return nil
+}
+
+func (c *command) do_tubi() error {
+   var content tubi.Content
+   err := content.Fetch(c.tubi)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.VideoResource = &content.VideoResources[0]
+   cache.Mpd, cache.MpdBody, err = cache.VideoResource.Mpd()
+   if err != nil {
+      return err
+   }
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return maya.Representations(cache.Mpd, cache.MpdBody)
+}
+
+type command struct {
+   config  maya.Config
+   name   string
+   // 1
+   tubi    int
+   // 2
+   dash string
 }
