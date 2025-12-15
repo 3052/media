@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/plex"
-   "encoding/json"
+   "encoding/xml"
    "errors"
    "flag"
    "log"
@@ -13,6 +13,42 @@ import (
    "path"
    "path/filepath"
 )
+
+func do_ifconfig() error {
+   resp, err := http.Get("http://ifconfig.co")
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   _, err = os.Stdout.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   MediaPart *plex.MediaPart
+   Mpd       *url.URL
+   MpdBody   []byte
+   User      *plex.User
+}
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -36,14 +72,23 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/plex/user_cache.json"
+   c.name = cache + "/plex/user_cache.xml"
+
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+
+   flag.BoolVar(&c.ifconfig, "i", false, "ifconfig.co")
 
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
+
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.StringVar(&c.forwarded_for, "x", "", "x-forwarded-for")
+
    flag.Parse()
+
+   if c.ifconfig {
+      return do_ifconfig()
+   }
    if c.address != "" {
       return c.do_address()
    }
@@ -54,17 +99,9 @@ func (c *command) run() error {
    return nil
 }
 
-type command struct {
-   address       string
-   config        maya.Config
-   dash          string
-   forwarded_for string
-   name          string
-}
-
 func (c *command) do_address() error {
-   var cache user_cache
-   err := cache.User.Fetch()
+   var user plex.User
+   err := user.Fetch()
    if err != nil {
       return err
    }
@@ -72,26 +109,28 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   metadata, err := cache.User.RatingKey(address)
+   metadata, err := user.RatingKey(address)
    if err != nil {
       return err
    }
-   metadata, err = cache.User.Media(metadata, c.forwarded_for)
+   metadata, err = user.Media(metadata, c.x_forwarded_for)
    if err != nil {
       return err
    }
-   var ok bool
+   var (
+      cache user_cache
+      ok    bool
+   )
    cache.MediaPart, ok = metadata.Dash()
    if !ok {
       return errors.New(".Dash()")
    }
-   cache.Mpd.Url, cache.Mpd.Body, err = cache.User.Mpd(
-      cache.MediaPart, c.forwarded_for,
-   )
+   cache.Mpd, cache.MpdBody, err = user.Mpd(cache.MediaPart, c.x_forwarded_for)
    if err != nil {
       return err
    }
-   data, err := json.Marshal(cache)
+   cache.User = &user
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -100,30 +139,14 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
-type user_cache struct {
-   MediaPart *plex.MediaPart
-   Mpd       struct {
-      Body []byte
-      Url  *url.URL
-   }
-   User plex.User
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+type command struct {
+   address         string
+   config          maya.Config
+   dash            string
+   ifconfig        bool
+   name            string
+   x_forwarded_for string
 }
