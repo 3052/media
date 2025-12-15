@@ -4,24 +4,120 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
-   "strconv"
    "strings"
 )
 
-func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
+// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func GetPath(rawLink string) (string, error) {
+   link, err := url.Parse(rawLink)
+   if err != nil {
+      return "", err
+   }
+   if link.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return link.Path, nil
+}
+
+const query_resolve_path = `
+query resolvePath($path: String!) {
+   resolvedPath(path: $path) {
+      lastSegment {
+         content {
+            ... on AxisObject {
+               id
+               ... on AxisMedia {
+                  firstPlayableContent {
+                     id
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+`
+
+const query_axis_content = `
+query axisContent($id: ID!) {
+   axisContent(id: $id) {
+      axisId
+      axisPlaybackLanguages {
+         ... on AxisPlayback {
+            destinationCode
+         }
+      }
+   }
+}
+`
+
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://license.9c9media.ca/widevine", "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type AxisContent struct {
+   AxisId                int
+   AxisPlaybackLanguages []struct {
+      DestinationCode string
+   }
+}
+
+type Playback struct {
+   ContentPackages []struct {
+      Id int
+   }
+}
+
+func (a *AxisContent) Playback() (*Playback, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
    req.URL.Path = func() string {
-      b := []byte("/destinations/")
-      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
-      b = append(b, "/platforms/desktop/playback/contents/"...)
-      b = strconv.AppendInt(b, a.AxisId, 10)
-      b = append(b, "/contentPackages/"...)
-      b = strconv.AppendInt(b, contentVar.ContentPackages[0].Id, 10)
-      b = append(b, "/manifest.mpd"...)
-      return string(b)
+      data := &strings.Builder{}
+      fmt.Fprint(data, "/destinations/")
+      fmt.Fprint(data, a.AxisPlaybackLanguages[0].DestinationCode)
+      fmt.Fprint(data, "/platforms/desktop/contents/")
+      fmt.Fprint(data, a.AxisId)
+      return data.String()
+   }()
+   req.URL.RawQuery = "$include=[ContentPackages]"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Playback{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+///
+
+func (a *AxisContent) Mpd(play *Playback) (string, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.Path = func() string {
+      data := &strings.Builder{}
+      fmt.Fprint(data, "/destinations/")
+      fmt.Fprint(data, a.AxisPlaybackLanguages[0].DestinationCode)
+      fmt.Fprint(data, "/platforms/desktop/playback/contents/")
+      fmt.Fprint(data, a.AxisId)
+      fmt.Fprint(data, "/contentPackages/")
+      fmt.Fprint(data, play.ContentPackages[0].Id)
+      fmt.Fprint(data, "/manifest.mpd")
+      return data.String()
    }()
    req.URL.RawQuery = "action=reference"
    resp, err := http.DefaultClient.Do(req)
@@ -34,21 +130,21 @@ func (a *AxisContent) Mpd(contentVar *Content) (string, error) {
       return "", err
    }
    if resp.StatusCode != http.StatusOK {
-      var value struct {
+      var result struct {
          Message string
       }
-      err = json.Unmarshal(data, &value)
+      err = json.Unmarshal(data, &result)
       if err != nil {
          return "", err
       }
-      return "", errors.New(value.Message)
+      return "", errors.New(result.Message)
    }
    return strings.Replace(string(data), "/best/", "/ultimate/", 1), nil
 }
 
 func Resolve(path string) (*ResolvedPath, error) {
    data, err := json.Marshal(map[string]any{
-      "query": graphql_compact(query_resolve),
+      "query": query_resolve_path,
       "variables": map[string]string{
          "path": path,
       },
@@ -74,7 +170,7 @@ func Resolve(path string) (*ResolvedPath, error) {
    if err != nil {
       return nil, err
    }
-   var value struct {
+   var result struct {
       Data struct {
          ResolvedPath *struct {
             LastSegment struct {
@@ -83,20 +179,14 @@ func Resolve(path string) (*ResolvedPath, error) {
          }
       }
    }
-   err = json.Unmarshal(data, &value)
+   err = json.Unmarshal(data, &result)
    if err != nil {
       return nil, err
    }
-   if value.Data.ResolvedPath == nil {
+   if result.Data.ResolvedPath == nil {
       return nil, errors.New(string(data))
    }
-   return &value.Data.ResolvedPath.LastSegment.Content, nil
-}
-
-type Content struct {
-   ContentPackages []struct {
-      Id int64
-   }
+   return &result.Data.ResolvedPath.LastSegment.Content, nil
 }
 
 type ResolvedPath struct {
@@ -115,7 +205,7 @@ func (r *ResolvedPath) getId() string {
 
 func (r *ResolvedPath) Axis() (*AxisContent, error) {
    data, err := json.Marshal(map[string]any{
-      "query": graphql_compact(query_axis),
+      "query": query_axis_content,
       "variables": map[string]string{
          "id": r.getId(),
       },
@@ -137,7 +227,7 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var value struct {
+   var result struct {
       Data struct {
          AxisContent AxisContent
       }
@@ -145,103 +235,12 @@ func (r *ResolvedPath) Axis() (*AxisContent, error) {
          Message string
       }
    }
-   err = json.NewDecoder(resp.Body).Decode(&value)
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if len(value.Errors) >= 1 {
-      return nil, errors.New(value.Errors[0].Message)
+   if len(result.Errors) >= 1 {
+      return nil, errors.New(result.Errors[0].Message)
    }
-   return &value.Data.AxisContent, nil
-}
-
-// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func GetPath(rawUrl string) (string, error) {
-   u, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   if u.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return u.Path, nil
-}
-
-const query_resolve = `
-query resolvePath($path: String!) {
-   resolvedPath(path: $path) {
-      lastSegment {
-         content {
-            ... on AxisObject {
-               id
-               ... on AxisMedia {
-                  firstPlayableContent {
-                     id
-                  }
-               }
-            }
-         }
-      }
-   }
-}
-`
-
-const query_axis = `
-query axisContent($id: ID!) {
-   axisContent(id: $id) {
-      axisId
-      axisPlaybackLanguages {
-         ... on AxisPlayback {
-            destinationCode
-         }
-      }
-   }
-}
-` // do not use `query(`
-
-// this is better than strings.Replace and strings.ReplaceAll
-func graphql_compact(data string) string {
-   return strings.Join(strings.Fields(data), " ")
-}
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://license.9c9media.ca/widevine", "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type AxisContent struct {
-   AxisId                int64
-   AxisPlaybackLanguages []struct {
-      DestinationCode string
-   }
-}
-
-func (a *AxisContent) Content() (*Content, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      b := []byte("/destinations/")
-      b = append(b, a.AxisPlaybackLanguages[0].DestinationCode...)
-      b = append(b, "/platforms/desktop/contents/"...)
-      b = strconv.AppendInt(b, a.AxisId, 10)
-      return string(b)
-   }()
-   req.URL.RawQuery = "$include=[ContentPackages]"
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   content_var := &Content{}
-   err = json.NewDecoder(resp.Body).Decode(content_var)
-   if err != nil {
-      return nil, err
-   }
-   return content_var, nil
+   return &result.Data.AxisContent, nil
 }

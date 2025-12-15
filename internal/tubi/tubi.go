@@ -30,8 +30,8 @@ func (c *command) do_dash() error {
 }
 
 type user_cache struct {
-   Mpd *url.URL
-   MpdBody []byte
+   Mpd           *url.URL
+   MpdBody       []byte
    VideoResource *tubi.VideoResource
 }
 
@@ -100,10 +100,10 @@ func (c *command) do_tubi() error {
 }
 
 type command struct {
-   config  maya.Config
+   config maya.Config
    name   string
    // 1
-   tubi    int
+   tubi int
    // 2
    dash string
 }
