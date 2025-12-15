@@ -11,6 +11,57 @@ import (
    "strings"
 )
 
+func (m Manifest) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
+type Manifest []byte
+
+func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.Path = func() string {
+      data := &strings.Builder{}
+      fmt.Fprint(data, "/destinations/")
+      fmt.Fprint(data, a.AxisPlaybackLanguages[0].DestinationCode)
+      fmt.Fprint(data, "/platforms/desktop/playback/contents/")
+      fmt.Fprint(data, a.AxisId)
+      fmt.Fprint(data, "/contentPackages/")
+      fmt.Fprint(data, play.ContentPackages[0].Id)
+      fmt.Fprint(data, "/manifest.mpd")
+      return data.String()
+   }()
+   req.URL.RawQuery = "action=reference"
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Message string
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(result.Message)
+   }
+   return data, nil
+}
+
 // https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
 func GetPath(rawLink string) (string, error) {
    link, err := url.Parse(rawLink)
@@ -104,44 +155,6 @@ func (a *AxisContent) Playback() (*Playback, error) {
    return result, nil
 }
 
-///
-
-func (a *AxisContent) Mpd(play *Playback) (string, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      data := &strings.Builder{}
-      fmt.Fprint(data, "/destinations/")
-      fmt.Fprint(data, a.AxisPlaybackLanguages[0].DestinationCode)
-      fmt.Fprint(data, "/platforms/desktop/playback/contents/")
-      fmt.Fprint(data, a.AxisId)
-      fmt.Fprint(data, "/contentPackages/")
-      fmt.Fprint(data, play.ContentPackages[0].Id)
-      fmt.Fprint(data, "/manifest.mpd")
-      return data.String()
-   }()
-   req.URL.RawQuery = "action=reference"
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return "", err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Message string
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return "", err
-      }
-      return "", errors.New(result.Message)
-   }
-   return strings.Replace(string(data), "/best/", "/ultimate/", 1), nil
-}
-
 func Resolve(path string) (*ResolvedPath, error) {
    data, err := json.Marshal(map[string]any{
       "query": query_resolve_path,
@@ -172,11 +185,7 @@ func Resolve(path string) (*ResolvedPath, error) {
    }
    var result struct {
       Data struct {
-         ResolvedPath *struct {
-            LastSegment struct {
-               Content ResolvedPath
-            }
-         }
+         ResolvedPath *ResolvedPath
       }
    }
    err = json.Unmarshal(data, &result)
@@ -186,28 +195,32 @@ func Resolve(path string) (*ResolvedPath, error) {
    if result.Data.ResolvedPath == nil {
       return nil, errors.New(string(data))
    }
-   return &result.Data.ResolvedPath.LastSegment.Content, nil
+   return result.Data.ResolvedPath, nil
 }
 
 type ResolvedPath struct {
-   FirstPlayableContent *struct {
-      Id string
+   LastSegment struct {
+      Content struct {
+         FirstPlayableContent *struct {
+            Id string
+         }
+         Id string
+      }
    }
-   Id string
 }
 
-func (r *ResolvedPath) getId() string {
-   if r.FirstPlayableContent != nil {
-      return r.FirstPlayableContent.Id
+func (r *ResolvedPath) get_id() string {
+   if fpc := r.LastSegment.Content.FirstPlayableContent; fpc != nil {
+      return fpc.Id
    }
-   return r.Id
+   return r.LastSegment.Content.Id
 }
 
-func (r *ResolvedPath) Axis() (*AxisContent, error) {
+func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
    data, err := json.Marshal(map[string]any{
       "query": query_axis_content,
       "variables": map[string]string{
-         "id": r.getId(),
+         "id": r.get_id(),
       },
    })
    if err != nil {

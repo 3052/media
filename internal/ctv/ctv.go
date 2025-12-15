@@ -11,7 +11,41 @@ import (
    "path/filepath"
 )
 
-func (f *flag_set) New() error {
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4a", ".m4v":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   config  maya.Config
+   name string
+   // 1
+   address string
+   // 2
+   dash string
+}
+
+///
+
+func (f *command) New() error {
+   if set.address != "" {
+      err = set.do_address()
+      if err != nil {
+         panic(err)
+      }
+   } else {
+      flag.Usage()
+   }
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
@@ -28,31 +62,7 @@ func (f *flag_set) New() error {
    return nil
 }
 
-func main() {
-   http.DefaultTransport = maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4a", ".m4v":
-         return ""
-      }
-      return "LP"
-   })
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      panic(err)
-   }
-   if set.address != "" {
-      err = set.do_address()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
-}
-
-func (f *flag_set) do_address() error {
+func (f *command) do_address() error {
    path, err := ctv.GetPath(f.address)
    if err != nil {
       return err
@@ -79,10 +89,4 @@ func (f *flag_set) do_address() error {
    }
    f.config.Send = ctv.Widevine
    return f.filters.Filter(resp, &f.config)
-}
-
-type flag_set struct {
-   address string
-   config  maya.Config
-   filters maya.Filters
 }
