@@ -13,6 +13,10 @@ import (
    "strings"
 )
 
+type St struct {
+   Cookie *http.Cookie
+}
+
 func (p *Playback) Mpd() (*url.URL, []byte, error) {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
@@ -52,7 +56,7 @@ type Playback struct {
 func (s St) Login() (*Login, error) {
    req, _ := http.NewRequest("POST", prd_api, nil)
    req.URL.Path = "/authentication/linkDevice/login"
-   req.AddCookie(s[0])
+   req.AddCookie(s.Cookie)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -77,7 +81,7 @@ func (s *St) Fetch() error {
    defer resp.Body.Close()
    for _, cookie := range resp.Cookies() {
       if cookie.Name == "st" {
-         s[0] = cookie
+         s.Cookie = cookie
          return nil
       }
    }
@@ -219,7 +223,7 @@ func ExtractId(rawUrl string) (string, error) {
 func (s St) Initiate() (*Initiate, error) {
    req, _ := http.NewRequest("POST", prd_api, nil)
    req.URL.Path = "/authentication/linkDevice/initiate"
-   req.AddCookie(s[0])
+   req.AddCookie(s.Cookie)
    req.Header.Set("x-device-info", device_info)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -385,5 +389,3 @@ type Login struct {
       }
    }
 }
-
-type St [1]*http.Cookie

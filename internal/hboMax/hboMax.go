@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/hboMax"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -22,7 +22,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.CertificateChain = cache + "/SL3000/CertificateChain"
    c.config.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/hboMax/user_cache.json"
+   c.name = cache + "/hboMax/user_cache.xml"
 
    flag.StringVar(&c.config.CertificateChain, "C", c.config.CertificateChain, "certificate chain")
    flag.StringVar(&c.config.EncryptSignKey, "E", c.config.EncryptSignKey, "encrypt sign key")
@@ -54,7 +54,7 @@ func (c *command) run() error {
 }
 
 func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -86,7 +86,7 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    cache := &user_cache{}
-   err = json.Unmarshal(data, cache)
+   err = xml.Unmarshal(data, cache)
    if err != nil {
       return nil, err
    }

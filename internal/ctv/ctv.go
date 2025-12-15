@@ -13,40 +13,6 @@ import (
    "path/filepath"
 )
 
-type mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = ctv.Widevine
-   return c.config.Download(cache.Url, cache.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4a", ".m4v":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -61,6 +27,7 @@ func (c *command) run() error {
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.address != "" {
@@ -120,4 +87,37 @@ func (c *command) do_address() error {
       return err
    }
    return maya.Representations(cache.Url, cache.Body)
+}
+type mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache mpd
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = ctv.Widevine
+   return c.config.Download(cache.Url, cache.Body, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4a", ".m4v":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

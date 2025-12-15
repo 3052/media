@@ -12,6 +12,13 @@ import (
    "path/filepath"
 )
 
+type Cache struct {
+   Mpd      *url.URL
+   MpdBody  []byte
+   Playlist *Playlist
+   Session  *Session
+}
+
 func (f *flag_set) New() error {
    var err error
    f.cache, err = os.UserCacheDir()
