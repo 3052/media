@@ -3,13 +3,34 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/ctv"
+   "encoding/xml"
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+type mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache mpd
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = ctv.Widevine
+   return c.config.Download(cache.Url, cache.Body, c.dash)
+}
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -26,9 +47,35 @@ func main() {
    }
 }
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/ctv/mpd.xml"
+
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.Parse()
+
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
 type command struct {
-   config  maya.Config
-   name string
+   config maya.Config
+   name   string
    // 1
    address string
    // 2
@@ -37,56 +84,40 @@ type command struct {
 
 ///
 
-func (f *command) New() error {
-   if set.address != "" {
-      err = set.do_address()
-      if err != nil {
-         panic(err)
-      }
-   } else {
-      flag.Usage()
-   }
-   cache, err := os.UserCacheDir()
+func (c *command) do_address() error {
+   link_path, err := ctv.GetPath(c.address)
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   f.config.ClientId = cache + "/L3/client_id.bin"
-   f.config.PrivateKey = cache + "/L3/private_key.pem"
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.config.ClientId, "c", f.config.ClientId, "client ID")
-   flag.Var(&f.filters, "f", maya.FilterUsage)
-   flag.StringVar(&f.config.PrivateKey, "p", f.config.PrivateKey, "private key")
-   flag.IntVar(&f.config.Threads, "t", 2, "threads")
-   flag.Parse()
-   return nil
-}
-
-func (f *command) do_address() error {
-   path, err := ctv.GetPath(f.address)
+   resolve, err := ctv.Resolve(link_path)
    if err != nil {
       return err
    }
-   resolve, err := ctv.Resolve(path)
+   axis, err := resolve.AxisContent()
    if err != nil {
       return err
    }
-   axis, err := resolve.Axis()
+   playback, err := axis.Playback()
    if err != nil {
       return err
    }
-   content, err := axis.Content()
+   manifest, err := axis.Manifest(playback)
    if err != nil {
       return err
    }
-   address, err := axis.Mpd(content)
+   var cache mpd
+   cache.Url, cache.Body, err = manifest.Mpd()
    if err != nil {
       return err
    }
-   resp, err := http.Get(address)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
-   f.config.Send = ctv.Widevine
-   return f.filters.Filter(resp, &f.config)
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return maya.Representations(cache.Url, cache.Body)
 }

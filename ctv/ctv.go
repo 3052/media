@@ -11,35 +11,18 @@ import (
    "strings"
 )
 
-func (m Manifest) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
-}
-
-type Manifest []byte
-
 func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      data := &strings.Builder{}
-      fmt.Fprint(data, "/destinations/")
-      fmt.Fprint(data, a.AxisPlaybackLanguages[0].DestinationCode)
-      fmt.Fprint(data, "/platforms/desktop/playback/contents/")
-      fmt.Fprint(data, a.AxisId)
-      fmt.Fprint(data, "/contentPackages/")
-      fmt.Fprint(data, play.ContentPackages[0].Id)
-      fmt.Fprint(data, "/manifest.mpd")
-      return data.String()
-   }()
    req.URL.RawQuery = "action=reference"
+   req.URL.Path = fmt.Sprint(
+      "/destinations/",
+      a.AxisPlaybackLanguages[0].DestinationCode,
+      "/platforms/desktop/playback/contents/",
+      a.AxisId,
+      "/contentPackages/",
+      play.ContentPackages[0].Id,
+      "/manifest.mpd",
+   )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -129,30 +112,6 @@ type Playback struct {
    ContentPackages []struct {
       Id int
    }
-}
-
-func (a *AxisContent) Playback() (*Playback, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.Path = func() string {
-      data := &strings.Builder{}
-      fmt.Fprint(data, "/destinations/")
-      fmt.Fprint(data, a.AxisPlaybackLanguages[0].DestinationCode)
-      fmt.Fprint(data, "/platforms/desktop/contents/")
-      fmt.Fprint(data, a.AxisId)
-      return data.String()
-   }()
-   req.URL.RawQuery = "$include=[ContentPackages]"
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Playback{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
 
 func Resolve(path string) (*ResolvedPath, error) {
@@ -256,4 +215,41 @@ func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
       return nil, errors.New(result.Errors[0].Message)
    }
    return &result.Data.AxisContent, nil
+}
+
+func (m Manifest) Mpd() (*url.URL, []byte, error) {
+   resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   return resp.Request.URL, data, nil
+}
+
+type Manifest []byte
+
+func (a *AxisContent) Playback() (*Playback, error) {
+   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
+   req.URL.RawQuery = "$include=[ContentPackages]"
+   req.URL.Path = fmt.Sprint(
+      "/destinations/",
+      a.AxisPlaybackLanguages[0].DestinationCode,
+      "/platforms/desktop/contents/",
+      a.AxisId,
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Playback{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
 }
