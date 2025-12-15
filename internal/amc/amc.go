@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/amc"
-   "encoding/json"
+   "encoding/xml"
    "errors"
    "flag"
    "fmt"
@@ -15,6 +15,62 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/amc/userCache.xml"
+
+   flag.StringVar(&c.email, "E", "", "email")
+   flag.StringVar(&c.password, "P", "", "password")
+   flag.Int64Var(&c.series, "S", 0, "series ID")
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.Int64Var(&c.episode, "e", 0, "episode or movie ID")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   flag.Int64Var(&c.season, "s", 0, "season ID")
+   flag.Parse()
+
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.refresh {
+      return c.do_refresh()
+   }
+   if c.series >= 1 {
+      return c.do_series()
+   }
+   if c.season >= 1 {
+      return c.do_season()
+   }
+   if c.episode >= 1 {
+      return c.do_episode()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+type command struct {
+   config   maya.Config
+   dash     string
+   email    string
+   episode  int64
+   name     string
+   password string
+   refresh  bool
+   season   int64
+   series   int64
+}
 type user_cache struct {
    Header http.Header
    Mpd    struct {
@@ -39,7 +95,7 @@ func (c *command) do_email_password() error {
 }
 
 func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -53,7 +109,7 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    cache := &user_cache{}
-   err = json.Unmarshal(data, cache)
+   err = xml.Unmarshal(data, cache)
    if err != nil {
       return nil, err
    }
@@ -115,6 +171,7 @@ func (c *command) do_season() error {
    }
    return nil
 }
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -163,61 +220,4 @@ func (c *command) do_dash() error {
       return source.Widevine(cache.Header, data)
    }
    return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/amc/user_cache.json"
-
-   flag.StringVar(&c.email, "E", "", "email")
-   flag.StringVar(&c.password, "P", "", "password")
-   flag.Int64Var(&c.series, "S", 0, "series ID")
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.Int64Var(&c.episode, "e", 0, "episode or movie ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   flag.Int64Var(&c.season, "s", 0, "season ID")
-   flag.Parse()
-
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.refresh {
-      return c.do_refresh()
-   }
-   if c.series >= 1 {
-      return c.do_series()
-   }
-   if c.season >= 1 {
-      return c.do_season()
-   }
-   if c.episode >= 1 {
-      return c.do_episode()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   flag.Usage()
-   return nil
-}
-
-type command struct {
-   config   maya.Config
-   dash     string
-   email    string
-   episode  int64
-   name     string
-   password string
-   refresh  bool
-   season   int64
-   series   int64
 }

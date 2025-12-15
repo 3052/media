@@ -13,42 +13,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.VideoResource.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-type user_cache struct {
-   Mpd           *url.URL
-   MpdBody       []byte
-   VideoResource *tubi.VideoResource
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -57,7 +21,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/tubi/user_cache.xml"
+   c.name = cache + "/tubi/userCache.xml"
 
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
@@ -106,4 +70,39 @@ type command struct {
    tubi int
    // 2
    dash string
+}
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.VideoResource.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   Mpd           *url.URL
+   MpdBody       []byte
+   VideoResource *tubi.VideoResource
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

@@ -14,6 +14,20 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -143,13 +157,10 @@ type command struct {
    name     string
    season   int
 }
-
 type user_cache struct {
-   Login *hboMax.Login
-   Mpd   struct {
-      Body []byte
-      Url  *url.URL
-   }
+   Login    *hboMax.Login
+   Mpd      *url.URL
+   MpdBody  []byte
    Playback *hboMax.Playback
    St       *hboMax.St
 }
@@ -163,7 +174,7 @@ func (c *command) do_edit() error {
    if err != nil {
       return err
    }
-   cache.Mpd.Url, cache.Mpd.Body, err = cache.Playback.Mpd()
+   cache.Mpd, cache.MpdBody, err = cache.Playback.Mpd()
    if err != nil {
       return err
    }
@@ -171,7 +182,7 @@ func (c *command) do_edit() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
 func (c *command) do_dash() error {
@@ -182,19 +193,5 @@ func (c *command) do_dash() error {
    c.config.Send = func(data []byte) ([]byte, error) {
       return cache.Playback.PlayReady(data)
    }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }
