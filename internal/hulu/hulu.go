@@ -3,57 +3,36 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/hulu"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "log"
    "net/http"
+   "net/url"
    "os"
    "path"
    "path/filepath"
 )
 
-type Cache struct {
+type user_cache struct {
    Mpd      *url.URL
    MpdBody  []byte
-   Playlist *Playlist
-   Session  *Session
+   Playlist *hulu.Playlist
+   Session  *hulu.Session
 }
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.dash, "d", "", "DASH ID")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.IntVar(&f.config.Threads, "t", 2, "threads")
-   flag.Parse()
-   return nil
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Playlist.Widevine(data)
    }
-   return false
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
 }
 
 func main() {
+   log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
       switch path.Ext(req.URL.Path) {
       case ".mp4", ".mp4a":
@@ -61,67 +40,86 @@ func main() {
       }
       return "L"
    })
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
-   if err != nil {
-      log.Fatal(err)
-   }
-   switch {
-   case set.email_password():
-      err = set.do_session()
-   case set.address != "":
-      err = set.do_address()
-   case set.dash != "":
-      err = set.do_dash()
-   default:
-      flag.Usage()
-   }
+   err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-type flag_set struct {
-   cache  string
-   config maya.Config
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/hulu/user_cache.xml"
+
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.Parse()
+   
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
 }
 
-func (f *flag_set) do_session() error {
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func (c *command) do_email_password() error {
    var session hulu.Session
-   err := session.Fetch(f.email, f.password)
+   err := session.Fetch(c.email, c.password)
    if err != nil {
       return err
    }
-   data, err := json.Marshal(hulu.Cache{Session: &session})
-   if err != nil {
-      return err
-   }
-   return write_file(f.cache+"/hulu/Cache", data)
+   return write(c.name, &user_cache{Session: &session})
 }
 
-func (f *flag_set) do_address() error {
-   id, err := hulu.Id(f.address)
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
    if err != nil {
-      return err
+      return nil, err
    }
-   data, err := os.ReadFile(f.cache + "/hulu/Cache")
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
    if err != nil {
-      return err
+      return nil, err
    }
-   var cache hulu.Cache
-   err = json.Unmarshal(data, &cache)
+   return cache, nil
+}
+
+func (c *command) do_address() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
    err = cache.Session.TokenRefresh()
+   if err != nil {
+      return err
+   }
+   id, err := hulu.Id(c.address)
    if err != nil {
       return err
    }
@@ -133,33 +131,25 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   err = cache.Playlist.Mpd(&cache)
+   cache.Mpd, cache.MpdBody, err = cache.Playlist.Mpd()
    if err != nil {
       return err
    }
-   data, err = json.Marshal(cache)
+   err = write(c.name, cache)
    if err != nil {
       return err
    }
-   err = write_file(f.cache+"/hulu/Cache", data)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.MpdBody, cache.Mpd)
+   return maya.Representations(cache.Mpd, cache.MpdBody)
 }
 
-func (f *flag_set) do_dash() error {
-   data, err := os.ReadFile(f.cache + "/hulu/Cache")
-   if err != nil {
-      return err
-   }
-   var cache hulu.Cache
-   err = json.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   f.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playlist.Widevine(data)
-   }
-   return f.config.Download(cache.MpdBody, cache.Mpd, f.dash)
+type command struct {
+   name  string
+   config maya.Config
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
 }
