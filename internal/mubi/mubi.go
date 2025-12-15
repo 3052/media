@@ -14,47 +14,6 @@ import (
    "path/filepath"
 )
 
-type command struct {
-   address string
-   code    bool
-   config  maya.Config
-   dash    string
-   name    string
-   session bool
-}
-
-type user_cache struct {
-   LinkCode *mubi.LinkCode
-   Mpd      *url.URL
-   MpdBody  []byte
-   Session  *mubi.Session
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Session.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".dash" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -63,7 +22,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/mubi/user_cache.xml"
+   c.name = cache + "/mubi/userCache.xml"
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
@@ -163,4 +122,44 @@ func (c *command) do_address() error {
       return err
    }
    return maya.Representations(cache.Mpd, cache.MpdBody)
+}
+type command struct {
+   address string
+   code    bool
+   config  maya.Config
+   dash    string
+   name    string
+   session bool
+}
+
+type user_cache struct {
+   LinkCode *mubi.LinkCode
+   Mpd      *url.URL
+   MpdBody  []byte
+   Session  *mubi.Session
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Session.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

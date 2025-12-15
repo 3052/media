@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/rakuten"
-   "encoding/json"
+   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -13,21 +13,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -36,7 +21,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rakuten/user_cache.json"
+   c.name = cache + "/rakuten/userCache.xml"
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
@@ -68,7 +53,7 @@ func (c *command) run() error {
 }
 
 func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -111,7 +96,7 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    cache := &user_cache{}
-   err = json.Unmarshal(data, cache)
+   err = xml.Unmarshal(data, cache)
    if err != nil {
       return nil, err
    }
@@ -164,12 +149,12 @@ type command struct {
 ///
 
 func (c *command) do_language() error {
-   data, err := os.ReadFile(c.name + "/rakuten/user_cache")
+   data, err := os.ReadFile(c.name + "/rakuten/userCache.xml")
    if err != nil {
       return err
    }
    var cache rakuten.user_cache
-   err = json.Unmarshal(data, &cache)
+   err = xml.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
@@ -191,11 +176,11 @@ func (c *command) do_language() error {
    if err != nil {
       return err
    }
-   data, err = json.Marshal(cache)
+   data, err = xml.Marshal(cache)
    if err != nil {
       return err
    }
-   err = write_file(c.name+"/rakuten/user_cache", data)
+   err = write_file(c.name+"/rakuten/userCache.xml", data)
    if err != nil {
       return err
    }
@@ -203,12 +188,12 @@ func (c *command) do_language() error {
 }
 
 func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name + "/rakuten/user_cache")
+   data, err := os.ReadFile(c.name + "/rakuten/userCache.xml")
    if err != nil {
       return err
    }
    var cache rakuten.user_cache
-   err = json.Unmarshal(data, &cache)
+   err = xml.Unmarshal(data, &cache)
    if err != nil {
       return err
    }
@@ -230,4 +215,18 @@ func (c *command) do_dash() error {
       return stream.Widevine(data)
    }
    return c.config.Download(cache.MpdBody, cache.Mpd, c.dash)
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

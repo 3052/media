@@ -11,17 +11,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(*http.Request) string {
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -30,7 +19,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rtbf/user_cache.json"
+   c.name = cache + "/rtbf/userCache.xml"
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
@@ -59,7 +48,7 @@ type user_cache struct {
 }
 
 func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -140,4 +129,14 @@ func (c *command) do_dash() error {
       return title.Widevine(data)
    }
    return c.filters.Filter(resp, &c.config)
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(*http.Request) string {
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
