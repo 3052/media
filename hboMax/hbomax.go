@@ -13,6 +13,61 @@ import (
    "strings"
 )
 
+const device_info  = "!/!(!/!;!/!;!/!)"
+
+func (s St) Initiate() (*Initiate, error) {
+   link := url.URL{
+      Scheme: "https",
+      Host: "default.beam-emea.prd.api.discomax.com",
+      Path: "/authentication/linkDevice/initiate",
+   }
+   req, _ := http.NewRequest("POST", link.String(), nil)
+   req.AddCookie(s.Cookie)
+   req.Header.Set("x-device-info", device_info)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      Data struct {
+         Attributes Initiate
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data.Attributes, nil
+}
+
+const prd_api = "https://default.prd.api.hbomax.com"
+
+func (s *St) Fetch() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s.Cookie = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
 type St struct {
    Cookie *http.Cookie
 }
@@ -62,30 +117,12 @@ func (s St) Login() (*Login, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   value := &Login{}
-   err = json.NewDecoder(resp.Body).Decode(value)
+   result := &Login{}
+   err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
    }
-   return value, nil
-}
-
-func (s *St) Fetch() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s.Cookie = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
+   return result, nil
 }
 
 func (l Login) Movie(show_id string) (*Videos, error) {
@@ -154,11 +191,7 @@ type Scheme struct {
    LicenseUrl string
 }
 
-const (
-   device_info  = "!/!(!/!;!/!;!/!)"
-   disco_client = "!:!:beam:!"
-   prd_api      = "https://default.prd.api.discomax.com"
-)
+const disco_client = "!:!:beam:!"
 
 type Initiate struct {
    LinkingCode string
@@ -218,32 +251,6 @@ func ExtractId(rawUrl string) (string, error) {
       return "", errors.New("invalid URL: scheme is missing")
    }
    return path.Base(u.Path), nil
-}
-
-func (s St) Initiate() (*Initiate, error) {
-   req, _ := http.NewRequest("POST", prd_api, nil)
-   req.URL.Path = "/authentication/linkDevice/initiate"
-   req.AddCookie(s.Cookie)
-   req.Header.Set("x-device-info", device_info)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var value struct {
-      Data struct {
-         Attributes Initiate
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&value)
-   if err != nil {
-      return nil, err
-   }
-   if len(value.Errors) >= 1 {
-      return nil, &value.Errors[0]
-   }
-   return &value.Data.Attributes, nil
 }
 
 func (l Login) Season(show_id string, number int) (*Videos, error) {
@@ -324,12 +331,8 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    if err != nil {
       return nil, err
    }
-   req.URL.Path = func() string {
-      var data bytes.Buffer
-      data.WriteString("/playback-orchestrator/any/playback-orchestrator/v1")
-      data.WriteString("/playbackInfo")
-      return data.String()
-   }()
+   req.URL.Path = 
+      "/playback-orchestrator/any/playback-orchestrator/v1/playbackInfo"
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
    req.Header.Set("content-type", "application/json")
    resp, err := http.DefaultClient.Do(req)

@@ -30,6 +30,7 @@ func (c *command) run() error {
    flag.BoolVar(&c.code, "c", false, "link code")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.session, "s", false, "session")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.code {

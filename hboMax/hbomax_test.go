@@ -1,10 +1,19 @@
 package hboMax
 
 import (
-   "fmt"
    "os"
    "testing"
 )
+
+func TestApi(t *testing.T) {
+   alfas := []string{"", ".any-any", ".any-emea", ".beam-emea"}
+   bravos := []string{"discomax", "hbomax"}
+   for _, alfa := range alfas {
+      for _, bravo := range bravos {
+         t.Logf("https://default%v.prd.api.%v.com", alfa, bravo)
+      }
+   }
+}
 
 var content_tests = []struct {
    url      string
@@ -63,9 +72,7 @@ var content_tests = []struct {
 }
 
 func TestContent(t *testing.T) {
-   for _, test := range content_tests {
-      fmt.Println(test)
-   }
+   t.Log(content_tests)
 }
 
 func TestPlayReady(t *testing.T) {

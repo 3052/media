@@ -1,4 +1,4 @@
-# blog
+# research
 
 ## 2025
 
