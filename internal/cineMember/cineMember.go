@@ -19,7 +19,7 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   c.name = filepath.ToSlash(cache) + "/cineMember/user_cache.xml"
+   c.name = filepath.ToSlash(cache) + "/cineMember/userCache.xml"
 
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.dash, "d", "", "DASH ID")

@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/itv"
-   "encoding/json"
+   "encoding/xml"
    "errors"
    "flag"
    "fmt"
@@ -38,7 +38,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/itv/user_cache.json"
+   c.name = cache + "/itv/userCache.xml"
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
@@ -106,7 +106,7 @@ func (c *command) do_playlist() error {
    if err != nil {
       return err
    }
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -130,7 +130,7 @@ func (c *command) do_dash() error {
       return err
    }
    var cache user_cache
-   err = json.Unmarshal(data, &cache)
+   err = xml.Unmarshal(data, &cache)
    if err != nil {
       return err
    }

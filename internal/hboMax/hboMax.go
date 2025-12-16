@@ -14,20 +14,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -36,7 +22,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.CertificateChain = cache + "/SL3000/CertificateChain"
    c.config.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/hboMax/user_cache.xml"
+   c.name = cache + "/hboMax/userCache.xml"
 
    flag.StringVar(&c.config.CertificateChain, "C", c.config.CertificateChain, "certificate chain")
    flag.StringVar(&c.config.EncryptSignKey, "E", c.config.EncryptSignKey, "encrypt sign key")
@@ -194,4 +180,17 @@ func (c *command) do_dash() error {
       return cache.Playback.PlayReady(data)
    }
    return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/kanopy"
-   "encoding/json"
+   "encoding/xml"
    "errors"
    "flag"
    "log"
@@ -44,15 +44,12 @@ func (c *command) do_kanopy() error {
 }
 
 type command struct {
-   name   string
-   config maya.Config
-   // 1
+   config   maya.Config
+   dash     string
    email    string
+   kanopy   int
+   name     string
    password string
-   // 2
-   kanopy int
-   // 3
-   dash string
 }
 
 func (c *command) do_dash() error {
@@ -95,7 +92,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.config.ClientId = cache + "/L3/client_id.bin"
    c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/kanopy/user_cache.json"
+   c.name = cache + "/kanopy/userCache.xml"
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
@@ -121,7 +118,7 @@ func (c *command) run() error {
 }
 
 func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
@@ -144,7 +141,7 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    cache := &user_cache{}
-   err = json.Unmarshal(data, cache)
+   err = xml.Unmarshal(data, cache)
    if err != nil {
       return nil, err
    }

@@ -14,6 +14,63 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.config.ClientId = cache + "/L3/client_id.bin"
+   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/canal/userCache.xml"
+
+   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
+   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.BoolVar(&c.subtitles, "S", false, "subtitles")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   flag.Int64Var(&c.season, "s", 0, "season")
+   flag.StringVar(&c.tracking, "t", "", "tracking")
+   flag.Parse()
+
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.refresh {
+      return c.do_refresh()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.tracking != "" {
+      if c.season >= 1 {
+         return c.do_tracking_season()
+      }
+      return c.do_tracking()
+   }
+   if c.subtitles {
+      return c.do_subtitles()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
 func (c *command) do_email_password() error {
    var ticket canal.Ticket
    err := ticket.Fetch()
@@ -130,6 +187,7 @@ type command struct {
    subtitles bool
    tracking  string
 }
+
 type user_cache struct {
    Mpd     *url.URL
    MpdBody []byte
@@ -178,62 +236,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/canal/user_cache.xml"
-
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
-   flag.BoolVar(&c.subtitles, "S", false, "subtitles")
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   flag.Int64Var(&c.season, "s", 0, "season")
-   flag.StringVar(&c.tracking, "t", "", "tracking")
-   flag.Parse()
-
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.refresh {
-      return c.do_refresh()
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.tracking != "" {
-      if c.season >= 1 {
-         return c.do_tracking_season()
-      }
-      return c.do_tracking()
-   }
-   if c.subtitles {
-      return c.do_subtitles()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   flag.Usage()
-   return nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }

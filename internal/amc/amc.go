@@ -15,6 +15,16 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   Client amc.Client
+   Header http.Header
+   Mpd    struct {
+      Body []byte
+      Url  *url.URL
+   }
+   Source []amc.Source
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -70,15 +80,6 @@ type command struct {
    refresh  bool
    season   int64
    series   int64
-}
-type user_cache struct {
-   Header http.Header
-   Mpd    struct {
-      Body []byte
-      Url  *url.URL
-   }
-   Source []amc.Source
-   Client amc.Client
 }
 
 func (c *command) do_email_password() error {
