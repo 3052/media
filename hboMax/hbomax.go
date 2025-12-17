@@ -13,6 +13,24 @@ import (
    "strings"
 )
 
+func (s *St) Fetch() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s.Cookie = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
 const device_info  = "!/!(!/!;!/!;!/!)"
 
 func (s St) Initiate() (*Initiate, error) {
@@ -49,24 +67,6 @@ func (s St) Initiate() (*Initiate, error) {
 }
 
 const prd_api = "https://default.prd.api.hbomax.com"
-
-func (s *St) Fetch() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s.Cookie = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
 
 type St struct {
    Cookie *http.Cookie
