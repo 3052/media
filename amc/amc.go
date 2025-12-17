@@ -10,6 +10,75 @@ import (
    "strconv"
 )
 
+func (c *Client) Unauth() error {
+   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+func (c *Client) Refresh() error {
+   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
+   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
+   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+func (c *Client) Login(email, password string) error {
+   data, err := json.Marshal(map[string]string{
+      "email":    email,
+      "password": password,
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.URL.Path = "/auth-orchestration-id/api/v1/login"
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-group-id", "10")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+type Client struct {
+   Data struct {
+      AccessToken  string `json:"access_token"`
+      RefreshToken string `json:"refresh_token"`
+   }
+}
+
 func (c *Client) Playback(id int64) (http.Header, []Source, error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
@@ -133,6 +202,28 @@ func (c *Client) SeriesDetail(id int64) (*Node, error) {
    return &result.Data, nil
 }
 
+type Metadata struct {
+   EpisodeNumber int64
+   Nid           int64
+   Title         string
+}
+
+func (m *Metadata) String() string {
+   var data []byte
+   if m.EpisodeNumber >= 0 {
+      data = []byte("episode = ")
+      data = strconv.AppendInt(data, m.EpisodeNumber, 10)
+   }
+   if data != nil {
+      data = append(data, '\n')
+   }
+   data = append(data, "title = "...)
+   data = append(data, m.Title...)
+   data = append(data, "\nnid = "...)
+   data = strconv.AppendInt(data, m.Nid, 10)
+   return string(data)
+}
+
 func (n *Node) ExtractEpisodes() ([]*Metadata, error) {
    for _, listNode := range n.Children {
       if listNode.Type != "list" {
@@ -201,107 +292,6 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    // If all loops complete without returning, the target was not found.
    return nil, errors.New("could not find the seasons list within the manifest")
 }
-func Dash(sources []Source) (*Source, bool) {
-   for _, source_var := range sources {
-      if source_var.Type == "application/dash+xml" {
-         return &source_var, true
-      }
-   }
-   return nil, false
-}
-
-///
-
-type Metadata struct {
-   EpisodeNumber int64
-   Nid           int64
-   Title         string
-}
-
-func (m *Metadata) String() string {
-   var data []byte
-   if m.EpisodeNumber >= 0 {
-      data = []byte("episode = ")
-      data = strconv.AppendInt(data, m.EpisodeNumber, 10)
-   }
-   if data != nil {
-      data = append(data, '\n')
-   }
-   data = append(data, "title = "...)
-   data = append(data, m.Title...)
-   data = append(data, "\nnid = "...)
-   data = strconv.AppendInt(data, m.Nid, 10)
-   return string(data)
-}
-
-func (c *Client) Unauth() error {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-func (c *Client) Refresh() error {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
-   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-func (c *Client) Login(email, password string) error {
-   data, err := json.Marshal(map[string]string{
-      "email":    email,
-      "password": password,
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.URL.Path = "/auth-orchestration-id/api/v1/login"
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-amcn-device-ad-id", "-")
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-service-group-id", "10")
-   req.Header.Set("x-amcn-service-id", "amcplus")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-type Client struct {
-   Data struct {
-      AccessToken  string `json:"access_token"`
-      RefreshToken string `json:"refresh_token"`
-   }
-}
 
 type Source struct {
    KeySystems struct {
@@ -341,4 +331,13 @@ func (s *Source) Mpd() (*url.URL, []byte, error) {
       return nil, nil, err
    }
    return resp.Request.URL, data, nil
+}
+
+func Dash(sources []Source) (*Source, bool) {
+   for _, source_var := range sources {
+      if source_var.Type == "application/dash+xml" {
+         return &source_var, true
+      }
+   }
+   return nil, false
 }

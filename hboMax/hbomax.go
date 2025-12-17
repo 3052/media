@@ -4,6 +4,7 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -13,35 +14,19 @@ import (
    "strings"
 )
 
-func (s *St) Fetch() error {
-   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s.Cookie = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
+var Markets = []string{
+   "amer",
+   "apac",
+   "emea",
+   "latam",
 }
 
-const device_info  = "!/!(!/!;!/!;!/!)"
-
-func (s St) Initiate() (*Initiate, error) {
-   link := url.URL{
-      Scheme: "https",
-      Host: "default.beam-emea.prd.api.discomax.com",
-      Path: "/authentication/linkDevice/initiate",
-   }
-   req, _ := http.NewRequest("POST", link.String(), nil)
+func (s St) Initiate(market string) (*Initiate, error) {
+   req, _ := http.NewRequest("POST", "/authentication/linkDevice/initiate", nil)
    req.AddCookie(s.Cookie)
    req.Header.Set("x-device-info", device_info)
+   req.URL.Host = fmt.Sprintf("default.beam-%v.prd.api.discomax.com", market)
+   req.URL.Scheme = "https"
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -67,6 +52,26 @@ func (s St) Initiate() (*Initiate, error) {
 }
 
 const prd_api = "https://default.prd.api.hbomax.com"
+
+func (s *St) Fetch() error {
+   req, _ := http.NewRequest("", prd_api+"/token?realm=bolt", nil)
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s.Cookie = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
+}
+
+const device_info  = "!/!(!/!;!/!;!/!)"
 
 type St struct {
    Cookie *http.Cookie
