@@ -10,6 +10,24 @@ import (
    "strconv"
 )
 
+func (s *Source) Mpd() (*Mpd, error) {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
 type Source struct {
    KeySystems struct {
       ComWidevineAlpha *struct {
@@ -25,26 +43,6 @@ type Client struct {
       AccessToken  string `json:"access_token"`
       RefreshToken string `json:"refresh_token"`
    }
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (s *Source) Mpd() (*Mpd, error) {
-   resp, err := http.Get(s.Src)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Mpd
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 func (c *Client) Unauth() error {

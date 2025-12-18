@@ -16,6 +16,30 @@ import (
    "time"
 )
 
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
+
+func (p *Player) Mpd() (*Mpd, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
 type Login struct {
    Label    string
    Message  string
@@ -68,19 +92,6 @@ func (l *Login) Error() string {
    data.WriteString("\nmessage = ")
    data.WriteString(l.Message)
    return data.String()
-}
-
-func (p *Player) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type Player struct {
@@ -243,12 +254,6 @@ func (p *Player) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
 }
 
 func (e *Episode) String() string {
