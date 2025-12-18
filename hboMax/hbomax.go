@@ -14,6 +14,26 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (p *Playback) Mpd() (*Mpd, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 type Scheme struct {
    LicenseUrl string
 }
@@ -112,25 +132,10 @@ func (s *St) Fetch() error {
    return http.ErrNoCookie
 }
 
-const device_info  = "!/!(!/!;!/!;!/!)"
+const device_info = "!/!(!/!;!/!;!/!)"
 
 type St struct {
    Cookie *http.Cookie
-}
-
-func (p *Playback) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 // you must
@@ -351,7 +356,7 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    if err != nil {
       return nil, err
    }
-   req.URL.Path = 
+   req.URL.Path =
       "/playback-orchestrator/any/playback-orchestrator/v1/playbackInfo"
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
    req.Header.Set("content-type", "application/json")

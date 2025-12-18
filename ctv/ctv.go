@@ -11,6 +11,24 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (m Manifest) Mpd() (*Mpd, error) {
+   resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
    req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
    req.URL.RawQuery = "action=reference"
@@ -215,19 +233,6 @@ func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
       return nil, errors.New(result.Errors[0].Message)
    }
    return &result.Data.AxisContent, nil
-}
-
-func (m Manifest) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type Manifest []byte

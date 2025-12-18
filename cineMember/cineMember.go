@@ -10,6 +10,24 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (m *MediaLink) Mpd() (*Mpd, error) {
+   resp, err := http.Get(m.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 // Fetch performs the HEAD request to cinemember.nl and populates the Session
 // with the PHPSESSID cookie.
 func (s *Session) Fetch() error {
@@ -77,19 +95,6 @@ func (s *Stream) Dash() (*MediaLink, bool) {
       }
    }
    return nil, false
-}
-
-func (m *MediaLink) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(m.Url)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type MediaLink struct {

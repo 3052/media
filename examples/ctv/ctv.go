@@ -7,11 +7,39 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache ctv.Mpd
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = ctv.Widevine
+   return c.config.Download(cache.Url, cache.Body, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4a", ".m4v":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -41,15 +69,11 @@ func (c *command) run() error {
 }
 
 type command struct {
-   config maya.Config
-   name   string
-   // 1
    address string
-   // 2
-   dash string
+   config  maya.Config
+   dash    string
+   name    string
 }
-
-///
 
 func (c *command) do_address() error {
    link_path, err := ctv.GetPath(c.address)
@@ -72,8 +96,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   var cache mpd
-   cache.Url, cache.Body, err = manifest.Mpd()
+   cache, err := manifest.Mpd()
    if err != nil {
       return err
    }
@@ -87,37 +110,4 @@ func (c *command) do_address() error {
       return err
    }
    return maya.Representations(cache.Url, cache.Body)
-}
-type mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = ctv.Widevine
-   return c.config.Download(cache.Url, cache.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4a", ".m4v":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

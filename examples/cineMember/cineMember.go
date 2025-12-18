@@ -8,11 +8,23 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type user_cache struct {
+   Mpd     *cineMember.Mpd
+   Session *cineMember.Session
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -118,7 +130,7 @@ func (c *command) do_address() error {
    if !ok {
       return errors.New(".Dash()")
    }
-   cache.Mpd, cache.MpdBody, err = link.Mpd()
+   cache.Mpd, err = link.Mpd()
    if err != nil {
       return err
    }
@@ -126,19 +138,5 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd, cache.MpdBody)
-}
-
-type user_cache struct {
-   Mpd     *url.URL
-   MpdBody []byte
-   Session *cineMember.Session
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
