@@ -14,6 +14,47 @@ import (
    "strings"
 )
 
+type Scheme struct {
+   LicenseUrl string
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine  *Scheme
+      }
+   }
+   Errors   []Error
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
+func (l *Login) PlayReady(edit_id string) (*Playback, error) {
+   return l.playback(edit_id, "playready")
+}
+
+func (p *Playback) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 var Markets = []string{
    "amer",
    "apac",
@@ -90,24 +131,6 @@ func (p *Playback) Mpd() (*url.URL, []byte, error) {
       return nil, nil, err
    }
    return resp.Request.URL, data, nil
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         PlayReady *Scheme
-         Widevine  *Scheme
-      }
-   }
-   Errors   []Error
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
 }
 
 // you must
@@ -190,10 +213,6 @@ func (i *Initiate) String() string {
    data.WriteString("\nlinking code = ")
    data.WriteString(i.LinkingCode)
    return data.String()
-}
-
-type Scheme struct {
-   LicenseUrl string
 }
 
 const disco_client = "!:!:beam:!"
@@ -280,10 +299,6 @@ func (l Login) Season(show_id string, number int) (*Videos, error) {
    return season, nil
 }
 
-func (l *Login) PlayReady(edit_id string) (*Playback, error) {
-   return l.playback(edit_id, "playready")
-}
-
 func (l *Login) Widevine(edit_id string) (*Playback, error) {
    return l.playback(edit_id, "widevine")
 }
@@ -358,21 +373,6 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
       return nil, &play.Errors[0]
    }
    return &play, nil
-}
-
-func (p *Playback) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 func (p *Playback) Widevine(data []byte) ([]byte, error) {

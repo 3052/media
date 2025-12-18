@@ -14,6 +14,14 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   Login    *hboMax.Login
+   Mpd      *url.URL
+   MpdBody  []byte
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
 func (c *command) do_initiate() error {
    var st hboMax.St
    err := st.Fetch()
@@ -83,14 +91,6 @@ func (c *command) do_address() error {
       fmt.Println(video)
    }
    return nil
-}
-
-type user_cache struct {
-   Login    *hboMax.Login
-   Mpd      *url.URL
-   MpdBody  []byte
-   Playback *hboMax.Playback
-   St       *hboMax.St
 }
 
 func (c *command) do_edit() error {
