@@ -10,6 +10,43 @@ import (
    "strconv"
 )
 
+type Source struct {
+   KeySystems struct {
+      ComWidevineAlpha *struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // URL to the MPD manifest
+   Type string // e.g., "application/dash+xml"
+}
+
+type Client struct {
+   Data struct {
+      AccessToken  string `json:"access_token"`
+      RefreshToken string `json:"refresh_token"`
+   }
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (s *Source) Mpd() (*Mpd, error) {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Mpd
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
 func (c *Client) Unauth() error {
    req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
    req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
@@ -70,13 +107,6 @@ func (c *Client) Login(email, password string) error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(c)
-}
-
-type Client struct {
-   Data struct {
-      AccessToken  string `json:"access_token"`
-      RefreshToken string `json:"refresh_token"`
-   }
 }
 
 func (c *Client) Playback(id int64) (http.Header, []Source, error) {
@@ -293,16 +323,6 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    return nil, errors.New("could not find the seasons list within the manifest")
 }
 
-type Source struct {
-   KeySystems struct {
-      ComWidevineAlpha *struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // URL to the MPD manifest
-   Type string // e.g., "application/dash+xml"
-}
-
 func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
@@ -318,19 +338,6 @@ func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func (s *Source) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(s.Src)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 func Dash(sources []Source) (*Source, bool) {
