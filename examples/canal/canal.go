@@ -13,82 +13,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Player.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   Mpd     *canal.Mpd
-   Player  *canal.Player
-   Session *canal.Session
-}
-
-func get(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   file, err := os.Create(path.Base(address))
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = file.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".dash" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) do_subtitles() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   for _, subtitles := range cache.Player.Subtitles {
-      err = get(subtitles.Url)
-      if err != nil {
-         return err
-      }
-   }
-   return nil
-}
-
-type command struct {
-   address   string
-   config    maya.Config
-   dash      string
-   email     string
-   name      string
-   password  string
-   refresh   bool
-   season    int64
-   subtitles bool
-   tracking  string
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -101,6 +25,7 @@ func (c *command) run() error {
 
    flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
    flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.IntVar(&c.config.Threads, "T", 2, "threads")
    flag.BoolVar(&c.subtitles, "S", false, "subtitles")
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
@@ -145,24 +70,6 @@ func write(name string, cache *user_cache) error {
    }
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (c *command) do_email_password() error {
-   var ticket canal.Ticket
-   err := ticket.Fetch()
-   if err != nil {
-      return err
-   }
-   login, err := ticket.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = cache.Session.Fetch(login.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &cache)
 }
 
 func read(name string) (*user_cache, error) {
@@ -235,4 +142,97 @@ func (c *command) do_tracking() error {
       return err
    }
    return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+func (c *command) do_email_password() error {
+   var ticket canal.Ticket
+   err := ticket.Fetch()
+   if err != nil {
+      return err
+   }
+   login, err := ticket.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Fetch(login.SsoToken)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &user_cache{Session: &session})
+}
+
+type user_cache struct {
+   Mpd     *canal.Mpd
+   Player  *canal.Player
+   Session *canal.Session
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Player.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+func get(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   file, err := os.Create(path.Base(address))
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_subtitles() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   for _, subtitles := range cache.Player.Subtitles {
+      err = get(subtitles.Url)
+      if err != nil {
+         return err
+      }
+   }
+   return nil
+}
+
+type command struct {
+   address   string
+   config    maya.Config
+   dash      string
+   email     string
+   name      string
+   password  string
+   refresh   bool
+   season    int64
+   subtitles bool
+   tracking  string
 }
