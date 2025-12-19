@@ -7,11 +7,51 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Playlist.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type user_cache struct {
+   Mpd      *hulu.Mpd
+   Playlist *hulu.Playlist
+   Session  *hulu.Session
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   address  string
+   config   maya.Config
+   dash     string
+   email    string
+   name     string
+   password string
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -30,7 +70,7 @@ func (c *command) run() error {
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
    flag.Parse()
-   
+
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
@@ -98,7 +138,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   cache.Mpd, cache.MpdBody, err = cache.Playlist.Mpd()
+   cache.Mpd, err = cache.Playlist.Mpd()
    if err != nil {
       return err
    }
@@ -106,49 +146,5 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd, cache.MpdBody)
-}
-
-type command struct {
-   name  string
-   config maya.Config
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-}
-type user_cache struct {
-   Mpd      *url.URL
-   MpdBody  []byte
-   Playlist *hulu.Playlist
-   Session  *hulu.Session
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playlist.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }

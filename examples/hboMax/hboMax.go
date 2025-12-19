@@ -13,6 +13,13 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   Login    *hboMax.Login
+   Mpd      *hboMax.Mpd
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -22,13 +29,6 @@ func (c *command) do_dash() error {
       return cache.Playback.PlayReady(data)
    }
    return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   Login    *hboMax.Login
-   Mpd      *hboMax.Mpd
-   Playback *hboMax.Playback
-   St       *hboMax.St
 }
 
 func main() {

@@ -10,6 +10,24 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (p *Playlist) Mpd() (*Mpd, error) {
+   resp, err := http.Get(p.StreamUrl)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 func (s *Session) Fetch(email, password string) error {
    resp, err := http.PostForm(
       "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
@@ -187,18 +205,6 @@ func (s *Session) Playlist(deep *DeepLink) (*Playlist, error) {
       return nil, errors.New(result.Message)
    }
    return &result, nil
-}
-func (p *Playlist) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(p.StreamUrl)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type DeepLink struct {

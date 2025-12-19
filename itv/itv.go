@@ -12,6 +12,29 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (m *MediaFile) Mpd() (*Mpd, error) {
+   var err error
+   http.DefaultClient.Jar, err = cookiejar.New(nil)
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 func LegacyId(inputLink string) (string, error) {
    // 1. Parse the URL to safely access the path
    parsed, err := url.Parse(inputLink)
@@ -64,24 +87,6 @@ func Titles(legacyId string) ([]Title, error) {
       return nil, err
    }
    return payload.Data.Titles, nil
-}
-
-func (m *MediaFile) Mpd() (*url.URL, []byte, error) {
-   var err error
-   http.DefaultClient.Jar, err = cookiejar.New(nil)
-   if err != nil {
-      return nil, nil, err
-   }
-   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 func (p *Playlist) FullHd() (*MediaFile, bool) {

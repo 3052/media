@@ -9,11 +9,31 @@ import (
    "fmt"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.MediaFile.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type user_cache struct {
+   MediaFile *itv.MediaFile
+   Mpd       *itv.Mpd
+}
 
 func main() {
    // ALL REQUEST ARE GEO BLOCKED
@@ -102,7 +122,7 @@ func (c *command) do_playlist() error {
    if !ok {
       return errors.New(".FullHd()")
    }
-   cache.Mpd, cache.MpdBody, err = cache.MediaFile.Mpd()
+   cache.Mpd, err = cache.MediaFile.Mpd()
    if err != nil {
       return err
    }
@@ -115,27 +135,5 @@ func (c *command) do_playlist() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd, cache.MpdBody)
-}
-
-type user_cache struct {
-   MediaFile *itv.MediaFile
-   Mpd       *url.URL
-   MpdBody   []byte
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.MediaFile.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
