@@ -23,6 +23,7 @@ func (c *command) run() error {
    c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/tubi/userCache.xml"
 
+   flag.IntVar(&c.config.Threads, "T", 2, "threads")
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")

@@ -14,56 +14,6 @@ import (
    "path/filepath"
 )
 
-func do_ifconfig() error {
-   resp, err := http.Get("http://ifconfig.co")
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   _, err = os.Stdout.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-type user_cache struct {
-   MediaPart *plex.MediaPart
-   Mpd       *url.URL
-   MpdBody   []byte
-   User      *plex.User
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -74,16 +24,13 @@ func (c *command) run() error {
    c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/plex/userCache.xml"
 
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-
-   flag.BoolVar(&c.ifconfig, "i", false, "ifconfig.co")
-
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
-
+   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-
+   flag.BoolVar(&c.ifconfig, "i", false, "ifconfig.co")
+   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
    flag.Parse()
 
    if c.ifconfig {
@@ -150,3 +97,53 @@ type command struct {
    name            string
    x_forwarded_for string
 }
+func do_ifconfig() error {
+   resp, err := http.Get("http://ifconfig.co")
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   _, err = os.Stdout.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+}
+
+type user_cache struct {
+   MediaPart *plex.MediaPart
+   Mpd       *url.URL
+   MpdBody   []byte
+   User      *plex.User
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
