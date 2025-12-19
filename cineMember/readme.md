@@ -19,8 +19,6 @@
 14. CVV
 15. Betaal (pay)
 
-do not bother canceling, it does not extend trial
-
 ## android
 
 - https://play.google.com/store/apps/details?id=com.maxxxs.cinemembertv

@@ -7,11 +7,45 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache nbc.Mpd
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = nbc.Widevine
+   return c.config.Download(cache.Url, cache.Body, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   address string
+   config  maya.Config
+   dash    string
+   name    string
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -40,11 +74,6 @@ func (c *command) run() error {
    return nil
 }
 
-type mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (c *command) do_address() error {
    name, err := nbc.GetName(c.address)
    if err != nil {
@@ -58,8 +87,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   var cache mpd
-   cache.Url, cache.Body, err = stream.Mpd()
+   cache, err := stream.Mpd()
    if err != nil {
       return err
    }
@@ -73,41 +101,4 @@ func (c *command) do_address() error {
       return err
    }
    return maya.Representations(cache.Url, cache.Body)
-}
-
-type command struct {
-   config maya.Config
-   name   string
-   // 1
-   address string
-   // 2
-   dash string
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = nbc.Widevine
-   return c.config.Download(cache.Url, cache.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

@@ -7,26 +7,17 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
-
-type command struct {
-   config    maya.Config
-   dash      string
-   intl      bool
-   name      string
-   paramount string
-}
 
 func (c *command) do_dash() error {
    data, err := os.ReadFile(c.name)
    if err != nil {
       return err
    }
-   var cache mpd
+   var cache paramount.Mpd
    err = xml.Unmarshal(data, &cache)
    if err != nil {
       return err
@@ -46,6 +37,14 @@ func (c *command) do_dash() error {
       return token.Widevine(data)
    }
    return c.config.Download(cache.Url, cache.Body, c.dash)
+}
+
+type command struct {
+   config    maya.Config
+   dash      string
+   intl      bool
+   name      string
+   paramount string
 }
 
 func main() {
@@ -101,11 +100,6 @@ func (c *command) app_secret() string {
    return paramount.ComCbsApp.AppSecret
 }
 
-type mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (c *command) do_paramount() error {
    at, err := paramount.GetAt(c.app_secret())
    if err != nil {
@@ -115,8 +109,7 @@ func (c *command) do_paramount() error {
    if err != nil {
       return err
    }
-   var cache mpd
-   cache.Url, cache.Body, err = item.Mpd()
+   cache, err := item.Mpd()
    if err != nil {
       return err
    }
