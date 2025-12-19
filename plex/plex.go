@@ -10,7 +10,12 @@ import (
    "strings"
 )
 
-func (u User) Mpd(part *MediaPart, forwardedFor string) (*url.URL, []byte, error) {
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (u User) Mpd(part *MediaPart, forwardedFor string) (*Mpd, error) {
    req, _ := http.NewRequest("", "https://vod.provider.plex.tv", nil)
    // /library/parts/6730016e43b96c02321d7860-dash.mpd
    req.URL.Path = part.Key
@@ -20,14 +25,14 @@ func (u User) Mpd(part *MediaPart, forwardedFor string) (*url.URL, []byte, error
    }
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, nil, err
+      return nil, err
    }
    defer resp.Body.Close()
    data, err := io.ReadAll(resp.Body)
    if err != nil {
-      return nil, nil, err
+      return nil, err
    }
-   return resp.Request.URL, data, nil
+   return &Mpd{data, resp.Request.URL}, nil
 }
 
 type ItemMetadata struct {

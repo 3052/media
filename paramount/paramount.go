@@ -17,6 +17,34 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (i *Item) Mpd() (*Mpd, error) {
+   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
+   req.URL.Path = fmt.Sprint(
+      "/s/", i.CmsAccountId,
+      "/media/guid/", cms_account(i.CmsAccountId),
+      "/", i.ContentId,
+   )
+   req.URL.RawQuery = url.Values{
+      "assetTypes": {i.AssetType},
+      "formats":    {"MPEG-DASH"},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 const (
    encoding   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
    secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
@@ -121,33 +149,6 @@ func FetchItem(at, contentId string) (*Item, error) {
       return nil, errors.New(string(data))
    }
    return &result.ItemList[0], nil
-}
-
-func (i *Item) Mpd() (*url.URL, []byte, error) {
-   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
-   req.URL.Path = func() string {
-      data := []byte("/s/")
-      data = append(data, i.CmsAccountId...)
-      data = append(data, "/media/guid/"...)
-      data = fmt.Append(data, cms_account(i.CmsAccountId))
-      data = append(data, '/')
-      data = append(data, i.ContentId...)
-      return string(data)
-   }()
-   req.URL.RawQuery = url.Values{
-      "assetTypes": {i.AssetType},
-      "formats":    {"MPEG-DASH"},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type Provider struct {
