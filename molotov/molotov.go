@@ -11,11 +11,29 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (a *Asset) Mpd() (*Mpd, error) {
+   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 type Asset struct {
    Drm struct {
       Token string
    }
-   Error *AssetError
+   Error  *AssetError
    Stream struct {
       Url string // MPD
    }
@@ -85,7 +103,7 @@ func (a *AssetError) Error() string {
 
 type AssetError struct {
    DeveloperMessage string `json:"developer_message"`
-   UserMessage string `json:"user_message"`
+   UserMessage      string `json:"user_message"`
 }
 
 type ProgramView struct {
@@ -96,19 +114,6 @@ type ProgramView struct {
          }
       }
    }
-}
-
-func (a *Asset) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 // authorization server issues a new refresh token, in which case the
@@ -221,4 +226,3 @@ func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
    }
    return result, nil
 }
-

@@ -14,6 +14,11 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   MediaFile *itv.MediaFile
+   Mpd       *itv.Mpd
+}
+
 func (c *command) do_dash() error {
    data, err := os.ReadFile(c.name)
    if err != nil {
@@ -28,11 +33,6 @@ func (c *command) do_dash() error {
       return cache.MediaFile.Widevine(data)
    }
    return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   MediaFile *itv.MediaFile
-   Mpd       *itv.Mpd
 }
 
 func main() {

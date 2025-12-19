@@ -8,49 +8,10 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
-
-func (c *command) do_kanopy() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   member, err := cache.Login.Membership()
-   if err != nil {
-      return err
-   }
-   play, err := cache.Login.PlayResponse(member, c.kanopy)
-   if err != nil {
-      return err
-   }
-   var ok bool
-   cache.StreamInfo, ok = play.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   cache.Mpd, cache.MpdBody, err = cache.StreamInfo.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd, cache.MpdBody)
-}
-
-type command struct {
-   config   maya.Config
-   dash     string
-   email    string
-   kanopy   int
-   name     string
-   password string
-}
 
 func (c *command) do_dash() error {
    cache, err := read(c.name)
@@ -60,13 +21,12 @@ func (c *command) do_dash() error {
    c.config.Send = func(data []byte) ([]byte, error) {
       return cache.Login.Widevine(cache.StreamInfo, data)
    }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
 }
 
 type user_cache struct {
-   Login      kanopy.Login
-   Mpd        *url.URL
-   MpdBody    []byte
+   Login      *kanopy.Login
+   Mpd        *kanopy.Mpd
    StreamInfo *kanopy.StreamInfo
 }
 
@@ -146,4 +106,42 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    return cache, nil
+}
+
+type command struct {
+   config   maya.Config
+   dash     string
+   email    string
+   kanopy   int
+   name     string
+   password string
+}
+
+func (c *command) do_kanopy() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   member, err := cache.Login.Membership()
+   if err != nil {
+      return err
+   }
+   play, err := cache.Login.PlayResponse(member, c.kanopy)
+   if err != nil {
+      return err
+   }
+   var ok bool
+   cache.StreamInfo, ok = play.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   cache.Mpd, err = cache.StreamInfo.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }

@@ -10,6 +10,29 @@ import (
    "strconv"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (s *StreamInfo) Mpd() (*Mpd, error) {
+   req, err := http.NewRequest("", s.Url, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("user-agent", "Mozilla")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 func (l *Login) PlayResponse(member *Membership, videoId int) (*PlayResponse, error) {
    data, err := json.Marshal(map[string]int{
       "domainId": member.DomainId,
@@ -43,24 +66,6 @@ func (l *Login) PlayResponse(member *Membership, videoId int) (*PlayResponse, er
       return nil, err
    }
    return play, nil
-}
-
-func (s *StreamInfo) Mpd() (*url.URL, []byte, error) {
-   req, err := http.NewRequest("", s.Url, nil)
-   if err != nil {
-      return nil, nil, err
-   }
-   req.Header.Set("user-agent", "Mozilla")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 const (

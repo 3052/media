@@ -7,11 +7,41 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Asset.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type user_cache struct {
+   Asset *molotov.Asset
+   Login *molotov.Login
+   Mpd   *molotov.Mpd
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -109,7 +139,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   cache.Mpd, cache.MpdBody, err = cache.Asset.Mpd()
+   cache.Mpd, err = cache.Asset.Mpd()
    if err != nil {
       return err
    }
@@ -117,36 +147,5 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd, cache.MpdBody)
-}
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Asset.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
-}
-
-type user_cache struct {
-   Asset   *molotov.Asset
-   Login   *molotov.Login
-   Mpd     *url.URL
-   MpdBody []byte
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
