@@ -11,17 +11,22 @@ import (
    "strconv"
 )
 
-func (s *StreamData) Mpd() (*url.URL, []byte, error) {
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (s *StreamData) Mpd() (*Mpd, error) {
    resp, err := http.Get(s.StreamInfos[0].Url)
    if err != nil {
-      return nil, nil, err
+      return nil, err
    }
    defer resp.Body.Close()
    data, err := io.ReadAll(resp.Body)
    if err != nil {
-      return nil, nil, err
+      return nil, err
    }
-   return resp.Request.URL, data, nil
+   return &Mpd{data, resp.Request.URL}, nil
 }
 
 // makeStreamRequest handles the common logic for the POST stream request and
