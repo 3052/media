@@ -10,6 +10,30 @@ import (
    "strconv"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (m *Mpd) Fetch(link *url.URL) error {
+   var req http.Request
+   // The Request's URL and Header fields must be initialized
+   req.Header = http.Header{}
+   req.Method = "GET"
+   req.URL = link
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   m.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   m.Url = resp.Request.URL
+   return nil
+}
+
 // Define constants for the hardcoded URL parts
 const (
    stitcherScheme = "https"
@@ -31,24 +55,6 @@ func Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func Mpd(address *url.URL) (*url.URL, []byte, error) {
-   var req http.Request
-   // The Request's URL and Header fields must be initialized
-   req.Header = http.Header{}
-   req.Method = "GET"
-   req.URL = address
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 // GetMovieURL generates the Stitcher URL object for a movie.
