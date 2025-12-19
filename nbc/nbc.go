@@ -15,6 +15,24 @@ import (
    "time"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (s Stream) Mpd() (*Mpd, error) {
+   resp, err := http.Get(s.PlaybackUrl)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 const drmProxySecret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
 
 // buildAuthQuery generates the signed query parameters (hash, time, device).
@@ -59,19 +77,6 @@ func Widevine(data []byte) ([]byte, error) {
    defer resp.Body.Close()
 
    return io.ReadAll(resp.Body)
-}
-
-func (s Stream) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(s.PlaybackUrl)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type Stream struct {

@@ -12,6 +12,24 @@ import (
    "strings"
 )
 
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (s *SecureUrl) Mpd() (*Mpd, error) {
+   resp, err := http.Get(s.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
 const forbidden = "HTTP Status 403 – Forbidden"
 
 // "android" requires headers:
@@ -114,19 +132,6 @@ type SecureUrl struct {
    } `json:"text_track_urls"`
    Url         string // MPD
    UserMessage string `json:"user_message"`
-}
-
-func (s *SecureUrl) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(s.Url)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type Session struct {
