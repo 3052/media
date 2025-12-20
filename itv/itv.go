@@ -4,14 +4,37 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/http/cookiejar"
    "net/url"
    "path"
-   "strconv"
    "strings"
 )
+
+func (t *Title) String() string {
+   data := &strings.Builder{}
+   if t.Series != nil {
+      data.WriteString("series = ")
+      fmt.Fprint(data, t.Series.SeriesNumber)
+      data.WriteString("\nepisode = ")
+      fmt.Fprint(data, t.EpisodeNumber)
+   }
+   if t.Title != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("title = ")
+      data.WriteString(t.Title)
+   }
+   if data.Len() >= 1 {
+      data.WriteByte('\n')
+   }
+   data.WriteString("playlist = ")
+   data.WriteString(t.LatestAvailableVersion.PlaylistUrl)
+   return data.String()
+}
 
 func LegacyId(link string) string {
    // 1. Get the last part of the URL (e.g., "10a5356a0001B")
@@ -208,9 +231,9 @@ type Title struct {
       PlaylistUrl string
    }
    Series *struct {
-      SeriesNumber int64
+      SeriesNumber int
    }
-   EpisodeNumber int64
+   EpisodeNumber int
    Title         string
 }
 
@@ -236,25 +259,3 @@ query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
 }
 `
 
-func (t *Title) String() string {
-   var data []byte
-   if t.Series != nil {
-      data = []byte("series = ")
-      data = strconv.AppendInt(data, t.Series.SeriesNumber, 10)
-      data = append(data, "\nepisode = "...)
-      data = strconv.AppendInt(data, t.EpisodeNumber, 10)
-   }
-   if t.Title != "" {
-      if data != nil {
-         data = append(data, '\n')
-      }
-      data = append(data, "title = "...)
-      data = append(data, t.Title...)
-   }
-   if data != nil {
-      data = append(data, '\n')
-   }
-   data = append(data, "playlist = "...)
-   data = append(data, t.LatestAvailableVersion.PlaylistUrl...)
-   return string(data)
-}

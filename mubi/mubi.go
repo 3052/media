@@ -5,12 +5,60 @@ import (
    "encoding/base64"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
-   "strconv"
    "strings"
 )
+
+func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
+   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.URL.Path = fmt.Sprint("/v3/films/", filmId, "/viewing/secure_url")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result SecureUrl
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.UserMessage != "" {
+      return nil, errors.New(result.UserMessage)
+   }
+   return &result, nil
+}
+
+// to get the MPD you have to call this or view video on the website. request
+// is hard geo blocked only the first time
+func (s *Session) Viewing(filmId int) error {
+   req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.URL.Path = fmt.Sprint("/v3/films/", filmId, "/viewing")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      UserMessage string `json:"user_message"`
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return err
+   }
+   if result.UserMessage != "" {
+      return errors.New(result.UserMessage)
+   }
+   return nil
+}
 
 type Mpd struct {
    Body []byte
@@ -56,7 +104,7 @@ func FilmSlug(address string) (string, error) {
    return slug, nil
 }
 
-func FilmId(slug string) (int64, error) {
+func FetchId(slug string) (int, error) {
    req, _ := http.NewRequest("", "https://api.mubi.com", nil)
    req.URL.Path = "/v3/films/" + slug
    req.Header.Set("client", client)
@@ -67,7 +115,7 @@ func FilmId(slug string) (int64, error) {
    }
    defer resp.Body.Close()
    var result struct {
-      Id int64
+      Id int
    }
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
@@ -139,64 +187,6 @@ type Session struct {
    User  struct {
       Id int
    }
-}
-
-// to get the MPD you have to call this or view video on the website. request
-// is hard geo blocked only the first time
-func (s *Session) Viewing(filmId int64) error {
-   req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
-   req.URL.Path = func() string {
-      data := []byte("/v3/films/")
-      data = strconv.AppendInt(data, filmId, 10)
-      data = append(data, "/viewing"...)
-      return string(data)
-   }()
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      UserMessage string `json:"user_message"`
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return err
-   }
-   if result.UserMessage != "" {
-      return errors.New(result.UserMessage)
-   }
-   return nil
-}
-
-func (s *Session) SecureUrl(filmId int64) (*SecureUrl, error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.URL.Path = func() string {
-      data := []byte("/v3/films/")
-      data = strconv.AppendInt(data, filmId, 10)
-      data = append(data, "/viewing/secure_url"...)
-      return string(data)
-   }()
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result SecureUrl
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.UserMessage != "" {
-      return nil, errors.New(result.UserMessage)
-   }
-   return &result, nil
 }
 
 func (s *Session) Widevine(data []byte) ([]byte, error) {
