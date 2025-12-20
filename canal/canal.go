@@ -11,89 +11,17 @@ import (
    "io"
    "net/http"
    "net/url"
-   "strconv"
    "strings"
    "time"
 )
 
-// Global variables for authentication
-var (
-   ClientKey       = "web.NhFyz4KsZ54"
-   SecretKeyBase64 = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-type Ticket struct {
-   Message string
-   Ticket  string
-}
-
-func (p *Player) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (e *Episode) String() string {
-   data := []byte("episode = ")
-   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
-   data = append(data, "\ntitle = "...)
-   data = append(data, e.Title...)
-   data = append(data, "\ndesc = "...)
-   data = append(data, e.Desc...)
-   data = append(data, "\ntracking = "...)
-   data = append(data, e.Id...)
-   return string(data)
-}
-
-type Episode struct {
-   Desc   string
-   Id     string
-   Params struct {
-      SeriesEpisode int64
-   }
-   Title string
-}
-
-func (s *Session) Fetch(ssoToken string) error {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     ssoToken,
-   })
-   if err != nil {
-      return err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
-}
-
-func (s *Session) Episodes(tracking string, season int64) ([]Episode, error) {
+func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
    req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
    req.Header.Set("authorization", "Bearer "+s.Token)
-   req.URL.RawQuery = func() string {
-      data := []byte("limit=99&query=episodes,")
-      data = append(data, tracking...)
-      data = append(data, ",season,"...)
-      data = strconv.AppendInt(data, season, 10)
-      return string(data)
-   }()
+   req.URL.RawQuery = fmt.Sprint(
+      "limit=99&query=episodes,", tracking,
+      ",season,", season,
+   )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -336,6 +264,74 @@ func (t *Ticket) Fetch() error {
    }
    if t.Message != "" {
       return errors.New(t.Message)
+   }
+   return nil
+}
+func (e *Episode) String() string {
+   data := &strings.Builder{}
+   data.WriteString("episode = ")
+   fmt.Fprint(data, e.Params.SeriesEpisode)
+   data.WriteString("\ntitle = ")
+   data.WriteString(e.Title)
+   data.WriteString("\ndesc = ")
+   data.WriteString(e.Desc)
+   data.WriteString("\ntracking = ")
+   data.WriteString(e.Id)
+   return data.String()
+}
+
+type Episode struct {
+   Desc   string
+   Id     string
+   Params struct {
+      SeriesEpisode int
+   }
+   Title string
+}
+
+// Global variables for authentication
+var (
+   ClientKey       = "web.NhFyz4KsZ54"
+   SecretKeyBase64 = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+type Ticket struct {
+   Message string
+   Ticket  string
+}
+
+func (p *Player) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (s *Session) Fetch(ssoToken string) error {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     ssoToken,
+   })
+   if err != nil {
+      return err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
+   if err != nil {
+      return err
+   }
+   if s.Message != "" {
+      return errors.New(s.Message)
    }
    return nil
 }
