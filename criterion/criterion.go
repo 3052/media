@@ -9,54 +9,6 @@ import (
    "net/url"
 )
 
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
-
-func FetchToken(username, password string) (TokenData, error) {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":  {client_id},
-      "grant_type": {"password"},
-      "password":   {password},
-      "username":   {username},
-   })
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Token struct {
-   AccessToken      string `json:"access_token"`
-   ErrorDescription string `json:"error_description"`
-   RefreshToken     string `json:"refresh_token"`
-}
-
-func (t *Token) Unmarshal(data TokenData) error {
-   err := json.Unmarshal(data, t)
-   if err != nil {
-      return err
-   }
-   if t.ErrorDescription != "" {
-      return errors.New(t.ErrorDescription)
-   }
-   return nil
-}
-
-func (t *Token) Refresh() (TokenData, error) {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":     {client_id},
-      "grant_type":    {"refresh_token"},
-      "refresh_token": {t.RefreshToken},
-   })
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type TokenData []byte
-
 func (t *Token) Video(slug string) (*Video, error) {
    req, _ := http.NewRequest("", "https://api.vhx.com", nil)
    req.URL.Path = "/videos/" + slug
@@ -145,4 +97,46 @@ func (f Files) Dash() (*File, bool) {
       }
    }
    return nil, false
+}
+
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+
+func (t *Token) Fetch(username, password string) error {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":  {client_id},
+      "grant_type": {"password"},
+      "password":   {password},
+      "username":   {username},
+   })
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(t)
+   if err != nil {
+      return err
+   }
+   if t.ErrorDescription != "" {
+      return errors.New(t.ErrorDescription)
+   }
+   return nil
+}
+
+type Token struct {
+   AccessToken      string `json:"access_token"`
+   ErrorDescription string `json:"error_description"`
+   RefreshToken     string `json:"refresh_token"`
+}
+
+func (t *Token) Refresh() error {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":     {client_id},
+      "grant_type":    {"refresh_token"},
+      "refresh_token": {t.RefreshToken},
+   })
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(t)
 }
