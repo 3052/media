@@ -25,12 +25,13 @@ func Tracking(address string) (string, error) {
    if resp.StatusCode != http.StatusOK {
       return "", errors.New(resp.Status)
    }
-   data, err := io.ReadAll(resp.Body)
+   var data strings.Builder
+   _, err = io.Copy(&data, resp.Body)
    if err != nil {
       return "", err
    }
    const startKey = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(string(data), startKey)
+   _, after, found := strings.Cut(data.String(), startKey)
    if !found {
       return "", fmt.Errorf("attribute key '%s' not found", startKey)
    }
