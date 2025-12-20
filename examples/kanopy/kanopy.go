@@ -13,37 +13,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Login.Widevine(cache.StreamInfo, data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   Login      *kanopy.Login
-   Mpd        *kanopy.Mpd
-   StreamInfo *kanopy.StreamInfo
-}
-
-func main() {
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   log.SetFlags(log.Ltime)
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -60,6 +29,7 @@ func (c *command) run() error {
    flag.StringVar(&c.email, "e", "", "email")
    flag.IntVar(&c.kanopy, "k", 0, "Kanopy ID")
    flag.StringVar(&c.password, "p", "", "password")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.email != "" {
@@ -77,44 +47,30 @@ func (c *command) run() error {
    return nil
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (c *command) do_email_password() error {
-   var cache user_cache
-   err := cache.Login.Fetch(c.email, c.password)
+   var login kanopy.Login
+   err := login.Fetch(c.email, c.password)
    if err != nil {
       return err
    }
-   return write(c.name, &cache)
+   return write(c.name, &user_cache{Login: &login})
 }
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
+type user_cache struct {
+   Login      *kanopy.Login
+   Mpd        *kanopy.Mpd
+   StreamInfo *kanopy.StreamInfo
 }
 
-type command struct {
-   config   maya.Config
-   dash     string
-   email    string
-   kanopy   int
-   name     string
-   password string
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Login.Widevine(cache.StreamInfo, data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
 }
 
 func (c *command) do_kanopy() error {
@@ -144,4 +100,48 @@ func (c *command) do_kanopy() error {
       return err
    }
    return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+type command struct {
+   config   maya.Config
+   dash     string
+   email    string
+   kanopy   int
+   name     string
+   password string
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func main() {
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   log.SetFlags(log.Ltime)
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
