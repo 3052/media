@@ -10,6 +10,31 @@ import (
    "strings"
 )
 
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
+   req.AddCookie(s.Cookie)
+   req.URL.Path = "/elements/films/stream.php"
+   req.URL.RawQuery = fmt.Sprint("id=", id)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
+}
+
 type Mpd struct {
    Body []byte
    Url  *url.URL
@@ -131,29 +156,4 @@ func (s Session) Login(email, password string) error {
 // Session holds the cookie data.
 type Session struct {
    Cookie *http.Cookie
-}
-
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
-   req.URL.Path = "/elements/films/stream.php"
-   req.URL.RawQuery = "id=" + fmt.Sprint(id)
-   req.AddCookie(s.Cookie)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Stream
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != "" {
-      return nil, errors.New(result.Error)
-   }
-   if result.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &result, nil
 }

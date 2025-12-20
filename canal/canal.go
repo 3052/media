@@ -16,99 +16,101 @@ import (
    "time"
 )
 
-func Tracking(address string) (string, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   var data strings.Builder
-   _, err = io.Copy(&data, resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const startKey = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(data.String(), startKey)
-   if !found {
-      return "", fmt.Errorf("attribute key '%s' not found", startKey)
-   }
-   before, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", fmt.Errorf("could not find closing quote for the attribute")
-   }
-   return before, nil
+// Global variables for authentication
+var (
+   ClientKey       = "web.NhFyz4KsZ54"
+   SecretKeyBase64 = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+type Ticket struct {
+   Message string
+   Ticket  string
 }
 
-type Session struct {
-   Message  string
-   SsoToken string
-   Token    string // this last one hour
-}
-
-func (p *Player) Mpd() (*Mpd, error) {
-   resp, err := http.Get(p.Url)
+func (p *Player) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
+   return io.ReadAll(resp.Body)
+}
+
+func (e *Episode) String() string {
+   data := []byte("episode = ")
+   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
+   data = append(data, "\ntitle = "...)
+   data = append(data, e.Title...)
+   data = append(data, "\ndesc = "...)
+   data = append(data, e.Desc...)
+   data = append(data, "\ntracking = "...)
+   data = append(data, e.Id...)
+   return string(data)
+}
+
+type Episode struct {
+   Desc   string
+   Id     string
+   Params struct {
+      SeriesEpisode int64
    }
-   return &Mpd{data, resp.Request.URL}, nil
+   Title string
 }
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type Login struct {
-   Label    string
-   Message  string
-   SsoToken string // this last one day
-}
-
-func (t *Ticket) Login(username, password string) (*Login, error) {
-   data, err := json.Marshal(map[string]any{
-      "ticket": t.Ticket,
-      "userInput": map[string]string{
-         "username": username,
-         "password": password,
-      },
+func (s *Session) Fetch(ssoToken string) error {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     ssoToken,
    })
    if err != nil {
-      return nil, err
+      return err
    }
-   req, err := http.NewRequest(
-      "POST", "https://m7cp.login.solocoo.tv/login", bytes.NewReader(data),
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
    )
    if err != nil {
-      return nil, err
+      return err
    }
-   var client client_token
-   err = client.New(req.URL, data)
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
    if err != nil {
-      return nil, err
+      return err
    }
-   req.Header.Set("authorization", client.String())
+   if s.Message != "" {
+      return errors.New(s.Message)
+   }
+   return nil
+}
+
+func (s *Session) Episodes(tracking string, season int64) ([]Episode, error) {
+   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.URL.RawQuery = func() string {
+      data := []byte("limit=99&query=episodes,")
+      data = append(data, tracking...)
+      data = append(data, ",season,"...)
+      data = strconv.AppendInt(data, season, 10)
+      return string(data)
+   }()
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   var result Login
+   var result struct {
+      Assets  []Episode
+      Message string
+   }
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if resp.StatusCode != http.StatusOK {
-      return nil, &result
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
    }
-   return &result, nil
+   return result.Assets, nil
 }
 
 func (l *Login) Error() string {
@@ -174,6 +176,130 @@ func (s *Session) Player(tracking string) (*Player, error) {
    return &result, nil
 }
 
+func Tracking(address string) (string, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   var data strings.Builder
+   _, err = io.Copy(&data, resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const startKey = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(data.String(), startKey)
+   if !found {
+      return "", fmt.Errorf("attribute key '%s' not found", startKey)
+   }
+   before, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", fmt.Errorf("could not find closing quote for the attribute")
+   }
+   return before, nil
+}
+
+type Session struct {
+   Message  string
+   SsoToken string
+   Token    string // this last one hour
+}
+
+func (p *Player) Mpd() (*Mpd, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type Login struct {
+   Label    string
+   Message  string
+   SsoToken string // this last one day
+}
+
+const device_serial = "!!!!"
+
+func get_client(requestURL *url.URL, requestBody []byte) (string, error) {
+   encoding := base64.RawURLEncoding
+   // 1. base64 raw URL decode secret key
+   decodedSecretKey, err := encoding.DecodeString(SecretKeyBase64)
+   if err != nil {
+      return "", fmt.Errorf("failed to decode secret key: %v", err)
+   }
+   // Prepare timestamp and hash the body
+   currentTimestamp := time.Now().Unix()
+   bodyChecksum := sha256.Sum256(requestBody)
+   encodedBodyHash := encoding.EncodeToString(bodyChecksum[:])
+   // 2. hmac.New(sha256.New, secret key)
+   hmacHasher := hmac.New(sha256.New, decodedSecretKey)
+   // 3, 4, 5. Write components to the hasher
+   // fmt.Fprint handles string conversion for requestURL and currentTimestamp
+   fmt.Fprint(hmacHasher, requestURL, encodedBodyHash, currentTimestamp)
+   // 6. base64 raw URL encode the hmac sum
+   finalSignature := encoding.EncodeToString(hmacHasher.Sum(nil))
+   // Construct final result string
+   result := fmt.Sprintf(
+      "Client key=%s,time=%d,sig=%s",
+      ClientKey,
+      currentTimestamp,
+      finalSignature,
+   )
+   return result, nil
+}
+
+func (t *Ticket) Login(username, password string) (*Login, error) {
+   data, err := json.Marshal(map[string]any{
+      "ticket": t.Ticket,
+      "userInput": map[string]string{
+         "username": username,
+         "password": password,
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cp.login.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   client, err := get_client(req.URL, data)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Login
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, &result
+   }
+   return &result, nil
+}
+
 func (t *Ticket) Fetch() error {
    data, err := json.Marshal(map[string]any{
       "deviceInfo": map[string]string{
@@ -194,12 +320,11 @@ func (t *Ticket) Fetch() error {
    if err != nil {
       return err
    }
-   var client client_token
-   err = client.New(req.URL, data)
+   client, err := get_client(req.URL, data)
    if err != nil {
       return err
    }
-   req.Header.Set("authorization", client.String())
+   req.Header.Set("authorization", client)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
@@ -212,135 +337,5 @@ func (t *Ticket) Fetch() error {
    if t.Message != "" {
       return errors.New(t.Message)
    }
-   return nil
-}
-
-func (s *Session) Episodes(tracking string, season int64) ([]Episode, error) {
-   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.URL.RawQuery = func() string {
-      data := []byte("limit=99&query=episodes,")
-      data = append(data, tracking...)
-      data = append(data, ",season,"...)
-      data = strconv.AppendInt(data, season, 10)
-      return string(data)
-   }()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Assets  []Episode
-      Message string
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Message != "" {
-      return nil, errors.New(result.Message)
-   }
-   return result.Assets, nil
-}
-
-type client_token struct {
-   time int64
-   sig  []byte
-}
-
-const (
-   // clientKey is the public identifier for the client.
-   clientKey = "web.NhFyz4KsZ54"
-   // secretKey is the base64 encoded secret for HMAC.
-   secretKey = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
-
-func (c *client_token) String() string {
-   data := []byte("Client key=")
-   data = append(data, clientKey...)
-   data = append(data, ",time="...)
-   data = fmt.Append(data, c.time)
-   data = append(data, ",sig="...)
-   data = base64.RawURLEncoding.AppendEncode(data, c.sig)
-   return string(data)
-}
-
-const device_serial = "!!!!"
-
-type Ticket struct {
-   Message string
-   Ticket  string
-}
-
-func (p *Player) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (e *Episode) String() string {
-   data := []byte("episode = ")
-   data = strconv.AppendInt(data, e.Params.SeriesEpisode, 10)
-   data = append(data, "\ntitle = "...)
-   data = append(data, e.Title...)
-   data = append(data, "\ndesc = "...)
-   data = append(data, e.Desc...)
-   data = append(data, "\ntracking = "...)
-   data = append(data, e.Id...)
-   return string(data)
-}
-
-type Episode struct {
-   Desc   string
-   Id     string
-   Params struct {
-      SeriesEpisode int64
-   }
-   Title string
-}
-
-func (s *Session) Fetch(ssoToken string) error {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     ssoToken,
-   })
-   if err != nil {
-      return err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
-}
-
-func (c *client_token) New(address *url.URL, body []byte) error {
-   hash := sha256.Sum256(body)
-   c.time = time.Now().Unix()
-   secret, err := base64.RawURLEncoding.DecodeString(secretKey)
-   if err != nil {
-      return err
-   }
-   hasher := hmac.New(sha256.New, secret)
-   fmt.Fprint(hasher, address)
-   fmt.Fprint(hasher, base64.RawURLEncoding.EncodeToString(hash[:]))
-   fmt.Fprint(hasher, c.time)
-   c.sig = hasher.Sum(nil)
    return nil
 }
