@@ -16,6 +16,31 @@ import (
    "time"
 )
 
+func Tracking(address string) (string, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const startKey = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(string(data), startKey)
+   if !found {
+      return "", fmt.Errorf("attribute key '%s' not found", startKey)
+   }
+   before, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", fmt.Errorf("could not find closing quote for the attribute")
+   }
+   return before, nil
+}
+
 type Session struct {
    Message  string
    SsoToken string
@@ -302,31 +327,6 @@ func (s *Session) Fetch(ssoToken string) error {
       return errors.New(s.Message)
    }
    return nil
-}
-
-func Tracking(address string) (string, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const startKey = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(string(data), startKey)
-   if !found {
-      return "", fmt.Errorf("attribute key '%s' not found", startKey)
-   }
-   before, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", fmt.Errorf("could not find closing quote for the attribute")
-   }
-   return before, nil
 }
 
 func (c *client_token) New(address *url.URL, body []byte) error {

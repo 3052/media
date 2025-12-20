@@ -2,7 +2,7 @@ module 41.neocities.org/media
 
 go 1.24.0
 
-require 41.neocities.org/maya v1.19.0
+require 41.neocities.org/maya v1.19.1
 
 require (
 	41.neocities.org/dash v1.30.9 // indirect

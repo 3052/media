@@ -8,9 +8,19 @@ import (
    "net/http"
    "net/http/cookiejar"
    "net/url"
+   "path"
    "strconv"
    "strings"
 )
+
+func LegacyId(link string) string {
+   // 1. Get the last part of the URL (e.g., "10a5356a0001B")
+   base := path.Base(link)
+   // 2. Split the string by the character 'a'
+   parts := strings.Split(base, "a")
+   // 3. Join them back together with '/'
+   return strings.Join(parts, "/")
+}
 
 type Mpd struct {
    Body []byte
@@ -33,22 +43,6 @@ func (m *MediaFile) Mpd() (*Mpd, error) {
       return nil, err
    }
    return &Mpd{data, resp.Request.URL}, nil
-}
-
-func LegacyId(inputLink string) (string, error) {
-   // 1. Parse the URL to safely access the path
-   parsed, err := url.Parse(inputLink)
-   if err != nil {
-      return "", err
-   }
-   // 2. Split the path segments
-   // Path: /watch/joan/10a3918  -> ["", "watch", "joan", "10a3918"]
-   segments := strings.Split(parsed.Path, "/")
-   // We need at least 4 segments to ensure the ID exists at index 3
-   if len(segments) < 4 {
-      return "", errors.New("url path structure invalid")
-   }
-   return strings.Replace(segments[3], "a", "/", 1), nil
 }
 
 func graphql_compact(data string) string {
