@@ -13,6 +13,37 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_address() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   slug, err := mubi.FilmSlug(c.address)
+   if err != nil {
+      return err
+   }
+   film_id, err := mubi.FetchId(slug)
+   if err != nil {
+      return err
+   }
+   err = cache.Session.Viewing(film_id)
+   if err != nil {
+      return err
+   }
+   secure, err := cache.Session.SecureUrl(film_id)
+   if err != nil {
+      return err
+   }
+   cache.Mpd, err = secure.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -130,36 +161,4 @@ type command struct {
    dash    string
    name    string
    session bool
-}
-
-func (c *command) do_address() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   slug, err := mubi.FilmSlug(c.address)
-   if err != nil {
-      return err
-   }
-   film_id, err := mubi.FilmId(slug)
-   if err != nil {
-      return err
-   }
-   err = cache.Session.Viewing(film_id)
-   if err != nil {
-      return err
-   }
-   secure, err := cache.Session.SecureUrl(film_id)
-   if err != nil {
-      return err
-   }
-   cache.Mpd, err = secure.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }

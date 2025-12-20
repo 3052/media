@@ -4,12 +4,61 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
-   "strconv"
    "strings"
 )
+
+func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
+   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   req.Header.Set("x-molotov-agent", customer_area)
+   req.URL.RawQuery = url.Values{
+      "access_token": {l.Auth.AccessToken},
+   }.Encode()
+   req.URL.Path = fmt.Sprint(
+      "/v2/channels/", media.Channel,
+      "/programs/", media.Program,
+      "/view",
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &ProgramView{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Program.Actions.Play == nil {
+      return nil, errors.New("program is not available for playback")
+   }
+   return result, nil
+}
+
+type MediaId struct {
+   Program int
+   Channel int
+}
+
+// https://molotov.tv/fr_fr/p/15082-531
+// https://molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
+func (m *MediaId) Parse(link string) error {
+   // Cut everything before the ID section "/p/"
+   _, segment, found := strings.Cut(link, "/p/")
+   if !found {
+      return errors.New("invalid Molotov URL: missing '/p/' marker")
+   }
+   // fmt.Sscanf parses the numbers into the struct fields.
+   // It stops reading Channel at the first non-digit (like the '/' in a slug).
+   _, err := fmt.Sscanf(segment, "%d-%d", &m.Program, &m.Channel)
+   if err != nil {
+      return fmt.Errorf("failed to parse program and channel IDs: %w", err)
+   }
+   return nil
+}
 
 type Mpd struct {
    Body []byte
@@ -167,62 +216,3 @@ const (
    browser_app   = `{ "app_build": 4, "app_id": "browser_app", "inner_app_version_name": "5.7.0" }`
    customer_area = `{ "app_build": 1, "app_id": "customer_area" }`
 )
-
-type MediaId struct {
-   Channel int64
-   Program int64
-}
-
-// https://molotov.tv/fr_fr/p/15082-531
-// https://molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-func (m *MediaId) Parse(rawUrl string) error {
-   _, after, found := strings.Cut(rawUrl, "/p/")
-   if !found {
-      return errors.New("URL does not contain the '/p/' segment")
-   }
-   id, _, _ := strings.Cut(after, "/")
-   program, channel, found := strings.Cut(id, "-")
-   if !found {
-      return errors.New("ID segment: missing '-' separator")
-   }
-   var err error
-   m.Program, err = strconv.ParseInt(program, 10, 64)
-   if err != nil {
-      return err
-   }
-   m.Channel, err = strconv.ParseInt(channel, 10, 64)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = func() string {
-      data := []byte("/v2/channels/")
-      data = strconv.AppendInt(data, media.Channel, 10)
-      data = append(data, "/programs/"...)
-      data = strconv.AppendInt(data, media.Program, 10)
-      data = append(data, "/view"...)
-      return string(data)
-   }()
-   req.Header.Set("x-molotov-agent", customer_area)
-   req.URL.RawQuery = url.Values{
-      "access_token": {l.Auth.AccessToken},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &ProgramView{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Program.Actions.Play == nil {
-      return nil, errors.New("program is not available for playback")
-   }
-   return result, nil
-}
