@@ -13,50 +13,6 @@ import (
    "path/filepath"
 )
 
-type user_cache struct {
-   Login    *hboMax.Login
-   Mpd      *hboMax.Mpd
-   Playback *hboMax.Playback
-   St       *hboMax.St
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.PlayReady(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   address  string
-   config   maya.Config
-   dash     string
-   edit     string
-   initiate bool
-   login    bool
-   market   string
-   name     string
-   season   int
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -78,7 +34,7 @@ func (c *command) run() error {
       &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets[1:]),
    )
    flag.IntVar(&c.season, "s", 0, "season")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   flag.IntVar(&c.config.Threads, "t", 3, "threads")
    flag.Parse()
    if c.initiate {
       return c.do_initiate()
@@ -197,4 +153,47 @@ func (c *command) do_edit() error {
       return err
    }
    return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+type user_cache struct {
+   Login    *hboMax.Login
+   Mpd      *hboMax.Mpd
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.PlayReady(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   address  string
+   config   maya.Config
+   dash     string
+   edit     string
+   initiate bool
+   login    bool
+   market   string
+   name     string
+   season   int
 }
