@@ -14,6 +14,58 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_address() error {
+   titles, err := itv.Titles(itv.LegacyId(c.address))
+   if err != nil {
+      return err
+   }
+   for i, title := range titles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&title)
+   }
+   return nil
+}
+
+type command struct {
+   address  string
+   config   maya.Config
+   dash     string
+   name     string
+   playlist string
+}
+
+func (c *command) do_playlist() error {
+   var title itv.Title
+   title.LatestAvailableVersion.PlaylistUrl = c.playlist
+   playlist, err := title.Playlist()
+   if err != nil {
+      return err
+   }
+   var (
+      cache user_cache
+      ok    bool
+   )
+   cache.MediaFile, ok = playlist.FullHd()
+   if !ok {
+      return errors.New(".FullHd()")
+   }
+   cache.Mpd, err = cache.MediaFile.Mpd()
+   if err != nil {
+      return err
+   }
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
 type user_cache struct {
    MediaFile *itv.MediaFile
    Mpd       *itv.Mpd
@@ -79,61 +131,4 @@ func (c *command) run() error {
    }
    flag.Usage()
    return nil
-}
-
-func (c *command) do_address() error {
-   legacy_id, err := itv.LegacyId(c.address)
-   if err != nil {
-      return err
-   }
-   titles, err := itv.Titles(legacy_id)
-   if err != nil {
-      return err
-   }
-   for i, title := range titles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&title)
-   }
-   return nil
-}
-
-type command struct {
-   address  string
-   config   maya.Config
-   dash     string
-   name     string
-   playlist string
-}
-
-func (c *command) do_playlist() error {
-   var title itv.Title
-   title.LatestAvailableVersion.PlaylistUrl = c.playlist
-   playlist, err := title.Playlist()
-   if err != nil {
-      return err
-   }
-   var (
-      cache user_cache
-      ok    bool
-   )
-   cache.MediaFile, ok = playlist.FullHd()
-   if !ok {
-      return errors.New(".FullHd()")
-   }
-   cache.Mpd, err = cache.MediaFile.Mpd()
-   if err != nil {
-      return err
-   }
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
