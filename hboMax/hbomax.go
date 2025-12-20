@@ -14,6 +14,28 @@ import (
    "strings"
 )
 
+func (v *Video) String() string {
+   data := &strings.Builder{}
+   if v.Attributes.SeasonNumber >= 1 {
+      data.WriteString("season number = ")
+      fmt.Fprint(data, v.Attributes.SeasonNumber)
+   }
+   if v.Attributes.EpisodeNumber >= 1 {
+      data.WriteString("\nepisode number = ")
+      fmt.Fprint(data, v.Attributes.EpisodeNumber)
+   }
+   if data.Len() >= 1 {
+      data.WriteByte('\n')
+   }
+   data.WriteString("name = ")
+   data.WriteString(v.Attributes.Name)
+   data.WriteString("\nvideo type = ")
+   data.WriteString(v.Attributes.VideoType)
+   data.WriteString("\nedit id = ")
+   data.WriteString(v.Relationships.Edit.Data.Id)
+   return data.String()
+}
+
 type Mpd struct {
    Body []byte
    Url  *url.URL
@@ -187,28 +209,6 @@ func (e *Error) Error() string {
       return e.Detail
    }
    return e.Message
-}
-
-func (v *Video) String() string {
-   var data []byte
-   if v.Attributes.SeasonNumber >= 1 {
-      data = append(data, "season number = "...)
-      data = strconv.AppendInt(data, int64(v.Attributes.SeasonNumber), 10)
-   }
-   if v.Attributes.EpisodeNumber >= 1 {
-      data = append(data, "\nepisode number = "...)
-      data = strconv.AppendInt(data, int64(v.Attributes.EpisodeNumber), 10)
-   }
-   if data != nil {
-      data = append(data, '\n')
-   }
-   data = append(data, "name = "...)
-   data = append(data, v.Attributes.Name...)
-   data = append(data, "\nvideo type = "...)
-   data = append(data, v.Attributes.VideoType...)
-   data = append(data, "\nedit id = "...)
-   data = append(data, v.Relationships.Edit.Data.Id...)
-   return string(data)
 }
 
 func (i *Initiate) String() string {

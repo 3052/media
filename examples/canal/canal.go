@@ -32,7 +32,7 @@ func (c *command) run() error {
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
    flag.BoolVar(&c.refresh, "r", false, "refresh")
-   flag.Int64Var(&c.season, "s", 0, "season")
+   flag.IntVar(&c.season, "s", 0, "season")
    flag.StringVar(&c.tracking, "t", "", "tracking")
    flag.Parse()
 
@@ -143,6 +143,7 @@ func (c *command) do_tracking() error {
    }
    return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
+
 func (c *command) do_email_password() error {
    var ticket canal.Ticket
    err := ticket.Fetch()
@@ -232,7 +233,7 @@ type command struct {
    name      string
    password  string
    refresh   bool
-   season    int64
+   season    int
    subtitles bool
    tracking  string
 }
