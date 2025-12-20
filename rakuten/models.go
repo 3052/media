@@ -6,6 +6,20 @@ import (
    "strings"
 )
 
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+var classificationMap = map[string]int{
+   "cz": 272,
+   "dk": 283,
+   "es": 5,
+   "fr": 23,
+   "ie": 41,
+   "nl": 69,
+   "pl": 277,
+   "pt": 64,
+   "se": 282,
+   "uk": 18,
+}
+
 func (m *Movie) ParseURL(rawLink string) error {
    link, err := url.Parse(rawLink)
    if err != nil {
@@ -174,19 +188,6 @@ type StreamData struct {
 
 // DeviceID is the default identifier used for requests.
 const DeviceID = "atvui40"
-
-// classificationMap maps market codes to their internal classification IDs.
-var classificationMap = map[string]int{
-   "cz": 272,
-   "dk": 283,
-   "es": 5,
-   "fr": 23,
-   "nl": 69,
-   "pl": 277,
-   "pt": 64,
-   "se": 282,
-   "uk": 18,
-}
 
 // VideoQuality defines the allowed video qualities for streaming.
 type VideoQuality string

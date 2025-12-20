@@ -9,15 +9,16 @@ import (
 )
 
 var classification_tests = []string{
-   "https://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
-   "https://rakuten.tv/pt/movies/bound",
+   "https://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
    "https://rakuten.tv/dk/movies/a-time-to-kill",
    "https://rakuten.tv/es/movies/una-obra-maestra",
-   "https://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
    "https://rakuten.tv/fr?content_type=movies&content_id=michael-clayton",
+   "https://rakuten.tv/ie/movies/miss-sloane",
    "https://rakuten.tv/nl?content_type=movies&content_id=made-in-america",
    "https://rakuten.tv/pl?content_type=movies&content_id=ad-astra",
+   "https://rakuten.tv/pt/movies/bound",
    "https://rakuten.tv/se?content_type=movies&content_id=i-heart-huckabees",
+   "https://rakuten.tv/uk?content_type=tv_shows&tv_show_id=clink",
 }
 
 var address_tests = []struct {

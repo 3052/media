@@ -13,87 +13,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_language_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch {
-   case cache.Movie != nil:
-      stream, err = cache.Movie.RequestStream(
-         c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   case cache.TvShow != nil:
-      stream, err = cache.TvShow.RequestStream(
-         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return stream.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type command struct {
-   config   maya.Config
-   dash     string
-   episode  string
-   language string
-   movie    string
-   name     string
-   season   string
-   show     string
-}
-
-func (c *command) do_language() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch {
-   case cache.Movie != nil:
-      stream, err = cache.Movie.RequestStream(
-         c.language,
-         rakuten.Player.Widevine, rakuten.Quality.FHD,
-      )
-   case cache.TvShow != nil:
-      stream, err = cache.TvShow.RequestStream(
-         c.episode, c.language,
-         rakuten.Player.Widevine, rakuten.Quality.FHD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   cache.Mpd, err = stream.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -112,6 +31,7 @@ func (c *command) run() error {
    flag.StringVar(&c.episode, "e", "", "episode ID")
    flag.StringVar(&c.movie, "m", "", "movie URL")
    flag.StringVar(&c.show, "s", "", "TV show URL")
+   flag.IntVar(&c.config.Threads, "t", 4, "threads")
    flag.Parse()
 
    if c.movie != "" {
@@ -209,4 +129,84 @@ type user_cache struct {
    Movie  *rakuten.Movie
    Mpd    *rakuten.Mpd
    TvShow *rakuten.TvShow
+}
+func (c *command) do_language_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   var stream *rakuten.StreamData
+   switch {
+   case cache.Movie != nil:
+      stream, err = cache.Movie.RequestStream(
+         c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+      )
+   case cache.TvShow != nil:
+      stream, err = cache.TvShow.RequestStream(
+         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+      )
+   }
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return stream.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type command struct {
+   config   maya.Config
+   dash     string
+   episode  string
+   language string
+   movie    string
+   name     string
+   season   string
+   show     string
+}
+
+func (c *command) do_language() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   var stream *rakuten.StreamData
+   switch {
+   case cache.Movie != nil:
+      stream, err = cache.Movie.RequestStream(
+         c.language,
+         rakuten.Player.Widevine, rakuten.Quality.FHD,
+      )
+   case cache.TvShow != nil:
+      stream, err = cache.TvShow.RequestStream(
+         c.episode, c.language,
+         rakuten.Player.Widevine, rakuten.Quality.FHD,
+      )
+   }
+   if err != nil {
+      return err
+   }
+   cache.Mpd, err = stream.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
 }
