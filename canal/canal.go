@@ -25,18 +25,21 @@ func join(items ...string) string {
 }
 
 func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
-   var link strings.Builder
-   link.WriteString("https://tvapi-hlm2.solocoo.tv/v1/assets")
-   link.WriteString("?limit=99&query=episodes,")
-   link.WriteString(tracking)
-   link.WriteString(",season,")
-   link.WriteString(strconv.Itoa(season))
-   req, err := http.NewRequest("", link.String(), nil)
-   if err != nil {
-      return nil, err
-   }
+   var req http.Request
+   req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+s.Token)
-   resp, err := http.DefaultClient.Do(req)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "tvapi-hlm2.solocoo.tv",
+      Path: "/v1/assets",
+      RawQuery: join(
+         "limit=99&query=episodes,",
+         tracking,
+         ",season,",
+         strconv.Itoa(season),
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }

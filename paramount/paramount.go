@@ -9,31 +9,39 @@ import (
    "encoding/hex"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
    "slices"
+   "strconv"
    "strings"
 )
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
+func join(items ...string) string {
+   var data strings.Builder
+   for _, item := range items {
+      data.WriteString(item)
+   }
+   return data.String()
 }
 
 func (i *Item) Mpd() (*Mpd, error) {
-   req, _ := http.NewRequest("", "https://link.theplatform.com", nil)
-   req.URL.Path = fmt.Sprint(
-      "/s/", i.CmsAccountId,
-      "/media/guid/", cms_account(i.CmsAccountId),
-      "/", i.ContentId,
-   )
-   req.URL.RawQuery = url.Values{
-      "assetTypes": {i.AssetType},
-      "formats":    {"MPEG-DASH"},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "link.theplatform.com",
+      RawQuery: url.Values{
+         "assetTypes": {i.AssetType},
+         "formats":    {"MPEG-DASH"},
+      }.Encode(),
+      Path: join(
+         "/s/", i.CmsAccountId,
+         "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
+         "/", i.ContentId,
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
@@ -43,6 +51,11 @@ func (i *Item) Mpd() (*Mpd, error) {
       return nil, err
    }
    return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
 }
 
 const (

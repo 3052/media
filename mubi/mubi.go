@@ -5,7 +5,6 @@ import (
    "encoding/base64"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -13,15 +12,33 @@ import (
    "strings"
 )
 
+func join(items ...string) string {
+   var data strings.Builder
+   for _, item := range items {
+      data.WriteString(item)
+   }
+   return data.String()
+}
+
 // to get the MPD you have to call this or view video on the website. request
 // is hard geo blocked only the first time
 func (s *Session) Viewing(filmId int) error {
-   req, _ := http.NewRequest("POST", "https://api.mubi.com", nil)
+   var req http.Request
+   req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+s.Token)
    req.Header.Set("client", client)
    req.Header.Set("client-country", ClientCountry)
-   req.URL.Path = fmt.Sprint("/v3/films/", filmId, "/viewing")
-   resp, err := http.DefaultClient.Do(req)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "api.mubi.com",
+      Path: join(
+         "/v3/films/",
+         strconv.Itoa(filmId),
+         "/viewing",
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return err
    }
