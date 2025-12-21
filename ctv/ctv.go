@@ -12,11 +12,7 @@ import (
 )
 
 func join(items ...string) string {
-   var data strings.Builder
-   for _, item := range items {
-      data.WriteString(item)
-   }
-   return data.String()
+   return strings.Join(items, "")
 }
 
 func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {

@@ -15,13 +15,8 @@ import (
    "time"
 )
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (s Stream) Mpd() (*Mpd, error) {
-   resp, err := http.Get(s.PlaybackUrl)
+   resp, err := http.Get(strings.Replace(s.PlaybackUrl, "_2sec", "", 1))
    if err != nil {
       return nil, err
    }
@@ -31,6 +26,11 @@ func (s Stream) Mpd() (*Mpd, error) {
       return nil, err
    }
    return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
 }
 
 const drmProxySecret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
