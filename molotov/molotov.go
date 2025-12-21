@@ -4,24 +4,60 @@ import (
    "bytes"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
+   "strconv"
    "strings"
 )
 
+type MediaId struct {
+   Program int
+   Channel int
+}
+
+// Parse extracts the IDs from a Molotov URL and populates the MediaId struct.
+// It maps the first number in the URL to Program and the second to Channel.
+func (m *MediaId) Parse(link string) error {
+   // 1. Cut the string to get everything after "/p/"
+   _, remainder, found := strings.Cut(link, "/p/")
+   if !found {
+      return errors.New("url does not contain the /p/ marker")
+   }
+   // 2. Cut the remainder at the next slash to remove any trailing text (e.g., title)
+   // If no slash exists, strings.Cut returns the whole string as 'idsStr', which is what we want.
+   idsStr, _, _ := strings.Cut(remainder, "/")
+   // 3. Cut the string at the hyphen to separate the two numbers
+   progStr, chanStr, found := strings.Cut(idsStr, "-")
+   if !found {
+      return errors.New("invalid format: hyphen not found between IDs")
+   }
+   // 4. Convert and assign to the struct fields
+   var err error
+   m.Program, err = strconv.Atoi(progStr)
+   if err != nil {
+      return errors.New("program ID is not a valid integer")
+   }
+   m.Channel, err = strconv.Atoi(chanStr)
+   if err != nil {
+      return errors.New("channel ID is not a valid integer")
+   }
+   return nil
+}
+
 func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
+   var link strings.Builder
+   link.WriteString("https://fapi.molotov.tv/v2/channels/")
+   link.WriteString(strconv.Itoa(media.Channel))
+   link.WriteString("/programs/")
+   link.WriteString(strconv.Itoa(media.Program))
+   link.WriteString("/view?access_token=")
+   link.WriteString(l.Auth.AccessToken)
+   req, err := http.NewRequest("", link.String(), nil)
+   if err != nil {
+      return nil, err
+   }
    req.Header.Set("x-molotov-agent", customer_area)
-   req.URL.RawQuery = url.Values{
-      "access_token": {l.Auth.AccessToken},
-   }.Encode()
-   req.URL.Path = fmt.Sprint(
-      "/v2/channels/", media.Channel,
-      "/programs/", media.Program,
-      "/view",
-   )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -36,28 +72,6 @@ func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
       return nil, errors.New("program is not available for playback")
    }
    return result, nil
-}
-
-type MediaId struct {
-   Program int
-   Channel int
-}
-
-// https://molotov.tv/fr_fr/p/15082-531
-// https://molotov.tv/fr_fr/p/15082-531/la-vie-aquatique
-func (m *MediaId) Parse(link string) error {
-   // Cut everything before the ID section "/p/"
-   _, segment, found := strings.Cut(link, "/p/")
-   if !found {
-      return errors.New("invalid Molotov URL: missing '/p/' marker")
-   }
-   // fmt.Sscanf parses the numbers into the struct fields.
-   // It stops reading Channel at the first non-digit (like the '/' in a slug).
-   _, err := fmt.Sscanf(segment, "%d-%d", &m.Program, &m.Channel)
-   if err != nil {
-      return fmt.Errorf("failed to parse program and channel IDs: %w", err)
-   }
-   return nil
 }
 
 type Mpd struct {
