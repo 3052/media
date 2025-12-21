@@ -16,13 +16,74 @@ import (
    "time"
 )
 
-func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
-   req, _ := http.NewRequest("", "https://tvapi-hlm2.solocoo.tv/v1/assets", nil)
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.URL.RawQuery = fmt.Sprint(
-      "limit=99&query=episodes,", tracking,
-      ",season,", season,
+func get_client(link *url.URL, body []byte) (string, error) {
+   encoding := base64.RawURLEncoding
+   // 1. base64 raw URL decode secret key
+   decoded_key, err := encoding.DecodeString(secret_key)
+   if err != nil {
+      return "", fmt.Errorf("failed to decode secret key: %v", err)
+   }
+   // Prepare timestamp and hash the body
+   timestamp := time.Now().Unix()
+   body_checksum := sha256.Sum256(body)
+   encoded_body_hash := encoding.EncodeToString(body_checksum[:])
+   // 2. hmac.New(sha256.New, secret key)
+   hash := hmac.New(sha256.New, decoded_key)
+   // 3, 4, 5. Write components to the hasher
+   fmt.Fprint(hash, link, encoded_body_hash, timestamp)
+   // 6. base64 raw URL encode the hmac sum
+   signature := encoding.EncodeToString(hash.Sum(nil))
+   // Construct final result string
+   result := fmt.Sprintf(
+      "Client key=%s,time=%d,sig=%s", client_key, timestamp, signature,
    )
+   return result, nil
+}
+
+// Global variables for authentication
+var (
+   client_key       = "web.NhFyz4KsZ54"
+   secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+func Tracking(address string) (string, error) {
+   resp, err := http.Get(address)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   var data strings.Builder
+   _, err = io.Copy(&data, resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const start_key = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(data.String(), start_key)
+   if !found {
+      return "", fmt.Errorf("attribute key %q not found", start_key)
+   }
+   before, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", errors.New("could not find closing quote for the attribute")
+   }
+   return before, nil
+}
+
+func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
+   var link strings.Builder
+   link.WriteString("https://tvapi-hlm2.solocoo.tv/v1/assets")
+   link.WriteString("?limit=99&query=episodes,")
+   link.WriteString(tracking)
+   link.WriteString(",season,")
+   link.WriteString(strconv.Itoa(season))
+   req, err := http.NewRequest("", link.String(), nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+s.Token)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -118,32 +179,6 @@ func (s *Session) Player(tracking string) (*Player, error) {
    return &result, nil
 }
 
-func Tracking(address string) (string, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   var data strings.Builder
-   _, err = io.Copy(&data, resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const startKey = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(data.String(), startKey)
-   if !found {
-      return "", fmt.Errorf("attribute key '%s' not found", startKey)
-   }
-   before, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", errors.New("could not find closing quote for the attribute")
-   }
-   return before, nil
-}
-
 type Session struct {
    Message  string
    SsoToken string
@@ -175,33 +210,6 @@ type Login struct {
 }
 
 const device_serial = "!!!!"
-
-func get_client(requestURL *url.URL, requestBody []byte) (string, error) {
-   encoding := base64.RawURLEncoding
-   // 1. base64 raw URL decode secret key
-   decodedSecretKey, err := encoding.DecodeString(SecretKeyBase64)
-   if err != nil {
-      return "", fmt.Errorf("failed to decode secret key: %v", err)
-   }
-   // Prepare timestamp and hash the body
-   currentTimestamp := time.Now().Unix()
-   bodyChecksum := sha256.Sum256(requestBody)
-   encodedBodyHash := encoding.EncodeToString(bodyChecksum[:])
-   // 2. hmac.New(sha256.New, secret key)
-   hmacHasher := hmac.New(sha256.New, decodedSecretKey)
-   // 3, 4, 5. Write components to the hasher
-   fmt.Fprint(hmacHasher, requestURL, encodedBodyHash, currentTimestamp)
-   // 6. base64 raw URL encode the hmac sum
-   finalSignature := encoding.EncodeToString(hmacHasher.Sum(nil))
-   // Construct final result string
-   result := fmt.Sprintf(
-      "Client key=%s,time=%d,sig=%s",
-      ClientKey,
-      currentTimestamp,
-      finalSignature,
-   )
-   return result, nil
-}
 
 func (t *Ticket) Login(username, password string) (*Login, error) {
    data, err := json.Marshal(map[string]any{
@@ -289,12 +297,6 @@ type Episode struct {
    }
    Title string
 }
-
-// Global variables for authentication
-var (
-   ClientKey       = "web.NhFyz4KsZ54"
-   SecretKeyBase64 = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
 
 type Ticket struct {
    Message string
