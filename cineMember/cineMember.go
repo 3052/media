@@ -3,19 +3,20 @@ package cineMember
 import (
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
+   "strconv"
    "strings"
 )
 
 // must run Session.Login first
 func (s Session) Stream(id int) (*Stream, error) {
-   req, _ := http.NewRequest("", "https://www.cinemember.nl", nil)
+   var link strings.Builder
+   link.WriteString("https://www.cinemember.nl/elements/films/stream.php?id=")
+   link.WriteString(strconv.Itoa(id))
+   req, _ := http.NewRequest("", link.String(), nil)
    req.AddCookie(s.Cookie)
-   req.URL.Path = "/elements/films/stream.php"
-   req.URL.RawQuery = fmt.Sprint("id=", id)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -33,6 +34,32 @@ func (s Session) Stream(id int) (*Stream, error) {
       return nil, errors.New("no access")
    }
    return &result, nil
+}
+
+// extracts the numeric ID and converts it to an integer
+func FetchId(link string) (int, error) {
+   resp, err := http.Get(link)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   var data strings.Builder
+   _, err = io.Copy(&data, resp.Body)
+   if err != nil {
+      return 0, err
+   }
+   // 1. Cut text after "app.play('"
+   _, after, found := strings.Cut(data.String(), "app.play('")
+   if !found {
+      return 0, errors.New("start marker not found")
+   }
+   // 2. Cut text at the next single quote to isolate the ID string
+   idStr, _, found := strings.Cut(after, "'")
+   if !found {
+      return 0, errors.New("closing quote not found")
+   }
+   // 3. Convert string to integer
+   return strconv.Atoi(idStr)
 }
 
 type Mpd struct {
@@ -89,28 +116,6 @@ func (s *Stream) Vtt() (*MediaLink, bool) {
       }
    }
    return nil, false
-}
-
-func Id(address string) (int, error) {
-   resp, err := http.Get(address)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return 0, err
-   }
-   _, after, found := strings.Cut(string(data), "app.play('")
-   if !found {
-      return 0, errors.New("could not find the start marker")
-   }
-   var id int
-   _, err = fmt.Sscan(after, &id)
-   if err != nil {
-      return 0, err
-   }
-   return id, nil
 }
 
 func (s *Stream) Dash() (*MediaLink, bool) {

@@ -24,7 +24,7 @@ func get_client(link *url.URL, body []byte) (string, error) {
       return "", err
    }
    // Prepare timestamp as string immediately
-   timestampStr := strconv.FormatInt(time.Now().Unix(), 10)
+   timestamp := strconv.FormatInt(time.Now().Unix(), 10)
    body_checksum := sha256.Sum256(body)
    encoded_body_hash := encoding.EncodeToString(body_checksum[:])
    // 2. hmac.New(sha256.New, secret key)
@@ -33,7 +33,7 @@ func get_client(link *url.URL, body []byte) (string, error) {
    // link is now a string, so we pass it directly
    io.WriteString(hash, link.String())
    io.WriteString(hash, encoded_body_hash)
-   io.WriteString(hash, timestampStr)
+   io.WriteString(hash, timestamp)
    // 6. base64 raw URL encode the hmac sum
    signature := encoding.EncodeToString(hash.Sum(nil))
    // Construct final result string using strings.Builder
@@ -41,7 +41,7 @@ func get_client(link *url.URL, body []byte) (string, error) {
    sb.WriteString("Client key=")
    sb.WriteString(client_key)
    sb.WriteString(",time=")
-   sb.WriteString(timestampStr)
+   sb.WriteString(timestamp)
    sb.WriteString(",sig=")
    sb.WriteString(signature)
    return sb.String(), nil
