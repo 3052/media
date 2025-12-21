@@ -166,12 +166,12 @@ type command struct {
    config   maya.Config
    dash     string
    email    string
-   episode  int64
+   episode  int
    name     string
    password string
    refresh  bool
-   season   int64
-   series   int64
+   season   int
+   series   int
 }
 
 func (c *command) run() error {
@@ -186,13 +186,13 @@ func (c *command) run() error {
 
    flag.StringVar(&c.email, "E", "", "email")
    flag.StringVar(&c.password, "P", "", "password")
-   flag.Int64Var(&c.series, "S", 0, "series ID")
+   flag.IntVar(&c.series, "S", 0, "series ID")
    flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.Int64Var(&c.episode, "e", 0, "episode or movie ID")
+   flag.IntVar(&c.episode, "e", 0, "episode or movie ID")
    flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
    flag.BoolVar(&c.refresh, "r", false, "refresh")
-   flag.Int64Var(&c.season, "s", 0, "season ID")
+   flag.IntVar(&c.season, "s", 0, "season ID")
    flag.Parse()
 
    if c.email != "" {
