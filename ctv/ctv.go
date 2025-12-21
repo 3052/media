@@ -11,36 +11,32 @@ import (
    "strings"
 )
 
-func (a *AxisContent) Playback() (*Playback, error) {
-   var link strings.Builder
-   link.WriteString("https://capi.9c9media.com/destinations/")
-   link.WriteString(a.AxisPlaybackLanguages[0].DestinationCode)
-   link.WriteString("/platforms/desktop/contents/")
-   link.WriteString(strconv.Itoa(a.AxisId))
-   link.WriteString("?$include=[ContentPackages]")
-   resp, err := http.Get(link.String())
-   if err != nil {
-      return nil, err
+func join(items ...string) string {
+   var data strings.Builder
+   for _, item := range items {
+      data.WriteString(item)
    }
-   defer resp.Body.Close()
-   result := &Playback{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
+   return data.String()
 }
 
 func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
-   var link strings.Builder
-   link.WriteString("https://capi.9c9media.com/destinations/")
-   link.WriteString(a.AxisPlaybackLanguages[0].DestinationCode)
-   link.WriteString("/platforms/desktop/playback/contents/")
-   link.WriteString(strconv.Itoa(a.AxisId))
-   link.WriteString("/contentPackages/")
-   link.WriteString(strconv.Itoa(play.ContentPackages[0].Id))
-   link.WriteString("/manifest.mpd?action=reference")
-   resp, err := http.Get(link.String())
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "capi.9c9media.com",
+      RawQuery: "action=reference",
+      Path: join(
+         "/destinations/",
+         a.AxisPlaybackLanguages[0].DestinationCode,
+         "/platforms/desktop/playback/contents/",
+         strconv.Itoa(a.AxisId),
+         "/contentPackages/",
+         strconv.Itoa(play.ContentPackages[0].Id),
+         "/manifest.mpd",
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
@@ -253,3 +249,29 @@ func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
 }
 
 type Manifest []byte
+func (a *AxisContent) Playback() (*Playback, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "capi.9c9media.com",
+      RawQuery: "$include=[ContentPackages]",
+      Path: join(
+         "/destinations/",
+         a.AxisPlaybackLanguages[0].DestinationCode,
+         "/platforms/desktop/contents/",
+         strconv.Itoa(a.AxisId),
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Playback{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
