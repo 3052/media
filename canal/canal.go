@@ -21,33 +21,40 @@ func get_client(link *url.URL, body []byte) (string, error) {
    // 1. base64 raw URL decode secret key
    decoded_key, err := encoding.DecodeString(secret_key)
    if err != nil {
-      return "", fmt.Errorf("failed to decode secret key: %v", err)
+      return "", err
    }
-   // Prepare timestamp and hash the body
-   timestamp := time.Now().Unix()
+   // Prepare timestamp as string immediately
+   timestampStr := strconv.FormatInt(time.Now().Unix(), 10)
    body_checksum := sha256.Sum256(body)
    encoded_body_hash := encoding.EncodeToString(body_checksum[:])
    // 2. hmac.New(sha256.New, secret key)
    hash := hmac.New(sha256.New, decoded_key)
    // 3, 4, 5. Write components to the hasher
-   fmt.Fprint(hash, link, encoded_body_hash, timestamp)
+   // link is now a string, so we pass it directly
+   io.WriteString(hash, link.String())
+   io.WriteString(hash, encoded_body_hash)
+   io.WriteString(hash, timestampStr)
    // 6. base64 raw URL encode the hmac sum
    signature := encoding.EncodeToString(hash.Sum(nil))
-   // Construct final result string
-   result := fmt.Sprintf(
-      "Client key=%s,time=%d,sig=%s", client_key, timestamp, signature,
-   )
-   return result, nil
+   // Construct final result string using strings.Builder
+   var sb strings.Builder
+   sb.WriteString("Client key=")
+   sb.WriteString(client_key)
+   sb.WriteString(",time=")
+   sb.WriteString(timestampStr)
+   sb.WriteString(",sig=")
+   sb.WriteString(signature)
+   return sb.String(), nil
 }
 
 // Global variables for authentication
 var (
-   client_key       = "web.NhFyz4KsZ54"
+   client_key = "web.NhFyz4KsZ54"
    secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
 )
 
-func Tracking(address string) (string, error) {
-   resp, err := http.Get(address)
+func FetchTracking(link string) (string, error) {
+   resp, err := http.Get(link)
    if err != nil {
       return "", err
    }

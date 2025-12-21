@@ -98,7 +98,7 @@ func (c *command) do_refresh() error {
 }
 
 func (c *command) do_address() error {
-   tracking, err := canal.Tracking(c.address)
+   tracking, err := canal.FetchTracking(c.address)
    if err != nil {
       return err
    }
