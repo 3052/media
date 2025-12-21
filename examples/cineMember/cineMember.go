@@ -118,7 +118,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   id, err := cineMember.Id(c.address)
+   id, err := cineMember.FetchId(c.address)
    if err != nil {
       return err
    }
