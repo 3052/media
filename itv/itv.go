@@ -4,22 +4,22 @@ import (
    "bytes"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/http/cookiejar"
    "net/url"
    "path"
+   "strconv"
    "strings"
 )
 
 func (t *Title) String() string {
-   data := &strings.Builder{}
+   var data strings.Builder
    if t.Series != nil {
       data.WriteString("series = ")
-      fmt.Fprint(data, t.Series.SeriesNumber)
+      data.WriteString(strconv.Itoa(t.Series.SeriesNumber))
       data.WriteString("\nepisode = ")
-      fmt.Fprint(data, t.EpisodeNumber)
+      data.WriteString(strconv.Itoa(t.EpisodeNumber))
    }
    if t.Title != "" {
       if data.Len() >= 1 {

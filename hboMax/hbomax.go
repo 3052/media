@@ -4,7 +4,6 @@ import (
    "bytes"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -14,15 +13,50 @@ import (
    "strings"
 )
 
+func (s St) Initiate(market string) (*Initiate, error) {
+   var link strings.Builder
+   link.WriteString("https://default.beam-")
+   link.WriteString(market)
+   link.WriteString(".prd.api.discomax.com/authentication/linkDevice/initiate")
+   req, err := http.NewRequest("POST", link.String(), nil)
+   if err != nil {
+      return nil, err
+   }
+   req.AddCookie(s.Cookie)
+   req.Header.Set("x-device-info", device_info)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      Data struct {
+         Attributes Initiate
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data.Attributes, nil
+}
+
 func (v *Video) String() string {
-   data := &strings.Builder{}
+   var data strings.Builder
    if v.Attributes.SeasonNumber >= 1 {
       data.WriteString("season number = ")
-      fmt.Fprint(data, v.Attributes.SeasonNumber)
+      data.WriteString(strconv.Itoa(v.Attributes.SeasonNumber))
    }
    if v.Attributes.EpisodeNumber >= 1 {
       data.WriteString("\nepisode number = ")
-      fmt.Fprint(data, v.Attributes.EpisodeNumber)
+      data.WriteString(strconv.Itoa(v.Attributes.EpisodeNumber))
    }
    if data.Len() >= 1 {
       data.WriteByte('\n')
@@ -102,36 +136,6 @@ var Markets = []string{
    "apac",
    "emea",
    "latam",
-}
-
-func (s St) Initiate(market string) (*Initiate, error) {
-   req, _ := http.NewRequest("POST", "/authentication/linkDevice/initiate", nil)
-   req.AddCookie(s.Cookie)
-   req.Header.Set("x-device-info", device_info)
-   req.URL.Host = fmt.Sprintf("default.beam-%v.prd.api.discomax.com", market)
-   req.URL.Scheme = "https"
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      Data struct {
-         Attributes Initiate
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result.Data.Attributes, nil
 }
 
 const prd_api = "https://default.prd.api.hbomax.com"

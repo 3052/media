@@ -4,7 +4,6 @@ import (
    "bytes"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -13,15 +12,13 @@ import (
 )
 
 func (a *AxisContent) Playback() (*Playback, error) {
-   req, _ := http.NewRequest("", "https://capi.9c9media.com", nil)
-   req.URL.RawQuery = "$include=[ContentPackages]"
-   req.URL.Path = fmt.Sprint(
-      "/destinations/",
-      a.AxisPlaybackLanguages[0].DestinationCode,
-      "/platforms/desktop/contents/",
-      a.AxisId,
-   )
-   resp, err := http.DefaultClient.Do(req)
+   var link strings.Builder
+   link.WriteString("https://capi.9c9media.com/destinations/")
+   link.WriteString(a.AxisPlaybackLanguages[0].DestinationCode)
+   link.WriteString("/platforms/desktop/contents/")
+   link.WriteString(strconv.Itoa(a.AxisId))
+   link.WriteString("?$include=[ContentPackages]")
+   resp, err := http.Get(link.String())
    if err != nil {
       return nil, err
    }

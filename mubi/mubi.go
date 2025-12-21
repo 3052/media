@@ -9,30 +9,9 @@ import (
    "io"
    "net/http"
    "net/url"
+   "strconv"
    "strings"
 )
-
-func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   req.URL.Path = fmt.Sprint("/v3/films/", filmId, "/viewing/secure_url")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result SecureUrl
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.UserMessage != "" {
-      return nil, errors.New(result.UserMessage)
-   }
-   return &result, nil
-}
 
 // to get the MPD you have to call this or view video on the website. request
 // is hard geo blocked only the first time
@@ -58,6 +37,34 @@ func (s *Session) Viewing(filmId int) error {
       return errors.New(result.UserMessage)
    }
    return nil
+}
+
+func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
+   var link strings.Builder
+   link.WriteString("https://api.mubi.com/v3/films/")
+   link.WriteString(strconv.Itoa(filmId))
+   link.WriteString("/viewing/secure_url")
+   req, err := http.NewRequest("", link.String(), nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result SecureUrl
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.UserMessage != "" {
+      return nil, errors.New(result.UserMessage)
+   }
+   return &result, nil
 }
 
 type Mpd struct {
