@@ -11,6 +11,7 @@ import (
    "io"
    "net/http"
    "net/url"
+   "strconv"
    "strings"
    "time"
 )
@@ -39,6 +40,19 @@ func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
       return nil, errors.New(result.Message)
    }
    return result.Assets, nil
+}
+
+func (e *Episode) String() string {
+   var data strings.Builder
+   data.WriteString("episode = ")
+   data.WriteString(strconv.Itoa(e.Params.SeriesEpisode))
+   data.WriteString("\ntitle = ")
+   data.WriteString(e.Title)
+   data.WriteString("\ndesc = ")
+   data.WriteString(e.Desc)
+   data.WriteString("\ntracking = ")
+   data.WriteString(e.Id)
+   return data.String()
 }
 
 func (l *Login) Error() string {
@@ -125,7 +139,7 @@ func Tracking(address string) (string, error) {
    }
    before, _, found := strings.Cut(after, `"`)
    if !found {
-      return "", fmt.Errorf("could not find closing quote for the attribute")
+      return "", errors.New("could not find closing quote for the attribute")
    }
    return before, nil
 }
@@ -176,7 +190,6 @@ func get_client(requestURL *url.URL, requestBody []byte) (string, error) {
    // 2. hmac.New(sha256.New, secret key)
    hmacHasher := hmac.New(sha256.New, decodedSecretKey)
    // 3, 4, 5. Write components to the hasher
-   // fmt.Fprint handles string conversion for requestURL and currentTimestamp
    fmt.Fprint(hmacHasher, requestURL, encodedBodyHash, currentTimestamp)
    // 6. base64 raw URL encode the hmac sum
    finalSignature := encoding.EncodeToString(hmacHasher.Sum(nil))
@@ -266,18 +279,6 @@ func (t *Ticket) Fetch() error {
       return errors.New(t.Message)
    }
    return nil
-}
-func (e *Episode) String() string {
-   data := &strings.Builder{}
-   data.WriteString("episode = ")
-   fmt.Fprint(data, e.Params.SeriesEpisode)
-   data.WriteString("\ntitle = ")
-   data.WriteString(e.Title)
-   data.WriteString("\ndesc = ")
-   data.WriteString(e.Desc)
-   data.WriteString("\ntracking = ")
-   data.WriteString(e.Id)
-   return data.String()
 }
 
 type Episode struct {
