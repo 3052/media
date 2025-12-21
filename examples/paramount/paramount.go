@@ -27,7 +27,7 @@ func (c *command) run() error {
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.intl, "i", false, "intl")
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   flag.IntVar(&c.config.Threads, "t", 3, "threads")
    flag.Parse()
 
    if c.paramount != "" {
