@@ -13,63 +13,15 @@ import (
    "strings"
 )
 
-func (t *Title) String() string {
-   var data strings.Builder
-   if t.Series != nil {
-      data.WriteString("series = ")
-      data.WriteString(strconv.Itoa(t.Series.SeriesNumber))
-      data.WriteString("\nepisode = ")
-      data.WriteString(strconv.Itoa(t.EpisodeNumber))
+type Title struct {
+   LatestAvailableVersion struct {
+      PlaylistUrl string
    }
-   if t.Title != "" {
-      if data.Len() >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("title = ")
-      data.WriteString(t.Title)
+   Series *struct {
+      SeriesNumber int
    }
-   if data.Len() >= 1 {
-      data.WriteByte('\n')
-   }
-   data.WriteString("playlist = ")
-   data.WriteString(t.LatestAvailableVersion.PlaylistUrl)
-   return data.String()
-}
-
-func LegacyId(link string) string {
-   // 1. Get the last part of the URL (e.g., "10a5356a0001B")
-   base := path.Base(link)
-   // 2. Split the string by the character 'a'
-   parts := strings.Split(base, "a")
-   // 3. Join them back together with '/'
-   return strings.Join(parts, "/")
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (m *MediaFile) Mpd() (*Mpd, error) {
-   var err error
-   http.DefaultClient.Jar, err = cookiejar.New(nil)
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
-}
-
-func graphql_compact(data string) string {
-   return strings.Join(strings.Fields(data), " ")
+   EpisodeNumber int
+   Title         string
 }
 
 func Titles(legacyId string) ([]Title, error) {
@@ -104,26 +56,6 @@ func Titles(legacyId string) ([]Title, error) {
       return nil, err
    }
    return payload.Data.Titles, nil
-}
-
-func (p *Playlist) FullHd() (*MediaFile, bool) {
-   for _, file := range p.Playlist.Video.MediaFiles {
-      if file.Resolution == "1080" {
-         return &file, true
-      }
-   }
-   return nil, false
-}
-
-func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 func (t *Title) Playlist() (*Playlist, error) {
@@ -226,17 +158,6 @@ type MediaFile struct {
    Resolution    string
 }
 
-type Title struct {
-   LatestAvailableVersion struct {
-      PlaylistUrl string
-   }
-   Series *struct {
-      SeriesNumber int
-   }
-   EpisodeNumber int
-   Title         string
-}
-
 const programme_page = `
 query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
    titles(
@@ -259,3 +180,81 @@ query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
 }
 `
 
+func (p *Playlist) FullHd() (*MediaFile, bool) {
+   for _, file := range p.Playlist.Video.MediaFiles {
+      if file.Resolution == "1080" {
+         return &file, true
+      }
+   }
+   return nil, false
+}
+
+func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (t *Title) String() string {
+   var data strings.Builder
+   if t.Series != nil {
+      data.WriteString("series = ")
+      data.WriteString(strconv.Itoa(t.Series.SeriesNumber))
+      data.WriteString("\nepisode = ")
+      data.WriteString(strconv.Itoa(t.EpisodeNumber))
+   }
+   if t.Title != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("title = ")
+      data.WriteString(t.Title)
+   }
+   if data.Len() >= 1 {
+      data.WriteByte('\n')
+   }
+   data.WriteString("playlist = ")
+   data.WriteString(t.LatestAvailableVersion.PlaylistUrl)
+   return data.String()
+}
+
+func LegacyId(link string) string {
+   // 1. Get the last part of the URL (e.g., "10a5356a0001B")
+   base := path.Base(link)
+   // 2. Split the string by the character 'a'
+   parts := strings.Split(base, "a")
+   // 3. Join them back together with '/'
+   return strings.Join(parts, "/")
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (m *MediaFile) Mpd() (*Mpd, error) {
+   var err error
+   http.DefaultClient.Jar, err = cookiejar.New(nil)
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
+func graphql_compact(data string) string {
+   return strings.Join(strings.Fields(data), " ")
+}

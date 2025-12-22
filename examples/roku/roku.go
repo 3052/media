@@ -9,38 +9,9 @@ import (
    "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
 )
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   Connection *roku.Connection
-   LinkCode   *roku.LinkCode
-   Mpd        *roku.Mpd
-   Playback   *roku.Playback
-   User       *roku.User
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -59,6 +30,7 @@ func (c *command) run() error {
    flag.BoolVar(&c.get_user, "g", false, "get user")
    flag.StringVar(&c.roku, "r", "", "Roku ID")
    flag.BoolVar(&c.set_user, "s", false, "set user")
+   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.connection {
@@ -157,15 +129,42 @@ func (c *command) do_roku() error {
 }
 
 type command struct {
-   name   string
-   config maya.Config
-   // 1
+   config     maya.Config
    connection bool
-   // 2
-   set_user bool
-   // 3
-   roku     string
-   get_user bool
-   // 4
-   dash string
+   dash       string
+   get_user   bool
+   name       string
+   roku       string
+   set_user   bool
+}
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.Widevine(data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type user_cache struct {
+   Connection *roku.Connection
+   LinkCode   *roku.LinkCode
+   Mpd        *roku.Mpd
+   Playback   *roku.Playback
+   User       *roku.User
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
