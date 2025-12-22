@@ -10,6 +10,24 @@ import (
    "strings"
 )
 
+func (p *Playback) Mpd() (*Mpd, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Mpd struct {
+   Body    []byte
+   Url *url.URL
+}
+
 const user_agent = "trc-googletv; production; 0"
 
 // Connection represents the active session with the Roku API.
@@ -88,27 +106,57 @@ func NewConnection(current *User) (*Connection, error) {
    return result, nil
 }
 
-///
-
 // GetUser exchanges the LinkCode for a permanent User token.
-func (c *Connection) GetUser(link *LinkCode) (*User, error) {
-   req, _ := http.NewRequest("", "https://googletv.web.roku.com", nil)
-   req.URL.Path = "/api/v1/account/activation/" + link.Code
+func (c *Connection) User(link *LinkCode) (*User, error) {
+   var req http.Request
+   req.Header = http.Header{}
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-roku-content-token", c.AuthToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "googletv.web.roku.com",
+      Path: "/api/v1/account/activation/" + link.Code,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &User{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
 
+// RequestLinkCode requests a new activation code from the server
+func (c *Connection) LinkCode() (*LinkCode, error) {
+   data, err := json.Marshal(map[string]string{"platform": "googletv"})
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://googletv.web.roku.com/api/v1/account/activation",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-roku-content-token", c.AuthToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-
-   currentUser := &User{}
-   err = json.NewDecoder(resp.Body).Decode(currentUser)
+   result := &LinkCode{}
+   err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
    }
-   return currentUser, nil
+   return result, nil
 }
 
 // Playback fetches the DASH manifest and DRM information.
@@ -131,7 +179,6 @@ func (c *Connection) Playback(rokuId string) (*Playback, error) {
    req.Header.Set("content-type", "application/json")
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-roku-content-token", c.AuthToken)
-
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -146,53 +193,4 @@ func (c *Connection) Playback(rokuId string) (*Playback, error) {
       return nil, err
    }
    return result, nil
-}
-
-// RequestLinkCode requests a new activation code from the server
-func (c *Connection) RequestLinkCode() (*LinkCode, error) {
-   payload, err := json.Marshal(map[string]string{"platform": "googletv"})
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://googletv.web.roku.com/api/v1/account/activation",
-      bytes.NewReader(payload),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("user-agent", user_agent)
-   req.Header.Set("x-roku-content-token", c.AuthToken)
-
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   link := &LinkCode{}
-   err = json.NewDecoder(resp.Body).Decode(link)
-   if err != nil {
-      return nil, err
-   }
-   return link, nil
-}
-type Mpd struct {
-   Mpd        *url.URL
-   MpdBody    []byte
-}
-
-func (p *Playback) Mpd(storage *Cache) error {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   storage.MpdBody, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   storage.Mpd = resp.Request.URL
-   return nil
 }
