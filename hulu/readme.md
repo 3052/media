@@ -2,7 +2,7 @@
 
 1. hulu.com
 2. choose Hulu
-3. choose Hulu again
+3. choose Hulu again (30 day free trial)
 4. email
    - mail.tm
 4. password

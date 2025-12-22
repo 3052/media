@@ -12,7 +12,30 @@ import (
    "path/filepath"
 )
 
-func (r *runner) do_dash() error {
+type Cache struct {
+   Connection *Connection
+   LinkCode   *LinkCode
+   Mpd        *url.URL
+   MpdBody    []byte
+   Playback   *Playback
+   User       *User
+}
+
+type command struct {
+   name  string
+   config maya.Config
+   // 1
+   connection bool
+   // 2
+   set_user bool
+   // 3
+   roku     string
+   get_user bool
+   // 4
+   dash string
+}
+
+func (r *command) do_dash() error {
    cache, err := r.read()
    if err != nil {
       return err
@@ -28,14 +51,14 @@ func main() {
    maya.Transport(func(req *http.Request) string {
       return "L"
    })
-   var program runner
+   var program command
    err := program.run()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (r *runner) do_user() error {
+func (r *command) do_user() error {
    cache, err := r.read()
    if err != nil {
       return err
@@ -47,21 +70,7 @@ func (r *runner) do_user() error {
    return r.write(cache)
 }
 
-type runner struct {
-   cache  string
-   config maya.Config
-   // 1
-   connection bool
-   // 2
-   set_user bool
-   // 3
-   roku     string
-   get_user bool
-   // 4
-   dash string
-}
-
-func (r *runner) do_connection() error {
+func (r *command) do_connection() error {
    var (
       cache roku.Cache
       err   error
@@ -78,7 +87,7 @@ func (r *runner) do_connection() error {
    return r.write(&cache)
 }
 
-func (r *runner) do_roku() error {
+func (r *command) do_roku() error {
    cache := &roku.Cache{}
    if r.get_user {
       var err error
@@ -106,13 +115,13 @@ func (r *runner) do_roku() error {
    return maya.Representations(cache.MpdBody, cache.Mpd)
 }
 
-func (r *runner) run() error {
+func (r *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   r.cache = cache + "/roku/Cache"
+   r.name = cache + "/roku/Cache"
    r.config.ClientId = cache + "/L3/client_id.bin"
    r.config.PrivateKey = cache + "/L3/private_key.pem"
 
@@ -140,17 +149,17 @@ func (r *runner) run() error {
    return nil
 }
 
-func (r *runner) write(cache *roku.Cache) error {
+func (r *command) write(cache *roku.Cache) error {
    data, err := json.Marshal(cache)
    if err != nil {
       return err
    }
-   log.Println("WriteFile", r.cache)
-   return os.WriteFile(r.cache, data, os.ModePerm)
+   log.Println("WriteFile", r.name)
+   return os.WriteFile(r.name, data, os.ModePerm)
 }
 
-func (r *runner) read() (*roku.Cache, error) {
-   data, err := os.ReadFile(r.cache)
+func (r *command) read() (*roku.Cache, error) {
+   data, err := os.ReadFile(r.name)
    if err != nil {
       return nil, err
    }
