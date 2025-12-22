@@ -4,9 +4,9 @@ import (
    "bytes"
    "crypto/hmac"
    "crypto/sha256"
+   "encoding/hex"
    "encoding/json"
    "errors"
-   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -34,19 +34,6 @@ type Mpd struct {
 }
 
 const drmProxySecret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"
-
-// buildAuthQuery generates the signed query parameters (hash, time, device).
-func buildAuthQuery(drmType string) string {
-   timestamp := fmt.Sprint(time.Now().UnixMilli())
-   mac := hmac.New(sha256.New, []byte(drmProxySecret))
-   fmt.Fprint(mac, timestamp, drmType)
-   hash := fmt.Sprintf("%x", mac.Sum(nil))
-   return url.Values{
-      "device": {"web"},
-      "hash":   {hash},
-      "time":   {timestamp},
-   }.Encode()
-}
 
 func playReady() *url.URL {
    return &url.URL{
@@ -196,4 +183,18 @@ func (m *Metadata) Stream() (*Stream, error) {
       return nil, err
    }
    return result, nil
+}
+// buildAuthQuery generates the signed query parameters (hash, time, device).
+func buildAuthQuery(drmType string) string {
+   timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
+   mac := hmac.New(sha256.New, []byte(drmProxySecret))
+   // Use io.WriteString to write string data directly to the Writer
+   io.WriteString(mac, timestamp)
+   io.WriteString(mac, drmType)
+   hash := hex.EncodeToString(mac.Sum(nil))
+   return url.Values{
+      "device": {"web"},
+      "hash":   {hash},
+      "time":   {timestamp},
+   }.Encode()
 }
