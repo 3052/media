@@ -12,59 +12,31 @@ import (
    "strings"
 )
 
+// "android" requires headers:
+// client-device-identifier
+// client-version
+const client = "web"
+
+var ClientCountry = "US"
+
 func join(items ...string) string {
    return strings.Join(items, "")
 }
 
-// to get the MPD you have to call this or view video on the website. request
-// is hard geo blocked only the first time
-func (s *Session) Viewing(filmId int) error {
+func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+s.Token)
    req.Header.Set("client", client)
+   req.Header.Set("client-accept-video-codecs", "vp9")
    req.Header.Set("client-country", ClientCountry)
-   req.Method = "POST"
+   req.Header.Set("user-agent", "Firefox")
    req.URL = &url.URL{
       Scheme: "https",
       Host: "api.mubi.com",
-      Path: join(
-         "/v3/films/",
-         strconv.Itoa(filmId),
-         "/viewing",
-      ),
+      Path: join("/v3/films/", strconv.Itoa(filmId), "/viewing/secure_url"),
    }
    resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      UserMessage string `json:"user_message"`
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return err
-   }
-   if result.UserMessage != "" {
-      return errors.New(result.UserMessage)
-   }
-   return nil
-}
-
-func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
-   var link strings.Builder
-   link.WriteString("https://api.mubi.com/v3/films/")
-   link.WriteString(strconv.Itoa(filmId))
-   link.WriteString("/viewing/secure_url")
-   req, err := http.NewRequest("", link.String(), nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
@@ -78,6 +50,15 @@ func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
       return nil, errors.New(result.UserMessage)
    }
    return &result, nil
+}
+
+type SecureUrl struct {
+   TextTrackUrls []struct {
+      Id  string
+      Url string
+   } `json:"text_track_urls"`
+   Url         string // MPD
+   UserMessage string `json:"user_message"`
 }
 
 type Mpd struct {
@@ -99,13 +80,6 @@ func (s *SecureUrl) Mpd() (*Mpd, error) {
 }
 
 const forbidden = "HTTP Status 403 – Forbidden"
-
-// "android" requires headers:
-// client-device-identifier
-// client-version
-const client = "web"
-
-var ClientCountry = "US"
 
 type LinkCode struct {
    AuthToken string `json:"auth_token"`
@@ -193,15 +167,6 @@ func (l *LinkCode) Session() (*Session, error) {
    return result, nil
 }
 
-type SecureUrl struct {
-   TextTrackUrls []struct {
-      Id  string
-      Url string
-   } `json:"text_track_urls"`
-   Url         string // MPD
-   UserMessage string `json:"user_message"`
-}
-
 type Session struct {
    Token string
    User  struct {
@@ -247,4 +212,36 @@ func (s *Session) Widevine(data []byte) ([]byte, error) {
       return nil, err
    }
    return result.License, nil
+}
+
+// to get the MPD you have to call this or view video on the website. request
+// is hard geo blocked only the first time
+func (s *Session) Viewing(filmId int) error {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "api.mubi.com",
+      Path: join("/v3/films/", strconv.Itoa(filmId), "/viewing"),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      UserMessage string `json:"user_message"`
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return err
+   }
+   if result.UserMessage != "" {
+      return errors.New(result.UserMessage)
+   }
+   return nil
 }
