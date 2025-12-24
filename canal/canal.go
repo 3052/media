@@ -16,6 +16,32 @@ import (
    "time"
 )
 
+func FetchTracking(link string) (string, error) {
+   resp, err := http.Get(link)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   var data strings.Builder
+   _, err = io.Copy(&data, resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const start_key = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(data.String(), start_key)
+   if !found {
+      return "", fmt.Errorf("attribute key %q not found", start_key)
+   }
+   before, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", errors.New("could not find closing quote for the attribute")
+   }
+   return before, nil
+}
+
 func join(items ...string) string {
    return strings.Join(items, "")
 }
@@ -325,29 +351,3 @@ var (
    client_key = "web.NhFyz4KsZ54"
    secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
 )
-
-func FetchTracking(link string) (string, error) {
-   resp, err := http.Get(link)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   var data strings.Builder
-   _, err = io.Copy(&data, resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const start_key = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(data.String(), start_key)
-   if !found {
-      return "", fmt.Errorf("attribute key %q not found", start_key)
-   }
-   before, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", errors.New("could not find closing quote for the attribute")
-   }
-   return before, nil
-}

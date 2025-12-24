@@ -10,6 +10,36 @@ import (
    "strconv"
 )
 
+func (l *Login) Membership() (*Membership, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+l.Jwt)
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-version", x_version)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.kanopy.com",
+      Path: "/kapi/memberships",
+      RawQuery: "userId=" + strconv.Itoa(l.UserId),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      List []Membership
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.List[0], nil
+}
+
 type Mpd struct {
    Body []byte
    Url  *url.URL
@@ -131,31 +161,6 @@ func (l *Login) Fetch(email, password string) error {
 type PlayResponse struct {
    ErrorMsgLong string `json:"error_msg_long"`
    Manifests    []StreamInfo
-}
-
-func (l *Login) Membership() (*Membership, error) {
-   req, _ := http.NewRequest("", "https://www.kanopy.com", nil)
-   req.URL.Path = "/kapi/memberships"
-   req.URL.RawQuery = "userId=" + strconv.Itoa(l.UserId)
-   req.Header.Set("authorization", "Bearer "+l.Jwt)
-   req.Header.Set("user-agent", user_agent)
-   req.Header.Set("x-version", x_version)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      List []Membership
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.List[0], nil
 }
 
 func (l *Login) Widevine(info *StreamInfo, data []byte) ([]byte, error) {

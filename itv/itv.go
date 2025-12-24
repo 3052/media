@@ -13,6 +13,42 @@ import (
    "strings"
 )
 
+func Titles(legacyId string) ([]Title, error) {
+   var data strings.Builder
+   err := json.NewEncoder(&data).Encode(map[string]string{
+      "brandLegacyId": legacyId,
+   })
+   if err != nil {
+      return nil, err
+   }
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "content-inventory.prd.oasvc.itv.com",
+      Path: "/discovery",
+      RawQuery: url.Values{
+         "query":     {graphql_compact(programme_page)},
+         "variables": {data.String()},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         Titles []Title
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return result.Data.Titles, nil
+}
+
 type Title struct {
    LatestAvailableVersion struct {
       PlaylistUrl string
@@ -22,40 +58,6 @@ type Title struct {
    }
    EpisodeNumber int
    Title         string
-}
-
-func Titles(legacyId string) ([]Title, error) {
-   data, err := json.Marshal(map[string]string{
-      "brandLegacyId": legacyId,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "", "https://content-inventory.prd.oasvc.itv.com/discovery", nil,
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = url.Values{
-      "query":     {graphql_compact(programme_page)},
-      "variables": {string(data)},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var payload struct {
-      Data struct {
-         Titles []Title
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&payload)
-   if err != nil {
-      return nil, err
-   }
-   return payload.Data.Titles, nil
 }
 
 func (t *Title) Playlist() (*Playlist, error) {

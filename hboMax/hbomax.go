@@ -13,18 +13,22 @@ import (
    "strings"
 )
 
+func join(data ...string) string {
+   return strings.Join(data, "")
+}
+
 func (s St) Initiate(market string) (*Initiate, error) {
-   var link strings.Builder
-   link.WriteString("https://default.beam-")
-   link.WriteString(market)
-   link.WriteString(".prd.api.discomax.com/authentication/linkDevice/initiate")
-   req, err := http.NewRequest("POST", link.String(), nil)
-   if err != nil {
-      return nil, err
-   }
-   req.AddCookie(s.Cookie)
+   var req http.Request
+   req.Header = http.Header{}
    req.Header.Set("x-device-info", device_info)
-   resp, err := http.DefaultClient.Do(req)
+   req.AddCookie(s.Cookie)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: join("https://default.beam-", market, ".prd.api.discomax.com"),
+      Path: "/authentication/linkDevice/initiate",
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
