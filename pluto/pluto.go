@@ -11,19 +11,25 @@ import (
 )
 
 func (s *Series) Fetch(id string) error {
-   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
-   req.URL.RawQuery = url.Values{
-      "appName":           {app_name},
-      "appVersion":        {"9"},
-      "clientID":          {"9"},
-      "clientModelNumber": {"9"},
-      "deviceMake":        {"9"},
-      "deviceModel":       {"9"},
-      "deviceVersion":     {"9"},
-      "drmCapabilities":   {drm_capabilities},
-      "seriesIDs":         {id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "boot.pluto.tv",
+      Path: "/v4/start",
+      RawQuery: url.Values{
+         "appName":           {app_name},
+         "appVersion":        {"9"},
+         "clientID":          {"9"},
+         "clientModelNumber": {"9"},
+         "deviceMake":        {"9"},
+         "deviceModel":       {"9"},
+         "deviceVersion":     {"9"},
+         "drmCapabilities":   {drm_capabilities},
+         "seriesIDs":         {id},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return err
    }

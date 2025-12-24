@@ -10,20 +10,88 @@ import (
    "strings"
 )
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
+func (u User) RatingKey(rawUrl string) (*ItemMetadata, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("accept", "application/json")
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "discover.provider.plex.tv",
+      Path: "/library/metadata/matches",
+      RawQuery: url.Values{
+         "url":          {rawUrl},
+         "x-plex-token": {u.AuthToken},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Error struct {
+         Message string
+      }
+      MediaContainer struct {
+         Metadata []ItemMetadata
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error.Message != "" {
+      return nil, errors.New(result.Error.Message)
+   }
+   return &result.MediaContainer.Metadata[0], nil
 }
 
-func (u User) Mpd(part *MediaPart, forwardedFor string) (*Mpd, error) {
-   req, _ := http.NewRequest("", "https://vod.provider.plex.tv", nil)
-   // /library/parts/6730016e43b96c02321d7860-dash.mpd
-   req.URL.Path = part.Key
-   req.URL.RawQuery = "x-plex-token=" + u.AuthToken
+func (u User) Media(item *ItemMetadata, forwardedFor string) (*ItemMetadata, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("accept", "application/json")
+   req.Header.Set("x-plex-token", u.AuthToken)
    if forwardedFor != "" {
       req.Header.Set("X-Forwarded-For", forwardedFor)
    }
-   resp, err := http.DefaultClient.Do(req)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "vod.provider.plex.tv",
+      Path: "/library/metadata/" + item.RatingKey,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      MediaContainer struct {
+         Metadata []ItemMetadata
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.MediaContainer.Metadata[0], nil
+}
+
+func (u User) Mpd(part *MediaPart, forwardedFor string) (*Mpd, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   if forwardedFor != "" {
+      req.Header.Set("X-Forwarded-For", forwardedFor)
+   }
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "vod.provider.plex.tv",
+      Path: part.Key, // /library/parts/6730016e43b96c02321d7860-dash.mpd
+      RawQuery: "x-plex-token=" + u.AuthToken,
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
@@ -33,6 +101,11 @@ func (u User) Mpd(part *MediaPart, forwardedFor string) (*Mpd, error) {
       return nil, err
    }
    return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
 }
 
 type ItemMetadata struct {
@@ -52,34 +125,6 @@ type User struct {
    AuthToken string
 }
 
-func (u User) Media(item *ItemMetadata, forwardedFor string) (*ItemMetadata, error) {
-   req, _ := http.NewRequest("", "https://vod.provider.plex.tv", nil)
-   req.URL.Path = "/library/metadata/" + item.RatingKey
-   req.Header.Set("accept", "application/json")
-   req.Header.Set("x-plex-token", u.AuthToken)
-   if forwardedFor != "" {
-      req.Header.Set("X-Forwarded-For", forwardedFor)
-   }
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var payload struct {
-      MediaContainer struct {
-         Metadata []ItemMetadata
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&payload)
-   if err != nil {
-      return nil, err
-   }
-   return &payload.MediaContainer.Metadata[0], nil
-}
-
 // https://watch.plex.tv/movie/memento-2000
 // https://watch.plex.tv/watch/movie/memento-2000
 func GetPath(rawUrl string) (string, error) {
@@ -88,37 +133,6 @@ func GetPath(rawUrl string) (string, error) {
       return "", err
    }
    return strings.TrimPrefix(u.Path, "/watch"), nil
-}
-
-func (u User) RatingKey(rawUrl string) (*ItemMetadata, error) {
-   req, _ := http.NewRequest("", "https://discover.provider.plex.tv", nil)
-   req.URL.Path = "/library/metadata/matches"
-   req.URL.RawQuery = url.Values{
-      "url":          {rawUrl},
-      "x-plex-token": {u.AuthToken},
-   }.Encode()
-   req.Header.Set("accept", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var item struct {
-      Error struct {
-         Message string
-      }
-      MediaContainer struct {
-         Metadata []ItemMetadata
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&item)
-   if err != nil {
-      return nil, err
-   }
-   if item.Error.Message != "" {
-      return nil, errors.New(item.Error.Message)
-   }
-   return &item.MediaContainer.Metadata[0], nil
 }
 
 func (u User) Widevine(part *MediaPart, data []byte) ([]byte, error) {
