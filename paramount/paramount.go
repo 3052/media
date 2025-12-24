@@ -17,6 +17,113 @@ import (
    "strings"
 )
 
+func (s *SessionToken) Fetch(at, contentId string) error {
+   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
+   req.URL.Path = func() string {
+      var data strings.Builder
+      data.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
+      data.WriteString("/anonymous-session-token.json")
+      return data.String()
+   }()
+   req.URL.RawQuery = url.Values{
+      "at":        {at},
+      "contentId": {contentId},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var data strings.Builder
+      err = resp.Write(&data)
+      if err != nil {
+         return err
+      }
+      return errors.New(data.String())
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(s)
+}
+
+func (s *SessionToken) playReady(at, contentId string) error {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.paramountplus.com",
+      Path: "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json",
+      RawQuery: url.Values{
+         "at":        {at},
+         "contentId": {contentId},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(s)
+}
+
+func (s *SessionToken) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+s.LsSession)
+   req.Header.Set("content-type", "application/x-protobuf")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(string(data))
+   }
+   return data, nil
+}
+
+func FetchItem(at, cId string) (*Item, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.paramountplus.com",
+      Path: join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
+      RawQuery: "at=" + at,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK { // error 403 406
+      if len(data) >= 1 {
+         return nil, errors.New(string(data))
+      }
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.ItemList) == 0 { // error 200
+      return nil, errors.New(string(data))
+   }
+   return &result.ItemList[0], nil
+}
+
 func join(items ...string) string {
    return strings.Join(items, "")
 }
@@ -120,46 +227,6 @@ type Item struct {
    ContentId    string
 }
 
-func FetchItem(at, contentId string) (*Item, error) {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/apps-api/v2.0/androidphone/video/cid/")
-      data.WriteString(contentId)
-      data.WriteString(".json")
-      return data.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at": {at},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK { // error 403 406
-      if len(data) >= 1 {
-         return nil, errors.New(string(data))
-      }
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.ItemList) == 0 { // error 200
-      return nil, errors.New(string(data))
-   }
-   return &result.ItemList[0], nil
-}
-
 type Provider struct {
    AppSecret string
    Version   string
@@ -178,74 +245,4 @@ var ComCbsCa = Provider{
 type SessionToken struct {
    LsSession string `json:"ls_session"`
    Url       string
-}
-
-func (s *SessionToken) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+s.LsSession)
-   req.Header.Set("content-type", "application/x-protobuf")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(string(data))
-   }
-   return data, nil
-}
-
-func (s *SessionToken) playReady(at, contentId string) error {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/apps-api/v3.1/xboxone/irdeto-control")
-      data.WriteString("/anonymous-session-token.json")
-      return data.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {at},
-      "contentId": {contentId},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(s)
-}
-
-func (s *SessionToken) Fetch(at, contentId string) error {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
-      data.WriteString("/anonymous-session-token.json")
-      return data.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {at},
-      "contentId": {contentId},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var data strings.Builder
-      err = resp.Write(&data)
-      if err != nil {
-         return err
-      }
-      return errors.New(data.String())
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(s)
 }
