@@ -15,6 +15,41 @@ import (
    "time"
 )
 
+func (m *Metadata) Stream() (*Stream, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "lemonade.nbc.com",
+      Path: join(
+         "/v1/vod/", strconv.Itoa(m.MpxAccountId),
+         "/", strconv.Itoa(m.MpxGuid),
+      ),
+      RawQuery: url.Values{
+         "platform":        {"web"},
+         "programmingType": {m.ProgrammingType},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   result := &Stream{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+func join(data ...string) string {
+   return strings.Join(data, "")
+}
+
 func (s Stream) Mpd() (*Mpd, error) {
    resp, err := http.Get(strings.Replace(s.PlaybackUrl, "_2sec", "", 1))
    if err != nil {
@@ -151,39 +186,11 @@ query page(
 `
 
 type Metadata struct {
-   MpxAccountId    int64 `json:",string"`
-   MpxGuid         int64 `json:",string"`
+   MpxAccountId    int `json:",string"`
+   MpxGuid         int `json:",string"`
    ProgrammingType string
 }
 
-func (m *Metadata) Stream() (*Stream, error) {
-   req, _ := http.NewRequest("", "https://lemonade.nbc.com", nil)
-   req.URL.Path = func() string {
-      data := []byte("/v1/vod/")
-      data = strconv.AppendInt(data, m.MpxAccountId, 10)
-      data = append(data, '/')
-      data = strconv.AppendInt(data, m.MpxGuid, 10)
-      return string(data)
-   }()
-   req.URL.RawQuery = url.Values{
-      "platform":        {"web"},
-      "programmingType": {m.ProgrammingType},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   result := &Stream{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
 // buildAuthQuery generates the signed query parameters (hash, time, device).
 func buildAuthQuery(drmType string) string {
    timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)

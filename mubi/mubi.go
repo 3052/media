@@ -12,6 +12,49 @@ import (
    "strings"
 )
 
+func (l *LinkCode) Fetch() error {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "api.mubi.com",
+      Path: "/v3/link_code",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(l)
+}
+
+func FetchId(slug string) (int, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "api.mubi.com",
+      Path: "/v3/films/" + slug,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Id int
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return 0, err
+   }
+   return result.Id, nil
+}
+
 // "android" requires headers:
 // client-device-identifier
 // client-version
@@ -101,38 +144,6 @@ func FilmSlug(address string) (string, error) {
       return "", errors.New(`"/films/" not found in URL`)
    }
    return slug, nil
-}
-
-func FetchId(slug string) (int, error) {
-   req, _ := http.NewRequest("", "https://api.mubi.com", nil)
-   req.URL.Path = "/v3/films/" + slug
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Id int
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return 0, err
-   }
-   return result.Id, nil
-}
-
-func (l *LinkCode) Fetch() error {
-   req, _ := http.NewRequest("", "https://api.mubi.com/v3/link_code", nil)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 func (l *LinkCode) String() string {

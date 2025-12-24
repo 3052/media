@@ -18,18 +18,18 @@ import (
 )
 
 func (s *SessionToken) Fetch(at, contentId string) error {
-   req, _ := http.NewRequest("", "https://www.paramountplus.com", nil)
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/apps-api/v3.1/androidphone/irdeto-control")
-      data.WriteString("/anonymous-session-token.json")
-      return data.String()
-   }()
-   req.URL.RawQuery = url.Values{
-      "at":        {at},
-      "contentId": {contentId},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.paramountplus.com",
+      Path: "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json",
+      RawQuery: url.Values{
+         "at":        {at},
+         "contentId": {contentId},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return err
    }
