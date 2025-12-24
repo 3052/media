@@ -1,22 +1,17 @@
 package mubi
 
-import (
-   "fmt"
-   "testing"
-)
+import "testing"
 
 func Test(t *testing.T) {
-   fmt.Println(tests)
+   t.Log(tests)
 }
 
 var tests = []struct {
-   id        int64
    url       string
    locations []string
 }{
    {
-      id:  325455,
-      url: "mubi.com/films/passages-2022",
+      url: "https://mubi.com/films/passages-2022",
       locations: []string{
          "Austria",
          "Belgium",
@@ -36,7 +31,7 @@ var tests = []struct {
       },
    },
    {
-      url: "mubi.com/films/perfect-days",
+      url: "https://mubi.com/films/perfect-days",
       locations: []string{
          "Austria",
          "Brazil",

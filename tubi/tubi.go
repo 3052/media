@@ -10,6 +10,38 @@ import (
    "strconv"
 )
 
+func (c *Content) Fetch(id int) error {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "uapi.adrise.tv",
+      Path: "/cms/content",
+      RawQuery: url.Values{
+         "content_id": {strconv.Itoa(id)},
+         "deviceId":   {"!"},
+         "platform":   {"android"},
+         "video_resources[]": {
+            "dash",
+            "dash_widevine",
+         },
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(c)
+   if err != nil {
+      return err
+   }
+   if len(c.VideoResources) == 0 {
+      return errors.New("no video resources found")
+   }
+   return nil
+}
+
 func (v *VideoResource) Mpd() (*url.URL, []byte, error) {
    resp, err := http.Get(v.Manifest.Url)
    if err != nil {
@@ -31,32 +63,6 @@ type VideoResource struct {
       Url string // MPD
    }
    Type string
-}
-
-func (c *Content) Fetch(id int) error {
-   req, _ := http.NewRequest("", "https://uapi.adrise.tv/cms/content", nil)
-   req.URL.RawQuery = url.Values{
-      "content_id": {strconv.Itoa(id)},
-      "deviceId":   {"!"},
-      "platform":   {"android"},
-      "video_resources[]": {
-         "dash",
-         "dash_widevine",
-      },
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(c)
-   if err != nil {
-      return err
-   }
-   if len(c.VideoResources) == 0 {
-      return errors.New("no video resources found")
-   }
-   return nil
 }
 
 type Content struct {

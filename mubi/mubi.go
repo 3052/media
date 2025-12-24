@@ -23,18 +23,23 @@ func join(items ...string) string {
    return strings.Join(items, "")
 }
 
+// if you do this you get 4K, but ONLY VP9 no H.264
+var ClientAcceptVideoCodecs = "vp9"
+
 func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
    var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-accept-video-codecs", "vp9")
-   req.Header.Set("client-country", ClientCountry)
-   req.Header.Set("user-agent", "Firefox")
    req.URL = &url.URL{
       Scheme: "https",
       Host: "api.mubi.com",
       Path: join("/v3/films/", strconv.Itoa(filmId), "/viewing/secure_url"),
+   }
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.Header.Set("user-agent", "Firefox")
+   if ClientAcceptVideoCodecs != "" {
+      req.Header.Set("client-accept-video-codecs", ClientAcceptVideoCodecs)
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {

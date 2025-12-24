@@ -10,6 +10,34 @@ import (
    "strconv"
 )
 
+func (s *Series) Fetch(id string) error {
+   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
+   req.URL.RawQuery = url.Values{
+      "appName":           {app_name},
+      "appVersion":        {"9"},
+      "clientID":          {"9"},
+      "clientModelNumber": {"9"},
+      "deviceMake":        {"9"},
+      "deviceModel":       {"9"},
+      "deviceVersion":     {"9"},
+      "drmCapabilities":   {drm_capabilities},
+      "seriesIDs":         {id},
+   }.Encode()
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
+   if err != nil {
+      return err
+   }
+   if s.Vod[0].Id != id {
+      return errors.New("id mismatch")
+   }
+   return nil
+}
+
 type Mpd struct {
    Body []byte
    Url  *url.URL
@@ -83,34 +111,6 @@ func (s *Series) GetEpisodeURL(episodeID string) (*url.URL, error) {
 type Series struct {
    SessionToken string
    Vod          []Vod
-}
-
-func (s *Series) Fetch(id string) error {
-   req, _ := http.NewRequest("", "https://boot.pluto.tv/v4/start", nil)
-   req.URL.RawQuery = url.Values{
-      "appName":           {app_name},
-      "appVersion":        {"9"},
-      "clientID":          {"9"},
-      "clientModelNumber": {"9"},
-      "deviceMake":        {"9"},
-      "deviceModel":       {"9"},
-      "deviceVersion":     {"9"},
-      "drmCapabilities":   {drm_capabilities},
-      "seriesIDs":         {id},
-   }.Encode()
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Vod[0].Id != id {
-      return errors.New("id mismatch")
-   }
-   return nil
 }
 
 // buildStitcherURL manually constructs the URL struct.
