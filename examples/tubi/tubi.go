@@ -13,6 +13,20 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -66,12 +80,11 @@ func (c *command) do_tubi() error {
 
 type command struct {
    config maya.Config
+   dash   string
    name   string
-   // 1
-   tubi int
-   // 2
-   dash string
+   tubi   int
 }
+
 func (c *command) do_dash() error {
    data, err := os.ReadFile(c.name)
    if err != nil {
@@ -92,18 +105,4 @@ type user_cache struct {
    Mpd           *url.URL
    MpdBody       []byte
    VideoResource *tubi.VideoResource
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
