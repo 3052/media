@@ -10,6 +10,35 @@ import (
    "strings"
 )
 
+func (s *Session) DeepLink(id string) (*DeepLink, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "discover.hulu.com",
+      Path: "/content/v5/deeplink/playback",
+      RawQuery: url.Values{
+         "id":        {id},
+         "namespace": {"entity"},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result DeepLink
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
+   }
+   return &result, nil
+}
+
 type Mpd struct {
    Body []byte
    Url  *url.URL
@@ -79,30 +108,6 @@ type Session struct {
       DeviceToken string `json:"device_token"`
       UserToken   string `json:"user_token"`
    }
-}
-
-func (s *Session) DeepLink(id string) (*DeepLink, error) {
-   req, _ := http.NewRequest("", "https://discover.hulu.com", nil)
-   req.URL.Path = "/content/v5/deeplink/playback"
-   req.URL.RawQuery = url.Values{
-      "id":        {id},
-      "namespace": {"entity"},
-   }.Encode()
-   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result DeepLink
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Message != "" {
-      return nil, errors.New(result.Message)
-   }
-   return &result, nil
 }
 
 // 1080p (FHD) L3, SL2000
