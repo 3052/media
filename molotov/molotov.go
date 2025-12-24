@@ -11,6 +11,26 @@ import (
    "strings"
 )
 
+// authorization server issues a new refresh token, in which case the
+// client MUST discard the old refresh token and replace it with the new
+// refresh token
+func (l *Login) Refresh() error {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("x-molotov-agent", customer_area)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "fapi.molotov.tv",
+      Path: "/v3/auth/refresh/" + l.Auth.RefreshToken,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(l)
+}
+
 func join(items ...string) string {
    return strings.Join(items, "")
 }
@@ -150,21 +170,6 @@ type ProgramView struct {
          }
       }
    }
-}
-
-// authorization server issues a new refresh token, in which case the
-// client MUST discard the old refresh token and replace it with the new
-// refresh token
-func (l *Login) Refresh() error {
-   req, _ := http.NewRequest("", "https://fapi.molotov.tv", nil)
-   req.URL.Path = "/v3/auth/refresh/" + l.Auth.RefreshToken
-   req.Header.Set("x-molotov-agent", customer_area)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 type Login struct {
