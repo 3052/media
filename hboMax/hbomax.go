@@ -13,6 +13,41 @@ import (
    "strings"
 )
 
+func (s St) Initiate(market string) (*Initiate, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("x-device-info", device_info)
+   req.AddCookie(s.Cookie)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: join("default.beam-", market, ".prd.api.discomax.com"),
+      Path: "/authentication/linkDevice/initiate",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      Data struct {
+         Attributes Initiate
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data.Attributes, nil
+}
+
 func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
@@ -218,41 +253,6 @@ func ExtractId(rawUrl string) (string, error) {
 
 func join(data ...string) string {
    return strings.Join(data, "")
-}
-
-func (s St) Initiate(market string) (*Initiate, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("x-device-info", device_info)
-   req.AddCookie(s.Cookie)
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: join("https://default.beam-", market, ".prd.api.discomax.com"),
-      Path: "/authentication/linkDevice/initiate",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      Data struct {
-         Attributes Initiate
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result.Data.Attributes, nil
 }
 
 func (v *Video) String() string {
