@@ -57,24 +57,24 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    if err != nil {
       return nil, err
    }
-   req, err := http.NewRequest(
-      "POST",
-      "https://default.prd.api.hbomax.com/playback-orchestrator/any/playback-orchestrator/v1/playbackInfo",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
+   var req http.Request
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
    req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: api_host,
+      Path: "/playback-orchestrator/any/playback-orchestrator/v1/playbackInfo",
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
    if resp.StatusCode == 504 {
-      // bail since no response body
-      return nil, errors.New(resp.Status)
+      return nil, errors.New(resp.Status) // bail since no response body
    }
    var result Playback
    err = json.NewDecoder(resp.Body).Decode(&result)
@@ -87,21 +87,6 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    return &result, nil
 }
 
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
 type Login struct {
    Data struct {
       Attributes struct {
@@ -109,31 +94,12 @@ type Login struct {
       }
    }
 }
-func (l *Login) Widevine(edit_id string) (*Playback, error) {
-   return l.playback(edit_id, "widevine")
-}
 
 func (e *Error) Error() string {
    if e.Detail != "" {
       return e.Detail
    }
    return e.Message
-}
-
-func (i *Initiate) String() string {
-   var data strings.Builder
-   data.WriteString("target URL = ")
-   data.WriteString(i.TargetUrl)
-   data.WriteString("\nlinking code = ")
-   data.WriteString(i.LinkingCode)
-   return data.String()
-}
-
-const disco_client = "!:!:beam:!"
-
-type Initiate struct {
-   LinkingCode string
-   TargetUrl   string
 }
 
 type Videos struct {
@@ -160,6 +126,65 @@ type Video struct {
          }
       }
    }
+}
+
+type Scheme struct {
+   LicenseUrl string
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine  *Scheme
+      }
+   }
+   Errors   []Error
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
+type St struct {
+   Cookie *http.Cookie
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (l *Login) Widevine(edit_id string) (*Playback, error) {
+   return l.playback(edit_id, "widevine")
+}
+
+func (i *Initiate) String() string {
+   var data strings.Builder
+   data.WriteString("target URL = ")
+   data.WriteString(i.TargetUrl)
+   data.WriteString("\nlinking code = ")
+   data.WriteString(i.LinkingCode)
+   return data.String()
+}
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
 }
 
 func (v *Videos) FilterAndSort() {
@@ -272,28 +297,6 @@ func (p *Playback) Mpd() (*Mpd, error) {
    return &Mpd{data, resp.Request.URL}, nil
 }
 
-type Scheme struct {
-   LicenseUrl string
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         PlayReady *Scheme
-         Widevine  *Scheme
-      }
-   }
-   Errors   []Error
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
-}
-
 func (l *Login) PlayReady(edit_id string) (*Playback, error) {
    return l.playback(edit_id, "playready")
 }
@@ -320,36 +323,11 @@ var Markets = []string{
    "latam",
 }
 
-const device_info = "!/!(!/!;!/!;!/!)"
-
-type St struct {
-   Cookie *http.Cookie
-}
-
-func (s *St) Fetch() error {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("x-device-info", device_info)
-   req.Header.Set("x-disco-client", disco_client)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "default.prd.api.hbomax.com",
-      Path: "/token",
-      RawQuery: "realm=bolt",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "st" {
-         s.Cookie = cookie
-         return nil
-      }
-   }
-   return http.ErrNoCookie
-}
+const (
+   api_host      = "default.prd.api.hbomax.com"
+   disco_client = "!:!:beam:!"
+   device_info  = "!/!(!/!;!/!;!/!)"
+)
 
 // you must
 // /authentication/linkDevice/initiate
@@ -361,8 +339,8 @@ func (s St) Login() (*Login, error) {
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "default.prd.api.hbomax.com",
-      Path: "/authentication/linkDevice/login",
+      Host:   api_host, // Refactored
+      Path:   "/authentication/linkDevice/login",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -383,8 +361,8 @@ func (l Login) Movie(show_id string) (*Videos, error) {
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "default.prd.api.hbomax.com",
-      Path: "/cms/routes/movie/" + show_id,
+      Host:   api_host, // Refactored
+      Path:   "/cms/routes/movie/" + show_id,
       RawQuery: url.Values{
          "include":          {"default"},
          "page[items.size]": {"1"},
@@ -412,8 +390,8 @@ func (l Login) Season(show_id string, number int) (*Videos, error) {
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "default.prd.api.hbomax.com",
-      Path: "/cms/collections/generic-show-page-rail-episodes-tabbed-content",
+      Host:   api_host, // Refactored
+      Path:   "/cms/collections/generic-show-page-rail-episodes-tabbed-content",
       RawQuery: url.Values{
          "include":          {"default"},
          "pf[seasonNumber]": {strconv.Itoa(number)},
@@ -431,4 +409,29 @@ func (l Login) Season(show_id string, number int) (*Videos, error) {
       return nil, err
    }
    return result, nil
+}
+
+func (s *St) Fetch() error {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("x-device-info", device_info)
+   req.Header.Set("x-disco-client", disco_client)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   api_host, // Refactored
+      Path:   "/token",
+      RawQuery: "realm=bolt",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "st" {
+         s.Cookie = cookie
+         return nil
+      }
+   }
+   return http.ErrNoCookie
 }
