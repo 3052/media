@@ -7,7 +7,7 @@ import (
    "testing"
 )
 
-var key_id = []byte{188,54,159,224,114,252,64,161,184,218,28,219,235,253,0,105}
+var key_id = []byte{188, 54, 159, 224, 114, 252, 64, 161, 184, 218, 28, 219, 235, 253, 0, 105}
 
 func TestObtainLicense(t *testing.T) {
    cache, err := os.UserCacheDir()
