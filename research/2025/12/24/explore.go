@@ -7,6 +7,15 @@ import (
    "strings"
 )
 
+type explore_page struct {
+   Actions []struct {
+      ResourceId string
+      Visuals    struct {
+         DisplayText string
+      }
+   }
+}
+
 func (a *account_without_active_profile) explore(entity string) (*explore_page, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -54,15 +63,6 @@ func (e *Error) Error() string {
 type Error struct {
    Code        string
    Description string
-}
-
-type explore_page struct {
-   Actions []struct {
-      ResourceId string
-      Visuals    struct {
-         DisplayText string
-      }
-   }
 }
 
 func (e explore_page) restart() (string, bool) {
