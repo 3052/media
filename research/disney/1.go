@@ -1,13 +1,14 @@
 package disney
 
 import (
+   "encoding/json"
    "io"
    "net/http"
    "net/url"
    "strings"
 )
 
-func playback() (*http.Response, error) {
+func (p *playback) fetch() error {
    var req http.Request
    req.Header = http.Header{}
    req.Method = "POST"
@@ -16,14 +17,51 @@ func playback() (*http.Response, error) {
    req.URL.Path = "/v7/playback/ctr-regular"
    req.URL.Scheme = "https"
    req.Body = io.NopCloser(strings.NewReader(data))
+   req.Header.Add("Authorization", "Bearer " + bearer)
+   req.Header.Add("Content-Type", "application/json")
    req.Header.Add("X-Application-Version", "5d5917f8")
    req.Header.Add("X-Bamsdk-Client-Id", "disney-svod-3d9324fc")
    req.Header.Add("X-Bamsdk-Platform", "javascript/windows/firefox")
    req.Header.Add("X-Bamsdk-Version", "34.3")
    req.Header.Add("X-Dss-Feature-Filtering", "true")
-   req.Header.Add("Authorization", "Bearer " + bearer)
-   req.Header.Add("Content-Type", "application/json")
-   return http.DefaultClient.Do(&req)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(p)
+   if err != nil {
+      return err
+   }
+   if len(p.Errors) >= 1 {
+      return &p.Errors[0]
+   }
+   return nil
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   data.WriteString("\ndescription = ")
+   data.WriteString(e.Description)
+   return data.String()
+}
+
+type Error struct {
+   Code string
+   Description string
+}
+
+type playback struct {
+   Errors []Error
+   Stream struct {
+      Sources []struct {
+         Complete struct {
+            Url string
+         }
+      }
+   }
 }
 
 const data = `
