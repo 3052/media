@@ -6,6 +6,14 @@ import (
    "net/http"
 )
 
+type register_device struct {
+   Token struct {
+      AccessToken string
+      RefreshToken string
+      AccessTokenType string // Device
+   }
+}
+
 const query_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {
@@ -17,14 +25,6 @@ mutation registerDevice($input: RegisterDeviceInput!) {
    }
 }
 `
-
-type register_device struct {
-   Token struct {
-      AccessToken string
-      RefreshToken string
-      AccessTokenType string // Device
-   }
-}
 
 func fetch_register_device() (*register_device, error) {
    data, err := json.Marshal(map[string]any{

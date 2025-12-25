@@ -23,7 +23,11 @@ func TestLogin(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := login(email, password)
+   device, err := fetch_register_device()
+   if err != nil {
+      t.Fatal(err)
+   }
+   resp, err := device.login(email, password)
    if err != nil {
       t.Fatal(err)
    }

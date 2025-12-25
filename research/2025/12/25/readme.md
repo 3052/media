@@ -92,10 +92,5 @@ current process:
 
 would this work:
 
-1. `refreshToken`
-2. login
-
-or this:
-
 1. `registerDevice`
 2. login
