@@ -1,59 +1,38 @@
 # disney
 
-## clientApiKey
+here is what the web client does, note we can probably omit some of these calls.
+first it does `registerDevice`:
 
 ~~~
-curl -O https://www.disneyplus.com
+POST https://disney.api.edge.bamgrid.com/graph/v1/device/graphql HTTP/2.0
+authorization: Bearer ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu...
+
+{
+  "query": "mutation registerDevice($input: RegisterDeviceInput!) {\n      registerDevice(registerDevice: $input) {\n        grant {\n          grantType\n          assertion\n        },\n        token {\n          accessToken\n          accessTokenType\n          expiresIn\n          refreshToken\n          tokenType\n        },\n        session: activeSession {\n          sessionId\n          partnerName\n          device {\n            id\n            category\n            platform\n          }\n          profile {\n            id\n          }\n          experiments {\n            featureId\n            variantId\n            version\n          }\n          portabilityLocation {\n            countryCode\n            type\n          }\n          homeLocation {\n            adsSupported\n            countryCode\n          }\n          household {\n            householdScore\n          }\n          preferredMaturityRating {\n            impliedMaturityRating\n            ratingSystem\n          }\n          identity {\n            id\n          }\n          location {\n            adsSupported\n            type\n            countryCode\n            dma\n            asn\n            regionName\n            connectionType\n            zipCode\n          }\n        }\n      }\n    }",
+  "variables": {
+    "input": {
+      "deviceProfile": "windows",
+      "deviceFamily": "browser",
+      "applicationRuntime": "firefox",
+      "attributes": {
+        "operatingSystem": "windows",
+        "operatingSystemVersion": "10.0"
+      }
+    }
+  }
+}
+
+HTTP/2.0 200 
+
+{
+  "data": {
+    "registerDevice": {
+      "token": {
+        "accessToken": "...0Bel-WKWWmtysYXPlhssXbFal_9Lz7gykDZLCgdQWuckROvkJ...",
+        "refreshToken": "...BzU_HikpzuPbDyTvaXpzDRmxS0n1NqR7e20tEjoJSfirpos-...",
+        "accessTokenType": "Device"
+      }
+    }
+  }
+}
 ~~~
-
-## android
-
-- https://apkmirror.com/apk/disney/disney
-- https://play.google.com/store/apps/details?id=com.disney.disneyplus
-
-~~~
-~/.android/avd/Pixel_XL.avd/emulator-user.ini
-~~~
-
-to:
-
-~~~
-window.x = 0
-window.y = 0
-~~~
-
-https://stackoverflow.com/questions/78813238
-
-~~~
-adb install-multiple (Get-ChildItem *.apk)
-~~~
-
-then:
-
-~~~
-adb shell input text HELLO
-~~~
-
-APK lies, you need at least Android 12 (S)
-
-## subscribe
-
-1. disneyplus.com
-2. Disney+ Hulu
-   - select
-3. email
-   - no trial so just use my own
-4. continue
-5. confirm
-6. password
-7. yes, I would like to receive updates
-   - false
-8. agree & continue
-9. birthdate
-10. save & continue
-11. name on card
-12. card number
-13. expiration date
-14. security code
-15. zip code
-16. agree & subscribe
