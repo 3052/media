@@ -1,5 +1,11 @@
 # disney
 
+## clientApiKey
+
+~~~
+curl -O https://www.disneyplus.com
+~~~
+
 ## android
 
 - https://apkmirror.com/apk/disney/disney
@@ -17,8 +23,6 @@ window.y = 0
 ~~~
 
 https://stackoverflow.com/questions/78813238
-
-then:
 
 ~~~
 adb install-multiple (Get-ChildItem *.apk)

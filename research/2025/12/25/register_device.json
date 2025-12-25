@@ -1,0 +1,221 @@
+{
+  "data": {
+    "registerDevice": {
+      "grant": {
+        "grantType": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIwMTI3YzMyZS1kZGI2LTRmYTgtYjU5MS0yNmU4YzQ2MjBmODgiLCJhdWQiOiJ1cm46YmFtdGVjaDpzZXJ2aWNlOnRva2VuIiwibmJmIjoxNzY2Njc2OTkzLCJpc3MiOiJ1cm46YmFtdGVjaDpzZXJ2aWNlOmRldmljZSIsImV4cCI6MjYzMDY3Njk5MywiaWF0IjoxNzY2Njc2OTkzLCJqdGkiOiI3MDk1OGFiMi02NmMyLTQ3ZTYtODI2Zi05YzE1NTEzZjA4MDAifQ.hrK4J3y15BjjdYqE7mQdbr06MFlCaTQIwbW9a5NWzCUs1eXS5pwcI4x-qItYmrzgdtX3BVPyTLvaTvkzb1ZWLQ"
+      },
+      "token": {
+        "accessToken": "eyJ6aXAiOiJERUYiLCJraWQiOiJ0Vy10M2ZQUTJEN2Q0YlBWTU1rSkd4dkJlZ0ZXQkdXek5KcFFtOGRJMWYwIiwiY3R5IjoiSldUIiwiZW5jIjoiQzIwUCIsImFsZyI6ImRpciJ9..gIFGNnp34g5Vuigl.Ljbq-ZbY59HlJiAk8PsXI46Mm_jtAWCjsLaSXNvpjDx-tdZoLZgcs_Rc75Mn9t1lK0ALp3uphVve1h68QJZDkHWhm_HHVXMoZqvtGx7mAYUVFE75Yn235BfwBL3Z4oAZmSbYxE6QScsrrEd4HRmlx_4gZi3d37M0Y5p9EGQtwMyYgBiz3z7rhxqbR_1A7cOPGfQPG__zJjbVerKQqeYjVBXIwVjk_XOZbOhbQkt1dGLLwhT8tzbcXTHjFOuN3egTce59tByKugGhm0fbr69afzxMMJWCc3nrob6Sg5H5jw4XuKGYomzdtY7eI-JAtpTUN9lOy50Zh9PgFqRkhu8qtUgliRquYZniupUqvj3aJXVhoQe2VshM1CV9mpkmZW-RAY8-guJZokkghSQPib6oSdemSpK6jKvK96YdkhYXJiMekQQf1OGLxDX2JCk2LhLFDYly63R6a-u7SL_VMc9CnYe4VkPGwt7Ca2Lh0UKA03jw4f87L4KasFbHiR224g1MDO7j30KOi8IjT_xF8gqfCfaP_w_H2K8WK0m64ruKsvkCQuIdEKZFZMTLd4R-qumzFF-gs9-HDdPyN-cdgjiKHi82_XOOu2lwepvHian3TuGYc5ygGjqjHvIb-cwokabfv_bE0KnfDHarSpwAcWnfkfFogF8BDPxY0L9VWDlbOPWojyDvhXNoEJqWMHSnFahoAzFEiH2ENz0-IaQJj_Cxt_sOZ67MaFdBv_1ZGkt5qn1SGowfIQIlNachdgV5XGOT2LcWXQZrYbyAw5uNCQK6Uuph2rkd0iemZYAmMJcRzWBATjdYPWhbVzcc6Fu6MKp7fsBJO0HL2a6mty25bfLPyedUwgWNF5iwPKP8fxobPPWHXURqYd4ITa3aH_YpPMZG8pI679RKvt2AhdKSibuePYBdKSCxjr4WhFJjwTnnL-GvDwy3C2MRfcZWQn4V1PhLsoWA6GyzyjSkq68RaaUkkA3sieKdrDAOWXc7GzI0EFi1tXX4fdEYM3IcZq6nScLMrxS01siHyhRj9QqaXVqyyKX5LLFGlAfrX0_Lf6Er8fxleGTvwML4CYmeQboL5PQvy95U_8bnbr1z8xBAAn5Rf4cQuHx6x04c5o8hi5BeTBqx4XG0LaVy_GI_3Zbd4D2qLxvmWN0RB8UiBXR5BoLm1gHpnDRuvpb55A1b1Hd2iUmeKMZRgxI_6Tj4ZR-acUL2T0RG7JTJcmxpcfZIcHoi7KxL7jNRf6614Qka8PAwmQyAKfVDgEColNL5JkFwy66dzQDCOzZD_77PkVKczPRdPm8H_QYxPIy5McQASvDKys8992MVLtcpZhfPIREWrR09hL3u1rIYAvGnPqffE6i4cAWeNcKRzDlBIezqdBAr1XsqTmlbryEG7D92QqpEhbApKRh2SAyThzt1Z7Yel0xD0Yki6BMVbSp9UQyGVpvyKOh7mt1qg_ksaoulc77n33WxfdHghL7Wqsfoo3XBO6i43-o0_BS3etjUMjruBucPtOGAHUrcf2fkgB9pq46ZcsTw4SmbmqG1H5uCKAkMN_EHo34YqDSSIwuELg8X5fnCQoRyYjoRK7IxO0XO2GGnux0wxr7b0BW05vaSAowIkJKKpHBTyL9ZzzFBBNiBDTuQeHYu5bT7GXIJUFdjB-JdrHp60at2PcKuG5YZSW0N7aZ4u4i3NzJ2Fla0F5Kit9zpdxyMDLks1joE69Yk2KInGyp5AHDteXl0VGuuMYC1rSqZye-puvElMTT5xNkShdDPUkVvK73ukZIabSs7H5htoRBKnrYHMZPO9PQRFZzRXU2yRbqcejozZ9eAGVi5HJ-FKFXQyISQBeXp-t8Pnaei5nB4lWHBiEXT3eoeCdR1g_ZUYYUs29vbKZ6qP0hNnbJ_2yJbyqEym6A3mICBGIrDOY4xP3Jagiop9pEQU_m5w84mX2QIq9TJBvu-U4XDmFORbKIMPIPaoC5rvFw8yYYaC9IBbxrJFvShFlV55jRGPwn07iiny8tVKxlm4nSED25BGA7rTHL2FFbHcjIxIhKGNMLNj_GdiAuJlHzCN0F1MZT_3SZumj6zI0aflfhHmssC6lW8bSKD3_RITjmjfw1p7tFxYmqrG0S5WhwRRQ0N1_3dG-sa7j9UFlRW-6uDeYehnbjo-zLa_qcFAnKMU4mAOqHKUusMkTGgf6apQ4VwY1qBItQAVTDMjdquyMYSdMiZvQPtLJmJaUFGwRnYQfIysPzpkMYvKsCPIWohCh0S2P1SV4gI_pD4FkqSCr-4HGeYEq2e5KrmMtY5FrwOuRS0un8b53JGQQLpFhRE9L3tel9Pae73nJhPy1jDvPmLuwGKgxns_vbAGMgKUv3TzL5WZ0JV2D5jUi_TQzeVP7NfyvLv-BlLDbZFWwDN1KHPoMA4Ti_taF3J5SCjl4O1WCUH4uJpDUdnYsP_J9K71dvR4TTs_aqVmiPgkpdORuzLJpCtomDQNrEonqX0L0pOpgIh4sOEgrpKqqzL-3iE_F_kmiML32D1Bu9IJmIeN7KFPjSmtHocg-BcqIDKOCJw6B4lSF9h7Ln8s7wNL0Oz9Ut9j2lvjym5J2MvW28Mkf4aObWqnwMhdcTHD-ZLsLvmGZyLHSMBOBSk-CLZLogvfluGVMnwYWmUx4NmR5OQbQ.aHezAYCh58Aen4daepnSCQ",
+        "accessTokenType": "Device",
+        "expiresIn": 14400,
+        "refreshToken": "eyJ6aXAiOiJERUYiLCJraWQiOiJLcTYtNW1Ia3BxOXdzLUtsSUUyaGJHYkRIZFduRjU3UjZHY1h6aFlvZi04IiwiY3R5IjoiSldUIiwiZW5jIjoiQzIwUCIsImFsZyI6ImRpciJ9..jWbhqgi1Qq0CpaaQ.5aF1FdYaaPXoTBFpcBJ3fMudVq2_lgXmNawHAYF2AmEVldA_dBSEsswIMPEgnXl1WjCRbaomt7mtFZvLJHtxNMisZghq5Ct2CWa6Mf5iT3biqyUBLI3zmQYSlTTR3rfvaZ4t1R4lCJRBqK32tEy_rADHCEXLJY3qLPVCBmKiyHMdYZ85pnLnT1bXNf43OuWWGzXBzlEIoRgKeJ-ag6OLSQCrx2fcVduftyYUh74cAk38GHbpoyFUmqA6ooUMNJo8zcfoJx59OCxRsQgf0ZUfAsysmNm-Zv1WBDC34_oZWh4ZAeoDvrAlq_rjXZ9gzCsXEzHL3tQLzErelol98ViohHT311UjgbgLMUBZIMNZ1JuxhxJYSQMqSBKX5Bh8My-k7UsuqTSCMeJIYOI8IGIf5pkN57DRv_4Htyb0POWgVisqKYywhQtPJJhyQl4hEq_8eroZpRNwLvD2m_kGBu6j0p8fw3VN7fgZxYWqPjXiaocPQM12KYi8iyT6TwlP2m-ICGLIsExwaatx4lvW823bK3kEe_L95okf6yvFKnPXO55RqD7HS2Jjy_NSs03tC853346bEKNvomml7ZqoiKZXTalhuiqw2dUtjsLLSgfApQkiGgjGehyhGai5LTv12izHuKePn9UeLG4oUM-LTwAK0uz4IPiJbOTmEtT06EnDu74go1oQs_UjNGddSw6JtE_GG-35ckCfrUPeLubx_4qvflwLgS-tdaRfT5tp3Rie7QhOHAGUOoB8YV5L8bnwlt8NvOKFc4tS_O-VQInXzyl4fs-RUyfPyZOtRKFOwoVWkWwWj824kz6yRPaly1CidYJKOv1P56atTiCSDevBL5ndSmzTXUWhvtlMEpzkIQnvYDIQVQPKj01YHnUZZJjc-QamRH-WjNkDYD3w9C6FYpzOQUSck5bwbaQXghe_sV7ZutAVdNhTKQmTy-Hq0R6MsC_p1cRFvHQoQ4ZKOQ_AgdLiw8fCpwPqbyPuw32BmGolDYw-_ucK6PwMh9wcMJwBqmPsqmOLm_mbAHGyBkCRciBkfHPwgtCQUBPcXZ8sxrnMka73rK_w9LS2uvLnBlARC6KZ8WPhOTjA16W5dxrWS1HHvaczDa5hn6GDmI53n44dril7Sgd9uidI-nPapbmVnFhTmrp3cAzcgKYn3cNiXG_AYXMTADOGUkoWUsz38XjpGIAXr6bsQfZsYKhWseB27z2wUBkozXOwoPX5Zi0HlBZYOnGAPslNfoeJJvgiT2iieebQqYJcwUHI6TtfS_OxKRwc8chKsMl49BYDPLatPCnYBlXmJ-AjTSQiS5cqk5pAV0l_XQTucyZ9XxNA8vto6MOIdqZ-Z6jsr2F9UPD2cQyLb7_NH3-QSSnQXei1tU5L0PYHekxg_QK0JWZXhgoiXLlVm1b-00g1c4ejt3tdSk0jm-TgEZ04odEmwhfERCR06QZ_58nHuHXQaUcyoIuKPSqUbJqHO_tcDRmPI0orpX1GFssdEEAgpq0MkvZow1LAwcqqkqJA-JamaJkE0VWDzTkGrDv6RgziMmfBfFsPqc7qsrLAA-9kCmBYk7dh1uoKgVta77Earezat-_mLcPKYcHcLJMHkGh8-yCjyx2Elh88XTFGcPQxEefUySaFXld1CG6lBCmqxaMI7YH-54TMB9yX_X2a-pgdL8IIKROV_kqHGJGUTgonSiQh-MUQGqiQ2hKNkMKPFD_yOu7TbGTFJYZb7DRT8N56XuBon4hyBVR7XMv-LW3G2X6VselNQYPP_M7MYsrrkEFNMi_YBmlhQ0mcGjH52526dmyJ_z0FPnYZWAzc14MnF6mKWUT9KrlpXfLxfM0e7x3KUvcbK85wW055YkgL0X9h7QRkM6nlUZzxgK4-3WvfE78SLdSdb00adBgtaabt_7R0In9pkPP2bC1vk9qbwRDIGpmJ8lC4WTbGv9GOWqctQ2D3O3Ldez0DlfDK_0MNyV4dEN5kqwHJiHeZ6uS8lBA2ekklz-1WrQPBlHSm6WT3AFcjG9WazUdys0u7hAZZzGrgbcVt222NHeH2SxtCMJ8G5g7z7cvOtfNkPDY58agRifMARpZ_PCzUZNxNvdEZkkPSqT1DUcqFKxfwBVBGh5BAn59-LeP7qtWGICGrXyRZr_nEIgnwAOQfOGXNGg_pQ_Ep91fJsTFZ0Kg8Aoo0AG91ju4kfyAB5LqqpKknDEZpANVF25Y135LhxRlGJPcpR-B_TYL6rIqfApiEH4ymmeSUAY3Re5yZTIKjomJBwfBZ06DukHb6_GMEFm2wyPSsV-F3wKYACkplyvvVfthVpr0O2T4o3PhKJurooUJI2hybacDq5zFFq1ynp_fRwh-XYSdnc88ES95OdhSapcr7eshUzFHdriiztVFVHrIdDVcz15QV1RmZOLiIC_q_eIojpDdBu1Nk3LS_txzCLUKh5mSZqZs2mjCwfaHZLUj8usGsG_Tt_q1y7QDrnOWR9bjAdZcRYwmMjY2X5VkxOKQl9e1ejt6r_CO0O3Kc2R22Af7ZPN4jJOJiKHjx8qFqBAIARox_Qt_OC-3QrhG7GY8Y62NivCbO7IJgORxQCl1dnSnh9FJBPfaTvW6KeFmoQ0CxKroKuBNqpAD4hAA816sHgU02l4yKiUN8nJwpSNKIxVRkRj5EUC7FPVbvFy_1z7jKYtIjCEAXlvz5vkd10zggBkZT60eMtHeh1useoQZMIwKbrLOeIsTHtC-SnEOkgZi8bd-ol0Sv5XIH3eVsmiru8xEKnRorxa1JWfPNa5gh1ZpdXpHED9kchr8JT3XPlRN7fw33bEQl5Xpu8xamcOX4Ys1kIqh7fhi4OQINCmk.o2-fDRwnA0nXoEFl4fRdJA",
+        "tokenType": "bearer"
+      },
+      "session": {
+        "sessionId": "7dd73810-e1a7-11f0-9551-7ee06e7dfa1e",
+        "partnerName": "disney",
+        "device": {
+          "id": "0127c32e-ddb6-4fa8-b591-26e8c4620f88",
+          "category": "PersonalComputer",
+          "platform": "browser"
+        },
+        "profile": {
+          "id": "a441f7c4-a133-475e-aa4c-dab78a5bbe10"
+        },
+        "experiments": [
+          {
+            "featureId": "wpnx-pre-select-plan-select-flagship",
+            "variantId": "control",
+            "version": 10
+          }
+        ],
+        "portabilityLocation": null,
+        "homeLocation": null,
+        "household": null,
+        "preferredMaturityRating": null,
+        "identity": null,
+        "location": {
+          "adsSupported": true,
+          "type": "ZIP_CODE",
+          "countryCode": "US",
+          "dma": 623,
+          "asn": 11427,
+          "regionName": "",
+          "connectionType": "cable",
+          "zipCode": "75063"
+        }
+      }
+    }
+  },
+  "extensions": {
+    "operation": {
+      "operationType": "mutation",
+      "operations": [
+        {
+          "operation": "registerDevice",
+          "errorCode": null
+        }
+      ]
+    },
+    "sdk": {
+      "token": {
+        "accessToken": "eyJ6aXAiOiJERUYiLCJraWQiOiJ0Vy10M2ZQUTJEN2Q0YlBWTU1rSkd4dkJlZ0ZXQkdXek5KcFFtOGRJMWYwIiwiY3R5IjoiSldUIiwiZW5jIjoiQzIwUCIsImFsZyI6ImRpciJ9..gIFGNnp34g5Vuigl.Ljbq-ZbY59HlJiAk8PsXI46Mm_jtAWCjsLaSXNvpjDx-tdZoLZgcs_Rc75Mn9t1lK0ALp3uphVve1h68QJZDkHWhm_HHVXMoZqvtGx7mAYUVFE75Yn235BfwBL3Z4oAZmSbYxE6QScsrrEd4HRmlx_4gZi3d37M0Y5p9EGQtwMyYgBiz3z7rhxqbR_1A7cOPGfQPG__zJjbVerKQqeYjVBXIwVjk_XOZbOhbQkt1dGLLwhT8tzbcXTHjFOuN3egTce59tByKugGhm0fbr69afzxMMJWCc3nrob6Sg5H5jw4XuKGYomzdtY7eI-JAtpTUN9lOy50Zh9PgFqRkhu8qtUgliRquYZniupUqvj3aJXVhoQe2VshM1CV9mpkmZW-RAY8-guJZokkghSQPib6oSdemSpK6jKvK96YdkhYXJiMekQQf1OGLxDX2JCk2LhLFDYly63R6a-u7SL_VMc9CnYe4VkPGwt7Ca2Lh0UKA03jw4f87L4KasFbHiR224g1MDO7j30KOi8IjT_xF8gqfCfaP_w_H2K8WK0m64ruKsvkCQuIdEKZFZMTLd4R-qumzFF-gs9-HDdPyN-cdgjiKHi82_XOOu2lwepvHian3TuGYc5ygGjqjHvIb-cwokabfv_bE0KnfDHarSpwAcWnfkfFogF8BDPxY0L9VWDlbOPWojyDvhXNoEJqWMHSnFahoAzFEiH2ENz0-IaQJj_Cxt_sOZ67MaFdBv_1ZGkt5qn1SGowfIQIlNachdgV5XGOT2LcWXQZrYbyAw5uNCQK6Uuph2rkd0iemZYAmMJcRzWBATjdYPWhbVzcc6Fu6MKp7fsBJO0HL2a6mty25bfLPyedUwgWNF5iwPKP8fxobPPWHXURqYd4ITa3aH_YpPMZG8pI679RKvt2AhdKSibuePYBdKSCxjr4WhFJjwTnnL-GvDwy3C2MRfcZWQn4V1PhLsoWA6GyzyjSkq68RaaUkkA3sieKdrDAOWXc7GzI0EFi1tXX4fdEYM3IcZq6nScLMrxS01siHyhRj9QqaXVqyyKX5LLFGlAfrX0_Lf6Er8fxleGTvwML4CYmeQboL5PQvy95U_8bnbr1z8xBAAn5Rf4cQuHx6x04c5o8hi5BeTBqx4XG0LaVy_GI_3Zbd4D2qLxvmWN0RB8UiBXR5BoLm1gHpnDRuvpb55A1b1Hd2iUmeKMZRgxI_6Tj4ZR-acUL2T0RG7JTJcmxpcfZIcHoi7KxL7jNRf6614Qka8PAwmQyAKfVDgEColNL5JkFwy66dzQDCOzZD_77PkVKczPRdPm8H_QYxPIy5McQASvDKys8992MVLtcpZhfPIREWrR09hL3u1rIYAvGnPqffE6i4cAWeNcKRzDlBIezqdBAr1XsqTmlbryEG7D92QqpEhbApKRh2SAyThzt1Z7Yel0xD0Yki6BMVbSp9UQyGVpvyKOh7mt1qg_ksaoulc77n33WxfdHghL7Wqsfoo3XBO6i43-o0_BS3etjUMjruBucPtOGAHUrcf2fkgB9pq46ZcsTw4SmbmqG1H5uCKAkMN_EHo34YqDSSIwuELg8X5fnCQoRyYjoRK7IxO0XO2GGnux0wxr7b0BW05vaSAowIkJKKpHBTyL9ZzzFBBNiBDTuQeHYu5bT7GXIJUFdjB-JdrHp60at2PcKuG5YZSW0N7aZ4u4i3NzJ2Fla0F5Kit9zpdxyMDLks1joE69Yk2KInGyp5AHDteXl0VGuuMYC1rSqZye-puvElMTT5xNkShdDPUkVvK73ukZIabSs7H5htoRBKnrYHMZPO9PQRFZzRXU2yRbqcejozZ9eAGVi5HJ-FKFXQyISQBeXp-t8Pnaei5nB4lWHBiEXT3eoeCdR1g_ZUYYUs29vbKZ6qP0hNnbJ_2yJbyqEym6A3mICBGIrDOY4xP3Jagiop9pEQU_m5w84mX2QIq9TJBvu-U4XDmFORbKIMPIPaoC5rvFw8yYYaC9IBbxrJFvShFlV55jRGPwn07iiny8tVKxlm4nSED25BGA7rTHL2FFbHcjIxIhKGNMLNj_GdiAuJlHzCN0F1MZT_3SZumj6zI0aflfhHmssC6lW8bSKD3_RITjmjfw1p7tFxYmqrG0S5WhwRRQ0N1_3dG-sa7j9UFlRW-6uDeYehnbjo-zLa_qcFAnKMU4mAOqHKUusMkTGgf6apQ4VwY1qBItQAVTDMjdquyMYSdMiZvQPtLJmJaUFGwRnYQfIysPzpkMYvKsCPIWohCh0S2P1SV4gI_pD4FkqSCr-4HGeYEq2e5KrmMtY5FrwOuRS0un8b53JGQQLpFhRE9L3tel9Pae73nJhPy1jDvPmLuwGKgxns_vbAGMgKUv3TzL5WZ0JV2D5jUi_TQzeVP7NfyvLv-BlLDbZFWwDN1KHPoMA4Ti_taF3J5SCjl4O1WCUH4uJpDUdnYsP_J9K71dvR4TTs_aqVmiPgkpdORuzLJpCtomDQNrEonqX0L0pOpgIh4sOEgrpKqqzL-3iE_F_kmiML32D1Bu9IJmIeN7KFPjSmtHocg-BcqIDKOCJw6B4lSF9h7Ln8s7wNL0Oz9Ut9j2lvjym5J2MvW28Mkf4aObWqnwMhdcTHD-ZLsLvmGZyLHSMBOBSk-CLZLogvfluGVMnwYWmUx4NmR5OQbQ.aHezAYCh58Aen4daepnSCQ",
+        "accessTokenType": "Device",
+        "expiresIn": 14400,
+        "refreshToken": "eyJ6aXAiOiJERUYiLCJraWQiOiJLcTYtNW1Ia3BxOXdzLUtsSUUyaGJHYkRIZFduRjU3UjZHY1h6aFlvZi04IiwiY3R5IjoiSldUIiwiZW5jIjoiQzIwUCIsImFsZyI6ImRpciJ9..jWbhqgi1Qq0CpaaQ.5aF1FdYaaPXoTBFpcBJ3fMudVq2_lgXmNawHAYF2AmEVldA_dBSEsswIMPEgnXl1WjCRbaomt7mtFZvLJHtxNMisZghq5Ct2CWa6Mf5iT3biqyUBLI3zmQYSlTTR3rfvaZ4t1R4lCJRBqK32tEy_rADHCEXLJY3qLPVCBmKiyHMdYZ85pnLnT1bXNf43OuWWGzXBzlEIoRgKeJ-ag6OLSQCrx2fcVduftyYUh74cAk38GHbpoyFUmqA6ooUMNJo8zcfoJx59OCxRsQgf0ZUfAsysmNm-Zv1WBDC34_oZWh4ZAeoDvrAlq_rjXZ9gzCsXEzHL3tQLzErelol98ViohHT311UjgbgLMUBZIMNZ1JuxhxJYSQMqSBKX5Bh8My-k7UsuqTSCMeJIYOI8IGIf5pkN57DRv_4Htyb0POWgVisqKYywhQtPJJhyQl4hEq_8eroZpRNwLvD2m_kGBu6j0p8fw3VN7fgZxYWqPjXiaocPQM12KYi8iyT6TwlP2m-ICGLIsExwaatx4lvW823bK3kEe_L95okf6yvFKnPXO55RqD7HS2Jjy_NSs03tC853346bEKNvomml7ZqoiKZXTalhuiqw2dUtjsLLSgfApQkiGgjGehyhGai5LTv12izHuKePn9UeLG4oUM-LTwAK0uz4IPiJbOTmEtT06EnDu74go1oQs_UjNGddSw6JtE_GG-35ckCfrUPeLubx_4qvflwLgS-tdaRfT5tp3Rie7QhOHAGUOoB8YV5L8bnwlt8NvOKFc4tS_O-VQInXzyl4fs-RUyfPyZOtRKFOwoVWkWwWj824kz6yRPaly1CidYJKOv1P56atTiCSDevBL5ndSmzTXUWhvtlMEpzkIQnvYDIQVQPKj01YHnUZZJjc-QamRH-WjNkDYD3w9C6FYpzOQUSck5bwbaQXghe_sV7ZutAVdNhTKQmTy-Hq0R6MsC_p1cRFvHQoQ4ZKOQ_AgdLiw8fCpwPqbyPuw32BmGolDYw-_ucK6PwMh9wcMJwBqmPsqmOLm_mbAHGyBkCRciBkfHPwgtCQUBPcXZ8sxrnMka73rK_w9LS2uvLnBlARC6KZ8WPhOTjA16W5dxrWS1HHvaczDa5hn6GDmI53n44dril7Sgd9uidI-nPapbmVnFhTmrp3cAzcgKYn3cNiXG_AYXMTADOGUkoWUsz38XjpGIAXr6bsQfZsYKhWseB27z2wUBkozXOwoPX5Zi0HlBZYOnGAPslNfoeJJvgiT2iieebQqYJcwUHI6TtfS_OxKRwc8chKsMl49BYDPLatPCnYBlXmJ-AjTSQiS5cqk5pAV0l_XQTucyZ9XxNA8vto6MOIdqZ-Z6jsr2F9UPD2cQyLb7_NH3-QSSnQXei1tU5L0PYHekxg_QK0JWZXhgoiXLlVm1b-00g1c4ejt3tdSk0jm-TgEZ04odEmwhfERCR06QZ_58nHuHXQaUcyoIuKPSqUbJqHO_tcDRmPI0orpX1GFssdEEAgpq0MkvZow1LAwcqqkqJA-JamaJkE0VWDzTkGrDv6RgziMmfBfFsPqc7qsrLAA-9kCmBYk7dh1uoKgVta77Earezat-_mLcPKYcHcLJMHkGh8-yCjyx2Elh88XTFGcPQxEefUySaFXld1CG6lBCmqxaMI7YH-54TMB9yX_X2a-pgdL8IIKROV_kqHGJGUTgonSiQh-MUQGqiQ2hKNkMKPFD_yOu7TbGTFJYZb7DRT8N56XuBon4hyBVR7XMv-LW3G2X6VselNQYPP_M7MYsrrkEFNMi_YBmlhQ0mcGjH52526dmyJ_z0FPnYZWAzc14MnF6mKWUT9KrlpXfLxfM0e7x3KUvcbK85wW055YkgL0X9h7QRkM6nlUZzxgK4-3WvfE78SLdSdb00adBgtaabt_7R0In9pkPP2bC1vk9qbwRDIGpmJ8lC4WTbGv9GOWqctQ2D3O3Ldez0DlfDK_0MNyV4dEN5kqwHJiHeZ6uS8lBA2ekklz-1WrQPBlHSm6WT3AFcjG9WazUdys0u7hAZZzGrgbcVt222NHeH2SxtCMJ8G5g7z7cvOtfNkPDY58agRifMARpZ_PCzUZNxNvdEZkkPSqT1DUcqFKxfwBVBGh5BAn59-LeP7qtWGICGrXyRZr_nEIgnwAOQfOGXNGg_pQ_Ep91fJsTFZ0Kg8Aoo0AG91ju4kfyAB5LqqpKknDEZpANVF25Y135LhxRlGJPcpR-B_TYL6rIqfApiEH4ymmeSUAY3Re5yZTIKjomJBwfBZ06DukHb6_GMEFm2wyPSsV-F3wKYACkplyvvVfthVpr0O2T4o3PhKJurooUJI2hybacDq5zFFq1ynp_fRwh-XYSdnc88ES95OdhSapcr7eshUzFHdriiztVFVHrIdDVcz15QV1RmZOLiIC_q_eIojpDdBu1Nk3LS_txzCLUKh5mSZqZs2mjCwfaHZLUj8usGsG_Tt_q1y7QDrnOWR9bjAdZcRYwmMjY2X5VkxOKQl9e1ejt6r_CO0O3Kc2R22Af7ZPN4jJOJiKHjx8qFqBAIARox_Qt_OC-3QrhG7GY8Y62NivCbO7IJgORxQCl1dnSnh9FJBPfaTvW6KeFmoQ0CxKroKuBNqpAD4hAA816sHgU02l4yKiUN8nJwpSNKIxVRkRj5EUC7FPVbvFy_1z7jKYtIjCEAXlvz5vkd10zggBkZT60eMtHeh1useoQZMIwKbrLOeIsTHtC-SnEOkgZi8bd-ol0Sv5XIH3eVsmiru8xEKnRorxa1JWfPNa5gh1ZpdXpHED9kchr8JT3XPlRN7fw33bEQl5Xpu8xamcOX4Ys1kIqh7fhi4OQINCmk.o2-fDRwnA0nXoEFl4fRdJA",
+        "tokenType": "bearer"
+      },
+      "session": {
+        "device": {
+          "id": "0127c32e-ddb6-4fa8-b591-26e8c4620f88",
+          "platform": "browser",
+          "category": "PersonalComputer"
+        },
+        "entitlements": [],
+        "inSupportedLocation": true,
+        "isSubscriber": false,
+        "location": {
+          "adsSupported": true,
+          "type": "ZIP_CODE",
+          "countryCode": "US",
+          "dma": 623,
+          "asn": 11427,
+          "regionName": "",
+          "connectionType": "cable",
+          "zipCode": "75063"
+        },
+        "sessionId": "7dd73810-e1a7-11f0-9551-7ee06e7dfa1e",
+        "experiments": [
+          {
+            "featureId": "wpnx-pre-select-plan-select-flagship",
+            "variantId": "control",
+            "version": 10
+          }
+        ],
+        "features": {
+          "coPlay": true,
+          "download": false,
+          "noAds": false
+        },
+        "account": null,
+        "profile": {
+          "id": "a441f7c4-a133-475e-aa4c-dab78a5bbe10",
+          "kidsModeEnabled": false,
+          "parentalControls": null
+        },
+        "identity": null,
+        "partnerName": "disney",
+        "preferredMaturityRating": null,
+        "homeLocation": null,
+        "portabilityLocation": null,
+        "household": null
+      },
+      "grant": {
+        "device": {
+          "assertion": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIwMTI3YzMyZS1kZGI2LTRmYTgtYjU5MS0yNmU4YzQ2MjBmODgiLCJhdWQiOiJ1cm46YmFtdGVjaDpzZXJ2aWNlOnRva2VuIiwibmJmIjoxNzY2Njc2OTkzLCJpc3MiOiJ1cm46YmFtdGVjaDpzZXJ2aWNlOmRldmljZSIsImV4cCI6MjYzMDY3Njk5MywiaWF0IjoxNzY2Njc2OTkzLCJqdGkiOiI3MDk1OGFiMi02NmMyLTQ3ZTYtODI2Zi05YzE1NTEzZjA4MDAifQ.hrK4J3y15BjjdYqE7mQdbr06MFlCaTQIwbW9a5NWzCUs1eXS5pwcI4x-qItYmrzgdtX3BVPyTLvaTvkzb1ZWLQ",
+          "grantType": "urn:ietf:params:oauth:grant-type:jwt-bearer"
+        }
+      },
+      "accountDelegationRefreshToken": null,
+      "featureFlags": {
+        "wpnx-web-identity-activation-skipEnterEmail": true,
+        "wpnx-mainapp-shouldSunsetLionsgateBundle": true,
+        "wpnx-webMainApp--unifiedMessagingEnabled": true,
+        "wpnx-test-preprod-targeting": false,
+        "wpnx-web-identity-enable-begin-sports-route": false,
+        "wpnx-web-commerce-gift-card": true,
+        "wpnx-web-commerce-recaptcha-signup-billing": true,
+        "wpnx-web-identity-unified-account-delete": true,
+        "wpnx-web-commerce-unified-signup": true,
+        "wpnx-In-Funnel-Comp-Chart-Descending": false,
+        "wpnx-pre-select-plan-select-flagship": "preselected_plan_flagship_first",
+        "wpnx-us-plan-select": "US_Plan_Select_with_Value_Props",
+        "wpnx-webMainApp-licensePlateV2": true,
+        "wpnx-updated-l1-nav": true,
+        "wpnx-bypass-email-capture": false,
+        "wpnx-web-commerce-recaptcha-gift-card-value": true,
+        "wpnx-web-adyen-3ds": false,
+        "wpnx-wpnx-web-commerce-br-mp-typing": false,
+        "wpnx-web-identity-v5-sdk-login-enabled": false,
+        "wpnx-web-identity-magicLink-switchAcctNotif": false,
+        "wpnx-web-commerce-unified-redemption": true,
+        "wpnx-great-preselect-plan-carousel-LATAM": "control_comparison_chart",
+        "wpnx-web-commerce-unified-account-home": true,
+        "wpnx-web-identity-enableEncourageFlow": false,
+        "wpnx-web-commerce-unblocking": true,
+        "wpnx-Drop-Down-In-Funnel-Comparison-Chart": false,
+        "wpnx-disney-consent-pref-center": {
+          "enabled": true,
+          "documentCodePrefix": "DO_NOT_SELL_INFO"
+        },
+        "wpnx-web-commerce-stepper-v2": true,
+        "wpnx-web-identity-email-error-reduction": false,
+        "wpnx-appex-meta-launch-redirect": true,
+        "wpnx-useWebAdBlockerDetectionEnabled": true,
+        "wpnx-web-identity-enable-begin-acct-route": true,
+        "wpnx-commerce-improved-address-collection": false,
+        "wpnx-web-identity-reauth-modal": true,
+        "wpnx-disney-gdpr-consent-pref-center": {
+          "enabled": false
+        },
+        "wpnx-license-plate-plan-select": false,
+        "wpnx-web-identity-enable-begin-hulu-route": true,
+        "wpnx-web-identity-magicLinkEmailVerify": "control",
+        "wpnx-hide-standard-EMEA": "control_compare_chart",
+        "wpnx-pre-select-plan-select": "control",
+        "wpnx-web-identity-enable-begin-unlmt-route": true,
+        "wpnx-web-identity-deviceProfileAmazon": true,
+        "wpnx-great-deemphasize-standalone": "plan-select-control",
+        "wpnx-In-Funnel-Comp-Chart-Descending-Turkey": false,
+        "wpnx-disable-authenticated-consent-receipts": false,
+        "wpnx-SUF-planselect-1122": {
+          "header_copy": "\"Choose Your Plan\"",
+          "subline_copy": "\"Switch or cancel* anytime\""
+        },
+        "wpnx-web-identity-unified-license-plate": true,
+        "wpnx-plan_comparison_chart_emea_ca": "control_comparison_chart",
+        "wpnx-isProper2pBundleEnabled": true,
+        "wpnx-web-commerce-unified-sub-details": true,
+        "wpnx-web-commerce-unified-change-payment": true,
+        "wpnx-web-identity-edna-redemption-code": true,
+        "wpnx-web-identity-use-passwordless-login": "control",
+        "wpnx-web-commerce-grid-on-plans-page": true,
+        "wpnx-2024Q3-LATAM-Tiara-Launch": "control",
+        "wpnx-suf-background-color-consistency": false,
+        "wpnx-web-commerce-ideal-2": true,
+        "wpnx-web-identity-ednaRemoveQuerystring": true,
+        "wpnx-web-commerce-recaptcha-change-payment": true,
+        "wpnx-web-identity-edna-google-home": true,
+        "wpnx-web-identity-enable-begin-espn-route": true,
+        "wpnx-useWebPlaybackExperienceOverrides": {
+          "maxMinutesForCompletePlaylist": 240,
+          "theme": "v2",
+          "preferPlayRouteForVod": true
+        },
+        "wpnx-web-identity-unified-branded": true,
+        "wpnx-web-identity-edna-activations": true,
+        "wpnx-mainapp-isDefaultToAnnualEnabled": true,
+        "wpnx-appex-get-app-nexus-redirect": true,
+        "wpnx-mainapp-isFlexForAccountOffersEnabled": true,
+        "wpnx-web-commerce-regulated-cancel": false,
+        "wpnx-web-commerce-cc-patch": true,
+        "wpnx-live-modal-redesign": false,
+        "wpnx-web-merch-showCartFooter": true,
+        "wpnx-web-commerce-finish-later-modal": true,
+        "wpnx-mli-animated-background": false,
+        "wpnx-great-plan-toggle": {
+          "Toggle": "standalone"
+        },
+        "wpnx-web-identity-profile-transfer": true,
+        "wpnx-web-identity-use-commerce-redirect": true,
+        "wpnx-great-preselect-plan-carousel": "control_comparison_chart",
+        "wpnx-use-privacy-consent-package": false,
+        "wpnx-web-identity-email-confirmation": "modal",
+        "wpnx-web-identity-active-font-family": "inspire",
+        "wpnx-web-identity-unified-create-account-v2": false,
+        "wpnx-web-identity-unified-auth-flows": true
+      }
+    }
+  }
+}
