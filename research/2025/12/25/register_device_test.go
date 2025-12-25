@@ -6,8 +6,7 @@ import (
 )
 
 func TestRegisterDevice(t *testing.T) {
-   var device register_device
-   err := device.fetch()
+   device, err := fetch_register_device()
    if err != nil {
       t.Fatal(err)
    }
