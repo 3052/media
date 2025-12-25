@@ -1,13 +1,24 @@
 package disney
 
 import (
+   "encoding/json"
    "io"
    "net/http"
    "net/url"
    "strings"
 )
 
-func refresh_token() (*http.Response, error) {
+type refresh_token struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken string
+         }
+      }
+   }
+}
+
+func (r *refresh_token) fetch() error {
    var req http.Request
    req.Header = http.Header{}
    req.Method = "POST"
@@ -17,7 +28,12 @@ func refresh_token() (*http.Response, error) {
    req.URL.Scheme = "https"
    req.Body = io.NopCloser(strings.NewReader(query_refresh_token))
    req.Header.Add("Authorization", "Bearer ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84")
-   return http.DefaultClient.Do(&req)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(r)
 }
 
 const query_refresh_token = `

@@ -1,22 +1,33 @@
 package disney
 
 import (
-   "io"
+   "encoding/xml"
+   "log"
    "os"
    "testing"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 func TestRefreshToken(t *testing.T) {
-   resp, err := refresh_token()
+   log.SetFlags(log.Ltime)
+   var token refresh_token
+   err := token.fetch()
    if err != nil {
       t.Fatal(err)
    }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
+   data, err := xml.Marshal(token)
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile("refresh_token.json", data, os.ModePerm)
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = write_file(cache + "/disney/refresh_token.xml", data)
    if err != nil {
       t.Fatal(err)
    }
