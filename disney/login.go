@@ -10,13 +10,65 @@ import (
    "strings"
 )
 
-const mutation_login = `
-mutation login($input: LoginInput!) {
-  login(login: $input) {
-      actionGrant
-  }
+func (a *account_without_active_profile) switch_profile() (*account, error) {
+   data, err := json.Marshal(map[string]any{
+      "operationName": "switchProfile",
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": a.Data.Login.Account.Profiles[0].Id,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Extensions struct {
+         Sdk struct {
+            Token account
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Extensions.Sdk.Token, nil
 }
-`
+
+type account_without_active_profile struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // AccountWithoutActiveProfile
+         }
+      }
+   }
+   Data struct {
+      Login struct {
+         Account struct {
+            Profiles []struct {
+               Id string
+            }
+         }
+      }
+   }
+}
 
 type account struct {
    AccessToken     string
@@ -34,11 +86,6 @@ mutation switchProfile($input: SwitchProfileInput!) {
     }
   }
 `
-
-type account_without_active_profile struct {
-   AccessToken     string
-   AccessTokenType string // AccountWithoutActiveProfile
-}
 
 const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
 
@@ -85,7 +132,7 @@ func register_device() (*device, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Add("Authorization", "Bearer "+client_api_key)
+   req.Header.Set("Authorization", "Bearer "+client_api_key)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -105,8 +152,6 @@ func register_device() (*device, error) {
    return &result.Data.RegisterDevice.Token, nil
 }
 
-///
-
 func (d *device) login(email, password string) (*account_without_active_profile, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -115,7 +160,7 @@ func (d *device) login(email, password string) (*account_without_active_profile,
    req.URL.Host = "disney.api.edge.bamgrid.com"
    req.URL.Path = "/v1/public/graphql"
    req.URL.Scheme = "https"
-   req.Header.Add("Authorization", "Bearer "+d.AccessToken)
+   req.Header.Set("Authorization", "Bearer "+d.AccessToken)
    data := fmt.Sprintf(`
    {
      "operationName": "login",
@@ -134,56 +179,22 @@ func (d *device) login(email, password string) (*account_without_active_profile,
       return nil, err
    }
    defer resp.Body.Close()
-   var result struct {
-      Extensions struct {
-         Sdk struct {
-            Token account_without_active_profile
-         }
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
+   result := &account_without_active_profile{}
+   err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
    }
-   return &result.Extensions.Sdk.Token, nil
+   return result, nil
 }
 
-func (a *account_without_active_profile) switch_profile() (*account, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Method = "POST"
-   req.URL = &url.URL{}
-   req.URL.Host = "disney.api.edge.bamgrid.com"
-   req.URL.Path = "/v1/public/graphql"
-   req.URL.Scheme = "https"
-   req.Header.Add("Authorization", "Bearer "+a.AccessToken)
-   data := fmt.Sprintf(`
-   {
-     "query": %q,
-     "variables": {
-       "input": {
-         "profileId": "ebb8f45f-fb18-4ebb-a2bf-fca32eb7fbb8"
-       }
-     },
-     "operationName": "switchProfile"
-   }
-   `, mutation_switch_profile)
-   req.Body = io.NopCloser(strings.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Extensions struct {
-         Sdk struct {
-            Token account
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
          }
       }
    }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Extensions.Sdk.Token, nil
 }
+`
