@@ -6,15 +6,15 @@ import (
    "net/http"
 )
 
-type register_device struct {
-   Token struct {
-      AccessToken string
-      RefreshToken string
-      AccessTokenType string // Device
-   }
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
+type device struct {
+   AccessToken string
+   RefreshToken string
+   AccessTokenType string // Device
 }
 
-const query_register_device = `
+const mutation_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {
       token {
@@ -26,9 +26,9 @@ mutation registerDevice($input: RegisterDeviceInput!) {
 }
 `
 
-func fetch_register_device() (*register_device, error) {
+func register_device() (*device, error) {
    data, err := json.Marshal(map[string]any{
-      "query": query_register_device,
+      "query": mutation_register_device,
       "variables": map[string]any{
          "input": map[string]any{
             "deviceProfile": "!",
@@ -59,14 +59,14 @@ func fetch_register_device() (*register_device, error) {
    defer resp.Body.Close()
    var result struct {
       Data struct {
-         RegisterDevice register_device
+         RegisterDevice struct {
+            Token device
+         }
       }
    }
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   return &result.Data.RegisterDevice, nil
+   return &result.Data.RegisterDevice.Token, nil
 }
-
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"

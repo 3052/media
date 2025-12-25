@@ -4,9 +4,10 @@ import (
    "encoding/json"
    "net/http"
    "net/url"
+   "strings"
 )
 
-func (r refresh_token) explore(entity string) (*explore_page, error) {
+func (a *account_without_active_profile) explore(entity string) (*explore_page, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{}
@@ -18,7 +19,7 @@ func (r refresh_token) explore(entity string) (*explore_page, error) {
    req.URL.RawQuery = value.Encode()
    req.URL.Scheme = "https"
    req.Header.Set(
-      "Authorization", "Bearer "+r.Extensions.Sdk.Token.AccessToken,
+      "Authorization", "Bearer " + a.AccessToken,
    )
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -29,12 +30,30 @@ func (r refresh_token) explore(entity string) (*explore_page, error) {
       Data struct {
          Page explore_page
       }
+      Errors []Error
    }
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
    return &result.Data.Page, nil
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   data.WriteString("\ndescription = ")
+   data.WriteString(e.Description)
+   return data.String()
+}
+
+type Error struct {
+   Code        string
+   Description string
 }
 
 type explore_page struct {
