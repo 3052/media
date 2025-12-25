@@ -5,7 +5,7 @@ import (
    "testing"
 )
 
-func Test(t *testing.T) {
+func TestPlayback(t *testing.T) {
    var play playback
    err := play.fetch()
    if err != nil {

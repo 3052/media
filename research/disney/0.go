@@ -1,14 +1,13 @@
-package main
+package disney
 
 import (
    "io"
    "net/http"
    "net/url"
-   "os"
    "strings"
 )
 
-func main() {
+func refresh_token() (*http.Response, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Method = "POST"
@@ -16,19 +15,12 @@ func main() {
    req.URL.Host = "disney.api.edge.bamgrid.com"
    req.URL.Path = "/graph/v1/device/graphql"
    req.URL.Scheme = "https"
-   req.Body = io.NopCloser(strings.NewReader(data))
+   req.Body = io.NopCloser(strings.NewReader(query_refresh_token))
    req.Header.Add("Authorization", "Bearer ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84")
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      panic(err)
-   }
-   err = resp.Write(os.Stdout)
-   if err != nil {
-      panic(err)
-   }
+   return http.DefaultClient.Do(&req)
 }
 
-const data = `
+const query_refresh_token = `
 {
   "query": "mutation refreshToken($input:RefreshTokenInput!){refreshToken(refreshToken:$input){activeSession{sessionId}}}",
   "variables": {

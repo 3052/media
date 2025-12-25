@@ -16,7 +16,7 @@ func (p *playback) fetch() error {
    req.URL.Host = "disney.playback.edge.bamgrid.com"
    req.URL.Path = "/v7/playback/ctr-regular"
    req.URL.Scheme = "https"
-   req.Body = io.NopCloser(strings.NewReader(data))
+   req.Body = io.NopCloser(strings.NewReader(playback_data))
    req.Header.Add("Authorization", "Bearer " + bearer)
    req.Header.Add("Content-Type", "application/json")
    req.Header.Add("X-Application-Version", "5d5917f8")
@@ -64,7 +64,7 @@ type playback struct {
    }
 }
 
-const data = `
+const playback_data = `
 {
   "playback": {
     "attributes": {
