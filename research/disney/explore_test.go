@@ -1,28 +1,31 @@
 package disney
 
-import "testing"
+import (
+   "encoding/xml"
+   "fmt"
+   "os"
+   "testing"
+)
 
 func TestExplore(t *testing.T) {
-   email, err := output("credential", "-h=disneyplus.com", "-k=user")
+   cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
-   password, err := output("credential", "-h=disneyplus.com")
+   data, err := os.ReadFile(cache + "/disney/account.xml")
    if err != nil {
       t.Fatal(err)
    }
-   token, err := register_device()
+   var account_with account
+   err = xml.Unmarshal(data, &account_with)
    if err != nil {
       t.Fatal(err)
    }
-   account, err := token.login(email, password)
+   explore, err := account_with.explore(test.entity)
    if err != nil {
       t.Fatal(err)
    }
-   _, err = account.explore(test.entity)
-   if err != nil {
-      t.Fatal(err)
-   }
+   fmt.Println(explore.restart())
 }
 
 var test = struct {
