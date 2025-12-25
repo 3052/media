@@ -3,12 +3,13 @@ package disney
 import (
    "encoding/json"
    "io"
+   "log"
    "net/http"
    "net/url"
    "strings"
 )
 
-func (r *refresh_token) playback() (*playback, error) {
+func (r refresh_token) playback() (*playback, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Method = "POST"
@@ -17,15 +18,16 @@ func (r *refresh_token) playback() (*playback, error) {
    req.URL.Path = "/v7/playback/ctr-regular"
    req.URL.Scheme = "https"
    req.Body = io.NopCloser(strings.NewReader(playback_data))
-   req.Header.Add("Content-Type", "application/json")
-   req.Header.Add("X-Application-Version", "5d5917f8")
-   req.Header.Add("X-Bamsdk-Client-Id", "disney-svod-3d9324fc")
-   req.Header.Add("X-Bamsdk-Platform", "javascript/windows/firefox")
-   req.Header.Add("X-Bamsdk-Version", "34.3")
-   req.Header.Add("X-Dss-Feature-Filtering", "true")
-   req.Header.Add(
+   req.Header.Set("Content-Type", "application/json")
+   req.Header.Set("X-Application-Version", "5d5917f8")
+   req.Header.Set("X-Bamsdk-Client-Id", "disney-svod-3d9324fc")
+   req.Header.Set("X-Bamsdk-Platform", "javascript/windows/firefox")
+   req.Header.Set("X-Bamsdk-Version", "34.3")
+   req.Header.Set("X-Dss-Feature-Filtering", "true")
+   req.Header.Set(
       "Authorization", "Bearer " + r.Extensions.Sdk.Token.AccessToken,
    )
+   log.Println("authorization", req.Header.Get("authorization"))
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
