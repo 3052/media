@@ -2,14 +2,13 @@ package disney
 
 import (
    "encoding/xml"
-   "fmt"
    "log"
    "os"
    "os/exec"
    "testing"
 )
 
-func TestSwitchProfile(t *testing.T) {
+func TestLogin(t *testing.T) {
    log.SetFlags(log.Ltime)
    email, err := output("credential", "-h=disneyplus.com", "-k=user")
    if err != nil {
@@ -39,7 +38,6 @@ func TestSwitchProfile(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n", account_with)
    err = write_file(cache+"/disney/account.xml", data)
    if err != nil {
       t.Fatal(err)
