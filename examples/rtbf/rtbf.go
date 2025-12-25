@@ -130,6 +130,7 @@ func (c *command) do_dash() error {
    }
    return c.filters.Filter(resp, &c.config)
 }
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(*http.Request) string {
