@@ -1,23 +1,15 @@
 package disney
 
 import (
-   "io"
-   "os"
+   "fmt"
    "testing"
 )
 
 func TestRegisterDevice(t *testing.T) {
-   resp, err := register_device()
+   var device register_device
+   err := device.fetch()
    if err != nil {
       t.Fatal(err)
    }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      t.Fatal(err)
-   }
-   err = os.WriteFile("register_device.json", data, os.ModePerm)
-   if err != nil {
-      t.Fatal(err)
-   }
+   fmt.Printf("%+v\n", device)
 }
