@@ -3,11 +3,42 @@ package disney
 import (
    "bytes"
    "encoding/json"
+   "errors"
+   "io"
    "net/http"
-   "strings"
+   "net/url"
 )
 
-func (r refresh_token) playback(resource_id string) (*playback, error) {
+func (a *account) obtain_license(data []byte) ([]byte, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Method = "POST"
+   req.URL = &url.URL{}
+   req.URL.Host = "disney.playback.edge.bamgrid.com"
+   req.URL.Path = "/widevine/v1/obtain-license"
+   req.URL.Scheme = "https"
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   req.Header.Set("Authorization", a.AccessToken)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+type stream struct {
+   Sources []struct {
+      Complete struct {
+         Url string
+      }
+   }
+}
+
+func (a *account) stream(resource_id string) (*stream, error) {
    data, err := json.Marshal(map[string]any{
       "playback": map[string]any{
          "attributes": map[string]any{
@@ -27,7 +58,7 @@ func (r refresh_token) playback(resource_id string) (*playback, error) {
       bytes.NewReader(data),
    )
    req.Header.Set(
-      "Authorization", "Bearer "+r.Extensions.Sdk.Token.AccessToken,
+      "Authorization", "Bearer "+a.AccessToken,
    )
    req.Header.Set("Content-Type", "application/json")
    req.Header.Set("X-Application-Version", "")
@@ -40,7 +71,10 @@ func (r refresh_token) playback(resource_id string) (*playback, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result playback
+   var result struct {
+      Errors []Error
+      Stream stream
+   }
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
@@ -48,30 +82,5 @@ func (r refresh_token) playback(resource_id string) (*playback, error) {
    if len(result.Errors) >= 1 {
       return nil, &result.Errors[0]
    }
-   return &result, nil
-}
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("code = ")
-   data.WriteString(e.Code)
-   data.WriteString("\ndescription = ")
-   data.WriteString(e.Description)
-   return data.String()
-}
-
-type Error struct {
-   Code        string
-   Description string
-}
-
-type playback struct {
-   Errors []Error
-   Stream struct {
-      Sources []struct {
-         Complete struct {
-            Url string
-         }
-      }
-   }
+   return &result.Stream, nil
 }

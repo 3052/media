@@ -9,7 +9,12 @@ import (
    "strings"
 )
 
-func (a *account_without_active_profile) switch_profile() (*account, error) {
+type account_without_active_profile struct {
+   AccessToken     string
+   AccessTokenType string // AccountWithoutActiveProfile
+}
+
+func (d *device) login(email, password string) (*account_without_active_profile, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Method = "POST"
@@ -17,18 +22,19 @@ func (a *account_without_active_profile) switch_profile() (*account, error) {
    req.URL.Host = "disney.api.edge.bamgrid.com"
    req.URL.Path = "/v1/public/graphql"
    req.URL.Scheme = "https"
-   req.Header.Add("Authorization", "Bearer " + a.AccessToken)
+   req.Header.Add("Authorization", "Bearer "+d.AccessToken)
    data := fmt.Sprintf(`
    {
+     "operationName": "login",
      "query": %q,
      "variables": {
        "input": {
-         "profileId": "ebb8f45f-fb18-4ebb-a2bf-fca32eb7fbb8"
+         "email": %q,
+         "password": %q
        }
-     },
-     "operationName": "switchProfile"
+     }
    }
-   `, mutation_switch_profile)
+   `, mutation_login, email, password)
    req.Body = io.NopCloser(strings.NewReader(data))
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -38,7 +44,7 @@ func (a *account_without_active_profile) switch_profile() (*account, error) {
    var result struct {
       Extensions struct {
          Sdk struct {
-            Token account
+            Token account_without_active_profile
          }
       }
    }
@@ -49,19 +55,10 @@ func (a *account_without_active_profile) switch_profile() (*account, error) {
    return &result.Extensions.Sdk.Token, nil
 }
 
-type account struct {
-   AccessToken string
-   AccessTokenType string // Account
-}
-
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-    switchProfile(switchProfile: $input) {
-      account {
-        activeProfile {
-          name
-        }
-      }
-    }
+const mutation_login = `
+mutation login($input: LoginInput!) {
+  login(login: $input) {
+      actionGrant
   }
+}
 `
