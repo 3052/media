@@ -7,6 +7,15 @@ import (
    "strings"
 )
 
+func (e explore_page) restart() (string, bool) {
+   for _, action := range e.Actions {
+      if action.Visuals.DisplayText == "RESTART" {
+         return action.ResourceId, true
+      }
+   }
+   return "", false
+}
+
 type explore_page struct {
    Actions []struct {
       ResourceId string
@@ -16,7 +25,7 @@ type explore_page struct {
    }
 }
 
-func (a *account_without_active_profile) explore(entity string) (*explore_page, error) {
+func (a *account) explore(entity string) (*explore_page, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{}
@@ -63,13 +72,4 @@ func (e *Error) Error() string {
 type Error struct {
    Code        string
    Description string
-}
-
-func (e explore_page) restart() (string, bool) {
-   for _, action := range e.Actions {
-      if action.Visuals.DisplayText == "RESTART" {
-         return action.ResourceId, true
-      }
-   }
-   return "", false
 }
