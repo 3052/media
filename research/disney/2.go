@@ -1,54 +1,41 @@
 package disney
 
 import (
-   "encoding/base64"
+   "bytes"
    "encoding/json"
-   "fmt"
-   "io"
    "net/http"
-   "net/url"
    "strings"
 )
 
-const playback_id = `
-{
-   "mediaId": "aa401a2b-b7f4-4c11-bf61-a3b06f9c974d"
-}
-`
-
-func (r refresh_token) playback() (*playback, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Method = "POST"
-   req.URL = &url.URL{}
-   req.URL.Host = "disney.playback.edge.bamgrid.com"
-   req.URL.Path = "/v7/playback/ctr-regular"
-   req.URL.Scheme = "https"
-   req.Header.Set("Content-Type", "application/json")
+func (r refresh_token) playback(resource_id string) (*playback, error) {
+   data, err := json.Marshal(map[string]any{
+      "playback": map[string]any{
+         "attributes": map[string]any{
+            "assetInsertionStrategies": map[string]string{
+               "point": "SGAI",
+               "range": "SGAI",
+            },
+         },
+      },
+      "playbackId": resource_id,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, _ := http.NewRequest(
+      "POST", "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
+      bytes.NewReader(data),
+   )
    req.Header.Set(
       "Authorization", "Bearer " + r.Extensions.Sdk.Token.AccessToken,
    )
-   req.Header.Set("X-Dss-Feature-Filtering", "true")
+   req.Header.Set("Content-Type", "application/json")
    req.Header.Set("X-Application-Version", "")
    req.Header.Set("X-Bamsdk-Client-Id", "")
    req.Header.Set("X-Bamsdk-Platform", "")
    req.Header.Set("X-Bamsdk-Version", "")
-   data := base64.StdEncoding.EncodeToString([]byte(playback_id))
-   data = fmt.Sprintf(`
-   {
-     "playback": {
-       "attributes": {
-         "assetInsertionStrategies": {
-           "point": "SGAI",
-           "range": "SGAI"
-         }
-       }
-     },
-     "playbackId": %q
-   }
-   `, data)
-   req.Body = io.NopCloser(strings.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
+   req.Header.Set("X-Dss-Feature-Filtering", "true")
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
