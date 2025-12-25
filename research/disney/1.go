@@ -1,84 +1,35 @@
-package disney
+package main
 
 import (
-   "encoding/json"
-   "io"
-   "log"
+   "fmt"
    "net/http"
    "net/url"
    "strings"
 )
 
-func (r refresh_token) playback() (*playback, error) {
+func main() {
    var req http.Request
    req.Header = http.Header{}
-   req.Method = "POST"
    req.URL = &url.URL{}
-   req.URL.Host = "disney.playback.edge.bamgrid.com"
-   req.URL.Path = "/v7/playback/ctr-regular"
+   req.URL.Host = "disney.api.edge.bamgrid.com"
+   req.URL.Path = "/explore/v1.12/page/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d"
+   req.Header.Add("Authorization", "Bearer " + bearer)
+   value := url.Values{}
+   value["enhancedContainersLimit"] = []string{"1"}
+   value["limit"] = []string{"1"}
+   req.URL.RawQuery = value.Encode()
    req.URL.Scheme = "https"
-   req.Body = io.NopCloser(strings.NewReader(playback_data))
-   req.Header.Set("Content-Type", "application/json")
-   req.Header.Set("X-Application-Version", "5d5917f8")
-   req.Header.Set("X-Bamsdk-Client-Id", "disney-svod-3d9324fc")
-   req.Header.Set("X-Bamsdk-Platform", "javascript/windows/firefox")
-   req.Header.Set("X-Bamsdk-Version", "34.3")
-   req.Header.Set("X-Dss-Feature-Filtering", "true")
-   req.Header.Set(
-      "Authorization", "Bearer " + r.Extensions.Sdk.Token.AccessToken,
-   )
-   log.Println("authorization", req.Header.Get("authorization"))
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return nil, err
+      panic(err)
    }
-   defer resp.Body.Close()
-   var result playback
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
-}
-
-func (e *Error) Error() string {
    var data strings.Builder
-   data.WriteString("code = ")
-   data.WriteString(e.Code)
-   data.WriteString("\ndescription = ")
-   data.WriteString(e.Description)
-   return data.String()
-}
-
-type Error struct {
-   Code string
-   Description string
-}
-
-type playback struct {
-   Errors []Error
-   Stream struct {
-      Sources []struct {
-         Complete struct {
-            Url string
-         }
-      }
+   err = resp.Write(&data)
+   if err != nil {
+      panic(err)
    }
+   fmt.Println(&data, data.Len())
 }
 
-const playback_data = `
-{
-  "playback": {
-    "attributes": {
-      "assetInsertionStrategies": {
-        "point": "SGAI",
-        "range": "SGAI"
-      }
-    }
-  },
-  "playbackId": "eyJtZWRpYUlkIjoiYWE0MDFhMmItYjdmNC00YzExLWJmNjEtYTNiMDZmOWM5NzRkIiwiYXZhaWxJZCI6ImNkNDkwZmE0LTBkMWYtNDU1ZS04ZGNiLWZmZmQ1MTY2NmMyMSIsImF2YWlsVmVyc2lvbiI6Mywic291cmNlSWQiOiJjZDQ5MGZhNC0wZDFmLTQ1NWUtOGRjYi1mZmZkNTE2NjZjMjEiLCJjb250ZW50VHlwZSI6InZvZCJ9"
-}
-`
+const bearer = "eyJ6aXAiOiJERUYiLCJraWQiOiJ0Vy10M2ZQUTJEN2Q0YlBWTU1rSkd4dkJlZ0ZXQkdXek5KcFFtOGRJMWYwIiwiY3R5IjoiSldUIiwiZW5jIjoiQzIwUCIsImFsZyI6ImRpciJ9..K7jBF7eu8SS55Czg.qP-duvQqtZ76DksWu0RAp64ELDvUY3WlIu3fjqRnMymMdkVZ-IgvSZB_urOK2UtcRYDBiSBZoHhpIyvoNXElR_Sv_hDagfYKzYafrrCOoKnO-uuKjDDPLIjb4RrbkPEx1aNxRz4_7JMJGe3UvrJ-bX2Sw0i68F_da-7am5_KxQh3VzsXZS_EcKjQ3fiRD03-D2kNSOuUecCCg1y47c2eypvk37f2gU6PzbueBH91IZmRf7jIaSpa6POil86PWk4MEIbTKxg9AZh4X_p0bjyQCg0grXyZK_GrtuT7jRS5Xx4H88nAMzfvZ3CUUII_IKe_HzXjRhRDp7h_KAtuvCiD_qVtRe4RDgP6_ZsRnjt9V3MqvFv1qmBfBEOXcbEPKJ3V-ouviWS54JUlgDX1KfpXrvuxav7iWZWE9RpCN6CRT79k7-NoB-4dw4i-OOtHtrrKzLt2Dg7b-naf0rUGARzqiQgkqncl5V1jGDc7lEYIhx7yn6k12haV6TrYLx80FD6NJzP1jBxZeM05b2IfHggfSQx7oDeuMC0SVTuR-GVEmwrP78SSFkxjH3bzfp4yY8iM2LlzuOBV-UWIe_trpvFpk3-gyNtwEJnJl4WQmgFjawgRlAzsjq8w_QRz61MzZrzsRZwj9z8v8u1Rn6L6XFmzO2ohMpTrHmNPhZuPcafImS2L6lQmg9BQzx-oHtNu7BtwsurXM_5tLYyBMnDXpEBi8GlB0H9QJr0sDtcEsbQfT3SZq7Dff-J4xHjBnXIU97pA4zdpItKMEEsO7p0qndyIJWNWQ7WCdxFPPydGyCxZVkBPaTxB0zSrjtJJEhG561OFjMbM3c941QhdfaFZIFxi2gW-mfnzUNrPxVR5xVKtNsiquzena9oiNrxfFynZ65yQH0GJJrRydBcQcghUyOJup8CY7XUOKhnHGxXYUxnafSr7HZc5mzZAeeZjajGpqNlRKyONB1_zvBpLtOOkOvEH4YbJkvitC6yu_XHFJzgTBclo_Vzk5s51sV3Vnziz2ipwEMJpLXp1wdcow-8iS5kmmSnBKCL5CCJHvSDQPwPSQR4dNbCO9f--2bJf-IGb8Ti_DZKAYDVlYpHpcxUvy_3JcTv2dplh92uB1zMXMGZf4_jittM_7914xbO9RffNnGmUZIkQTLXmLFg3PhV4FXS9Yb9gn7VGtqlFGe5NxsRqsm4de4F_ItZQ64MQaWCLd8Z1aLbZFLlkkTKRtED89FThLRVp4lgFGbjEBhIsRR34xVQ3lwqC847v5l36fob2VYZUIWs7szXDzd3nmVFb42-oGV07zF0eEvN6uyoKycPOxWq1y5WtdVmmCfqIYOzSqkpSXq6GgQCToGC6UW5nQ9haA59uexPf1WJCsMusELXqmV1OkaT0ZtgcOwzsUdKwG47hOedlsD5LBwG0jQsnfZ2Jno-ilcA9zyWwslVDM-f2RmzKD7Ao4W6MLJ4pQ-CkfXfdVyDWp30voEFQxN-tuSHTefIeyCpdfxTvguEben4VC2MDtAeKvwcxrrtceXiDvO-NIk62Rs1ouiCUJVRbqlX9Ftzi3NNhkALeAqu4gJ_kgBA4V5qLTPfp20JY6tPc4IeFpuotQUawNeg3Jr59kKnhe0InC2DbEcnJ7_3_KFIA5j9swLXmVh4cBhOcU4sDSzhtfu8pjU2cS-9Z-J0_ZBoQIgbIak6EI1o0zn889IS1DhCTouM4lk0ZGNGQF3iod-Hi3uaxdbTqVpfXifweFL6iTD_bQAxwIuo9xJniypiYoD-AiVSqlpPBMZcf1uVGvfNPdhbimjZbTRf0KtJIOPDrp_JJ6qFn6NWrpVJrTMx7qHVRNvqypcpB9DPQ_afxskht3_l7tMhsiFYyqVIFk3Uw3fM_PNCfdDLLU-1w7Gacpn7kdgPZEuRu6cTQOAK9CrbaH45gpSpeOs24R2uczALqgaiZB11wlBlIEfXwaR1Wh_CIQG37HXwHrV7OPjYL4yYagwfgrIv6Q_OfIsPzTxq0v1VlBel5Sz7Ya3Zx2eqh2gV3hON1UndsQhaYuwPvCcQhiF2K33QqZzqaENixWZDOX5mbo4I14mRGOtuXXrPqsG61yUhEx5rZVRG4TOIzW7_YGSCju3IoG4tMA6oSERdAGMKR2jsUkFazlwB3r9V0ZCLsJ8UcyRZXhQCNcjIW2Ql2mxSXugUpcQaA_mnA3lIspvx94TidxXii72feoGp-qWVgAAMynG4yUzO4dxMLv3LHJVBEidBO_RG4UFBbdG9s13vTJqWQp9LWIiwztJNsTLXABDcpIT0A4V10QXV1K-gXWOb3-S5hANm5srR0g648ehJbPqNeofA2mivUE5R4lz0NJA2jujGfjmINc2QmBmu1498B9lhIL6aD9ydCMfqwVW1wdP7L2ZszgIc0i-DKaFrzuVCo84VO7_dIpSBi9meHhKhOK06ntAsvog44sxZY9kB6FQkOnhbOnAJercqjbypYytNbKJyv6A8_cxPnJoUGeCPzn5FJY3NpOGrnhVR61pkXN79ZWU4DG12K4pOgKYPkins2fo50Ga5Ivyr0IJQA416sxzlH4_rfhOW0EuwFU_EwZOCRNeK7cmZoc6XEzQB_6uGnzsSlbpmPao6SlgUcfPwAmXw_ma0X83w-LgE-Ixsz1F9qfTpU-ZH8SRahvNOsqx61CGEEYOq9gytE3PX3oohuJxxiMQZn25k1okbjktb46nePtR2LAkRSD3lD-e29hjpSvdXcVboJivqZNRgHm2wrAEQjGhkDLBNjMw8tTtpO4zPAP8U18-UpF75O_-Bgt9RyDZBzUwJajPBuOmdn6i7VQ7DRAlCRDjJetYZtmdUcm_iZ_KbdRV5AJkvEaWWtNrWFILDJ1X6th57d9m5Wi5PX-JcwmsUayMf-UQov_A_I4Gq6_Bmkc299IMX7IATq4f932lHk1IcKg5jENVgu5Ia7xP5lk21U5IZp2RcAIDe15100kkzWOF6QbC-3tlxxmayvC0B9ln7KoHv26wcXzhRHo4VqV_FFyYMQSgV1VbF9WbzMxjst86xjO2aMN1p3ecGKZ5hGtA3TSl9nLkdyn4CsoiVnLO_PgSX7oCaNAfjhkKZZZRHilSxhJxvif8Lm_AAT_VS12Nq-NDEZC0fzFo-Ff2NmSmHU6qCIN00xkOpQ6lHR9yDGV_JJEzr93DXgkRONrS0J0JkZwN1Voaeq5unNVZZJ4H0yj0pu7wLRz3nbcrMWE1mHI4iST5nB6LIwQcCDZe29CkrgQmz59Bq-2A3UvzCckSIAn9yPHhzIWaFYk7oVxvfa1vlS255s6XxRAY4kEI1BcYrRQJAv2_CPq798vkgbXD0kCRLp4iB-72SiuyohXE9j-4EANOQGLAD4akBEu9U8no2NbQocG81LcwmkfPThVAeKj3D_sVkD3nA3UE8wTLfU9DO99jrMYFr5Nc6WGpz7ZPlZGyabrmDkok60ppRVMOhpYZPGFPuCOhcnAqAiA2ogsHBeIWtau3Y0HB3y844UqQRh9pqG7ph9JGsqJwPeUKEM0mL3xG92EIL-a09TZyE3TuzGNKJKQCNskRC2pmyojCYp4umD1TR2JgKDLSXH81LLJuqyRyEwy6FvDmq1FC4FWtghHd8JvVybIno7Glko0vw9p42qAPQh3kFGZYjnj6RNRTXJ_Koq5iXGL9JX7PREHVm_2DZJUFEFQjAdIuInHWfj0wktauTaPyUBmcVbZ9mI6xhtMLQU7dIKUH91ftYqc0swjyJ66KoSW5emf3YIGGcSJTGsKyT6yO0BucADhbfJAB8cQyy1f3JclIl5wW46vTBHRLa3vbARTQ5u0io0wMvrWJlw_J0sPeKypi-0rHPwzxdzxEXEhI0FTS2kRwdSJowCQQ5RM6jfgFn8O-qaQaGGMFUdtndzXTgdjPfkG6U7hY1IOodtgu8fJdM32Rfty7Yen7sG8x4YDgy9iKNdJVKIlKZt7CjBuH2LzcX29PzvaxdPv_pqbfwgVKMMG9IHIx-4orzHmOAKf6c9hyBZQ2p2EQydcj_v6GBE_QXPh72CnuqgkpHzpaZMj0uwfmo-SusyUdJ6u3XCxbl4rOEoFe-JmOHNRjGkDZW9uqRkhGC-7rrtPDS0PnkdYRsTJfAwDAY_6PHgKUhdSgZaN5SUstoMKD-2dtIDPk3G2gO8v5gsRlL5qOShgfXNfMueceRO7JKhHdX1T22I3VU5-PBy0rS_YQYhBxU3SWcFFJntX-0lR-9Wep0FgnQetTJZ8tV_fKU9jxxKerXpDsmRRFHB2ET4YhtG0K1fsIKugMJawmiOmzB-w_j5wFyddfnIeF_XGEfk6Og9Dt6lP6yIErde0R9UqKZod8VnOFEog7qvyXObRzVckI2Oxk8gEvkq3qBFllruSKy6NEye-oyR3S_XAde8JYnxy4clU0c7HOk5yHEZ2zctIDutUR4OWGMmkTdP7rFmqtfRhflQr6e4tureubSQDtuBtf-hVN4L_8yy-InQb2d9jmp8QpLmQ_6qljhtRIlT9wNsLkUC2EtS_65krIBpCL4RBjsRotfzq4keaPGevxttblIZgaSBB3_Wn_0zLiZfrjAmLuyYmj7p-Z3Sz4RcVhg6jiO4Fr-XGaw3Uvc3vCuPVxak7vA5eK3HxiIG3bWMA0aN4L9D5GABZWHy7jEaBcDiFKw2yGYS5xtcFZ7nbh-MgQBrewmQvQV1plZDP2tleu8vYj3NoS68U2Ef2AT9nTctJm2kRRs7QEtrpS9PabHlKk02VToPTN2Z2RTTpYzz1Nz3Qp_m415WEnfLnv0xx8nfvuE5zyet2J_ncMRKjOBnA-WCgyhKrwZkbxR23Ecm0fh7k5OauPhCZGA7svS9aCvSCzQk2DQBRUYdtvD3z4jAq7C1dwue_aZW513nqDILqX04JJPGo5NBp6Ee85yaOPPOyeayYIYfvm4sv1dDEtMeZXU9fjmK5-OFQCY_-z0W1BzVpOMj8kC5F3OJUqTUyDSNLA.MdN2rVLxwF-c2WLdgdxiVg"
+
