@@ -1,11 +1,11 @@
 package disney
 
 import (
+   "bytes"
    "errors"
    "io"
    "net/http"
    "net/url"
-   "bytes"
 )
 
 func (r refresh_token) obtain_license(data []byte) ([]byte, error) {

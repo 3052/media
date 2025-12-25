@@ -18,7 +18,7 @@ func (r refresh_token) explore(entity string) (*explore_page, error) {
    req.URL.RawQuery = value.Encode()
    req.URL.Scheme = "https"
    req.Header.Set(
-      "Authorization", "Bearer " + r.Extensions.Sdk.Token.AccessToken,
+      "Authorization", "Bearer "+r.Extensions.Sdk.Token.AccessToken,
    )
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -40,7 +40,7 @@ func (r refresh_token) explore(entity string) (*explore_page, error) {
 type explore_page struct {
    Actions []struct {
       ResourceId string
-      Visuals struct {
+      Visuals    struct {
          DisplayText string
       }
    }

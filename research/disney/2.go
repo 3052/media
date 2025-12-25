@@ -27,7 +27,7 @@ func (r refresh_token) playback(resource_id string) (*playback, error) {
       bytes.NewReader(data),
    )
    req.Header.Set(
-      "Authorization", "Bearer " + r.Extensions.Sdk.Token.AccessToken,
+      "Authorization", "Bearer "+r.Extensions.Sdk.Token.AccessToken,
    )
    req.Header.Set("Content-Type", "application/json")
    req.Header.Set("X-Application-Version", "")
@@ -61,7 +61,7 @@ func (e *Error) Error() string {
 }
 
 type Error struct {
-   Code string
+   Code        string
    Description string
 }
 

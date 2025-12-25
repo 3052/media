@@ -27,7 +27,7 @@ func TestRefreshToken(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = write_file(cache + "/disney/refresh_token.xml", data)
+   err = write_file(cache+"/disney/refresh_token.xml", data)
    if err != nil {
       t.Fatal(err)
    }
