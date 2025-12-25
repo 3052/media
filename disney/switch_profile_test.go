@@ -40,7 +40,7 @@ func TestSwitchProfile(t *testing.T) {
       t.Fatal(err)
    }
    fmt.Printf("%+v\n", account_with)
-   err = write_file(cache + "/disney/account.xml", data)
+   err = write_file(cache+"/disney/account.xml", data)
    if err != nil {
       t.Fatal(err)
    }

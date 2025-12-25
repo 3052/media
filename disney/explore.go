@@ -37,7 +37,7 @@ func (a *account) explore(entity string) (*explore_page, error) {
    req.URL.RawQuery = value.Encode()
    req.URL.Scheme = "https"
    req.Header.Set(
-      "Authorization", "Bearer " + a.AccessToken,
+      "Authorization", "Bearer "+a.AccessToken,
    )
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {

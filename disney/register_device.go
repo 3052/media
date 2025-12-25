@@ -9,8 +9,8 @@ import (
 const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
 
 type device struct {
-   AccessToken string
-   RefreshToken string
+   AccessToken     string
+   RefreshToken    string
    AccessTokenType string // Device
 }
 
@@ -31,11 +31,11 @@ func register_device() (*device, error) {
       "query": mutation_register_device,
       "variables": map[string]any{
          "input": map[string]any{
-            "deviceProfile": "!",
-            "deviceFamily": "!",
+            "deviceProfile":      "!",
+            "deviceFamily":       "!",
             "applicationRuntime": "!",
             "attributes": map[string]string{
-               "operatingSystem": "",
+               "operatingSystem":        "",
                "operatingSystemVersion": "",
             },
          },
@@ -51,7 +51,7 @@ func register_device() (*device, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Add("Authorization", "Bearer " + client_api_key)
+   req.Header.Add("Authorization", "Bearer "+client_api_key)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
