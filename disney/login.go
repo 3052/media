@@ -6,6 +6,75 @@ import (
    "net/http"
 )
 
+const mutation_register_device = `
+mutation registerDevice($input: RegisterDeviceInput!) {
+   registerDevice(registerDevice: $input) {
+      token {
+         accessToken
+         refreshToken
+         accessTokenType
+      }
+   }
+}
+`
+
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+         }
+      }
+   }
+}
+`
+
+const mutation_switch_profile = `
+mutation switchProfile($input: SwitchProfileInput!) {
+   switchProfile(switchProfile: $input) {
+      account {
+         activeProfile {
+            name
+         }
+      }
+   }
+}
+`
+
+type account struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // Account
+         }
+      }
+   }
+}
+
+type account_without_active_profile struct {
+   Data struct {
+      Login struct {
+         Account struct {
+            Profiles []struct {
+               Id string
+            }
+         }
+      }
+   }
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // AccountWithoutActiveProfile
+         }
+      }
+   }
+}
+
 func (a *account_without_active_profile) switch_profile() (*account, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_switch_profile,
@@ -38,75 +107,6 @@ func (a *account_without_active_profile) switch_profile() (*account, error) {
    }
    return result, nil
 }
-
-type account struct {
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // Account
-         }
-      }
-   }
-}
-
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
-
-const mutation_login = `
-mutation login($input: LoginInput!) {
-   login(login: $input) {
-      account {
-         profiles {
-            id
-         }
-      }
-   }
-}
-`
-
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-   switchProfile(switchProfile: $input) {
-      account {
-         activeProfile {
-            name
-         }
-      }
-   }
-}
-`
-
-type account_without_active_profile struct {
-   Data struct {
-      Login struct {
-         Account struct {
-            Profiles []struct {
-               Id string
-            }
-         }
-      }
-   }
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // AccountWithoutActiveProfile
-         }
-      }
-   }
-}
-
-const mutation_register_device = `
-mutation registerDevice($input: RegisterDeviceInput!) {
-   registerDevice(registerDevice: $input) {
-      token {
-         accessToken
-         refreshToken
-         accessTokenType
-      }
-   }
-}
-`
 
 func (d *device) register() error {
    data, err := json.Marshal(map[string]any{

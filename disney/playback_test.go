@@ -30,11 +30,11 @@ func TestStream(t *testing.T) {
    if !ok {
       t.Fatal(".restart()")
    }
-   stream_item, err := account_with.stream(resource_id)
+   play, err := account_with.playback(resource_id)
    if err != nil {
       t.Fatal(err)
    }
-   for i, source := range stream_item.Sources {
+   for i, source := range play.Stream.Sources {
       if i >= 1 {
          fmt.Println()
       }
@@ -46,7 +46,7 @@ var key_id = []byte{
    188, 54, 159, 224, 114, 252, 64, 161, 184, 218, 28, 219, 235, 253, 0, 105,
 }
 
-func TestObtainLicense(t *testing.T) {
+func TestWidevine(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
@@ -82,7 +82,7 @@ func TestObtainLicense(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   _, err = account_with.obtain_license(msg)
+   _, err = account_with.widevine(msg)
    if err != nil {
       t.Fatal(err)
    }
