@@ -10,70 +10,18 @@ import (
    "strings"
 )
 
-type stream struct {
-   Sources []struct {
-      Complete struct {
-         Url string
+type playback struct {
+   Errors []Error
+   Stream struct {
+      Sources []struct {
+         Complete struct {
+            Url string
+         }
       }
    }
 }
 
-func (e explore_page) restart() (string, bool) {
-   for _, action := range e.Actions {
-      if action.Visuals.DisplayText == "RESTART" {
-         return action.ResourceId, true
-      }
-   }
-   return "", false
-}
-
-type explore_page struct {
-   Actions []struct {
-      ResourceId string
-      Visuals    struct {
-         DisplayText string
-      }
-   }
-}
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("code = ")
-   data.WriteString(e.Code)
-   data.WriteString("\ndescription = ")
-   data.WriteString(e.Description)
-   return data.String()
-}
-
-type Error struct {
-   Code        string
-   Description string
-}
-
-func (a *account) obtain_license(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-///
-
-func (a *account) explore(entity string) (*explore_page, error) {
+func (a *account) explore(entity string) (*explore, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
@@ -91,12 +39,7 @@ func (a *account) explore(entity string) (*explore_page, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         Page explore_page
-      }
-      Errors []Error
-   }
+   var result explore
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
@@ -104,10 +47,10 @@ func (a *account) explore(entity string) (*explore_page, error) {
    if len(result.Errors) >= 1 {
       return nil, &result.Errors[0]
    }
-   return &result.Data.Page, nil
+   return &result, nil
 }
 
-func (a *account) stream(resource_id string) (*stream, error) {
+func (a *account) playback(resource_id string) (*playback, error) {
    data, err := json.Marshal(map[string]any{
       "playback": map[string]any{
          "attributes": map[string]any{
@@ -138,10 +81,7 @@ func (a *account) stream(resource_id string) (*stream, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result struct {
-      Errors []Error
-      Stream stream
-   }
+   var result playback
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
@@ -149,5 +89,63 @@ func (a *account) stream(resource_id string) (*stream, error) {
    if len(result.Errors) >= 1 {
       return nil, &result.Errors[0]
    }
-   return &result.Stream, nil
+   return &result, nil
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   data.WriteString("\ndescription = ")
+   data.WriteString(e.Description)
+   return data.String()
+}
+
+type Error struct {
+   Code        string
+   Description string
+}
+
+func (a *account) widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (e explore) restart() (string, bool) {
+   for _, action := range e.Data.Page.Actions {
+      if action.Visuals.DisplayText == "RESTART" {
+         return action.ResourceId, true
+      }
+   }
+   return "", false
+}
+
+type explore struct {
+   Data struct {
+      Page struct {
+         Actions []struct {
+            ResourceId string
+            Visuals    struct {
+               DisplayText string
+            }
+         }
+      }
+   }
+   Errors []Error
 }
