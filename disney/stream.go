@@ -10,6 +10,14 @@ import (
    "strings"
 )
 
+type stream struct {
+   Sources []struct {
+      Complete struct {
+         Url string
+      }
+   }
+}
+
 func (e explore_page) restart() (string, bool) {
    for _, action := range e.Actions {
       if action.Visuals.DisplayText == "RESTART" {
@@ -28,20 +36,56 @@ type explore_page struct {
    }
 }
 
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   data.WriteString("\ndescription = ")
+   data.WriteString(e.Description)
+   return data.String()
+}
+
+type Error struct {
+   Code        string
+   Description string
+}
+
+func (a *account) obtain_license(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+///
+
 func (a *account) explore(entity string) (*explore_page, error) {
    var req http.Request
    req.Header = http.Header{}
-   req.URL = &url.URL{}
-   req.URL.Host = "disney.api.edge.bamgrid.com"
-   req.URL.Path = "/explore/v1.12/page/entity-" + entity
-   value := url.Values{}
-   value["enhancedContainersLimit"] = []string{"1"}
-   value["limit"] = []string{"1"}
-   req.URL.RawQuery = value.Encode()
-   req.URL.Scheme = "https"
-   req.Header.Set(
-      "Authorization", "Bearer "+a.AccessToken,
-   )
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "disney.api.edge.bamgrid.com",
+      Path: "/explore/v1.12/page/entity-" + entity,
+      RawQuery: url.Values{
+         "enhancedContainersLimit": {"1"},
+         "limit": {"1"},
+      }.Encode(),
+   }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
@@ -63,49 +107,6 @@ func (a *account) explore(entity string) (*explore_page, error) {
    return &result.Data.Page, nil
 }
 
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("code = ")
-   data.WriteString(e.Code)
-   data.WriteString("\ndescription = ")
-   data.WriteString(e.Description)
-   return data.String()
-}
-
-type Error struct {
-   Code        string
-   Description string
-}
-
-func (a *account) obtain_license(data []byte) ([]byte, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Method = "POST"
-   req.URL = &url.URL{}
-   req.URL.Host = "disney.playback.edge.bamgrid.com"
-   req.URL.Path = "/widevine/v1/obtain-license"
-   req.URL.Scheme = "https"
-   req.Body = io.NopCloser(bytes.NewReader(data))
-   req.Header.Set("Authorization", a.AccessToken)
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-type stream struct {
-   Sources []struct {
-      Complete struct {
-         Url string
-      }
-   }
-}
-
 func (a *account) stream(resource_id string) (*stream, error) {
    data, err := json.Marshal(map[string]any{
       "playback": map[string]any{
@@ -125,9 +126,7 @@ func (a *account) stream(resource_id string) (*stream, error) {
       "POST", "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
       bytes.NewReader(data),
    )
-   req.Header.Set(
-      "Authorization", "Bearer "+a.AccessToken,
-   )
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
    req.Header.Set("Content-Type", "application/json")
    req.Header.Set("X-Application-Version", "")
    req.Header.Set("X-Bamsdk-Client-Id", "")
