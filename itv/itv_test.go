@@ -8,44 +8,27 @@ import (
    "testing"
 )
 
-var watch_tests = []struct {
-   category string
-   watch    []string
-}{
-   {
-      category: "DRAMA_AND_SOAPS",
-      watch: []string{
-         "https://itv.com/watch/joan/10a3918",
-         "https://itv.com/watch/joan/10a3918/10a3918a0001",
-      },
-   },
-   {
-      category: "FILM",
-      watch:    []string{"https://itv.com/watch/love-actually/27304"},
-   },
-}
-
-func TestWatch(t *testing.T) {
-   t.Log(watch_tests)
+func output(name string, arg ...string) (string, error) {
+   data, err := exec.Command(name, arg...).Output()
+   if err != nil {
+      return "", err
+   }
+   return string(data), nil
 }
 
 func TestPlayReady(t *testing.T) {
-   user, err := exec.Command(
-      "credential", "-h", "api.nordvpn.com", "-k", "user",
-   ).Output()
+   user, err := output("credential", "-h=api.nordvpn.com", "-k=user")
    if err != nil {
       t.Fatal(err)
    }
-   password, err := exec.Command(
-      "credential", "-h", "api.nordvpn.com",
-   ).Output()
+   password, err := output("credential", "-h=api.nordvpn.com")
    if err != nil {
       t.Fatal(err)
    }
    http.DefaultTransport = &http.Transport{
       Proxy: http.ProxyURL(&url.URL{
          Scheme: "https",
-         User:   url.UserPassword(string(user), string(password)),
+         User:   url.UserPassword(user, password),
          Host:   "uk813.nordvpn.com:89",
       }),
    }
@@ -68,4 +51,25 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
+}
+
+var watch_tests = []struct {
+   category string
+   watch    []string
+}{
+   {
+      category: "DRAMA_AND_SOAPS",
+      watch: []string{
+         "https://itv.com/watch/joan/10a3918",
+         "https://itv.com/watch/joan/10a3918/10a3918a0001",
+      },
+   },
+   {
+      category: "FILM",
+      watch:    []string{"https://itv.com/watch/love-actually/27304"},
+   },
+}
+
+func TestWatch(t *testing.T) {
+   t.Log(watch_tests)
 }
