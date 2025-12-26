@@ -10,15 +10,25 @@ import (
    "strings"
 )
 
-type playback struct {
-   Errors []Error
-   Stream struct {
-      Sources []struct {
-         Complete struct {
-            Url string
-         }
-      }
+func (a *account) widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
    }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
 }
 
 func (a *account) explore(entity string) (*explore, error) {
@@ -70,12 +80,12 @@ func (a *account) playback(resource_id string) (*playback, error) {
       bytes.NewReader(data),
    )
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.Header.Set("Content-Type", "application/json")
-   req.Header.Set("X-Application-Version", "")
-   req.Header.Set("X-Bamsdk-Client-Id", "")
-   req.Header.Set("X-Bamsdk-Platform", "")
-   req.Header.Set("X-Bamsdk-Version", "")
-   req.Header.Set("X-Dss-Feature-Filtering", "true")
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-application-version", "")
+   req.Header.Set("x-bamsdk-client-id", "")
+   req.Header.Set("x-bamsdk-platform", "")
+   req.Header.Set("x-bamsdk-version", "")
+   req.Header.Set("x-dss-feature-filtering", "true")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -106,27 +116,6 @@ type Error struct {
    Description string
 }
 
-func (a *account) widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
 func (e explore) restart() (string, bool) {
    for _, action := range e.Data.Page.Actions {
       if action.Visuals.DisplayText == "RESTART" {
@@ -148,4 +137,15 @@ type explore struct {
       }
    }
    Errors []Error
+}
+
+type playback struct {
+   Errors []Error
+   Stream struct {
+      Sources []struct {
+         Complete struct {
+            Url string
+         }
+      }
+   }
 }

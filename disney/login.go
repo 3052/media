@@ -133,7 +133,7 @@ func (d *device) register() error {
    if err != nil {
       return err
    }
-   req.Header.Set("Authorization", "Bearer "+client_api_key)
+   req.Header.Set("authorization", "Bearer "+client_api_key)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
