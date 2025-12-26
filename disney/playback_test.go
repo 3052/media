@@ -8,7 +8,7 @@ import (
    "testing"
 )
 
-func TestStream(t *testing.T) {
+func TestPlayback(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
@@ -22,11 +22,11 @@ func TestStream(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   explore, err := account_with.explore(test.entity)
+   explore_item, err := account_with.explore(test.entity)
    if err != nil {
       t.Fatal(err)
    }
-   resource_id, ok := explore.restart()
+   resource_id, ok := explore_item.restart()
    if !ok {
       t.Fatal(".restart()")
    }
