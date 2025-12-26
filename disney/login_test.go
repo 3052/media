@@ -8,6 +8,14 @@ import (
    "testing"
 )
 
+func output(name string, arg ...string) (string, error) {
+   data, err := exec.Command(name, arg...).Output()
+   if err != nil {
+      return "", err
+   }
+   return string(data), nil
+}
+
 func TestLogin(t *testing.T) {
    log.SetFlags(log.Ltime)
    email, err := output("credential", "-h=disneyplus.com", "-k=user")
@@ -48,12 +56,4 @@ func TestLogin(t *testing.T) {
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func output(name string, arg ...string) (string, error) {
-   data, err := exec.Command(name, arg...).Output()
-   if err != nil {
-      return "", err
-   }
-   return string(data), nil
 }
