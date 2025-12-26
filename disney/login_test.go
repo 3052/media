@@ -18,11 +18,12 @@ func TestLogin(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   token, err := register_device()
+   var device_item device
+   err = device_item.register()
    if err != nil {
       t.Fatal(err)
    }
-   account_without, err := token.login(email, password)
+   account_without, err := device_item.login(email, password)
    if err != nil {
       t.Fatal(err)
    }
