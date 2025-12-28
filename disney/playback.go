@@ -9,17 +9,41 @@ import (
    "strings"
 )
 
+func (e *explore) play_restart() (string, bool) {
+   for _, action := range e.Data.Page.Actions {
+      switch action.Visuals.DisplayText {
+      case "PLAY", "RESTART":
+         return action.ResourceId, true
+      }
+   }
+   return "", false
+}
+
+type explore struct {
+   Data struct {
+      Errors []Error // region
+      Page   struct {
+         Actions []struct {
+            ResourceId string
+            Visuals    struct {
+               DisplayText string
+            }
+         }
+      }
+   }
+}
+
 func (a *account) explore(entity string) (*explore, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "disney.api.edge.bamgrid.com",
-      Path: "/explore/v1.12/page/entity-" + entity,
+      Host:   "disney.api.edge.bamgrid.com",
+      Path:   "/explore/v1.12/page/entity-" + entity,
       RawQuery: url.Values{
          "enhancedContainersLimit": {"1"},
-         "limit": {"1"},
+         "limit":                   {"1"},
       }.Encode(),
    }
    resp, err := http.DefaultClient.Do(&req)
@@ -36,20 +60,6 @@ func (a *account) explore(entity string) (*explore, error) {
       return nil, &result.Data.Errors[0]
    }
    return &result, nil
-}
-
-type explore struct {
-   Data struct {
-      Errors []Error // region
-      Page struct {
-         Actions []struct {
-            ResourceId string
-            Visuals    struct {
-               DisplayText string
-            }
-         }
-      }
-   }
 }
 
 func (a *account) widevine(data []byte) ([]byte, error) {
@@ -138,15 +148,6 @@ func (e *Error) Error() string {
 type Error struct {
    Code        string
    Description string
-}
-
-func (e explore) restart() (string, bool) {
-   for _, action := range e.Data.Page.Actions {
-      if action.Visuals.DisplayText == "RESTART" {
-         return action.ResourceId, true
-      }
-   }
-   return "", false
 }
 
 type playback struct {

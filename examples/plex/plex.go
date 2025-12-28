@@ -13,55 +13,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   MediaPart *plex.MediaPart
-   Mpd       *plex.Mpd
-   User      *plex.User
-}
-
-func do_ifconfig() error {
-   resp, err := http.Get("http://ifconfig.co")
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   _, err = os.Stdout.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -144,4 +95,52 @@ func (c *command) do_address() error {
       return err
    }
    return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.config.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type user_cache struct {
+   MediaPart *plex.MediaPart
+   Mpd       *plex.Mpd
+   User      *plex.User
+}
+
+func do_ifconfig() error {
+   resp, err := http.Get("http://ifconfig.co")
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   _, err = os.Stdout.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
