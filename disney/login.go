@@ -6,6 +6,41 @@ import (
    "net/http"
 )
 
+func (d *device) login(email, password string) (*account_without_active_profile, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_login,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email":    email,
+            "password": password,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set(
+      "authorization", "Bearer "+d.Data.RegisterDevice.Token.AccessToken,
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &account_without_active_profile{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
 const mutation_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {
@@ -44,7 +79,7 @@ mutation switchProfile($input: SwitchProfileInput!) {
 }
 `
 
-type account struct {
+type Account struct {
    Extensions struct {
       Sdk struct {
          Token struct {
@@ -75,7 +110,7 @@ type account_without_active_profile struct {
    }
 }
 
-func (a *account_without_active_profile) switch_profile() (*account, error) {
+func (a *account_without_active_profile) switch_profile() (*Account, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_switch_profile,
       "variables": map[string]any{
@@ -100,7 +135,7 @@ func (a *account_without_active_profile) switch_profile() (*account, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   result := &account{}
+   result := &Account{}
    err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
@@ -152,40 +187,4 @@ type device struct {
          }
       }
    }
-}
-
-func (d *device) login(email, password string) (*account_without_active_profile, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_login,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "email":    email,
-            "password": password,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set(
-      "authorization", "Bearer "+d.Data.RegisterDevice.Token.AccessToken,
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &account_without_active_profile{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
