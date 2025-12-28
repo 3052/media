@@ -6,7 +6,40 @@ import (
    "net/http"
 )
 
-func (d *device) login(email, password string) (*account_without_active_profile, error) {
+func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": a.Data.Login.Account.Profiles[0].Id,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Account{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_login,
       "variables": map[string]any{
@@ -34,13 +67,14 @@ func (d *device) login(email, password string) (*account_without_active_profile,
       return nil, err
    }
    defer resp.Body.Close()
-   result := &account_without_active_profile{}
+   result := &AccountWithoutActiveProfile{}
    err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
    }
    return result, nil
 }
+
 const mutation_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {
@@ -90,7 +124,7 @@ type Account struct {
    }
 }
 
-type account_without_active_profile struct {
+type AccountWithoutActiveProfile struct {
    Data struct {
       Login struct {
          Account struct {
@@ -110,40 +144,19 @@ type account_without_active_profile struct {
    }
 }
 
-func (a *account_without_active_profile) switch_profile() (*Account, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_switch_profile,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "profileId": a.Data.Login.Account.Profiles[0].Id,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
+type Device struct {
+   Data struct {
+      RegisterDevice struct {
+         Token struct {
+            AccessToken     string
+            RefreshToken    string
+            AccessTokenType string // Device
+         }
+      }
    }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Account{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
 
-func (d *device) register() error {
+func (d *Device) Register() error {
    data, err := json.Marshal(map[string]any{
       "query": mutation_register_device,
       "variables": map[string]any{
@@ -175,16 +188,4 @@ func (d *device) register() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(d)
-}
-
-type device struct {
-   Data struct {
-      RegisterDevice struct {
-         Token struct {
-            AccessToken     string
-            RefreshToken    string
-            AccessTokenType string // Device
-         }
-      }
-   }
 }
