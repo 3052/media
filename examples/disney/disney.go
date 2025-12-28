@@ -12,42 +12,9 @@ import (
    "path/filepath"
 )
 
-///
-
-type command struct {
-   name     string
-   config   maya.Config
-   email    string
-   password string
-   dash     string
-   ///
-   address  string
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playlist.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   Mpd      *disney.Mpd
-   Playlist *disney.Playlist
-   Session  *disney.Session
-}
-
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
       return "L"
    })
    err := new(command).run()
@@ -62,12 +29,12 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/disney/userCache.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
 
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.email, "e", "", "email")
@@ -98,15 +65,6 @@ func write(name string, cache *user_cache) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (c *command) do_email_password() error {
-   var session disney.Session
-   err := session.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &user_cache{Session: &session})
-}
-
 func read(name string) (*user_cache, error) {
    data, err := os.ReadFile(name)
    if err != nil {
@@ -119,6 +77,43 @@ func read(name string) (*user_cache, error) {
    }
    return cache, nil
 }
+
+func (c *command) do_email_password() error {
+   var device disney.Device
+   err := device.Register()
+   if err != nil {
+      return err
+   }
+   account_without, err := device.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Account, err = account_without.SwitchProfile()
+   if err != nil {
+      return err
+   }
+   return write(c.name, &cache)
+}
+
+type user_cache struct {
+   Account *disney.Account
+}
+
+type command struct {
+   name     string
+   job   maya.WidevineJob
+   // 1
+   email    string
+   password string
+   
+   // 2
+   address  string
+   // 3
+   dash     string
+}
+
+///
 
 func (c *command) do_address() error {
    cache, err := read(c.name)
@@ -150,4 +145,15 @@ func (c *command) do_address() error {
       return err
    }
    return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playlist.Widevine(data)
+   }
+   return c.job.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
 }
