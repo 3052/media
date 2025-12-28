@@ -10,73 +10,6 @@ import (
    "strings"
 )
 
-// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-func Entity(rawLink string) (string, error) {
-   // Parse the URL to safely access its components
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return "", err
-   }
-   // Get the last part of the URL path
-   last_segment := path.Base(link.Path)
-   // The entity might be prefixed with "entity-", so we remove it
-   return strings.TrimPrefix(last_segment, "entity-"), nil
-}
-
-func (a *Account) explore(entity string) (*explore, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.api.edge.bamgrid.com",
-      Path:   "/explore/v1.12/page/entity-" + entity,
-      RawQuery: url.Values{
-         "enhancedContainersLimit": {"1"},
-         "limit":                   {"1"},
-      }.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result explore
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   if len(result.Data.Errors) >= 1 {
-      return nil, &result.Data.Errors[0]
-   }
-   return &result, nil
-}
-
-type explore struct {
-   Data struct {
-      Errors []Error // region
-      Page   struct {
-         Actions []struct {
-            ResourceId string
-            Visuals    struct {
-               DisplayText string
-            }
-         }
-      }
-   }
-   Errors []Error // explore-not-supported
-}
-
-type Hls struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (p *Playback) Hls() (*Hls, error) {
    resp, err := http.Get(p.Stream.Sources[0].Complete.Url)
    if err != nil {
@@ -90,60 +23,7 @@ func (p *Playback) Hls() (*Hls, error) {
    return &Hls{data, resp.Request.URL}, nil
 }
 
-type Playback struct {
-   Errors []Error
-   Stream struct {
-      Sources []struct {
-         Complete struct {
-            Url string
-         }
-      }
-   }
-}
-
-func (e *explore) play_restart() (string, bool) {
-   for _, action := range e.Data.Page.Actions {
-      switch action.Visuals.DisplayText {
-      case "PLAY", "RESTART":
-         return action.ResourceId, true
-      }
-   }
-   return "", false
-}
-
-func (a *Account) widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Errors []Error
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, &result.Errors[0]
-   }
-   return data, nil
-}
-
-func (a *Account) Playback(resource_id string) (*Playback, error) {
+func (a *Account) Playback(playbackId string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "playback": map[string]any{
          "attributes": map[string]any{
@@ -153,7 +33,7 @@ func (a *Account) Playback(resource_id string) (*Playback, error) {
             },
          },
       },
-      "playbackId": resource_id,
+      "playbackId": playbackId,
    })
    if err != nil {
       return nil, err
@@ -197,4 +77,123 @@ func (e *Error) Error() string {
 type Error struct {
    Code        string
    Description string
+}
+
+// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+func GetEntity(rawLink string) (string, error) {
+   // Parse the URL to safely access its components
+   link, err := url.Parse(rawLink)
+   if err != nil {
+      return "", err
+   }
+   // Get the last part of the URL path
+   last_segment := path.Base(link.Path)
+   // The entity might be prefixed with "entity-", so we remove it
+   return strings.TrimPrefix(last_segment, "entity-"), nil
+}
+
+type Explore struct {
+   Data struct {
+      Errors []Error // region
+      Page   struct {
+         Actions []struct {
+            ResourceId string
+            Visuals    struct {
+               DisplayText string
+            }
+         }
+      }
+   }
+   Errors []Error // explore-not-supported
+}
+
+func (a *Account) Explore(entity string) (*Explore, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "disney.api.edge.bamgrid.com",
+      Path:   "/explore/v1.12/page/entity-" + entity,
+      RawQuery: url.Values{
+         "enhancedContainersLimit": {"1"},
+         "limit":                   {"1"},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Explore
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   if len(result.Data.Errors) >= 1 {
+      return nil, &result.Data.Errors[0]
+   }
+   return &result, nil
+}
+
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type Playback struct {
+   Errors []Error
+   Stream struct {
+      Sources []struct {
+         Complete struct {
+            Url string
+         }
+      }
+   }
+}
+
+func (a *Account) widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Errors []Error
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, &result.Errors[0]
+   }
+   return data, nil
+}
+func (e *Explore) PlaybackId() (string, bool) {
+   for _, action := range e.Data.Page.Actions {
+      switch action.Visuals.DisplayText {
+      case "PLAY", "RESTART":
+         return action.ResourceId, true
+      }
+   }
+   return "", false
 }

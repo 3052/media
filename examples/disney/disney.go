@@ -12,6 +12,22 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playlist.Widevine(data)
+   }
+   return c.job.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+}
+
+type user_cache struct {
+   Account *disney.Account
+   Hls *disney.Hls
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -96,8 +112,40 @@ func (c *command) do_email_password() error {
    return write(c.name, &cache)
 }
 
-type user_cache struct {
-   Account *disney.Account
+func (c *command) do_address() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   entity, err := disney.GetEntity(c.address)
+   if err != nil {
+      return err
+   }
+   explore, err := cache.Account.Explore(entity)
+   if err != nil {
+      return err
+   }
+   playback_id, ok := explore.PlaybackId()
+   if !ok {
+      return errors.New(".PlaybackId()")
+   }
+   playback, err := cache.Account.Playback(playback_id)
+   if err != nil {
+      return err
+   }
+   cache.Hls, err = playback.Hls()
+   if err != nil {
+      return err
+   }
+   playlist, err := maya.ParseHls(cache.Hls.Body, cache.Hls.Url)
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListStreamsHls(playlist)
 }
 
 type command struct {
@@ -106,54 +154,8 @@ type command struct {
    // 1
    email    string
    password string
-   
    // 2
    address  string
    // 3
    dash     string
-}
-
-///
-
-func (c *command) do_address() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   err = cache.Session.TokenRefresh()
-   if err != nil {
-      return err
-   }
-   id, err := disney.Id(c.address)
-   if err != nil {
-      return err
-   }
-   deep_link, err := cache.Session.DeepLink(id)
-   if err != nil {
-      return err
-   }
-   cache.Playlist, err = cache.Session.Playlist(deep_link)
-   if err != nil {
-      return err
-   }
-   cache.Mpd, err = cache.Playlist.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Playlist.Widevine(data)
-   }
-   return c.job.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
 }
