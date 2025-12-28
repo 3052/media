@@ -3,33 +3,11 @@ package disney
 import (
    "bytes"
    "encoding/json"
-   "errors"
    "io"
    "net/http"
    "net/url"
    "strings"
 )
-
-func (a *account) widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
 
 func (a *account) explore(entity string) (*explore, error) {
    var req http.Request
@@ -54,10 +32,56 @@ func (a *account) explore(entity string) (*explore, error) {
    if err != nil {
       return nil, err
    }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
+   if len(result.Data.Errors) >= 1 {
+      return nil, &result.Data.Errors[0]
    }
    return &result, nil
+}
+
+type explore struct {
+   Data struct {
+      Errors []Error // region
+      Page struct {
+         Actions []struct {
+            ResourceId string
+            Visuals    struct {
+               DisplayText string
+            }
+         }
+      }
+   }
+}
+
+func (a *account) widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Errors []Error
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, &result.Errors[0]
+   }
+   return data, nil
 }
 
 func (a *account) playback(resource_id string) (*playback, error) {
@@ -123,20 +147,6 @@ func (e explore) restart() (string, bool) {
       }
    }
    return "", false
-}
-
-type explore struct {
-   Data struct {
-      Page struct {
-         Actions []struct {
-            ResourceId string
-            Visuals    struct {
-               DisplayText string
-            }
-         }
-      }
-   }
-   Errors []Error
 }
 
 type playback struct {
