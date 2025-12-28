@@ -6,34 +6,26 @@ import (
    "io"
    "net/http"
    "net/url"
+   "path"
    "strings"
 )
 
-func (e *explore) play_restart() (string, bool) {
-   for _, action := range e.Data.Page.Actions {
-      switch action.Visuals.DisplayText {
-      case "PLAY", "RESTART":
-         return action.ResourceId, true
-      }
+// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+func Entity(rawLink string) (string, error) {
+   // Parse the URL to safely access its components
+   link, err := url.Parse(rawLink)
+   if err != nil {
+      return "", err
    }
-   return "", false
+   // Get the last part of the URL path
+   last_segment := path.Base(link.Path)
+   // The entity might be prefixed with "entity-", so we remove it
+   return strings.TrimPrefix(last_segment, "entity-"), nil
 }
 
-type explore struct {
-   Data struct {
-      Errors []Error // region
-      Page   struct {
-         Actions []struct {
-            ResourceId string
-            Visuals    struct {
-               DisplayText string
-            }
-         }
-      }
-   }
-}
-
-func (a *account) explore(entity string) (*explore, error) {
+func (a *Account) explore(entity string) (*explore, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
@@ -56,13 +48,70 @@ func (a *account) explore(entity string) (*explore, error) {
    if err != nil {
       return nil, err
    }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
    if len(result.Data.Errors) >= 1 {
       return nil, &result.Data.Errors[0]
    }
    return &result, nil
 }
 
-func (a *account) widevine(data []byte) ([]byte, error) {
+type explore struct {
+   Data struct {
+      Errors []Error // region
+      Page   struct {
+         Actions []struct {
+            ResourceId string
+            Visuals    struct {
+               DisplayText string
+            }
+         }
+      }
+   }
+   Errors []Error // explore-not-supported
+}
+
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (p *Playback) Hls() (*Hls, error) {
+   resp, err := http.Get(p.Stream.Sources[0].Complete.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Hls{data, resp.Request.URL}, nil
+}
+
+type Playback struct {
+   Errors []Error
+   Stream struct {
+      Sources []struct {
+         Complete struct {
+            Url string
+         }
+      }
+   }
+}
+
+func (e *explore) play_restart() (string, bool) {
+   for _, action := range e.Data.Page.Actions {
+      switch action.Visuals.DisplayText {
+      case "PLAY", "RESTART":
+         return action.ResourceId, true
+      }
+   }
+   return "", false
+}
+
+func (a *Account) widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST",
       "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
@@ -94,7 +143,7 @@ func (a *account) widevine(data []byte) ([]byte, error) {
    return data, nil
 }
 
-func (a *account) playback(resource_id string) (*playback, error) {
+func (a *Account) Playback(resource_id string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "playback": map[string]any{
          "attributes": map[string]any{
@@ -125,7 +174,7 @@ func (a *account) playback(resource_id string) (*playback, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result playback
+   var result Playback
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
@@ -148,15 +197,4 @@ func (e *Error) Error() string {
 type Error struct {
    Code        string
    Description string
-}
-
-type playback struct {
-   Errors []Error
-   Stream struct {
-      Sources []struct {
-         Complete struct {
-            Url string
-         }
-      }
-   }
 }

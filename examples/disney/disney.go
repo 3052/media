@@ -12,6 +12,18 @@ import (
    "path/filepath"
 )
 
+///
+
+type command struct {
+   name     string
+   config   maya.Config
+   email    string
+   password string
+   dash     string
+   ///
+   address  string
+}
+
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -42,15 +54,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-type command struct {
-   address  string
-   config   maya.Config
-   dash     string
-   email    string
-   name     string
-   password string
 }
 
 func (c *command) run() error {
