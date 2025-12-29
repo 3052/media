@@ -9,66 +9,6 @@ import (
    "time"
 )
 
-func TestExplore(t *testing.T) {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(cache + "/disney/account.xml")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var account_with Account
-   err = xml.Unmarshal(data, &account_with)
-   if err != nil {
-      t.Fatal(err)
-   }
-   for i, test := range tests {
-      if i >= 1 {
-         time.Sleep(time.Second)
-      }
-      explore_item, err := account_with.explore(test.entity)
-      if err != nil {
-         t.Fatal(err)
-      }
-      t.Logf("%+v", explore_item)
-   }
-}
-
-func TestPlayback(t *testing.T) {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(cache + "/disney/account.xml")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var account_with Account
-   err = xml.Unmarshal(data, &account_with)
-   if err != nil {
-      t.Fatal(err)
-   }
-   for i, test := range tests {
-      if i >= 1 {
-         time.Sleep(time.Second)
-      }
-      explore_item, err := account_with.explore(test.entity)
-      if err != nil {
-         t.Fatal(err)
-      }
-      resource_id, ok := explore_item.play_restart()
-      if !ok {
-         t.Fatal(".play_restart()")
-      }
-      play, err := account_with.Playback(resource_id)
-      if err != nil {
-         t.Fatal(err)
-      }
-      t.Logf("%+v", play.Stream.Sources[0])
-   }
-}
-
 var tests = []struct {
    entity   string
    key_ids  []string
@@ -148,5 +88,64 @@ func TestWidevine(t *testing.T) {
    for _, key := range keys {
       t.Logf("Id:%x", key.Id)
       t.Logf("Key:%x", key.Key)
+   }
+}
+func TestExplore(t *testing.T) {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(cache + "/disney/account.xml")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var account_with Account
+   err = xml.Unmarshal(data, &account_with)
+   if err != nil {
+      t.Fatal(err)
+   }
+   for i, test := range tests {
+      if i >= 1 {
+         time.Sleep(time.Second)
+      }
+      explore_item, err := account_with.explore(test.entity)
+      if err != nil {
+         t.Fatal(err)
+      }
+      t.Logf("%+v", explore_item)
+   }
+}
+
+func TestPlayback(t *testing.T) {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(cache + "/disney/account.xml")
+   if err != nil {
+      t.Fatal(err)
+   }
+   var account_with Account
+   err = xml.Unmarshal(data, &account_with)
+   if err != nil {
+      t.Fatal(err)
+   }
+   for i, test := range tests {
+      if i >= 1 {
+         time.Sleep(time.Second)
+      }
+      explore_item, err := account_with.explore(test.entity)
+      if err != nil {
+         t.Fatal(err)
+      }
+      resource_id, ok := explore_item.play_restart()
+      if !ok {
+         t.Fatal(".play_restart()")
+      }
+      play, err := account_with.Playback(resource_id)
+      if err != nil {
+         t.Fatal(err)
+      }
+      t.Logf("%+v", play.Stream.Sources[0])
    }
 }
