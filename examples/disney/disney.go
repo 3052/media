@@ -9,69 +9,17 @@ import (
    "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
 )
-
-func (c *command) do_hls() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Account.Widevine(data)
-   }
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
-}
-
-type user_cache struct {
-   Account *disney.Account
-   Hls     *disney.Hls
-}
-
-func (c *command) do_address() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   entity, err := disney.GetEntity(c.address)
-   if err != nil {
-      return err
-   }
-   explore, err := cache.Account.Explore(entity)
-   if err != nil {
-      return err
-   }
-   playback_id, ok := explore.PlaybackId()
-   if !ok {
-      return errors.New(".PlaybackId()")
-   }
-   playback, err := cache.Account.Playback(playback_id)
-   if err != nil {
-      return err
-   }
-   cache.Hls, err = playback.Hls()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
-}
-
-type command struct {
-   address  string
-   hls      string
-   email    string
-   job      maya.WidevineJob
-   name     string
-   password string
-}
 
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
       return "L"
    })
    err := new(command).run()
@@ -93,8 +41,8 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientID, "C", c.job.ClientID, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.hls, "d", "", "HLS ID")
    flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.hls, "h", "", "HLS ID")
    flag.StringVar(&c.password, "p", "", "password")
    flag.Parse()
 
@@ -151,4 +99,61 @@ func (c *command) do_email_password() error {
       return err
    }
    return write(c.name, &cache)
+}
+
+func (c *command) do_hls() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Account.Widevine(data)
+   }
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+}
+
+type user_cache struct {
+   Account *disney.Account
+   Hls     *disney.Hls
+}
+
+func (c *command) do_address() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   entity, err := disney.GetEntity(c.address)
+   if err != nil {
+      return err
+   }
+   explore, err := cache.Account.Explore(entity)
+   if err != nil {
+      return err
+   }
+   playback_id, ok := explore.PlaybackId()
+   if !ok {
+      return errors.New(".PlaybackId()")
+   }
+   playback, err := cache.Account.Playback(playback_id)
+   if err != nil {
+      return err
+   }
+   cache.Hls, err = playback.Hls()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
+}
+
+type command struct {
+   address  string
+   hls      string
+   email    string
+   job      maya.WidevineJob
+   name     string
+   password string
 }
