@@ -10,6 +10,48 @@ import (
    "strings"
 )
 
+func (a *Account) Playback(playbackId string) (*Playback, error) {
+   data, err := json.Marshal(map[string]any{
+      "playback": map[string]any{
+         "attributes": map[string]any{
+            "assetInsertionStrategies": map[string]string{
+               "point": "SGAI",
+               "range": "SGAI",
+            },
+         },
+      },
+      "playbackId": playbackId,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, _ := http.NewRequest(
+      "POST", "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
+      bytes.NewReader(data),
+   )
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-application-version", "")
+   req.Header.Set("x-bamsdk-client-id", "")
+   req.Header.Set("x-bamsdk-platform", "")
+   req.Header.Set("x-bamsdk-version", "")
+   req.Header.Set("x-dss-feature-filtering", "true")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Playback
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result, nil
+}
+
 func (a *Account) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST",
@@ -53,48 +95,6 @@ func (p *Playback) Hls() (*Hls, error) {
       return nil, err
    }
    return &Hls{data, resp.Request.URL}, nil
-}
-
-func (a *Account) Playback(playbackId string) (*Playback, error) {
-   data, err := json.Marshal(map[string]any{
-      "playback": map[string]any{
-         "attributes": map[string]any{
-            "assetInsertionStrategies": map[string]string{
-               "point": "SGAI",
-               "range": "SGAI",
-            },
-         },
-      },
-      "playbackId": playbackId,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, _ := http.NewRequest(
-      "POST", "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
-      bytes.NewReader(data),
-   )
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-application-version", "")
-   req.Header.Set("x-bamsdk-client-id", "")
-   req.Header.Set("x-bamsdk-platform", "")
-   req.Header.Set("x-bamsdk-version", "")
-   req.Header.Set("x-dss-feature-filtering", "true")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Playback
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
 }
 
 func (e *Error) Error() string {

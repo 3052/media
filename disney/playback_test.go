@@ -9,6 +9,19 @@ import (
    "time"
 )
 
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func output(name string, arg ...string) (string, error) {
+   data, err := exec.Command(name, arg...).Output()
+   if err != nil {
+      return "", err
+   }
+   return string(data), nil
+}
+
 var tests = []struct {
    entity   string
    key_ids  []string
@@ -35,61 +48,6 @@ var tests = []struct {
    },
 }
 
-func TestWidevine(t *testing.T) {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(cache + "/disney/account.xml")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var account_with Account
-   err = xml.Unmarshal(data, &account_with)
-   if err != nil {
-      t.Fatal(err)
-   }
-   client_id, err := os.ReadFile(cache + "/L3/client_id.bin")
-   if err != nil {
-      t.Fatal(err)
-   }
-   pem_bytes, err := os.ReadFile(cache + "/L3/private_key.pem")
-   if err != nil {
-      t.Fatal(err)
-   }
-   private_key, err := widevine.ParsePrivateKey(pem_bytes)
-   if err != nil {
-      t.Fatal(err)
-   }
-   key_id, err := base64.StdEncoding.DecodeString(tests[0].key_ids[0])
-   if err != nil {
-      t.Fatal(err)
-   }
-   var pssh widevine.PsshData
-   pssh.KeyIds = [][]byte{key_id}
-   original_request, err := pssh.BuildLicenseRequest(client_id)
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err = widevine.BuildSignedMessage(original_request, private_key)
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err = account_with.widevine(data)
-   if err != nil {
-      t.Fatal(err)
-   }
-   keys, err := widevine.ParseLicenseResponse(
-      data, original_request, private_key,
-   )
-   if err != nil {
-      t.Fatal(err)
-   }
-   for _, key := range keys {
-      t.Logf("Id:%x", key.Id)
-      t.Logf("Key:%x", key.Key)
-   }
-}
 func TestExplore(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
