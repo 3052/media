@@ -10,50 +10,34 @@ import (
    "strings"
 )
 
-// ZGlzbmV5JmJyb3dzZXImMS4wLjA
-// disney&browser&1.0.0
-//const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
-
-// ZGlzbmV5JmFwcGxlJjEuMC4w
-// disney&apple&1.0.0
-// const client_api_key = "ZGlzbmV5JmFwcGxlJjEuMC4w.H9L7eJvc2oPYwDgmkoar6HzhBJRuUUzt_PcaC3utBI4"
-
-// ZGlzbmV5JmFuZHJvaWQmMS4wLjA
-// disney&android&1.0.0
-const client_api_key = "ZGlzbmV5JmFuZHJvaWQmMS4wLjA.bkeb0m230uUhv8qrAXuNu39tbE_mD5EEhM_NAcohjyA"
-
 func (a *Account) Playback(playbackId string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
+      "playbackId": playbackId,
       "playback": map[string]any{
          "attributes": map[string]any{
-            "assetInsertionStrategies": map[string]string{
-               "point": "SGAI",
-               "range": "SGAI",
+            "assetInsertionStrategy": "SGAI",
+            "codecs": map[string]any{
+               "supportsMultiCodecMaster": true, // 4K
             },
          },
       },
-      "playbackId": playbackId,
    })
    if err != nil {
       return nil, err
    }
    req, _ := http.NewRequest(
-      "POST", "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
+      "POST",
+      // ctr-high also works
+      "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
       bytes.NewReader(data),
    )
-   req.Header.Set("x-bamsdk-platform", "android-tv")
-   req.Header.Set("x-application-version", "google")
-   req.Header.Set("x-bamsdk-client-id", "disney-svod-3d9324fc")
-   req.Header.Set("x-bamsdk-version", "9.10.0")
-   
-   //req.Header.Set("x-bamsdk-platform", "")
-   //req.Header.Set("x-application-version", "")
-   //req.Header.Set("x-bamsdk-client-id", "")
-   //req.Header.Set("x-bamsdk-version", "")
-   
-   req.Header.Set("x-dss-feature-filtering", "true")
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
    req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-dss-feature-filtering", "true")
+   req.Header.Set("x-bamsdk-platform", "")
+   req.Header.Set("x-application-version", "")
+   req.Header.Set("x-bamsdk-client-id", "")
+   req.Header.Set("x-bamsdk-version", "")
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
