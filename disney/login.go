@@ -6,6 +6,10 @@ import (
    "net/http"
 )
 
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
 const mutation_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {
