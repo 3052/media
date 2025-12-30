@@ -11,7 +11,7 @@ create Android 9 device. install system certificate.
 1. therokuchannel.roku.com
 2. create a free account
 3. email
-   - mailsac.com
+   - mail.tm
 4. first name
 5. last name
 6. password
