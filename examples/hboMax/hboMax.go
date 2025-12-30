@@ -13,73 +13,15 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.config.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.config.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/hboMax/userCache.xml"
-
-   flag.StringVar(&c.config.CertificateChain, "C", c.config.CertificateChain, "certificate chain")
-   flag.StringVar(&c.config.EncryptSignKey, "E", c.config.EncryptSignKey, "encrypt sign key")
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.edit, "e", "", "edit ID")
-   flag.BoolVar(&c.initiate, "i", false, "device initiate")
-   flag.BoolVar(&c.login, "l", false, "device login")
-   flag.StringVar(
-      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets[1:]),
-   )
-   flag.IntVar(&c.season, "s", 0, "season")
-   flag.IntVar(&c.config.Threads, "t", 3, "threads")
-   flag.Parse()
-   if c.initiate {
-      return c.do_initiate()
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.PlayReady(data)
    }
-   if c.login {
-      return c.do_login()
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.edit != "" {
-      return c.do_edit()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   flag.Usage()
-   return nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (c *command) do_initiate() error {
-   var st hboMax.St
-   err := st.Fetch()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, &user_cache{St: &st})
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate(c.market)
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return nil
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
 
 func read(name string) (*user_cache, error) {
@@ -105,6 +47,95 @@ func (c *command) do_login() error {
       return err
    }
    return write(c.name, cache)
+}
+
+type user_cache struct {
+   Login    *hboMax.Login
+   Mpd      *hboMax.Mpd
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
+   c.name = cache + "/hboMax/userCache.xml"
+
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.edit, "e", "", "edit ID")
+   flag.BoolVar(&c.initiate, "i", false, "device initiate")
+   flag.BoolVar(&c.login, "l", false, "device login")
+   flag.StringVar(
+      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets[1:]),
+   )
+   flag.IntVar(&c.season, "s", 0, "season")
+   flag.Parse()
+   if c.initiate {
+      return c.do_initiate()
+   }
+   if c.login {
+      return c.do_login()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.edit != "" {
+      return c.do_edit()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+func (c *command) do_initiate() error {
+   var st hboMax.St
+   err := st.Fetch()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, &user_cache{St: &st})
+   if err != nil {
+      return err
+   }
+   initiate, err := st.Initiate(c.market)
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return nil
 }
 
 func (c *command) do_address() error {
@@ -152,48 +183,22 @@ func (c *command) do_edit() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-type user_cache struct {
-   Login    *hboMax.Login
-   Mpd      *hboMax.Mpd
-   Playback *hboMax.Playback
-   St       *hboMax.St
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.PlayReady(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
 }
 
 type command struct {
-   address  string
-   config   maya.Config
-   dash     string
-   edit     string
-   initiate bool
-   login    bool
-   market   string
+   job   maya.PlayReadyJob
    name     string
+   market   string
    season   int
+   // 1
+   initiate bool
+   // 2
+   login    bool
+   // 3
+   address  string
+   // 4
+   edit     string
+   // 5
+   dash     string
 }

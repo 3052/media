@@ -17,6 +17,45 @@ import (
    "strings"
 )
 
+func FetchItem(at, cId string) (*Item, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.paramountplus.com",
+      Path: join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
+      RawQuery: url.Values{
+         "at": {at},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK { // error 403 406
+      if len(data) >= 1 {
+         return nil, errors.New(string(data))
+      }
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.ItemList) == 0 { // error 200
+      return nil, errors.New(string(data))
+   }
+   return &result.ItemList[0], nil
+}
+
 func (s *SessionToken) Fetch(at, contentId string) error {
    var req http.Request
    req.Header = http.Header{}
@@ -85,43 +124,6 @@ func (s *SessionToken) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(string(data))
    }
    return data, nil
-}
-
-func FetchItem(at, cId string) (*Item, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "www.paramountplus.com",
-      Path: join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
-      RawQuery: "at=" + at,
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK { // error 403 406
-      if len(data) >= 1 {
-         return nil, errors.New(string(data))
-      }
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.ItemList) == 0 { // error 200
-      return nil, errors.New(string(data))
-   }
-   return &result.ItemList[0], nil
 }
 
 func join(items ...string) string {
