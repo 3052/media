@@ -13,6 +13,57 @@ import (
    "strings"
 )
 
+type Page struct {
+   Actions []Action
+   Containers []struct {
+      Seasons []struct {
+         Items []struct {
+            Actions []Action
+            Visuals struct {
+               EpisodeNumber string
+               EpisodeTitle string
+               SeasonNumber string
+            }
+         }
+      }
+   }
+   Visuals struct {
+      Title string
+   }
+}
+
+func (a *Account) Explore(entity string) (*Explore, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "disney.api.edge.bamgrid.com",
+      Path:   "/explore/v1.12/page/entity-" + entity,
+      RawQuery: url.Values{
+         "enhancedContainersLimit": {"1"},
+         "limit": {"99"},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Explore
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   if len(result.Data.Errors) >= 1 {
+      return nil, &result.Data.Errors[0]
+   }
+   return &result, nil
+}
+
 type Explore struct {
    Data struct {
       Errors []Error // region
@@ -130,62 +181,11 @@ func (a *Account) Playback(mediaId string) (*Playback, error) {
    return &result, nil
 }
 
-type Page struct {
-   Actions []Action
-   Containers []struct {
-      Seasons []struct {
-         Items []struct {
-            Actions []Action
-            Visuals struct {
-               EpisodeNumber string
-               EpisodeTitle string
-               SeasonNumber string
-            }
-         }
-      }
-   }
-   Visuals struct {
-      Title string
-   }
-}
-
 type Action struct {
    ResourceId string
    Visuals    struct {
       DisplayText string
    }
-}
-
-func (a *Account) Explore(entity string) (*Explore, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.api.edge.bamgrid.com",
-      Path:   "/explore/v1.12/page/entity-" + entity,
-      RawQuery: url.Values{
-         "enhancedContainersLimit": {"1"},
-         "limit":                   {"1"},
-      }.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Explore
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   if len(result.Data.Errors) >= 1 {
-      return nil, &result.Data.Errors[0]
-   }
-   return &result, nil
 }
 
 type Hls struct {
@@ -276,4 +276,189 @@ func GetEntity(rawLink string) (string, error) {
    last_segment := path.Base(link.Path)
    // The entity might be prefixed with "entity-", so we remove it
    return strings.TrimPrefix(last_segment, "entity-"), nil
+}
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
+const mutation_register_device = `
+mutation registerDevice($input: RegisterDeviceInput!) {
+   registerDevice(registerDevice: $input) {
+      token {
+         accessToken
+         refreshToken
+         accessTokenType
+      }
+   }
+}
+`
+
+func (d *Device) Register() error {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_register_device,
+      "variables": map[string]any{
+         "input": map[string]any{
+            "deviceProfile":      "!",
+            "deviceFamily":       "!",
+            "applicationRuntime": "!",
+            "attributes": map[string]string{
+               "operatingSystem":        "",
+               "operatingSystemVersion": "",
+            },
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer "+client_api_key)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(d)
+}
+
+func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": a.Data.Login.Account.Profiles[0].Id,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Account{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_login,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email":    email,
+            "password": password,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set(
+      "authorization", "Bearer "+d.Data.RegisterDevice.Token.AccessToken,
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &AccountWithoutActiveProfile{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+         }
+      }
+   }
+}
+`
+
+const mutation_switch_profile = `
+mutation switchProfile($input: SwitchProfileInput!) {
+   switchProfile(switchProfile: $input) {
+      account {
+         activeProfile {
+            name
+         }
+      }
+   }
+}
+`
+
+type Account struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // Account
+         }
+      }
+   }
+}
+
+type AccountWithoutActiveProfile struct {
+   Data struct {
+      Login struct {
+         Account struct {
+            Profiles []struct {
+               Id string
+            }
+         }
+      }
+   }
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // AccountWithoutActiveProfile
+         }
+      }
+   }
+}
+
+type Device struct {
+   Data struct {
+      RegisterDevice struct {
+         Token struct {
+            AccessToken     string
+            RefreshToken    string
+            AccessTokenType string // Device
+         }
+      }
+   }
 }
