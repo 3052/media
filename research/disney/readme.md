@@ -1,6 +1,6 @@
 # disney
 
-## show
+## movie, show
 
 request:
 
@@ -12,7 +12,8 @@ authorization: Bearer eyJ6aXAiOiJERUYiLCJraWQiOiJ0Vy10M2ZQUTJEN2Q0YlBWTU1rSkd4..
 response:
 
 ~~~
-data.page.containers[0].seasons[1].id = "28226c6e-7c7b-4184-8a86-5dabc4b2832f"
+data.page.containers[0].seasons[0].visuals.name = "Season 1"
+data.page.containers[0].seasons[0].id = "f2c23e4f-87ea-4cf1-82c5-bb9767783dae"
 ~~~
 
 ## season
