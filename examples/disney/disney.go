@@ -20,7 +20,7 @@ func main() {
       case ".mp4", ".mp4a":
          return ""
       }
-      return "L"
+      return "LP"
    })
    err := new(command).run()
    if err != nil {

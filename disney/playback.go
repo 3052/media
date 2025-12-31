@@ -10,13 +10,103 @@ import (
    "strings"
 )
 
+type Explore struct {
+   Data struct {
+      Errors []Error // region
+      Page   struct {
+         Actions []struct {
+            ResourceId string
+            Visuals    struct {
+               DisplayText string
+            }
+         }
+         Containers []struct {
+            Seasons []struct {
+               Items []struct {
+                  Actions []struct {
+                     ResourceId string
+                     Visuals    struct {
+                        DisplayText string
+                     }
+                  }
+                  Visuals struct {
+                     EpisodeNumber string
+                     EpisodeTitle string
+                     SeasonNumber string
+                  }
+               }
+            }
+         }
+      }
+   }
+   Errors []Error // explore-not-supported
+}
+
+func (a *Account) Explore(entity string) (*Explore, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "disney.api.edge.bamgrid.com",
+      Path:   "/explore/v1.12/page/entity-" + entity,
+      RawQuery: url.Values{
+         "enhancedContainersLimit": {"1"},
+         "limit":                   {"1"},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Explore
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   if len(result.Data.Errors) >= 1 {
+      return nil, &result.Data.Errors[0]
+   }
+   return &result, nil
+}
+
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type Playback struct {
+   Errors []Error
+   Stream struct {
+      Sources []struct {
+         Complete struct {
+            Url string
+         }
+      }
+   }
+}
+
+func (e *Explore) PlaybackId() (string, bool) {
+   for _, action := range e.Data.Page.Actions {
+      switch action.Visuals.DisplayText {
+      case "PLAY", "RESTART":
+         return action.ResourceId, true
+      }
+   }
+   return "", false
+}
+
 func (a *Account) Playback(playbackId string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "playbackId": playbackId,
       "playback": map[string]any{
          "attributes": map[string]any{
             "assetInsertionStrategy": "SGAI",
-            "codecs": map[string]any{
+            "codecs": map[string]bool{
                "supportsMultiCodecMaster": true, // 4K
             },
          },
@@ -126,77 +216,4 @@ func GetEntity(rawLink string) (string, error) {
    last_segment := path.Base(link.Path)
    // The entity might be prefixed with "entity-", so we remove it
    return strings.TrimPrefix(last_segment, "entity-"), nil
-}
-
-type Explore struct {
-   Data struct {
-      Errors []Error // region
-      Page   struct {
-         Actions []struct {
-            ResourceId string
-            Visuals    struct {
-               DisplayText string
-            }
-         }
-      }
-   }
-   Errors []Error // explore-not-supported
-}
-
-func (a *Account) Explore(entity string) (*Explore, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.api.edge.bamgrid.com",
-      Path:   "/explore/v1.12/page/entity-" + entity,
-      RawQuery: url.Values{
-         "enhancedContainersLimit": {"1"},
-         "limit":                   {"1"},
-      }.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Explore
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   if len(result.Data.Errors) >= 1 {
-      return nil, &result.Data.Errors[0]
-   }
-   return &result, nil
-}
-
-type Hls struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type Playback struct {
-   Errors []Error
-   Stream struct {
-      Sources []struct {
-         Complete struct {
-            Url string
-         }
-      }
-   }
-}
-
-func (e *Explore) PlaybackId() (string, bool) {
-   for _, action := range e.Data.Page.Actions {
-      switch action.Visuals.DisplayText {
-      case "PLAY", "RESTART":
-         return action.ResourceId, true
-      }
-   }
-   return "", false
 }
