@@ -2,7 +2,10 @@ package disney
 
 import (
    "bytes"
+   "encoding/base64"
    "encoding/json"
+   "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -10,34 +13,145 @@ import (
    "strings"
 )
 
-type Explore struct {
-   Data struct {
-      Errors []Error // region
-      Page   struct {
-         Actions []struct {
-            ResourceId string
-            Visuals    struct {
-               DisplayText string
+// extractMediaId is a helper function to decode the ResourceId and extract the mediaId.
+func extractMediaId(encodedResourceId string) (string, error) {
+   jsonBytes, err := base64.StdEncoding.DecodeString(encodedResourceId)
+   if err != nil {
+      return "", fmt.Errorf("base64 decoding failed: %w", err)
+   }
+   // Helper struct to unmarshal the JSON from the decoded ResourceId.
+   var payload struct {
+      MediaId string `json:"mediaId"`
+   }
+   if err := json.Unmarshal(jsonBytes, &payload); err != nil {
+      return "", fmt.Errorf("JSON unmarshaling failed: %w", err)
+   }
+   if payload.MediaId == "" {
+      return "", errors.New("JSON is valid but is missing the 'mediaId' key")
+   }
+   return payload.MediaId, nil
+}
+
+func (a *Account) Playback(mediaId string) (*Playback, error) {
+   playback_id, err := json.Marshal(map[string]string{
+      "mediaId": mediaId,
+   })
+   if err != nil {
+      return nil, err
+   }
+   data, err := json.Marshal(map[string]any{
+      "playbackId": playback_id,
+      "playback": map[string]any{
+         "attributes": map[string]any{
+            "assetInsertionStrategy": "SGAI",
+            "codecs": map[string]bool{
+               "supportsMultiCodecMaster": true, // 4K
+            },
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, _ := http.NewRequest(
+      "POST",
+      // ctr-high also works
+      "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
+      bytes.NewReader(data),
+   )
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-dss-feature-filtering", "true")
+   req.Header.Set("x-bamsdk-platform", "")
+   req.Header.Set("x-application-version", "")
+   req.Header.Set("x-bamsdk-client-id", "")
+   req.Header.Set("x-bamsdk-version", "")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Playback
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result, nil
+}
+
+// GetFormattedString generates a printable string based on the presence of Seasons
+// in the first container. Each value is printed on a new line.
+func (p *Page) GetFormattedString() (string, error) {
+   // The only length check, as requested.
+   if len(p.Containers[0].Seasons) > 0 {
+      // PATH 1: Process the contents of the first container.
+      var itemStrings []string
+      firstContainer := p.Containers[0]
+      for _, season := range firstContainer.Seasons {
+         for _, item := range season.Items {
+            resourceId := item.Actions[0].ResourceId
+            mediaId, err := extractMediaId(resourceId)
+            if err != nil {
+               return "", fmt.Errorf("error in item S%sE%s: %w", item.Visuals.SeasonNumber, item.Visuals.EpisodeNumber, err)
             }
+            // Create a multi-line string block for each item.
+            itemBlock := fmt.Sprintf(
+               "SeasonNumber: %s\nEpisodeNumber: %s\nEpisodeTitle: %s\nMediaId: %s",
+               item.Visuals.SeasonNumber,
+               item.Visuals.EpisodeNumber,
+               item.Visuals.EpisodeTitle,
+               mediaId,
+            )
+            itemStrings = append(itemStrings, itemBlock)
          }
-         Containers []struct {
-            Seasons []struct {
-               Items []struct {
-                  Actions []struct {
-                     ResourceId string
-                     Visuals    struct {
-                        DisplayText string
-                     }
-                  }
-                  Visuals struct {
-                     EpisodeNumber string
-                     EpisodeTitle string
-                     SeasonNumber string
-                  }
-               }
+      }
+      // Join the blocks for each item with a blank line in between.
+      return strings.Join(itemStrings, "\n\n"), nil
+   } else {
+      // PATH 2: Get a formatted string from top-level values.
+      resourceId := p.Actions[0].ResourceId
+      mediaId, err := extractMediaId(resourceId)
+      if err != nil {
+         return "", fmt.Errorf("top-level path failed: %w", err)
+      }
+      // Create a multi-line string for the top-level info.
+      return fmt.Sprintf("Title: %s\nMediaId: %s", p.Visuals.Title, mediaId), nil
+   }
+}
+
+type Page struct {
+   Actions []Action
+   Containers []struct {
+      Seasons []struct {
+         Items []struct {
+            Actions []Action
+            Visuals struct {
+               EpisodeNumber string
+               EpisodeTitle string
+               SeasonNumber string
             }
          }
       }
+   }
+   Visuals struct {
+      Title string
+   }
+}
+
+type Action struct {
+   ResourceId string
+   Visuals    struct {
+      DisplayText string
+   }
+}
+
+type Explore struct {
+   Data struct {
+      Errors []Error // region
+      Page Page
    }
    Errors []Error // explore-not-supported
 }
@@ -88,60 +202,6 @@ type Playback struct {
          }
       }
    }
-}
-
-func (e *Explore) PlaybackId() (string, bool) {
-   for _, action := range e.Data.Page.Actions {
-      switch action.Visuals.DisplayText {
-      case "PLAY", "RESTART":
-         return action.ResourceId, true
-      }
-   }
-   return "", false
-}
-
-func (a *Account) Playback(playbackId string) (*Playback, error) {
-   data, err := json.Marshal(map[string]any{
-      "playbackId": playbackId,
-      "playback": map[string]any{
-         "attributes": map[string]any{
-            "assetInsertionStrategy": "SGAI",
-            "codecs": map[string]bool{
-               "supportsMultiCodecMaster": true, // 4K
-            },
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, _ := http.NewRequest(
-      "POST",
-      // ctr-high also works
-      "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
-      bytes.NewReader(data),
-   )
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-dss-feature-filtering", "true")
-   req.Header.Set("x-bamsdk-platform", "")
-   req.Header.Set("x-application-version", "")
-   req.Header.Set("x-bamsdk-client-id", "")
-   req.Header.Set("x-bamsdk-version", "")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Playback
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
 }
 
 func (a *Account) Widevine(data []byte) ([]byte, error) {
