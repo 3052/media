@@ -13,6 +13,21 @@ import (
    "path/filepath"
 )
 
+type command struct {
+   job  maya.WidevineJob
+   name    string
+   // 1
+   code    bool
+   // 2
+   session bool
+   // 3
+   address string
+   // 4
+   dash    string
+}
+
+///
+
 func (c *command) do_address() error {
    cache, err := read(c.name)
    if err != nil {
@@ -49,10 +64,10 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   c.config.Send = func(data []byte) ([]byte, error) {
+   c.job.Send = func(data []byte) ([]byte, error) {
       return cache.Session.Widevine(data)
    }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+   return c.job.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
 }
 
 type user_cache struct {
@@ -81,17 +96,16 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/mubi/userCache.xml"
 
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.StringVar(&c.address, "a", "", "address")
    flag.BoolVar(&c.code, "c", false, "link code")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.session, "s", false, "session")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.code {
@@ -152,13 +166,4 @@ func (c *command) do_session() error {
       return err
    }
    return write(c.name, cache)
-}
-
-type command struct {
-   address string
-   code    bool
-   config  maya.Config
-   dash    string
-   name    string
-   session bool
 }
