@@ -13,52 +13,6 @@ import (
    "path/filepath"
 )
 
-type command struct {
-   job  maya.WidevineJob
-   name    string
-   // 1
-   code    bool
-   // 2
-   session bool
-   // 3
-   address string
-   // 4
-   dash    string
-}
-
-///
-
-func (c *command) do_address() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   slug, err := mubi.FilmSlug(c.address)
-   if err != nil {
-      return err
-   }
-   film_id, err := mubi.FetchId(slug)
-   if err != nil {
-      return err
-   }
-   err = cache.Session.Viewing(film_id)
-   if err != nil {
-      return err
-   }
-   secure, err := cache.Session.SecureUrl(film_id)
-   if err != nil {
-      return err
-   }
-   cache.Mpd, err = secure.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -67,7 +21,29 @@ func (c *command) do_dash() error {
    c.job.Send = func(data []byte) ([]byte, error) {
       return cache.Session.Widevine(data)
    }
-   return c.job.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
 }
 
 type user_cache struct {
@@ -124,15 +100,6 @@ func (c *command) run() error {
    return nil
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (c *command) do_code() error {
    var code mubi.LinkCode
    err := code.Fetch()
@@ -141,19 +108,6 @@ func (c *command) do_code() error {
    }
    fmt.Println(&code)
    return write(c.name, &user_cache{LinkCode: &code})
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
 }
 
 func (c *command) do_session() error {
@@ -166,4 +120,49 @@ func (c *command) do_session() error {
       return err
    }
    return write(c.name, cache)
+}
+
+func (c *command) do_address() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   slug, err := mubi.FilmSlug(c.address)
+   if err != nil {
+      return err
+   }
+   film_id, err := mubi.FetchId(slug)
+   if err != nil {
+      return err
+   }
+   err = cache.Session.Viewing(film_id)
+   if err != nil {
+      return err
+   }
+   secure, err := cache.Session.SecureUrl(film_id)
+   if err != nil {
+      return err
+   }
+   cache.Mpd, err = secure.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+}
+
+type command struct {
+   job  maya.WidevineJob
+   name    string
+   // 1
+   code    bool
+   // 2
+   session bool
+   // 3
+   address string
+   // 4
+   dash    string
 }
