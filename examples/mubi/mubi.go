@@ -156,13 +156,13 @@ func (c *command) do_address() error {
 
 type command struct {
    job  maya.WidevineJob
-   name    string
+   name string
    // 1
-   code    bool
+   code bool
    // 2
    session bool
    // 3
    address string
    // 4
-   dash    string
+   dash string
 }
