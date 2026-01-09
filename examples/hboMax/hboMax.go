@@ -13,15 +13,32 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
+func (c *command) do_address() error {
+   show_id, err := hboMax.ExtractId(c.address)
+   if err != nil {
+      return err
+   }
    cache, err := read(c.name)
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.PlayReady(data)
+   var videos *hboMax.Videos
+   if c.season >= 1 {
+      videos, err = cache.Login.Season(show_id, c.season)
+   } else {
+      videos, err = cache.Login.Movie(show_id)
    }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+   if err != nil {
+      return err
+   }
+   videos.FilterAndSort()
+   for i, video := range videos.Included {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(video)
+   }
+   return nil
 }
 
 func read(name string) (*user_cache, error) {
@@ -35,6 +52,17 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    return cache, nil
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.PlayReady(data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
 
 func (c *command) do_login() error {
@@ -135,34 +163,6 @@ func (c *command) do_initiate() error {
       return err
    }
    fmt.Println(initiate)
-   return nil
-}
-
-func (c *command) do_address() error {
-   show_id, err := hboMax.ExtractId(c.address)
-   if err != nil {
-      return err
-   }
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   var videos *hboMax.Videos
-   if c.season >= 1 {
-      videos, err = cache.Login.Season(show_id, c.season)
-   } else {
-      videos, err = cache.Login.Movie(show_id)
-   }
-   if err != nil {
-      return err
-   }
-   videos.FilterAndSort()
-   for i, video := range videos.Included {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(video)
-   }
    return nil
 }
 
