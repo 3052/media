@@ -13,23 +13,37 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/kanopy/userCache.xml"
 
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.email, "e", "", "email")
    flag.IntVar(&c.kanopy, "k", 0, "Kanopy ID")
    flag.StringVar(&c.password, "p", "", "password")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.Parse()
 
    if c.email != "" {
@@ -54,23 +68,6 @@ func (c *command) do_email_password() error {
       return err
    }
    return write(c.name, &user_cache{Login: &login})
-}
-
-type user_cache struct {
-   Login      *kanopy.Login
-   Mpd        *kanopy.Mpd
-   StreamInfo *kanopy.StreamInfo
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Login.Widevine(cache.StreamInfo, data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
 }
 
 func (c *command) do_kanopy() error {
@@ -99,8 +96,32 @@ func (c *command) do_kanopy() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
 }
+
+type command struct {
+   job   maya.WidevineJob
+   name     string
+   // 1
+   email    string
+   password string
+   // 2
+   kanopy   int
+   // 3
+   dash     string
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Login.Widevine(cache.StreamInfo, data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
 func read(name string) (*user_cache, error) {
    data, err := os.ReadFile(name)
    if err != nil {
@@ -114,13 +135,10 @@ func read(name string) (*user_cache, error) {
    return cache, nil
 }
 
-type command struct {
-   config   maya.Config
-   dash     string
-   email    string
-   kanopy   int
-   name     string
-   password string
+type user_cache struct {
+   Login      *kanopy.Login
+   Mpd        *kanopy.Mpd
+   StreamInfo *kanopy.StreamInfo
 }
 
 func write(name string, cache *user_cache) error {
@@ -130,18 +148,4 @@ func write(name string, cache *user_cache) error {
    }
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func main() {
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   log.SetFlags(log.Ltime)
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
