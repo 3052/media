@@ -13,6 +13,102 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
+   c.name = cache + "/hboMax/userCache.xml"
+
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.edit, "e", "", "edit ID")
+   flag.BoolVar(&c.initiate, "i", false, "device initiate")
+   flag.BoolVar(&c.login, "l", false, "device login")
+   flag.StringVar(
+      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets[1:]),
+   )
+   flag.IntVar(&c.season, "s", 0, "season")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.Parse()
+   if c.initiate {
+      return c.do_initiate()
+   }
+   if c.login {
+      return c.do_login()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.edit != "" {
+      return c.do_edit()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
+}
+
+func (c *command) do_initiate() error {
+   var st hboMax.St
+   err := st.Fetch()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, &user_cache{St: &st})
+   if err != nil {
+      return err
+   }
+   initiate, err := st.Initiate(c.market)
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return nil
+}
+
+func (c *command) do_edit() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   cache.Playback, err = cache.Login.PlayReady(c.edit)
+   if err != nil {
+      return err
+   }
+   cache.Mpd, err = cache.Playback.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+}
+
+type command struct {
+   job   maya.PlayReadyJob
+   name     string
+   market   string
+   season   int
+   // 1
+   initiate bool
+   // 2
+   login    bool
+   // 3
+   address  string
+   // 4
+   edit     string
+   // 5
+   dash     string
+}
 func (c *command) do_address() error {
    var show hboMax.ShowKey
    err := show.Parse(c.address)
@@ -106,100 +202,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/hboMax/userCache.xml"
-
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.edit, "e", "", "edit ID")
-   flag.BoolVar(&c.initiate, "i", false, "device initiate")
-   flag.BoolVar(&c.login, "l", false, "device login")
-   flag.StringVar(
-      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets[1:]),
-   )
-   flag.IntVar(&c.season, "s", 0, "season")
-   flag.Parse()
-   if c.initiate {
-      return c.do_initiate()
-   }
-   if c.login {
-      return c.do_login()
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.edit != "" {
-      return c.do_edit()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   flag.Usage()
-   return nil
-}
-
-func (c *command) do_initiate() error {
-   var st hboMax.St
-   err := st.Fetch()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, &user_cache{St: &st})
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate(c.market)
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return nil
-}
-
-func (c *command) do_edit() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   cache.Playback, err = cache.Login.PlayReady(c.edit)
-   if err != nil {
-      return err
-   }
-   cache.Mpd, err = cache.Playback.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
-}
-
-type command struct {
-   job   maya.PlayReadyJob
-   name     string
-   market   string
-   season   int
-   // 1
-   initiate bool
-   // 2
-   login    bool
-   // 3
-   address  string
-   // 4
-   edit     string
-   // 5
-   dash     string
 }
