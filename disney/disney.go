@@ -13,6 +13,46 @@ import (
    "strings"
 )
 
+// GetFormattedString generates a printable string based on the presence of Seasons
+// in the first container. Each value is printed on a new line.
+func (p *Page) GetFormattedString() (string, error) {
+   // The only length check, as requested.
+   if len(p.Containers[0].Seasons) > 0 {
+      // PATH 1: Process the contents of the first container.
+      var itemStrings []string
+      firstContainer := p.Containers[0]
+      for _, season := range firstContainer.Seasons {
+         for _, item := range season.Items {
+            resourceId := item.Actions[0].ResourceId
+            mediaId, err := extractMediaId(resourceId)
+            if err != nil {
+               return "", fmt.Errorf("error in item S%sE%s: %w", item.Visuals.SeasonNumber, item.Visuals.EpisodeNumber, err)
+            }
+            // Create a multi-line string block for each item.
+            itemBlock := fmt.Sprintf(
+               "SeasonNumber: %s\nEpisodeNumber: %s\nEpisodeTitle: %s\nMediaId: %s",
+               item.Visuals.SeasonNumber,
+               item.Visuals.EpisodeNumber,
+               item.Visuals.EpisodeTitle,
+               mediaId,
+            )
+            itemStrings = append(itemStrings, itemBlock)
+         }
+      }
+      // Join the blocks for each item with a blank line in between.
+      return strings.Join(itemStrings, "\n\n"), nil
+   } else {
+      // PATH 2: Get a formatted string from top-level values.
+      resourceId := p.Actions[0].ResourceId
+      mediaId, err := extractMediaId(resourceId)
+      if err != nil {
+         return "", fmt.Errorf("top-level path failed: %w", err)
+      }
+      // Create a multi-line string for the top-level info.
+      return fmt.Sprintf("Title: %s\nMediaId: %s", p.Visuals.Title, mediaId), nil
+   }
+}
+
 func (a *Account) Playback(mediaId string) (*Playback, error) {
    playback_id, err := json.Marshal(map[string]string{
       "mediaId": mediaId,
@@ -424,44 +464,4 @@ func (a *Account) Explore(entity string) (*Explore, error) {
       return nil, &result.Data.Errors[0]
    }
    return &result, nil
-}
-
-// GetFormattedString generates a printable string based on the presence of Seasons
-// in the first container. Each value is printed on a new line.
-func (p *Page) GetFormattedString() (string, error) {
-   // The only length check, as requested.
-   if len(p.Containers[0].Seasons) > 0 {
-      // PATH 1: Process the contents of the first container.
-      var itemStrings []string
-      firstContainer := p.Containers[0]
-      for _, season := range firstContainer.Seasons {
-         for _, item := range season.Items {
-            resourceId := item.Actions[0].ResourceId
-            mediaId, err := extractMediaId(resourceId)
-            if err != nil {
-               return "", fmt.Errorf("error in item S%sE%s: %w", item.Visuals.SeasonNumber, item.Visuals.EpisodeNumber, err)
-            }
-            // Create a multi-line string block for each item.
-            itemBlock := fmt.Sprintf(
-               "SeasonNumber: %s\nEpisodeNumber: %s\nEpisodeTitle: %s\nMediaId: %s",
-               item.Visuals.SeasonNumber,
-               item.Visuals.EpisodeNumber,
-               item.Visuals.EpisodeTitle,
-               mediaId,
-            )
-            itemStrings = append(itemStrings, itemBlock)
-         }
-      }
-      // Join the blocks for each item with a blank line in between.
-      return strings.Join(itemStrings, "\n\n"), nil
-   } else {
-      // PATH 2: Get a formatted string from top-level values.
-      resourceId := p.Actions[0].ResourceId
-      mediaId, err := extractMediaId(resourceId)
-      if err != nil {
-         return "", fmt.Errorf("top-level path failed: %w", err)
-      }
-      // Create a multi-line string for the top-level info.
-      return fmt.Sprintf("Title: %s\nMediaId: %s", p.Visuals.Title, mediaId), nil
-   }
 }
