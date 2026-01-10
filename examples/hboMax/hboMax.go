@@ -14,7 +14,8 @@ import (
 )
 
 func (c *command) do_address() error {
-   show_id, err := hboMax.ExtractId(c.address)
+   var show hboMax.ShowKey
+   err := show.Parse(c.address)
    if err != nil {
       return err
    }
@@ -24,9 +25,9 @@ func (c *command) do_address() error {
    }
    var videos *hboMax.Videos
    if c.season >= 1 {
-      videos, err = cache.Login.Season(show_id, c.season)
+      videos, err = cache.Login.Season(&show, c.season)
    } else {
-      videos, err = cache.Login.Movie(show_id)
+      videos, err = cache.Login.Movie(&show)
    }
    if err != nil {
       return err

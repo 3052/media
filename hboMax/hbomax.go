@@ -7,21 +7,40 @@ import (
    "io"
    "net/http"
    "net/url"
-   "path"
    "slices"
    "strconv"
    "strings"
 )
 
-func (l Login) Movie(showId string) (*Videos, error) {
+const (
+   api_host     = "default.prd.api.hbomax.com"
+   disco_client = "!:!:beam:!"
+   device_info  = "!/!(!/!;!/!;!/!)"
+)
+
+var Markets = []string{
+   "amer",
+   "apac",
+   "emea",
+   "latam",
+}
+
+func join(data ...string) string {
+   return strings.Join(data, "")
+}
+
+func (l *Login) PlayReady(editId string) (*Playback, error) {
+   return l.playback(editId, "playready")
+}
+
+func (l Login) Movie(show *ShowKey) (*Videos, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
    req.URL = &url.URL{
       Scheme: "https",
       Host:   api_host,
-      // Path:   "/cms/routes/sport/" + showId,
-      Path: "/cms/routes/movie/" + showId,
+      Path:   join("/cms/routes/", show.Type, "/", show.Id),
       RawQuery: url.Values{
          "include":          {"default"},
          "page[items.size]": {"1"},
@@ -43,18 +62,18 @@ func (l Login) Movie(showId string) (*Videos, error) {
    return &result, nil
 }
 
-func (l Login) Season(showId string, number int) (*Videos, error) {
+func (l Login) Season(show *ShowKey, number int) (*Videos, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
    req.URL = &url.URL{
       Scheme: "https",
-      Host:   api_host, // Refactored
+      Host:   api_host,
       Path:   "/cms/collections/generic-show-page-rail-episodes-tabbed-content",
       RawQuery: url.Values{
          "include":          {"default"},
          "pf[seasonNumber]": {strconv.Itoa(number)},
-         "pf[show.id]":      {showId},
+         "pf[show.id]":      {show.Id},
       }.Encode(),
    }
    resp, err := http.DefaultClient.Do(&req)
@@ -69,6 +88,92 @@ func (l Login) Season(showId string, number int) (*Videos, error) {
    }
    return result, nil
 }
+
+func (p *Playback) Mpd() (*Mpd, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Mpd{data, resp.Request.URL}, nil
+}
+
+func (p *Playback) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (s *ShowKey) Parse(rawUrl string) error {
+   parsed, err := url.Parse(rawUrl)
+   if err != nil {
+      return err
+   }
+   segments := strings.Split(strings.TrimPrefix(parsed.Path, "/"), "/")
+   if len(segments) < 2 {
+      return errors.New("invalid URL format: not enough path segments")
+   }
+   // Directly assign the struct fields from the path segments.
+   s.Id = segments[len(segments)-1]
+   s.Type = strings.TrimSuffix(segments[0], "s")
+   // Use the switch statement for validation of the assigned ContentType.
+   switch s.Type {
+   case "sport", "movie", "show":
+      // The content type is valid, so we can successfully return.
+      return nil
+   default:
+      // The content type is not one we recognize.
+      return errors.New("unrecognized content type")
+   }
+}
+
+type ShowKey struct {
+   Type string
+   Id   string
+}
+
+// you must
+// /authentication/linkDevice/initiate
+// first or this will always fail
+func (s St) Login() (*Login, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.AddCookie(s.Cookie)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   api_host, // Refactored
+      Path:   "/authentication/linkDevice/login",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Login{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+///
 
 func (s *St) Fetch() error {
    var req http.Request
@@ -94,6 +199,7 @@ func (s *St) Fetch() error {
    }
    return http.ErrNoCookie
 }
+
 // validVideoTypes acts as a set to hold the video types we want to keep.
 var validVideoTypes = []string{
    "EPISODE",
@@ -326,23 +432,6 @@ type Initiate struct {
    TargetUrl   string
 }
 
-// https://hbomax.com/movies/weapons/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
-// https://play.hbomax.com/show/bcbb6e0d-ca89-43e4-a9b1-2fc728145beb
-func ExtractId(rawUrl string) (string, error) {
-   parsedUrl, err := url.Parse(rawUrl)
-   if err != nil {
-      return "", err
-   }
-   if parsedUrl.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return path.Base(parsedUrl.Path), nil
-}
-
-func join(data ...string) string {
-   return strings.Join(data, "")
-}
-
 func (v *Video) String() string {
    var data strings.Builder
    if v.Attributes.SeasonNumber >= 1 {
@@ -368,77 +457,4 @@ func (v *Video) String() string {
 type Mpd struct {
    Body []byte
    Url  *url.URL
-}
-
-func (p *Playback) Mpd() (*Mpd, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
-}
-
-func (l *Login) PlayReady(editId string) (*Playback, error) {
-   return l.playback(editId, "playready")
-}
-
-func (p *Playback) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-var Markets = []string{
-   "amer",
-   "apac",
-   "emea",
-   "latam",
-}
-
-const (
-   api_host     = "default.prd.api.hbomax.com"
-   disco_client = "!:!:beam:!"
-   device_info  = "!/!(!/!;!/!;!/!)"
-)
-
-// you must
-// /authentication/linkDevice/initiate
-// first or this will always fail
-func (s St) Login() (*Login, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.AddCookie(s.Cookie)
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   api_host, // Refactored
-      Path:   "/authentication/linkDevice/login",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Login{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
