@@ -324,55 +324,26 @@ type Device struct {
    }
 }
 
-///
-
-type Explore struct {
-   Data struct {
-      Errors []Error // region
-      Page Page
-   }
-   Errors []Error // explore-not-supported
-}
-
-type Action struct {
-   ResourceId string
-   Visuals    struct {
-      DisplayText string
-   }
-}
-
-type Page struct {
-   Actions []Action
-   Containers []struct {
-      Seasons []struct {
-         Items []struct {
-            Actions []Action
-            Visuals struct {
-               EpisodeNumber string
-               EpisodeTitle string
-               SeasonNumber string
-            }
-         }
-      }
-   }
-   Visuals struct {
-      Title string
-   }
-}
-
 // https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
 // https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
 // https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-func GetEntity(rawLink string) (string, error) {
-   // Parse the URL to safely access its components
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return "", err
+func ExtractId(url string) (string, error) {
+   // First, explicitly fail if the URL is a "play" link.
+   if strings.Contains(url, "/play/") {
+      return "", errors.New("URL is a 'play' link and not a 'browse' link")
    }
-   // Get the last part of the URL path
-   last_segment := path.Base(link.Path)
-   // The entity might be prefixed with "entity-", so we remove it
-   return strings.TrimPrefix(last_segment, "entity-"), nil
+   // The unique marker for the ID we want is "/browse/entity-".
+   const marker = "/browse/entity-"
+   // strings.Cut splits the string at the first instance of the marker.
+   // It returns the part before, the part after, and a boolean indicating if the marker was found.
+   // We don't need the 'before' part, so we discard it with the blank identifier _.
+   _, id, found := strings.Cut(url, marker)
+   // If the marker was not found, or if the resulting ID string is empty, return an error.
+   if !found || id == "" {
+      return "", errors.New("failed to find a valid ID in the URL")
+   }
+   // The 'id' variable now holds the rest of the string after the marker.
+   return id, nil
 }
 
 func (a *Account) Explore(entity string) (*Explore, error) {
@@ -383,10 +354,7 @@ func (a *Account) Explore(entity string) (*Explore, error) {
       Scheme: "https",
       Host:   "disney.api.edge.bamgrid.com",
       Path:   "/explore/v1.12/page/entity-" + entity,
-      RawQuery: url.Values{
-         "enhancedContainersLimit": {"1"},
-         "limit": {"99"},
-      }.Encode(),
+      RawQuery: "limit=0",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -405,4 +373,24 @@ func (a *Account) Explore(entity string) (*Explore, error) {
       return nil, &result.Data.Errors[0]
    }
    return &result, nil
+}
+
+type Explore struct {
+   Data struct {
+      Errors []Error // region
+      Page struct {
+         Actions []struct {
+            InternalTitle string // movie
+         }
+         Containers []struct {
+            Seasons []struct { // series
+               Visuals struct {
+                  Name string
+               }
+               Id string
+            }
+         }
+      }
+   }
+   Errors []Error // explore-not-supported
 }
