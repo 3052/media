@@ -10,32 +10,6 @@ import (
    "strings"
 )
 
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   var link strings.Builder
-   link.WriteString("https://www.cinemember.nl/elements/films/stream.php?id=")
-   link.WriteString(strconv.Itoa(id))
-   req, _ := http.NewRequest("", link.String(), nil)
-   req.AddCookie(s.Cookie)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Stream
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != "" {
-      return nil, errors.New(result.Error)
-   }
-   if result.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &result, nil
-}
-
 // extracts the numeric ID and converts it to an integer
 func FetchId(link string) (int, error) {
    resp, err := http.Get(link)
@@ -62,11 +36,6 @@ func FetchId(link string) (int, error) {
    return strconv.Atoi(idStr)
 }
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (m *MediaLink) Mpd() (*Mpd, error) {
    resp, err := http.Get(m.Url)
    if err != nil {
@@ -78,6 +47,16 @@ func (m *MediaLink) Mpd() (*Mpd, error) {
       return nil, err
    }
    return &Mpd{data, resp.Request.URL}, nil
+}
+
+type MediaLink struct {
+   MimeType string
+   Url      string
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
 }
 
 // Fetch performs the HEAD request to cinemember.nl and populates the Session
@@ -101,35 +80,6 @@ func (s *Session) Fetch() error {
       }
    }
    return errors.New("PHPSESSID cookie not found in response")
-}
-
-type Stream struct {
-   Error    string
-   Links    []MediaLink
-   NoAccess bool
-}
-
-func (s *Stream) Vtt() (*MediaLink, bool) {
-   for _, link := range s.Links {
-      if link.MimeType == "text/vtt" {
-         return &link, true
-      }
-   }
-   return nil, false
-}
-
-func (s *Stream) Dash() (*MediaLink, bool) {
-   for _, link := range s.Links {
-      if link.MimeType == "application/dash+xml" {
-         return &link, true
-      }
-   }
-   return nil, false
-}
-
-type MediaLink struct {
-   MimeType string
-   Url      string
 }
 
 func (s Session) Login(email, password string) error {
@@ -161,4 +111,54 @@ func (s Session) Login(email, password string) error {
 // Session holds the cookie data.
 type Session struct {
    Cookie *http.Cookie
+}
+
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   var link strings.Builder
+   link.WriteString("https://www.cinemember.nl/elements/films/stream.php?id=")
+   link.WriteString(strconv.Itoa(id))
+   req, _ := http.NewRequest("", link.String(), nil)
+   req.AddCookie(s.Cookie)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
+}
+
+type Stream struct {
+   Error    string
+   Links    []MediaLink
+   NoAccess bool
+}
+
+func (s *Stream) Vtt() (*MediaLink, bool) {
+   for _, link := range s.Links {
+      if link.MimeType == "text/vtt" {
+         return &link, true
+      }
+   }
+   return nil, false
+}
+
+func (s *Stream) Dash() (*MediaLink, bool) {
+   for _, link := range s.Links {
+      if link.MimeType == "application/dash+xml" {
+         return &link, true
+      }
+   }
+   return nil, false
 }

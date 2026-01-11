@@ -18,41 +18,19 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
 
-type user_cache struct {
-   Mpd     *cineMember.Mpd
-   Session *cineMember.Session
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   c.name = filepath.ToSlash(cache) + "/cineMember/userCache.xml"
-
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   flag.IntVar(&c.config.Threads, "t", 5, "threads")
-   flag.Parse()
-
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   flag.Usage()
-   return nil
+type command struct {
+   name string
+   job  maya.Job
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
 }
 
 func write(name string, cache *user_cache) error {
@@ -77,13 +55,9 @@ func read(name string) (*user_cache, error) {
    return cache, nil
 }
 
-type command struct {
-   address  string
-   config   maya.Config
-   dash     string
-   email    string
-   name     string
-   password string
+type user_cache struct {
+   Mpd     *cineMember.Mpd
+   Session *cineMember.Session
 }
 
 func main() {
@@ -98,6 +72,34 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   c.name = filepath.ToSlash(cache) + "/cineMember/userCache.xml"
+
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.Parse()
+
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
 }
 
 func (c *command) do_email_password() error {
@@ -138,5 +140,5 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
 }
