@@ -13,46 +13,6 @@ import (
    "strings"
 )
 
-// GetFormattedString generates a printable string based on the presence of Seasons
-// in the first container. Each value is printed on a new line.
-func (p *Page) GetFormattedString() (string, error) {
-   // The only length check, as requested.
-   if len(p.Containers[0].Seasons) > 0 {
-      // PATH 1: Process the contents of the first container.
-      var itemStrings []string
-      firstContainer := p.Containers[0]
-      for _, season := range firstContainer.Seasons {
-         for _, item := range season.Items {
-            resourceId := item.Actions[0].ResourceId
-            mediaId, err := extractMediaId(resourceId)
-            if err != nil {
-               return "", fmt.Errorf("error in item S%sE%s: %w", item.Visuals.SeasonNumber, item.Visuals.EpisodeNumber, err)
-            }
-            // Create a multi-line string block for each item.
-            itemBlock := fmt.Sprintf(
-               "SeasonNumber: %s\nEpisodeNumber: %s\nEpisodeTitle: %s\nMediaId: %s",
-               item.Visuals.SeasonNumber,
-               item.Visuals.EpisodeNumber,
-               item.Visuals.EpisodeTitle,
-               mediaId,
-            )
-            itemStrings = append(itemStrings, itemBlock)
-         }
-      }
-      // Join the blocks for each item with a blank line in between.
-      return strings.Join(itemStrings, "\n\n"), nil
-   } else {
-      // PATH 2: Get a formatted string from top-level values.
-      resourceId := p.Actions[0].ResourceId
-      mediaId, err := extractMediaId(resourceId)
-      if err != nil {
-         return "", fmt.Errorf("top-level path failed: %w", err)
-      }
-      // Create a multi-line string for the top-level info.
-      return fmt.Sprintf("Title: %s\nMediaId: %s", p.Visuals.Title, mediaId), nil
-   }
-}
-
 func (a *Account) Playback(mediaId string) (*Playback, error) {
    playback_id, err := json.Marshal(map[string]string{
       "mediaId": mediaId,
@@ -101,40 +61,6 @@ func (a *Account) Playback(mediaId string) (*Playback, error) {
       return nil, &result.Errors[0]
    }
    return &result, nil
-}
-
-type Explore struct {
-   Data struct {
-      Errors []Error // region
-      Page Page
-   }
-   Errors []Error // explore-not-supported
-}
-
-// extractMediaId is a helper function to decode the ResourceId and extract the mediaId.
-func extractMediaId(encodedResourceId string) (string, error) {
-   jsonBytes, err := base64.StdEncoding.DecodeString(encodedResourceId)
-   if err != nil {
-      return "", fmt.Errorf("base64 decoding failed: %w", err)
-   }
-   // Helper struct to unmarshal the JSON from the decoded ResourceId.
-   var payload struct {
-      MediaId string `json:"mediaId"`
-   }
-   if err := json.Unmarshal(jsonBytes, &payload); err != nil {
-      return "", fmt.Errorf("JSON unmarshaling failed: %w", err)
-   }
-   if payload.MediaId == "" {
-      return "", errors.New("JSON is valid but is missing the 'mediaId' key")
-   }
-   return payload.MediaId, nil
-}
-
-type Action struct {
-   ResourceId string
-   Visuals    struct {
-      DisplayText string
-   }
 }
 
 type Hls struct {
@@ -398,6 +324,23 @@ type Device struct {
    }
 }
 
+///
+
+type Explore struct {
+   Data struct {
+      Errors []Error // region
+      Page Page
+   }
+   Errors []Error // explore-not-supported
+}
+
+type Action struct {
+   ResourceId string
+   Visuals    struct {
+      DisplayText string
+   }
+}
+
 type Page struct {
    Actions []Action
    Containers []struct {
@@ -416,8 +359,6 @@ type Page struct {
       Title string
    }
 }
-
-///
 
 // https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
 // https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d

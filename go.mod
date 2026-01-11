@@ -2,7 +2,7 @@ module 41.neocities.org/media
 
 go 1.24.0
 
-require 41.neocities.org/maya v1.21.5
+require 41.neocities.org/maya v1.21.6
 
 require (
 	41.neocities.org/drm v1.7.8 // indirect
