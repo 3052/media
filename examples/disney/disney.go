@@ -13,35 +13,31 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_media_id() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   playback, err := cache.Account.Playback(c.media_id)
-   if err != nil {
-      return err
-   }
-   cache.Hls, err = playback.Hls()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
+type user_cache struct {
+   Account *disney.Account
+   Hls     *disney.Hls
 }
 
-func (c *command) do_hls() error {
-   cache, err := read(c.name)
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Account.Widevine(data)
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
    }
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
 }
 
 func main() {
@@ -94,6 +90,7 @@ func (c *command) run() error {
    if c.media_id != "" {
       return c.do_media_id()
    }
+   // 4
    if c.hls != "" {
       return c.do_hls()
    }
@@ -101,27 +98,22 @@ func (c *command) run() error {
    return nil
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+type command struct {
+   job      maya.WidevineJob
+   name     string
+   
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   media_id string
+   // 4
+   hls      string
 }
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
+///
 
 func (c *command) do_email_password() error {
    var device disney.Device
@@ -141,24 +133,35 @@ func (c *command) do_email_password() error {
    return write(c.name, &cache)
 }
 
-type user_cache struct {
-   Account *disney.Account
-   Hls     *disney.Hls
+func (c *command) do_media_id() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   playback, err := cache.Account.Playback(c.media_id)
+   if err != nil {
+      return err
+   }
+   cache.Hls, err = playback.Hls()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
 }
 
-type command struct {
-   job      maya.WidevineJob
-   name     string
-   // 1
-   email    string
-   password string
-   
-   // 2
-   address  string
-   // 3
-   media_id string
-   // 4
-   hls      string
+func (c *command) do_hls() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Account.Widevine(data)
+   }
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
 }
 
 func (c *command) do_address() error {
