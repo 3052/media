@@ -11,7 +11,7 @@ var content_tests = []struct {
    location []string
 }{
    {
-      url:      "https://hbomax.com/movies/love-lies-bleeding/552f0116-65dc-4a87-9666-b2ef6135ed3d",
+      url:      "https://hbomax.com/movies/one-battle-after-another/bebe611d-8178-481a-a4f2-de743b5b135a",
       location: []string{"united states"},
    },
    {
