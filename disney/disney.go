@@ -10,8 +10,31 @@ import (
    "strings"
 )
 
-// 720p L3
-// 1080p L1
+// SL2000 720p
+// SL3000 720p
+func (a *Account) PlayReady(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+// L3 720p
+// L1 1080p
 func (a *Account) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST",
@@ -42,28 +65,6 @@ func (a *Account) Widevine(data []byte) ([]byte, error) {
       return nil, &result.Errors[0]
    }
    return data, nil
-}
-
-// 720p SL2000
-func (a *Account) PlayReady(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 func (s Season) String() string {
