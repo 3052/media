@@ -115,15 +115,32 @@ func (c *command) do_email_password() error {
    return write(c.name, &cache)
 }
 
+func (c *command) do_address() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   entity, err := disney.GetEntity(c.address)
+   if err != nil {
+      return err
+   }
+   page, err := cache.Account.Page(entity)
+   if err != nil {
+      return err
+   }
+   fmt.Println(page)
+   return nil
+}
+
 type command struct {
    job      maya.WidevineJob
    name     string
    // 1
    email    string
    password string
-   
    // 2
    address  string
+   
    // 3
    media_id string
    // 4
@@ -161,25 +178,4 @@ func (c *command) do_hls() error {
       return cache.Account.Widevine(data)
    }
    return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
-}
-
-func (c *command) do_address() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   entity, err := disney.GetEntity(c.address)
-   if err != nil {
-      return err
-   }
-   explore, err := cache.Account.Explore(entity)
-   if err != nil {
-      return err
-   }
-   page, err := explore.Data.Page.GetFormattedString()
-   if err != nil {
-      return err
-   }
-   fmt.Println(page)
-   return nil
 }
