@@ -13,6 +13,44 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_hls() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Account.Widevine(data)
+   }
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+}
+
+type user_cache struct {
+   Account *disney.Account
+   Hls     *disney.Hls
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -28,37 +66,17 @@ func main() {
    }
 }
 
-type command struct {
-   job      maya.PlayReadyJob
-   name     string
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   season string
-   // 4
-   media_id string
-   // 5
-   hls      string
-}
-
-///
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
+   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    c.name = cache + "/disney/userCache.xml"
-   
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -144,17 +162,6 @@ func (c *command) do_season() error {
    return nil
 }
 
-func (c *command) do_hls() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Account.Widevine(data)
-   }
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
-}
-
 func (c *command) do_media_id() error {
    cache, err := read(c.name)
    if err != nil {
@@ -175,29 +182,18 @@ func (c *command) do_media_id() error {
    return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
 }
 
-type user_cache struct {
-   Account *disney.Account
-   Hls     *disney.Hls
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
+type command struct {
+   job      maya.PlayReadyJob
+   name     string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   season string
+   // 4
+   media_id string
+   // 5
+   hls      string
 }
