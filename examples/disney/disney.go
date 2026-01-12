@@ -13,6 +13,17 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_hls() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Account.Widevine(data)
+   }
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+}
+
 type user_cache struct {
    Account *disney.Account
    Hls     *disney.Hls
@@ -132,33 +143,16 @@ func (c *command) do_address() error {
    return nil
 }
 
-type command struct {
-   job      maya.WidevineJob
-   name     string
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   
-   // 3
-   media_id string
-   // 4
-   hls      string
-}
-
-///
-
 func (c *command) do_media_id() error {
    cache, err := read(c.name)
    if err != nil {
       return err
    }
-   playback, err := cache.Account.Playback(c.media_id)
+   stream, err := cache.Account.Stream(c.media_id)
    if err != nil {
       return err
    }
-   cache.Hls, err = playback.Hls()
+   cache.Hls, err = stream.Hls()
    if err != nil {
       return err
    }
@@ -169,13 +163,16 @@ func (c *command) do_media_id() error {
    return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
 }
 
-func (c *command) do_hls() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Account.Widevine(data)
-   }
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+type command struct {
+   job      maya.WidevineJob
+   name     string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   media_id string
+   // 4
+   hls      string
 }
