@@ -9,60 +9,7 @@ import (
    "net/url"
 )
 
-func (t *Token) Video(slug string) (*Video, error) {
-   req, _ := http.NewRequest("", "https://api.vhx.com", nil)
-   req.URL.Path = "/videos/" + slug
-   req.URL.RawQuery = "url=" + url.QueryEscape(slug)
-   req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var video_var Video
-   err = json.NewDecoder(resp.Body).Decode(&video_var)
-   if err != nil {
-      return nil, err
-   }
-   if video_var.Message != "" {
-      return nil, errors.New(video_var.Message)
-   }
-   return &video_var, nil
-}
-
-type Video struct {
-   Links struct {
-      Files struct {
-         Href string
-      }
-   } `json:"_links"`
-   Message string
-   Name    string
-}
-
-func (t *Token) Files(videoVar *Video) (Files, error) {
-   req, err := http.NewRequest("", videoVar.Links.Files.Href, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var files_var Files
-   err = json.NewDecoder(resp.Body).Decode(&files_var)
-   if err != nil {
-      return nil, err
-   }
-   return files_var, nil
-}
-
-type Files []File
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
 type File struct {
    DrmAuthorizationToken string `json:"drm_authorization_token"`
@@ -99,7 +46,7 @@ func (f Files) Dash() (*File, bool) {
    return nil, false
 }
 
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+type Files []File
 
 func (t *Token) Fetch(username, password string) error {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
@@ -139,4 +86,57 @@ func (t *Token) Refresh() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(t)
+}
+
+func (t *Token) Files(videoVar *Video) (Files, error) {
+   req, err := http.NewRequest("", videoVar.Links.Files.Href, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var files_var Files
+   err = json.NewDecoder(resp.Body).Decode(&files_var)
+   if err != nil {
+      return nil, err
+   }
+   return files_var, nil
+}
+
+func (t *Token) Video(slug string) (*Video, error) {
+   req, _ := http.NewRequest("", "https://api.vhx.com", nil)
+   req.URL.Path = "/videos/" + slug
+   req.URL.RawQuery = "url=" + url.QueryEscape(slug)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var video_var Video
+   err = json.NewDecoder(resp.Body).Decode(&video_var)
+   if err != nil {
+      return nil, err
+   }
+   if video_var.Message != "" {
+      return nil, errors.New(video_var.Message)
+   }
+   return &video_var, nil
+}
+
+type Video struct {
+   Links struct {
+      Files struct {
+         Href string
+      }
+   } `json:"_links"`
+   Message string
+   Name    string
 }

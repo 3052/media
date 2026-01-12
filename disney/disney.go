@@ -11,7 +11,22 @@ import (
 )
 
 func (s Season) String() string {
-   return ""
+   var (
+      data strings.Builder
+      line bool
+   )
+   for _, item := range s.Items {
+      for _, action := range item.Actions {
+         if line {
+            data.WriteByte('\n')
+         } else {
+            line = true
+         }
+         data.WriteString("title = ")
+         data.WriteString(action.InternalTitle)
+      }
+   }
+   return data.String()
 }
 
 type Season struct {
