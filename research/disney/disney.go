@@ -13,6 +13,39 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   job      maya.PlayReadyJob
+   name     string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   season string
+   // 4
+   media_id string
+   // 5
+   hls      string
+}
+
+///
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -20,6 +53,7 @@ func (c *command) run() error {
    }
    cache = filepath.ToSlash(cache)
    c.name = cache + "/disney/userCache.xml"
+   
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
@@ -110,22 +144,6 @@ func (c *command) do_season() error {
    return nil
 }
 
-type command struct {
-   job      maya.WidevineJob
-   name     string
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   season string
-   // 4
-   media_id string
-   // 5
-   hls      string
-}
-
 func (c *command) do_hls() error {
    cache, err := read(c.name)
    if err != nil {
@@ -155,20 +173,6 @@ func (c *command) do_media_id() error {
       return err
    }
    return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
-}
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 type user_cache struct {
