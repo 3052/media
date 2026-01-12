@@ -1,5 +1,15 @@
 # research
 
+## 2026
+
+<table>
+   <tr>
+      <td>1</td>
+      <td>Disney+</td>
+      <td>January 11</td>
+   </tr>
+</table>
+
 ## 2025
 
 <table>
