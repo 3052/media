@@ -11,8 +11,47 @@ import (
    "strings"
 )
 
+// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func GetPath(rawLink string) (string, error) {
+   link, err := url.Parse(rawLink)
+   if err != nil {
+      return "", err
+   }
+   if link.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return link.Path, nil
+}
+
 func join(items ...string) string {
    return strings.Join(items, "")
+}
+
+func (a *AxisContent) Playback() (*Playback, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "capi.9c9media.com",
+      RawQuery: "$include=[ContentPackages]",
+      Path: join(
+         "/destinations/",
+         a.AxisPlaybackLanguages[0].DestinationCode,
+         "/platforms/desktop/contents/",
+         strconv.Itoa(a.AxisId),
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Playback{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
 }
 
 func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
@@ -54,11 +93,6 @@ func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
    return data, nil
 }
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (m Manifest) Mpd() (*Mpd, error) {
    resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
    if err != nil {
@@ -72,17 +106,12 @@ func (m Manifest) Mpd() (*Mpd, error) {
    return &Mpd{data, resp.Request.URL}, nil
 }
 
-// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func GetPath(rawLink string) (string, error) {
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return "", err
-   }
-   if link.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return link.Path, nil
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
 }
+
+///
 
 const query_resolve_path = `
 query resolvePath($path: String!) {
@@ -245,29 +274,3 @@ func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
 }
 
 type Manifest []byte
-func (a *AxisContent) Playback() (*Playback, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "capi.9c9media.com",
-      RawQuery: "$include=[ContentPackages]",
-      Path: join(
-         "/destinations/",
-         a.AxisPlaybackLanguages[0].DestinationCode,
-         "/platforms/desktop/contents/",
-         strconv.Itoa(a.AxisId),
-      ),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Playback{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
