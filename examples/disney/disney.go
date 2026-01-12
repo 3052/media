@@ -62,9 +62,9 @@ func (c *command) run() error {
    }
    cache = filepath.ToSlash(cache)
    c.name = cache + "/disney/userCache.xml"
-   c.job.ClientID = cache + "/L3/client_id.bin"
+   c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
-   flag.StringVar(&c.job.ClientID, "C", c.job.ClientID, "client ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
@@ -98,26 +98,8 @@ func (c *command) run() error {
    return nil
 }
 
-type command struct {
-   job      maya.WidevineJob
-   name     string
-   
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   media_id string
-   // 4
-   hls      string
-}
-
-///
-
 func (c *command) do_email_password() error {
-   var device disney.Device
-   err := device.Register()
+   device, err := disney.RegisterDevice()
    if err != nil {
       return err
    }
@@ -132,6 +114,23 @@ func (c *command) do_email_password() error {
    }
    return write(c.name, &cache)
 }
+
+type command struct {
+   job      maya.WidevineJob
+   name     string
+   // 1
+   email    string
+   password string
+   
+   // 2
+   address  string
+   // 3
+   media_id string
+   // 4
+   hls      string
+}
+
+///
 
 func (c *command) do_media_id() error {
    cache, err := read(c.name)
