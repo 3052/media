@@ -10,22 +10,49 @@ import (
    "strings"
 )
 
-func (p *Page) String() string {
-   var (
-      data strings.Builder
-      line bool
-   )
-   for _, action := range p.Actions {
-      if line {
-         data.WriteByte('\n')
-      } else {
-         line = true
+func (s Season) String() string {
+   return ""
+}
+
+type Season struct {
+   Items []struct {
+      Actions []struct {
+         InternalTitle string
       }
-      data.WriteString("title = ")
-      data.WriteString(action.InternalTitle)
    }
-   for _, container := range p.Containers {
-      for _, seasonItem := range container.Seasons {
+}
+
+func (a *Account) Season(id string) (*Season, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "disney.api.edge.bamgrid.com",
+      Path: "/explore/v1.12/season/" + id,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         Season Season
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Data.Season, nil
+}
+
+func (p *Page) String() string {
+   var data strings.Builder
+   if len(p.Containers[0].Seasons) >= 1 {
+      var line bool
+      for _, seasonItem := range p.Containers[0].Seasons {
          if line {
             data.WriteString("\n\n")
          } else {
@@ -36,6 +63,9 @@ func (p *Page) String() string {
          data.WriteString("\nid = ")
          data.WriteString(seasonItem.Id)
       }
+   } else {
+      data.WriteString("title = ")
+      data.WriteString(p.Actions[0].InternalTitle)
    }
    return data.String()
 }
@@ -87,40 +117,6 @@ func (a *Account) Page(entity string) (*Page, error) {
       return nil, &result.Data.Errors[0]
    }
    return &result.Data.Page, nil
-}
-
-func (a *Account) Season(id string) (*Season, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.api.edge.bamgrid.com",
-      Path: "/explore/v1.12/season/" + id,
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         Season Season
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Data.Season, nil
-}
-
-type Season struct {
-   Items []struct {
-      Actions []struct {
-         InternalTitle string
-      }
-   }
 }
 
 type Hls struct {

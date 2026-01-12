@@ -13,15 +13,19 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_hls() error {
-   cache, err := read(c.name)
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
    if err != nil {
-      return err
+      log.Fatal(err)
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Account.Widevine(data)
-   }
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
 }
 
 type user_cache struct {
@@ -51,21 +55,6 @@ func read(name string) (*user_cache, error) {
    return cache, nil
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -83,8 +72,10 @@ func (c *command) run() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.media_id, "m", "", "media ID")
+   flag.StringVar(&c.season, "s", "", "season")
    // 4
+   flag.StringVar(&c.media_id, "m", "", "media ID")
+   // 5
    flag.StringVar(&c.hls, "h", "", "HLS ID")
    flag.Parse()
    // 1
@@ -98,10 +89,14 @@ func (c *command) run() error {
       return c.do_address()
    }
    // 3
+   if c.season != "" {
+      return c.do_season()
+   }
+   // 4
    if c.media_id != "" {
       return c.do_media_id()
    }
-   // 4
+   // 5
    if c.hls != "" {
       return c.do_hls()
    }
@@ -143,6 +138,46 @@ func (c *command) do_address() error {
    return nil
 }
 
+func (c *command) do_season() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   season, err := cache.Account.Season(c.season)
+   if err != nil {
+      return err
+   }
+   fmt.Println(season)
+   return nil
+}
+
+type command struct {
+   job      maya.WidevineJob
+   name     string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   season string
+   // 4
+   media_id string
+   // 5
+   hls      string
+}
+
+func (c *command) do_hls() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Account.Widevine(data)
+   }
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+}
+
 func (c *command) do_media_id() error {
    cache, err := read(c.name)
    if err != nil {
@@ -161,18 +196,4 @@ func (c *command) do_media_id() error {
       return err
    }
    return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
-}
-
-type command struct {
-   job      maya.WidevineJob
-   name     string
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   media_id string
-   // 4
-   hls      string
 }
