@@ -13,6 +13,17 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
 func read(name string) (*user_cache, error) {
    data, err := os.ReadFile(name)
    if err != nil {
@@ -98,23 +109,6 @@ func (c *command) run() error {
    return nil
 }
 
-type command struct {
-   job     maya.WidevineJob
-   name       string
-   
-   // 1
-   connection bool
-   // 2
-   set_user   bool
-   // 3
-   roku       string
-   get_user   bool
-   // 4
-   dash       string
-}
-
-///
-
 func (c *command) do_connection() error {
    var (
       cache user_cache
@@ -169,16 +163,19 @@ func (c *command) do_roku() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
 }
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.Widevine(data)
-   }
-   return c.job.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+type command struct {
+   job     maya.WidevineJob
+   name       string
+   // 1
+   connection bool
+   // 2
+   set_user   bool
+   // 3
+   roku       string
+   get_user   bool
+   // 4
+   dash       string
 }

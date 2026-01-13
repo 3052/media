@@ -11,6 +11,50 @@ import (
    "strings"
 )
 
+const query_resolve_path = `
+query resolvePath($path: String!) {
+   resolvedPath(path: $path) {
+      lastSegment {
+         content {
+            ... on AxisObject {
+               id
+               ... on AxisMedia {
+                  firstPlayableContent {
+                     id
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+`
+
+const query_axis_content = `
+query axisContent($id: ID!) {
+   axisContent(id: $id) {
+      axisId
+      axisPlaybackLanguages {
+         ... on AxisPlayback {
+            destinationCode
+         }
+      }
+   }
+}
+`
+
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://license.9c9media.ca/widevine", "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 // https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
 func GetPath(rawLink string) (string, error) {
    link, err := url.Parse(rawLink)
@@ -25,6 +69,13 @@ func GetPath(rawLink string) (string, error) {
 
 func join(items ...string) string {
    return strings.Join(items, "")
+}
+
+type AxisContent struct {
+   AxisId                int
+   AxisPlaybackLanguages []struct {
+      DestinationCode string
+   }
 }
 
 func (a *AxisContent) Playback() (*Playback, error) {
@@ -93,6 +144,8 @@ func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
    return data, nil
 }
 
+type Manifest []byte
+
 func (m Manifest) Mpd() (*Mpd, error) {
    resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
    if err != nil {
@@ -109,59 +162,6 @@ func (m Manifest) Mpd() (*Mpd, error) {
 type Mpd struct {
    Body []byte
    Url  *url.URL
-}
-
-///
-
-const query_resolve_path = `
-query resolvePath($path: String!) {
-   resolvedPath(path: $path) {
-      lastSegment {
-         content {
-            ... on AxisObject {
-               id
-               ... on AxisMedia {
-                  firstPlayableContent {
-                     id
-                  }
-               }
-            }
-         }
-      }
-   }
-}
-`
-
-const query_axis_content = `
-query axisContent($id: ID!) {
-   axisContent(id: $id) {
-      axisId
-      axisPlaybackLanguages {
-         ... on AxisPlayback {
-            destinationCode
-         }
-      }
-   }
-}
-`
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://license.9c9media.ca/widevine", "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type AxisContent struct {
-   AxisId                int
-   AxisPlaybackLanguages []struct {
-      DestinationCode string
-   }
 }
 
 type Playback struct {
@@ -272,5 +272,3 @@ func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
    }
    return &result.Data.AxisContent, nil
 }
-
-type Manifest []byte
