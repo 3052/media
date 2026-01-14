@@ -13,61 +13,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.Widevine(data)
-   }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-type user_cache struct {
-   Connection *roku.Connection
-   LinkCode   *roku.LinkCode
-   Mpd        *roku.Mpd
-   Playback   *roku.Playback
-   User       *roku.User
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -79,6 +24,7 @@ func (c *command) run() error {
    c.name = cache + "/roku/userCache.xml"
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    // 1
    flag.BoolVar(&c.connection, "c", false, "connection")
    // 2
@@ -167,15 +113,70 @@ func (c *command) do_roku() error {
 }
 
 type command struct {
-   job     maya.WidevineJob
-   name       string
+   job  maya.WidevineJob
+   name string
    // 1
    connection bool
    // 2
-   set_user   bool
+   set_user bool
    // 3
-   roku       string
-   get_user   bool
+   roku     string
+   get_user bool
    // 4
-   dash       string
+   dash string
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playback.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+type user_cache struct {
+   Connection *roku.Connection
+   LinkCode   *roku.LinkCode
+   Mpd        *roku.Mpd
+   Playback   *roku.Playback
+   User       *roku.User
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
