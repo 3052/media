@@ -12,73 +12,37 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Playlist.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   Mpd      *hulu.Mpd
-   Playlist *hulu.Playlist
-   Session  *hulu.Session
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   address  string
-   config   maya.Config
-   dash     string
-   email    string
-   name     string
-   password string
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/hulu/userCache.xml"
-
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.Parse()
-
+   // 1
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
       }
    }
+   // 2
    if c.address != "" {
       return c.do_address()
    }
+   // 3
    if c.dash != "" {
       return c.do_dash()
    }
@@ -95,15 +59,6 @@ func write(name string, cache *user_cache) error {
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (c *command) do_email_password() error {
-   var session hulu.Session
-   err := session.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &user_cache{Session: &session})
-}
-
 func read(name string) (*user_cache, error) {
    data, err := os.ReadFile(name)
    if err != nil {
@@ -115,6 +70,15 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    return cache, nil
+}
+
+func (c *command) do_email_password() error {
+   var session hulu.Session
+   err := session.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &user_cache{Session: &session})
 }
 
 func (c *command) do_address() error {
@@ -146,5 +110,48 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+}
+
+type command struct {
+   name     string
+   job   maya.WidevineJob
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   dash     string
+}
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playlist.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
+type user_cache struct {
+   Mpd      *hulu.Mpd
+   Playlist *hulu.Playlist
+   Session  *hulu.Session
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
