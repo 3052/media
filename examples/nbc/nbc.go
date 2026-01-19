@@ -12,61 +12,28 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache nbc.Mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = nbc.Widevine
-   return c.config.Download(cache.Url, cache.Body, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   address string
-   config  maya.Config
-   dash    string
-   name    string
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/nbc/mpd.xml"
-
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   // 1
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.Parse()
-
+   // 1
    if c.address != "" {
       return c.do_address()
    }
+   // 2
    if c.dash != "" {
       return c.do_dash()
    }
@@ -100,5 +67,41 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Url, cache.Body)
+   return maya.ListDash(cache.Body, cache.Url)
+}
+
+type command struct {
+   job  maya.WidevineJob
+   name    string
+   // 1
+   address string
+   // 2
+   dash    string
+}
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache nbc.Mpd
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.job.Send = nbc.Widevine
+   return c.job.DownloadDash(cache.Body, cache.Url, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
