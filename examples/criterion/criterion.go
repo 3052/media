@@ -13,15 +13,31 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = maya.Transport(func(req *http.Request) string {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
       return "LP"
    })
-   log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
+   err := new(command).run()
    if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
+}
+
+type command struct {
+   job   maya.WidevineJob
+   name    string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   dash string
+}
+
+///
+
+func (f *command) New() error {
    switch {
    case set.address != "":
       err = set.do_address()
@@ -33,23 +49,44 @@ func main() {
    if err != nil {
       panic(err)
    }
+   var err error
+   f.name, err = os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   f.name = filepath.ToSlash(f.name)
+   f.job.ClientId = f.name + "/L3/client_id.bin"
+   f.job.PrivateKey = f.name + "/L3/private_key.pem"
+   flag.StringVar(&f.job.ClientId, "C", f.job.ClientId, "client ID")
+   flag.StringVar(&f.job.PrivateKey, "P", f.job.PrivateKey, "private key")
+   flag.StringVar(&f.address, "a", "", "address")
+   flag.StringVar(&f.email, "e", "", "email")
+   flag.Var(&f.filters, "f", maya.FilterUsage)
+   flag.StringVar(&f.password, "p", "", "password")
+   flag.Parse()
+   return nil
+   if f.email != "" {
+      if f.password != "" {
+         return true
+      }
+   }
+   return false
 }
-
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
 }
 
-func (f *flag_set) do_token() error {
+func (f *command) do_token() error {
    data, err := criterion.FetchToken(f.email, f.password)
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/criterion/Token", data)
+   return write_file(f.name+"/criterion/Token", data)
 }
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/criterion/Token")
+func (f *command) do_address() error {
+   data, err := os.ReadFile(f.name + "/criterion/Token")
    if err != nil {
       return err
    }
@@ -66,7 +103,7 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   err = write_file(f.cache+"/criterion/Token", data)
+   err = write_file(f.name+"/criterion/Token", data)
    if err != nil {
       return err
    }
@@ -86,45 +123,9 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.config.Send = func(data []byte) ([]byte, error) {
+   f.job.Send = func(data []byte) ([]byte, error) {
       return file.Widevine(data)
    }
-   return f.filters.Filter(resp, &f.config)
+   return f.filters.Filter(resp, &f.job)
 }
 
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", maya.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
-}
-
-type flag_set struct {
-   address  string
-   config   maya.Config
-   email    string
-   filters  maya.Filters
-   cache    string
-   password string
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}

@@ -13,14 +13,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
-}
-
 type command struct {
    name string
    job  maya.Job
@@ -31,6 +23,30 @@ type command struct {
    address string
    // 3
    dash string
+}
+
+///
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
 
 func write(name string, cache *user_cache) error {
@@ -58,20 +74,6 @@ func read(name string) (*user_cache, error) {
 type user_cache struct {
    Mpd     *cineMember.Mpd
    Session *cineMember.Session
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *command) run() error {
