@@ -10,6 +10,30 @@ import (
    "strings"
 )
 
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+         }
+      }
+   }
+}
+`
+
+const mutation_switch_profile = `
+mutation switchProfile($input: SwitchProfileInput!) {
+   switchProfile(switchProfile: $input) {
+      account {
+         activeProfile {
+            name
+         }
+      }
+   }
+}
+`
+
 func (a *Account) Season(id string) (*Season, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -93,35 +117,6 @@ func (a *Account) Widevine(data []byte) ([]byte, error) {
    return data, nil
 }
 
-func (s Season) String() string {
-   var (
-      data strings.Builder
-      line bool
-   )
-   for _, item := range s.Items {
-      for _, action := range item.Actions {
-         if line {
-            data.WriteByte('\n')
-         } else {
-            line = true
-         }
-         data.WriteString("title = ")
-         data.WriteString(action.InternalTitle)
-      }
-   }
-   return data.String()
-}
-
-type Season struct {
-   Items []struct {
-      Actions []struct {
-         InternalTitle string
-      }
-   }
-}
-
-///
-
 func (p *Page) String() string {
    var data strings.Builder
    if len(p.Containers[0].Seasons) >= 1 {
@@ -157,6 +152,35 @@ type Page struct {
       }
    }
 }
+
+func (s Season) String() string {
+   var (
+      data strings.Builder
+      line bool
+   )
+   for _, item := range s.Items {
+      for _, action := range item.Actions {
+         if line {
+            data.WriteByte('\n')
+         } else {
+            line = true
+         }
+         data.WriteString("title = ")
+         data.WriteString(action.InternalTitle)
+      }
+   }
+   return data.String()
+}
+
+type Season struct {
+   Items []struct {
+      Actions []struct {
+         InternalTitle string
+      }
+   }
+}
+
+///
 
 func (a *Account) Page(entity string) (*Page, error) {
    var req http.Request
@@ -474,27 +498,3 @@ func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, er
    }
    return result, nil
 }
-
-const mutation_login = `
-mutation login($input: LoginInput!) {
-   login(login: $input) {
-      account {
-         profiles {
-            id
-         }
-      }
-   }
-}
-`
-
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-   switchProfile(switchProfile: $input) {
-      account {
-         activeProfile {
-            name
-         }
-      }
-   }
-}
-`

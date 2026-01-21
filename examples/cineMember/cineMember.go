@@ -13,6 +13,14 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -111,8 +119,6 @@ type command struct {
    dash string
 }
 
-///
-
 func (c *command) do_address() error {
    cache, err := read(c.name)
    if err != nil {
@@ -139,12 +145,4 @@ func (c *command) do_address() error {
       return err
    }
    return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
