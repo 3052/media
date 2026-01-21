@@ -9,7 +9,25 @@ import (
    "net/url"
 )
 
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+type Mpd struct {
+   Body []byte
+   Url *url.URL
+}
+
+func (f *File) Mpd() (*Mpd, error) {
+   resp, err := http.Get(f.Links.Source.Href)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var media Mpd
+   media.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   media.Url = resp.Request.URL
+   return &media, nil
+}
 
 type File struct {
    DrmAuthorizationToken string `json:"drm_authorization_token"`
@@ -20,33 +38,18 @@ type File struct {
    } `json:"_links"`
    Method string
 }
-
-func (f *File) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
-   )
+func (t *Token) Refresh() error {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":     {client_id},
+      "grant_type":    {"refresh_token"},
+      "refresh_token": {t.RefreshToken},
+   })
    if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   return json.NewDecoder(resp.Body).Decode(t)
 }
-
-func (f Files) Dash() (*File, bool) {
-   for _, file_var := range f {
-      if file_var.Method == "dash" {
-         return &file_var, true
-      }
-   }
-   return nil, false
-}
-
-type Files []File
 
 func (t *Token) Fetch(username, password string) error {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
@@ -73,19 +76,6 @@ type Token struct {
    AccessToken      string `json:"access_token"`
    ErrorDescription string `json:"error_description"`
    RefreshToken     string `json:"refresh_token"`
-}
-
-func (t *Token) Refresh() error {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":     {client_id},
-      "grant_type":    {"refresh_token"},
-      "refresh_token": {t.RefreshToken},
-   })
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(t)
 }
 
 func (t *Token) Files(videoVar *Video) (Files, error) {
@@ -140,3 +130,32 @@ type Video struct {
    Message string
    Name    string
 }
+
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+
+func (f *File) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (f Files) Dash() (*File, bool) {
+   for _, file_var := range f {
+      if file_var.Method == "dash" {
+         return &file_var, true
+      }
+   }
+   return nil, false
+}
+
+type Files []File
