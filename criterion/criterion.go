@@ -9,9 +9,22 @@ import (
    "net/url"
 )
 
-type Mpd struct {
-   Body []byte
-   Url *url.URL
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+
+func (f *File) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
 
 func (f *File) Mpd() (*Mpd, error) {
@@ -38,6 +51,23 @@ type File struct {
    } `json:"_links"`
    Method string
 }
+
+func (f Files) Dash() (*File, bool) {
+   for _, file_var := range f {
+      if file_var.Method == "dash" {
+         return &file_var, true
+      }
+   }
+   return nil, false
+}
+
+type Files []File
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func (t *Token) Refresh() error {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
       "client_id":     {client_id},
@@ -130,32 +160,3 @@ type Video struct {
    Message string
    Name    string
 }
-
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
-
-func (f *File) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (f Files) Dash() (*File, bool) {
-   for _, file_var := range f {
-      if file_var.Method == "dash" {
-         return &file_var, true
-      }
-   }
-   return nil, false
-}
-
-type Files []File

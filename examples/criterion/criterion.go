@@ -3,6 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/criterion"
+   "encoding/xml"
    "errors"
    "flag"
    "log"
@@ -12,11 +13,10 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return file.Widevine(data)
-   }
-   return c.filters.Filter(resp, &c.job)
+type user_cache struct {
+   File  *criterion.File
+   Mpd   *criterion.Mpd
+   Token *criterion.Token
 }
 
 func (c *command) do_address() error {
@@ -24,15 +24,15 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   err = token.Refresh()
+   err = cache.Token.Refresh()
    if err != nil {
       return err
    }
-   video, err := token.Video(path.Base(c.address))
+   video, err := cache.Token.Video(path.Base(c.address))
    if err != nil {
       return err
    }
-   files, err := token.Files(video)
+   files, err := cache.Token.Files(video)
    if err != nil {
       return err
    }
@@ -41,7 +41,7 @@ func (c *command) do_address() error {
    if !ok {
       return errors.New(".Dash()")
    }
-   cache.Mpd, err = file.Mpd()
+   cache.Mpd, err = cache.File.Mpd()
    if err != nil {
       return err
    }
@@ -50,12 +50,6 @@ func (c *command) do_address() error {
       return err
    }
    return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
-}
-
-type user_cache struct {
-   File *criterion.File
-   Mpd *criterion.Mpd
-   Token *criterion.Token
 }
 
 func main() {
@@ -138,13 +132,24 @@ func read(name string) (*user_cache, error) {
 }
 
 type command struct {
-   job   maya.WidevineJob
-   name    string
+   job  maya.WidevineJob
+   name string
    // 1
    email    string
    password string
    // 2
-   address  string
+   address string
    // 3
    dash string
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.File.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
