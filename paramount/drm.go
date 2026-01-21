@@ -79,6 +79,7 @@ func Widevine(at, contentId string) (*SessionToken, error) {
    }
    return &token, nil
 }
+
 func (s *SessionToken) Send(data []byte) ([]byte, error) {
    req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
    if err != nil {
@@ -99,4 +100,3 @@ func (s *SessionToken) Send(data []byte) ([]byte, error) {
    }
    return data, nil
 }
-

@@ -16,31 +16,18 @@ import (
    "strings"
 )
 
-type Item struct {
-   AssetType    string
-   CmsAccountId string
-   ContentId    string
-}
-
-func join(items ...string) string {
-   return strings.Join(items, "")
-}
-
 func (i *Item) Mpd() (*Mpd, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
       Host: "link.theplatform.com",
-      RawQuery: url.Values{
-         // "assetTypes": {i.AssetType},
-         "formats":    {"MPEG-DASH"},
-      }.Encode(),
       Path: join(
          "/s/", i.CmsAccountId,
          "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
          "/", i.ContentId,
       ),
+      RawQuery: "formats=MPEG-DASH",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -52,6 +39,15 @@ func (i *Item) Mpd() (*Mpd, error) {
       return nil, err
    }
    return &Mpd{data, resp.Request.URL}, nil
+}
+
+type Item struct {
+   CmsAccountId string
+   ContentId    string
+}
+
+func join(items ...string) string {
+   return strings.Join(items, "")
 }
 
 type Mpd struct {
