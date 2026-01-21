@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/paramount"
+   "41.neocities.org/media/research/paramount"
    "encoding/xml"
    "flag"
    "log"
@@ -18,16 +18,16 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/paramount/userCache.xml"
+   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    // 1
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
    flag.BoolVar(&c.intl, "i", false, "intl")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
    // 1
    if c.paramount != "" {
@@ -41,66 +41,9 @@ func (c *command) run() error {
    return nil
 }
 
-func (c *command) do_paramount() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   item, err := paramount.FetchItem(at, c.paramount)
-   if err != nil {
-      return err
-   }
-   cache, err := item.Mpd()
-   if err != nil {
-      return err
-   }
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Body, cache.Url)
-}
-
-type command struct {
-   job  maya.WidevineJob
-   name string
-   // 1
-   paramount string
-   intl      bool
-   // 2
-   dash string
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache paramount.Mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   // INTL does NOT allow anonymous key request, so if you are INTL you
-   // will need to use US VPN until someone codes the INTL login
-   at, err := paramount.GetAt(paramount.ComCbsApp.AppSecret)
-   if err != nil {
-      return err
-   }
-   var token paramount.SessionToken
-   err = token.Fetch(at, c.paramount)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return token.Widevine(data)
-   }
-   return c.job.DownloadDash(cache.Body, cache.Url, c.dash)
+type user_cache struct {
+   Item *paramount.Item
+   Mpd  *paramount.Mpd
 }
 
 func (c *command) app_secret() string {
@@ -127,4 +70,66 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
+}
+
+type command struct {
+   job  maya.PlayReadyJob
+   name string
+   // 1
+   paramount string
+   intl      bool
+   // 2
+   dash string
+}
+
+func (c *command) do_paramount() error {
+   at, err := paramount.GetAt(c.app_secret())
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Item, err = paramount.FetchItem(at, c.paramount)
+   if err != nil {
+      return err
+   }
+   cache.Mpd, err = cache.Item.Mpd()
+   if err != nil {
+      return err
+   }
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+}
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   // INTL does NOT allow anonymous key request, so if you are INTL you
+   // will need to use US VPN until someone codes the INTL login
+   at, err := paramount.GetAt(paramount.ComCbsApp.AppSecret)
+   if err != nil {
+      return err
+   }
+   token, err := paramount.PlayReady(at, cache.Item.ContentId)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return token.Send(data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
