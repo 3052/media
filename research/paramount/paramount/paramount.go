@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/paramount"
+   "41.neocities.org/media/research/paramount"
    "encoding/xml"
    "flag"
    "log"
@@ -11,6 +11,64 @@ import (
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   // INTL does NOT allow anonymous key request, so if you are INTL you
+   // will need to use US VPN until someone codes the INTL login
+   at, err := paramount.GetAt(paramount.ComCbsApp.AppSecret)
+   if err != nil {
+      return err
+   }
+   var token paramount.SessionToken
+   err = token.Fetch(at, cache.Item.ContentId)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return token.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
+type user_cache struct {
+   Item *paramount.Item
+   Mpd *paramount.Mpd
+}
+
+func (c *command) app_secret() string {
+   if c.intl {
+      return paramount.ComCbsCa.AppSecret
+   }
+   return paramount.ComCbsApp.AppSecret
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return ""
+      }
+      switch path.Base(req.URL.Path) {
+      case "anonymous-session-token.json", "getlicense":
+         return "L"
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -41,16 +99,27 @@ func (c *command) run() error {
    return nil
 }
 
+type command struct {
+   job  maya.WidevineJob
+   name string
+   // 1
+   paramount string
+   intl      bool
+   // 2
+   dash string
+}
+
 func (c *command) do_paramount() error {
    at, err := paramount.GetAt(c.app_secret())
    if err != nil {
       return err
    }
-   item, err := paramount.FetchItem(at, c.paramount)
+   var cache user_cache
+   cache.Item, err = paramount.FetchItem(at, c.paramount)
    if err != nil {
       return err
    }
-   cache, err := item.Mpd()
+   cache.Mpd, err = cache.Item.Mpd()
    if err != nil {
       return err
    }
@@ -63,68 +132,5 @@ func (c *command) do_paramount() error {
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Body, cache.Url)
-}
-
-type command struct {
-   job  maya.WidevineJob
-   name string
-   // 1
-   paramount string
-   intl      bool
-   // 2
-   dash string
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache paramount.Mpd
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   // INTL does NOT allow anonymous key request, so if you are INTL you
-   // will need to use US VPN until someone codes the INTL login
-   at, err := paramount.GetAt(paramount.ComCbsApp.AppSecret)
-   if err != nil {
-      return err
-   }
-   var token paramount.SessionToken
-   err = token.Fetch(at, c.paramount)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return token.Widevine(data)
-   }
-   return c.job.DownloadDash(cache.Body, cache.Url, c.dash)
-}
-
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.ComCbsCa.AppSecret
-   }
-   return paramount.ComCbsApp.AppSecret
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return ""
-      }
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense":
-         return "L"
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
 }

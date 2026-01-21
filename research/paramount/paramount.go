@@ -17,51 +17,34 @@ import (
    "strings"
 )
 
-var ComCbsApp = Provider{
-   AppSecret: "9fc14cb03691c342",
-   Version:   "16.0.0",
-}
-
-var ComCbsCa = Provider{
-   AppSecret: "6c68178445de8138",
-   Version:   "16.0.0",
-}
-
-func FetchItem(at, cId string) (*Item, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "www.paramountplus.com",
-      Path: join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
-      RawQuery: url.Values{"at": {at}}.Encode(),
+// L3 540p
+// L1 720p
+func (s *SessionToken) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
+   if err != nil {
+      return nil, err
    }
-   resp, err := http.DefaultClient.Do(&req)
+   req.Header.Set("authorization", "Bearer "+s.LsSession)
+   req.Header.Set("content-type", "application/x-protobuf")
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
+   data, err = io.ReadAll(resp.Body)
    if err != nil {
       return nil, err
    }
-   if resp.StatusCode != http.StatusOK { // error 403 406
-      if len(data) >= 1 {
-         return nil, errors.New(string(data))
-      }
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.ItemList) == 0 { // error 200
+   if resp.StatusCode != http.StatusOK {
       return nil, errors.New(string(data))
    }
-   return &result.ItemList[0], nil
+   return data, nil
+}
+
+type Item struct {
+   AssetType    string
+   CmsAccountId string
+   ContentId    string
 }
 
 func (s *SessionToken) Fetch(at, contentId string) error {
@@ -112,28 +95,6 @@ func (s *SessionToken) playReady(at, contentId string) error {
    return json.NewDecoder(resp.Body).Decode(s)
 }
 
-func (s *SessionToken) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+s.LsSession)
-   req.Header.Set("content-type", "application/x-protobuf")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(string(data))
-   }
-   return data, nil
-}
-
 func join(items ...string) string {
    return strings.Join(items, "")
 }
@@ -145,7 +106,7 @@ func (i *Item) Mpd() (*Mpd, error) {
       Scheme: "https",
       Host: "link.theplatform.com",
       RawQuery: url.Values{
-         "assetTypes": {i.AssetType},
+         // "assetTypes": {i.AssetType},
          "formats":    {"MPEG-DASH"},
       }.Encode(),
       Path: join(
@@ -231,12 +192,6 @@ func pkcs7_pad(data []byte, blockSize int) []byte {
    return data
 }
 
-type Item struct {
-   AssetType    string
-   CmsAccountId string
-   ContentId    string
-}
-
 type Provider struct {
    AppSecret string
    Version   string
@@ -246,3 +201,50 @@ type SessionToken struct {
    LsSession string `json:"ls_session"`
    Url       string
 }
+var ComCbsApp = Provider{
+   AppSecret: "9fc14cb03691c342",
+   Version:   "16.0.0",
+}
+
+var ComCbsCa = Provider{
+   AppSecret: "6c68178445de8138",
+   Version:   "16.0.0",
+}
+
+func FetchItem(at, cId string) (*Item, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.paramountplus.com",
+      Path: join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
+      RawQuery: url.Values{"at": {at}}.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK { // error 403 406
+      if len(data) >= 1 {
+         return nil, errors.New(string(data))
+      }
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.ItemList) == 0 { // error 200
+      return nil, errors.New(string(data))
+   }
+   return &result.ItemList[0], nil
+}
+
