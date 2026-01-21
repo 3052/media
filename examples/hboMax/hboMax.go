@@ -13,66 +13,20 @@ import (
    "path/filepath"
 )
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
-type user_cache struct {
-   Login    *hboMax.Login
-   Mpd      *hboMax.Mpd
-   Playback *hboMax.Playback
-   St       *hboMax.St
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
+   c.name = cache + "/hboMax/userCache.xml"
    c.job.CertificateChain = cache + "/SL3000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/hboMax/userCache.xml"
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   // 1
+   flag.BoolVar(&c.initiate, "i", false, "device initiate")
    flag.StringVar(
       &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets[1:]),
    )
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
-   // 1
-   flag.BoolVar(&c.initiate, "i", false, "device initiate")
    // 2
    flag.BoolVar(&c.login, "l", false, "device login")
    // 3
@@ -82,6 +36,8 @@ func (c *command) run() error {
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 5
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
    // 1
    if c.initiate {
@@ -214,3 +170,45 @@ func (c *command) do_dash() error {
    return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
 
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+type user_cache struct {
+   Login    *hboMax.Login
+   Mpd      *hboMax.Mpd
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}

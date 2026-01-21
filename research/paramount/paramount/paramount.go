@@ -34,9 +34,38 @@ func (c *command) do_dash() error {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
-      return token.Widevine(data)
+      return token.PlayReady(data)
    }
    return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/paramount/userCache.xml"
+   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
+   // 1
+   flag.StringVar(&c.paramount, "p", "", "paramount ID")
+   flag.BoolVar(&c.intl, "i", false, "intl")
+   // 2
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.Parse()
+   // 1
+   if c.paramount != "" {
+      return c.do_paramount()
+   }
+   // 2
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
 }
 
 type user_cache struct {
@@ -68,35 +97,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/paramount/userCache.xml"
-   // 1
-   flag.StringVar(&c.paramount, "p", "", "paramount ID")
-   flag.BoolVar(&c.intl, "i", false, "intl")
-   // 2
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.Parse()
-   // 1
-   if c.paramount != "" {
-      return c.do_paramount()
-   }
-   // 2
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   flag.Usage()
-   return nil
 }
 
 type command struct {
