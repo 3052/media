@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/research/paramount"
+   "41.neocities.org/media/paramount"
    "encoding/xml"
    "flag"
    "log"
@@ -22,12 +22,13 @@ func (c *command) run() error {
    c.job.CertificateChain = cache + "/SL2000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    // 1
-   flag.StringVar(&c.paramount, "p", "", "paramount ID")
    flag.BoolVar(&c.intl, "i", false, "intl")
+   flag.StringVar(&c.paramount, "p", "", "paramount ID")
    // 2
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.Parse()
    // 1
    if c.paramount != "" {
