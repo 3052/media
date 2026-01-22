@@ -24,8 +24,8 @@ func PlayReady(at, contentId string) (*SessionToken, error) {
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
-      Path: "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json",
       Host: "www.paramountplus.com",
+      Path: "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json",
       RawQuery: url.Values{
          "at":        {at},
          "contentId": {contentId},
