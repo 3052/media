@@ -10,6 +10,57 @@ import (
    "strings"
 )
 
+func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_login,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email":    email,
+            "password": password,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set(
+      "authorization", "Bearer " + d.Token.AccessToken,
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result AccountWithoutActiveProfile
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result, nil
+}
+
+const mutation_register_device = `
+mutation registerDevice($input: RegisterDeviceInput!) {
+   registerDevice(registerDevice: $input) {
+      token {
+         accessToken
+         refreshToken
+         accessTokenType
+      }
+   }
+}
+`
+
 const mutation_login = `
 mutation login($input: LoginInput!) {
    login(login: $input) {
@@ -22,100 +73,9 @@ mutation login($input: LoginInput!) {
 }
 `
 
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-   switchProfile(switchProfile: $input) {
-      account {
-         activeProfile {
-            name
-         }
-      }
-   }
-}
-`
-
-func (a *Account) Season(id string) (*Season, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.api.edge.bamgrid.com",
-      Path: "/explore/v1.12/season/" + id,
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         Season Season
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Data.Season, nil
-}
-
-// SL2000 720p
-// SL3000 720p
-func (a *Account) PlayReady(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-// L3 720p
-// L1 1080p
-func (a *Account) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Errors []Error
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, &result.Errors[0]
-   }
-   return data, nil
-}
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
 
 func RegisterDevice() (*Device, error) {
    data, err := json.Marshal(map[string]any{
@@ -166,42 +126,6 @@ type Device struct {
       RefreshToken    string
       AccessTokenType string // Device
    }
-}
-
-func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_login,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "email":    email,
-            "password": password,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set(
-      "authorization", "Bearer " + d.Token.AccessToken,
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &AccountWithoutActiveProfile{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
 
 func (p *Page) String() string {
@@ -266,8 +190,6 @@ type Season struct {
       }
    }
 }
-
-///
 
 func (a *Account) Page(entity string) (*Page, error) {
    var req http.Request
@@ -380,6 +302,7 @@ type AccountWithoutActiveProfile struct {
          }
       }
    }
+   Errors []Error
    Extensions struct {
       Sdk struct {
          Token struct {
@@ -402,36 +325,6 @@ func (s *Stream) Hls() (*Hls, error) {
    }
    return &Hls{data, resp.Request.URL}, nil
 }
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("code = ")
-   data.WriteString(e.Code)
-   data.WriteString("\ndescription = ")
-   data.WriteString(e.Description)
-   return data.String()
-}
-
-type Error struct {
-   Code        string
-   Description string
-}
-
-// ZGlzbmV5JmJyb3dzZXImMS4wLjA
-// disney&browser&1.0.0
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
-
-const mutation_register_device = `
-mutation registerDevice($input: RegisterDeviceInput!) {
-   registerDevice(registerDevice: $input) {
-      token {
-         accessToken
-         refreshToken
-         accessTokenType
-      }
-   }
-}
-`
 
 type Account struct {
    Extensions struct {
@@ -498,3 +391,137 @@ func GetEntity(link string) (string, error) {
    // The 'id' variable now holds the rest of the string after the marker.
    return id, nil
 }
+func (e *Error) Error() string {
+   var data strings.Builder
+   if e.Code != "" {
+      data.WriteString("code = ")
+      data.WriteString(e.Code)
+   }
+   if e.Description != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("description = ")
+      data.WriteString(e.Description)
+   }
+   if e.Extensions != nil {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("extensions = ")
+      data.WriteString(e.Extensions.Code)
+   }
+   if e.Message != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("message = ")
+      data.WriteString(e.Message)
+   }
+   return data.String()
+}
+
+type Error struct {
+   Code        string
+   Description string
+   Extensions *struct {
+      Code string
+   }
+   Message string
+}
+
+const mutation_switch_profile = `
+mutation switchProfile($input: SwitchProfileInput!) {
+   switchProfile(switchProfile: $input) {
+      account {
+         activeProfile {
+            name
+         }
+      }
+   }
+}
+`
+
+func (a *Account) Season(id string) (*Season, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "disney.api.edge.bamgrid.com",
+      Path: "/explore/v1.12/season/" + id,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         Season Season
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Data.Season, nil
+}
+
+// SL2000 720p
+// SL3000 720p
+func (a *Account) PlayReady(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+// L3 720p
+// L1 1080p
+func (a *Account) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Errors []Error
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, &result.Errors[0]
+   }
+   return data, nil
+}
+

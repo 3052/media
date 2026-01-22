@@ -54,8 +54,6 @@ immediately
 
 no payPal option
 
----
-
 ## wise.com
 
 1. criterionchannel.com/checkout
