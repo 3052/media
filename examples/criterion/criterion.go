@@ -13,6 +13,58 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   File  *criterion.File
+   Mpd   *criterion.Mpd
+   Token *criterion.Token
+}
+
+func (c *command) do_address() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   err = cache.Token.Refresh()
+   if err != nil {
+      return err
+   }
+   video, err := cache.Token.Video(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   files, err := cache.Token.Files(video)
+   if err != nil {
+      return err
+   }
+   var ok bool
+   cache.File, ok = files.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   cache.Mpd, err = cache.File.Mpd()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+}
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -103,56 +155,4 @@ func (c *command) do_dash() error {
       return cache.File.Widevine(data)
    }
    return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
-}
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   File  *criterion.File
-   Mpd   *criterion.Mpd
-   Token *criterion.Token
-}
-
-func (c *command) do_address() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   err = cache.Token.Refresh()
-   if err != nil {
-      return err
-   }
-   video, err := cache.Token.Video(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   files, err := cache.Token.Files(video)
-   if err != nil {
-      return err
-   }
-   var ok bool
-   cache.File, ok = files.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   cache.Mpd, err = cache.File.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
 }
