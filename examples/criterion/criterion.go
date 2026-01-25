@@ -13,6 +13,12 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   MediaFile *criterion.MediaFile
+   Mpd       *criterion.Mpd
+   Token     *criterion.Token
+}
+
 func (c *command) do_address() error {
    cache, err := read(c.name)
    if err != nil {
@@ -31,11 +37,11 @@ func (c *command) do_address() error {
       return err
    }
    var ok bool
-   cache.File, ok = files.Dash()
+   cache.MediaFile, ok = files.Dash()
    if !ok {
       return errors.New(".Dash()")
    }
-   cache.Mpd, err = cache.File.Mpd()
+   cache.Mpd, err = cache.MediaFile.Mpd()
    if err != nil {
       return err
    }
@@ -132,7 +138,7 @@ func (c *command) do_dash() error {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.File.Widevine(data)
+      return cache.MediaFile.Widevine(data)
    }
    return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
 }
@@ -148,10 +154,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-type user_cache struct {
-   File  *criterion.File
-   Mpd   *criterion.Mpd
-   Token *criterion.Token
 }

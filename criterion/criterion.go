@@ -10,14 +10,63 @@ import (
    "strings"
 )
 
+func (t *Token) Files(item *VideoItem) (MediaFiles, error) {
+   req, err := http.NewRequest("", item.Links.Files.Href, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result MediaFiles
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+func (t *Token) Item(slug string) (*VideoItem, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   req.URL = &url.URL{
+      Host:     "api.vhx.com",
+      Path:     join("/collections/", slug, "/items"),
+      RawQuery: "site_id=59054",
+      Scheme:   "https",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Embedded struct {
+         Items []VideoItem
+      } `json:"_embedded"`
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Embedded.Items[0], nil
+}
+
 const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
 func join(items ...string) string {
    return strings.Join(items, "")
 }
 
-func (f *File) Mpd() (*Mpd, error) {
-   resp, err := http.Get(f.Links.Source.Href)
+func (m *MediaFile) Mpd() (*Mpd, error) {
+   resp, err := http.Get(m.Links.Source.Href)
    if err != nil {
       return nil, err
    }
@@ -31,7 +80,7 @@ func (f *File) Mpd() (*Mpd, error) {
    return &media, nil
 }
 
-type File struct {
+type MediaFile struct {
    DrmAuthorizationToken string `json:"drm_authorization_token"`
    Links                 struct {
       Source struct {
@@ -41,14 +90,14 @@ type File struct {
    Method string
 }
 
-func (f *File) Widevine(data []byte) ([]byte, error) {
+func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
    }
-   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
+   req.URL.RawQuery = "token=" + m.DrmAuthorizationToken
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -57,18 +106,9 @@ func (f *File) Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (f Files) Dash() (*File, bool) {
-   for _, file_var := range f {
-      if file_var.Method == "dash" {
-         return &file_var, true
-      }
-   }
-   return nil, false
-}
+type MediaFiles []MediaFile
 
-type Files []File
-
-type Item struct {
+type VideoItem struct {
    Links struct {
       Files struct {
          Href string // https://api.vhx.tv/videos/3460957/files
@@ -121,51 +161,11 @@ func (t *Token) Fetch(username, password string) error {
    return nil
 }
 
-func (t *Token) Files(embed *Item) (Files, error) {
-   req, err := http.NewRequest("", embed.Links.Files.Href, nil)
-   if err != nil {
-      return nil, err
+func (m MediaFiles) Dash() (*MediaFile, bool) {
+   for _, file := range m {
+      if file.Method == "dash" {
+         return &file, true
+      }
    }
-   req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result Files
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
-func (t *Token) Item(slug string) (*Item, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   req.URL = &url.URL{
-      Host:     "api.vhx.com",
-      Path:     join("/collections/", slug, "/items"),
-      RawQuery: "site_id=59054",
-      Scheme:   "https",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Embedded struct {
-         Items []Item
-      } `json:"_embedded"`
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Embedded.Items[0], nil
+   return nil, false
 }

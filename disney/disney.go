@@ -10,6 +10,34 @@ import (
    "strings"
 )
 
+const mutation_register_device = `
+mutation registerDevice($input: RegisterDeviceInput!) {
+   registerDevice(registerDevice: $input) {
+      token {
+         accessToken
+         refreshToken
+         accessTokenType
+      }
+   }
+}
+`
+
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+         }
+      }
+   }
+}
+`
+
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
 func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_login,
@@ -49,33 +77,7 @@ func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, er
    return &result, nil
 }
 
-const mutation_register_device = `
-mutation registerDevice($input: RegisterDeviceInput!) {
-   registerDevice(registerDevice: $input) {
-      token {
-         accessToken
-         refreshToken
-         accessTokenType
-      }
-   }
-}
-`
-
-const mutation_login = `
-mutation login($input: LoginInput!) {
-   login(login: $input) {
-      account {
-         profiles {
-            id
-         }
-      }
-   }
-}
-`
-
-// ZGlzbmV5JmJyb3dzZXImMS4wLjA
-// disney&browser&1.0.0
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+///
 
 func RegisterDevice() (*Device, error) {
    data, err := json.Marshal(map[string]any{
