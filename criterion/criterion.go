@@ -7,19 +7,11 @@ import (
    "io"
    "net/http"
    "net/url"
+   "strings"
 )
 
-type Video struct {
-   Links struct {
-      Files struct {
-         Href string // https://api.vhx.tv/videos/3460957/files
-      }
-   } `json:"_links"`
-   Message string
-}
-
-func (t *Token) Files(videoVar *Video) (Files, error) {
-   req, err := http.NewRequest("", videoVar.Links.Files.Href, nil)
+func (t *Token) Files(embed *Item) (Files, error) {
+   req, err := http.NewRequest("", embed.Links.Files.Href, nil)
    if err != nil {
       return nil, err
    }
@@ -32,52 +24,49 @@ func (t *Token) Files(videoVar *Video) (Files, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   var files_var Files
-   err = json.NewDecoder(resp.Body).Decode(&files_var)
+   var result Files
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   return files_var, nil
+   return result, nil
 }
 
-func (t *Token) Video(slug string) (*Video, error) {
-   req, _ := http.NewRequest("", "https://api.vhx.com", nil)
-   req.URL.Path = "/videos/" + slug
-   req.URL.RawQuery = "url=" + url.QueryEscape(slug)
+func (t *Token) Item(slug string) (*Item, error) {
+   var req http.Request
+   req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
+   req.URL = &url.URL{
+      Host: "api.vhx.com",
+      Path: join("/collections/", slug, "/items"),
+      RawQuery: "site_id=59054",
+      Scheme: "https",
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   var video_var Video
-   err = json.NewDecoder(resp.Body).Decode(&video_var)
+   var result struct {
+      Embedded struct {
+         Items []Item
+      } `json:"_embedded"`
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if video_var.Message != "" {
-      return nil, errors.New(video_var.Message)
-   }
-   return &video_var, nil
+   return &result.Embedded.Items[0], nil
+}
+type Item struct {
+   Links struct {
+      Files struct {
+         Href string // https://api.vhx.tv/videos/3460957/files
+      }
+   } `json:"_links"`
 }
 
 const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
-
-func (f *File) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
 
 func (f *File) Mpd() (*Mpd, error) {
    resp, err := http.Get(f.Links.Source.Href)
@@ -120,6 +109,28 @@ type Mpd struct {
    Url  *url.URL
 }
 
+type Token struct {
+   AccessToken      string `json:"access_token"`
+   ErrorDescription string `json:"error_description"`
+   RefreshToken     string `json:"refresh_token"`
+}
+
+func (f *File) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (t *Token) Refresh() error {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
       "client_id":     {client_id},
@@ -154,9 +165,6 @@ func (t *Token) Fetch(username, password string) error {
    return nil
 }
 
-type Token struct {
-   AccessToken      string `json:"access_token"`
-   ErrorDescription string `json:"error_description"`
-   RefreshToken     string `json:"refresh_token"`
+func join(items ...string) string {
+   return strings.Join(items, "")
 }
-
