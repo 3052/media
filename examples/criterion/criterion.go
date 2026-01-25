@@ -13,26 +13,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   File  *criterion.File
-   Mpd   *criterion.Mpd
-   Token *criterion.Token
-}
-
 func (c *command) do_address() error {
    cache, err := read(c.name)
    if err != nil {
@@ -42,11 +22,11 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   video, err := cache.Token.Video(path.Base(c.address))
+   item, err := cache.Token.Item(path.Base(c.address))
    if err != nil {
       return err
    }
-   files, err := cache.Token.Files(video)
+   files, err := cache.Token.Files(item)
    if err != nil {
       return err
    }
@@ -155,4 +135,23 @@ func (c *command) do_dash() error {
       return cache.File.Widevine(data)
    }
    return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   File  *criterion.File
+   Mpd   *criterion.Mpd
+   Token *criterion.Token
 }

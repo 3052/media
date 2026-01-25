@@ -10,6 +10,117 @@ import (
    "strings"
 )
 
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+
+func join(items ...string) string {
+   return strings.Join(items, "")
+}
+
+func (f *File) Mpd() (*Mpd, error) {
+   resp, err := http.Get(f.Links.Source.Href)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var media Mpd
+   media.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   media.Url = resp.Request.URL
+   return &media, nil
+}
+
+type File struct {
+   DrmAuthorizationToken string `json:"drm_authorization_token"`
+   Links                 struct {
+      Source struct {
+         Href string // MPD
+      }
+   } `json:"_links"`
+   Method string
+}
+
+func (f *File) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (f Files) Dash() (*File, bool) {
+   for _, file_var := range f {
+      if file_var.Method == "dash" {
+         return &file_var, true
+      }
+   }
+   return nil, false
+}
+
+type Files []File
+
+type Item struct {
+   Links struct {
+      Files struct {
+         Href string // https://api.vhx.tv/videos/3460957/files
+      }
+   } `json:"_links"`
+}
+
+type Mpd struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (t *Token) Refresh() error {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":     {client_id},
+      "grant_type":    {"refresh_token"},
+      "refresh_token": {t.RefreshToken},
+   })
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(t)
+}
+
+type Token struct {
+   AccessToken      string `json:"access_token"`
+   ErrorDescription string `json:"error_description"`
+   RefreshToken     string `json:"refresh_token"`
+}
+
+func (t *Token) Fetch(username, password string) error {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":  {client_id},
+      "grant_type": {"password"},
+      "password":   {password},
+      "username":   {username},
+   })
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(t)
+   if err != nil {
+      return err
+   }
+   if t.ErrorDescription != "" {
+      return errors.New(t.ErrorDescription)
+   }
+   return nil
+}
+
 func (t *Token) Files(embed *Item) (Files, error) {
    req, err := http.NewRequest("", embed.Links.Files.Href, nil)
    if err != nil {
@@ -37,10 +148,10 @@ func (t *Token) Item(slug string) (*Item, error) {
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+t.AccessToken)
    req.URL = &url.URL{
-      Host: "api.vhx.com",
-      Path: join("/collections/", slug, "/items"),
+      Host:     "api.vhx.com",
+      Path:     join("/collections/", slug, "/items"),
       RawQuery: "site_id=59054",
-      Scheme: "https",
+      Scheme:   "https",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -57,114 +168,4 @@ func (t *Token) Item(slug string) (*Item, error) {
       return nil, err
    }
    return &result.Embedded.Items[0], nil
-}
-type Item struct {
-   Links struct {
-      Files struct {
-         Href string // https://api.vhx.tv/videos/3460957/files
-      }
-   } `json:"_links"`
-}
-
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
-
-func (f *File) Mpd() (*Mpd, error) {
-   resp, err := http.Get(f.Links.Source.Href)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var media Mpd
-   media.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   media.Url = resp.Request.URL
-   return &media, nil
-}
-
-type File struct {
-   DrmAuthorizationToken string `json:"drm_authorization_token"`
-   Links                 struct {
-      Source struct {
-         Href string // MPD
-      }
-   } `json:"_links"`
-   Method string
-}
-
-func (f Files) Dash() (*File, bool) {
-   for _, file_var := range f {
-      if file_var.Method == "dash" {
-         return &file_var, true
-      }
-   }
-   return nil, false
-}
-
-type Files []File
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type Token struct {
-   AccessToken      string `json:"access_token"`
-   ErrorDescription string `json:"error_description"`
-   RefreshToken     string `json:"refresh_token"`
-}
-
-func (f *File) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = "token=" + f.DrmAuthorizationToken
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-func (t *Token) Refresh() error {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":     {client_id},
-      "grant_type":    {"refresh_token"},
-      "refresh_token": {t.RefreshToken},
-   })
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(t)
-}
-
-func (t *Token) Fetch(username, password string) error {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":  {client_id},
-      "grant_type": {"password"},
-      "password":   {password},
-      "username":   {username},
-   })
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(t)
-   if err != nil {
-      return err
-   }
-   if t.ErrorDescription != "" {
-      return errors.New(t.ErrorDescription)
-   }
-   return nil
-}
-
-func join(items ...string) string {
-   return strings.Join(items, "")
 }
