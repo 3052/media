@@ -34,8 +34,7 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var session SessionToken
-   err = session.playReady(at, "wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
+   session, err := PlayReady(at, "wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q")
    if err != nil {
       t.Fatal(err)
    }

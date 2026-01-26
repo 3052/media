@@ -17,6 +17,16 @@ import (
    "strings"
 )
 
+var ComCbsApp = Provider{
+   AppSecret: "9fc14cb03691c342",
+   Version:   "16.0.0",
+}
+
+var ComCbsCa = Provider{
+   AppSecret: "6c68178445de8138",
+   Version:   "16.0.0",
+}
+
 // 1080p SL2000
 // 1440p
 func PlayReady(at, contentId string) (*SessionToken, error) {
@@ -107,6 +117,7 @@ func (s *SessionToken) Send(data []byte) ([]byte, error) {
    }
    return data, nil
 }
+
 func (i *Item) Mpd() (*Mpd, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -214,15 +225,6 @@ type Provider struct {
 type SessionToken struct {
    LsSession string `json:"ls_session"`
    Url       string
-}
-var ComCbsApp = Provider{
-   AppSecret: "9fc14cb03691c342",
-   Version:   "16.0.0",
-}
-
-var ComCbsCa = Provider{
-   AppSecret: "6c68178445de8138",
-   Version:   "16.0.0",
 }
 
 func FetchItem(at, cId string) (*Item, error) {
