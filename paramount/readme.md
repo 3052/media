@@ -17,9 +17,9 @@ logged out web client is missing MPD:
 
 https://paramountplus.com/shows/mayor-of-kingstown/video/xhr/episodes/page/0/size/18/xs/0/season/3
 
-logged in the web client embeds MPD in HTML. with the below items, you need
-`gb-lon-ovpn-001` and Android cookie, else MPD will be missing. web cookie
-fails. get Android cookie:
+logged in the web client embeds MPD in HTML. with the below items, you need UK IP
+and Android cookie, else MPD will be missing. web cookie fails. get Android
+cookie:
 
 ~~~
 POST https://www.paramountplus.com/apps-api/v2.0/androidphone/auth/login.json?at=ABDFhCKlU... HTTP/1.1
@@ -35,3 +35,77 @@ https://www.intl.paramountplus.com/apps-api/v2.0/androidtv/video/cid/Y8sKvb2bIoe
 https://www.intl.paramountplus.com/apps-api/v3.0/androidtv/movies/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ.json?includeTrailerInfo=true&includeContentInfo=true&locale=en-us&at=ABDSbrWqqlbSWOrrXk8u9NaNdokPC88YiXcPvIFhPobM3a%2FJWNOSwiCMklwJDDJq4c0%3D
 
 <https://www.intl.paramountplus.com/apps-api/v3.1/androidtv/irdeto-control/session-token.json?contentId=Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ&model=sdk_google_atv_x86&firmwareVersion=9&version=15.0.28&platform=PPINTL_AndroidTV&locale=en-us&at=ABBoPFHuygkRnnCKELRhypuq5uEAJvSiVATsY9xOASH88ibse11WuoLrFnSDf0Bv7EY%3D>
+
+## paypal.com
+
+1. about:config
+2. general.useragent.override
+3. string
+4. add
+5. !
+6. paramountplus.com
+7. get started
+8. paramount+ essential
+   - continue
+9. full name
+10. email
+11. password
+12. zip code
+13. birthdate
+14. gender
+15. agree & continue
+16. paypal
+17. continue to paypal
+18. agree and continue
+19. subscribe
+20. paypal.com/myaccount/autopay
+21. paramount
+22. stop paying with paypal
+
+## privacy.com
+
+1. about:config
+2. general.useragent.override
+3. string
+4. add
+5. !
+6. paramountplus.com
+7. get started
+8. paramount+ essential
+   - continue
+9. full name
+10. email
+11. password
+12. zip code
+13. birthdate
+14. gender
+15. agree & continue
+16. first name
+17. last name
+18. address
+19. city
+20. state
+21. zip
+22. credit card
+23. exp MM
+24. YYYY
+25. CVV
+26. subscribe
+
+~~~
+POST /account/xhr/processPayment/ HTTP/2
+Host: www.paramountplus.com
+
+HTTP/2 200 OK
+
+message = "Error occurred. Please try again.";
+recaptchaTokenValidated = true;
+success = false;
+trackingMessage = "Could not purchase subscription. Error:
+ErrorResponse(error=ErrorResponse.ErrorDetail(type=transaction, message=The
+transaction was declined. Please use a different card, contact your bank, or
+contact support., params=null,
+transactionError=ErrorResponse.TransactionError(object=transaction_error,
+transactionId=ybs6siqfsn9x, category=fraud, threeDSecureActionTokenId=null,
+code=fraud_gateway)))";
+~~~
