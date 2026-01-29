@@ -1,10 +1,16 @@
 package paramount
 
 import (
+   "log"
    "os"
    "os/exec"
    "testing"
 )
+
+func write_file(name string, data []byte) error {
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
 
 func TestLogin(t *testing.T) {
    user, err := output("credential", "-h=paramountplus.com", "-k=user")
@@ -19,11 +25,17 @@ func TestLogin(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   resp, err := login(at, user, password)
+   cookie, err := Login(at, user, password)
    if err != nil {
       t.Fatal(err)
    }
-   err = resp.Write(os.Stdout)
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   err = write_file(
+      cache + "/paramount/login.txt", []byte(cookie.String()),
+   )
    if err != nil {
       t.Fatal(err)
    }
