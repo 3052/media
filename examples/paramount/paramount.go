@@ -19,8 +19,8 @@ func (c *command) run() error {
    }
    cache = filepath.ToSlash(cache)
    c.name = cache + "/paramount/userCache.xml"
-   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
    // 1
    flag.BoolVar(&c.intl, "i", false, "intl")
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
@@ -42,18 +42,6 @@ func (c *command) run() error {
    return nil
 }
 
-type user_cache struct {
-   Item *paramount.Item
-   Mpd  *paramount.Mpd
-}
-
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.ComCbsCa.AppSecret
-   }
-   return paramount.ComCbsApp.AppSecret
-}
-
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -71,6 +59,18 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
+}
+
+type user_cache struct {
+   Item *paramount.Item
+   Mpd  *paramount.Mpd
+}
+
+func (c *command) app_secret() string {
+   if c.intl {
+      return paramount.ComCbsCa.AppSecret
+   }
+   return paramount.ComCbsApp.AppSecret
 }
 
 type command struct {

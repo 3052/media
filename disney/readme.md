@@ -1,5 +1,11 @@
 # disney
 
+## devices
+
+~~~
+arcelik_smart_tv_optomax_nt_sl3000
+~~~
+
 ## clientApiKey
 
 ~~~
