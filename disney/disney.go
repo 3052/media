@@ -393,6 +393,7 @@ func GetEntity(link string) (string, error) {
    // The 'id' variable now holds the rest of the string after the marker.
    return id, nil
 }
+
 func (e *Error) Error() string {
    var data strings.Builder
    if e.Code != "" {
@@ -471,7 +472,8 @@ func (a *Account) Season(id string) (*Season, error) {
 }
 
 // SL2000 720p
-// SL3000 720p
+// some SL3000 720p
+// some SL3000 1080p
 func (a *Account) PlayReady(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST",
