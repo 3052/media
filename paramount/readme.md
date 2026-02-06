@@ -6,13 +6,14 @@
 2. general.useragent.override
 3. string
 4. add
-5. !
+5. Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
 6. paramountplus.com
 7. get started
-8. paramount+ essential
+8. paramount+ premium
    - continue
 9. full name
 10. email
+   - mail.tm
 11. password
 12. zip code
 13. birthdate
@@ -32,7 +33,7 @@
 2. general.useragent.override
 3. string
 4. add
-5. !
+5. Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
 6. paramountplus.com
 7. get started
 8. paramount+ essential
