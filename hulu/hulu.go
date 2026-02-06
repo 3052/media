@@ -111,8 +111,7 @@ type Session struct {
 }
 
 // 1080p (FHD) L3, SL2000
-// 1440p (QHD) L1, SL3000
-// 2160p (UHD) L1, SL3000
+// 1440p (QHD) SL3000
 func (s *Session) Playlist(deep *DeepLink) (*Playlist, error) {
    data, err := json.Marshal(map[string]any{
       "deejay_device_id": deejay[0].device_id,

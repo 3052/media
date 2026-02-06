@@ -18,7 +18,6 @@ import (
 )
 
 // 1080p SL2000
-// 1440p
 func PlayReady(at, contentId string) (*SessionToken, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -63,7 +62,6 @@ var ComCbsCa = Provider{
 }
 
 // 540p L3
-// 720p L1
 func Widevine(at, contentId string) (*SessionToken, error) {
    var req http.Request
    req.Header = http.Header{}
