@@ -11,8 +11,7 @@ import (
 )
 
 // SL2000 720p
-// some SL3000 720p
-// some SL3000 1080p
+// SL3000 1080p
 func (a *Account) PlayReady(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST",

@@ -19,12 +19,11 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
    c.name = cache + "/disney/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -110,33 +109,6 @@ func (c *command) do_season() error {
    return nil
 }
 
-type command struct {
-   job      maya.WidevineJob
-   name     string
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   season string
-   // 4
-   media_id string
-   // 5
-   hls      string
-}
-
-func (c *command) do_hls() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Account.Widevine(data)
-   }
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
-}
-
 func (c *command) do_media_id() error {
    cache, err := read(c.name)
    if err != nil {
@@ -156,19 +128,31 @@ func (c *command) do_media_id() error {
    }
    return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
 }
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
+
+type command struct {
+   job      maya.PlayReadyJob
+   name     string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   season string
+   // 4
+   media_id string
+   // 5
+   hls      string
+}
+func (c *command) do_hls() error {
+   cache, err := read(c.name)
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Account.PlayReady(data)
+   }
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
 }
 
 type user_cache struct {
@@ -196,4 +180,19 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    return cache, nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
