@@ -22,8 +22,6 @@ func (c *command) run() error {
    c.job.CertificateChain = cache + "/SL3000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
    c.name = cache + "/disney/userCache.xml"
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -34,7 +32,10 @@ func (c *command) run() error {
    // 4
    flag.StringVar(&c.media_id, "m", "", "media ID")
    // 5
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.StringVar(&c.hls, "h", "", "HLS ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.Parse()
    // 1
    if c.email != "" {
@@ -130,20 +131,21 @@ func (c *command) do_media_id() error {
 }
 
 type command struct {
-   job      maya.PlayReadyJob
-   name     string
+   job  maya.PlayReadyJob
+   name string
    // 1
    email    string
    password string
    // 2
-   address  string
+   address string
    // 3
    season string
    // 4
    media_id string
    // 5
-   hls      string
+   hls string
 }
+
 func (c *command) do_hls() error {
    cache, err := read(c.name)
    if err != nil {
