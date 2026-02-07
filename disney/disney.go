@@ -10,6 +10,62 @@ import (
    "strings"
 )
 
+// SL2000 720p
+// SL3000 1080p
+func (a *Account) PlayReady(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+// L3 720p
+func (a *Account) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Errors []Error
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, &result.Errors[0]
+   }
+   return data, nil
+}
+
 const mutation_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {
@@ -109,62 +165,6 @@ func (a *Account) Page(entity string) (*Page, error) {
       return nil, &result.Data.Errors[0]
    }
    return &result.Data.Page, nil
-}
-
-// SL2000 720p
-// SL3000 1080p
-func (a *Account) PlayReady(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-// L3 720p
-func (a *Account) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Errors []Error
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, &result.Errors[0]
-   }
-   return data, nil
 }
 
 func (e *Error) Error() string {
