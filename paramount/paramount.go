@@ -17,18 +17,22 @@ import (
    "strings"
 )
 
-// 540p L3
-func Widevine(at, contentId string) (*SessionToken, error) {
+// 576p L3
+func Widevine(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
    var req http.Request
    req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "www.paramountplus.com",
-      Path: "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json",
-      RawQuery: url.Values{
-         "at":        {at},
-         "contentId": {contentId},
-      }.Encode(),
+   req.URL = &url.URL{}
+   req.URL.Scheme = "https"
+   req.URL.Host = "www.paramountplus.com"
+   req.URL.RawQuery = url.Values{
+      "at":        {at},
+      "contentId": {contentId},
+   }.Encode()
+   if cookie != nil {
+      req.AddCookie(cookie)
+      req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/session-token.json"
+   } else {
+      req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json"
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
