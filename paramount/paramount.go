@@ -17,6 +17,65 @@ import (
    "strings"
 )
 
+type Provider struct {
+   AppSecret string
+   Version   string
+}
+
+type SessionToken struct {
+   LsSession string `json:"ls_session"`
+   Url       string
+}
+
+// WARNING IF YOU RUN THIS TOO MANY TIMES YOU WILL GET AN IP BAN. HOWEVER THE BAN
+// IS ONLY FOR THE ANDROID CLIENT NOT WEB CLIENT
+func Login(at, username, password string) (*http.Cookie, error) {
+   data := url.Values{
+      "j_username": {username},
+      "j_password": {password},
+   }.Encode()
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.paramountplus.com",
+      Path: "/apps-api/v2.0/androidphone/auth/login.json",
+      RawQuery: url.Values{"at": {at}}.Encode(),
+   }
+   req.Header = http.Header{}
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   // randomly fails if this is missing
+   req.Header.Set("user-agent", "!")
+   req.Body = io.NopCloser(strings.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   _, err = io.Copy(io.Discard, resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "CBS_COM" {
+         return cookie, nil
+      }
+   }
+   return nil, http.ErrNoCookie
+}
+
+var ComCbsApp = Provider{
+   AppSecret: "9fc14cb03691c342",
+   Version:   "16.0.0",
+}
+
+var ComCbsCa = Provider{
+   AppSecret: "6c68178445de8138",
+   Version:   "16.0.0",
+}
+
+///
+
 // 1080p SL2000
 func PlayReady(at, contentId string) (*SessionToken, error) {
    var req http.Request
@@ -49,16 +108,6 @@ func PlayReady(at, contentId string) (*SessionToken, error) {
       return nil, err
    }
    return &token, nil
-}
-
-var ComCbsApp = Provider{
-   AppSecret: "9fc14cb03691c342",
-   Version:   "16.0.0",
-}
-
-var ComCbsCa = Provider{
-   AppSecret: "6c68178445de8138",
-   Version:   "16.0.0",
 }
 
 // 540p L3
@@ -215,16 +264,6 @@ func pkcs7_pad(data []byte, blockSize int) []byte {
    return data
 }
 
-type Provider struct {
-   AppSecret string
-   Version   string
-}
-
-type SessionToken struct {
-   LsSession string `json:"ls_session"`
-   Url       string
-}
-
 func FetchItem(at, cId string) (*Item, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -261,4 +300,3 @@ func FetchItem(at, cId string) (*Item, error) {
    }
    return &result.ItemList[0], nil
 }
-
