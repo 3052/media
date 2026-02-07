@@ -10,6 +10,60 @@ import (
    "strings"
 )
 
+func (t *Token) GetError() error {
+   if t.Error == "" {
+      return nil
+   }
+   var data strings.Builder
+   data.WriteString("error = ")
+   data.WriteString(t.Error)
+   data.WriteString("\ndescription = ")
+   data.WriteString(t.ErrorDescription)
+   return errors.New(data.String())
+}
+
+func (t *Token) Fetch(username, password string) error {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":  {client_id},
+      "grant_type": {"password"},
+      "password":   {password},
+      "username":   {username},
+   })
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(t)
+   if err != nil {
+      return err
+   }
+   return t.GetError()
+}
+
+func (t *Token) Refresh() error {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":     {client_id},
+      "grant_type":    {"refresh_token"},
+      "refresh_token": {t.RefreshToken},
+   })
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(t)
+   if err != nil {
+      return err
+   }
+   return t.GetError()
+}
+
+type Token struct {
+   AccessToken      string `json:"access_token"`
+   Error            string
+   ErrorDescription string `json:"error_description"`
+   RefreshToken     string `json:"refresh_token"`
+}
+
 func (t *Token) Files(item *VideoItem) (MediaFiles, error) {
    req, err := http.NewRequest("", item.Links.Files.Href, nil)
    if err != nil {
@@ -119,46 +173,6 @@ type VideoItem struct {
 type Mpd struct {
    Body []byte
    Url  *url.URL
-}
-
-func (t *Token) Refresh() error {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":     {client_id},
-      "grant_type":    {"refresh_token"},
-      "refresh_token": {t.RefreshToken},
-   })
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(t)
-}
-
-type Token struct {
-   AccessToken      string `json:"access_token"`
-   ErrorDescription string `json:"error_description"`
-   RefreshToken     string `json:"refresh_token"`
-}
-
-func (t *Token) Fetch(username, password string) error {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":  {client_id},
-      "grant_type": {"password"},
-      "password":   {password},
-      "username":   {username},
-   })
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(t)
-   if err != nil {
-      return err
-   }
-   if t.ErrorDescription != "" {
-      return errors.New(t.ErrorDescription)
-   }
-   return nil
 }
 
 func (m MediaFiles) Dash() (*MediaFile, bool) {
