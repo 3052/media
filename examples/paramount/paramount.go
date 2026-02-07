@@ -29,10 +29,11 @@ func (c *command) run() error {
    // 2, 3
    flag.BoolVar(&c.intl, "i", false, "intl")
    // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.BoolVar(&c.cookie, "c", false, "cookie")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.BoolVar(&c.cookie, "c", false, "cookie")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.Parse()
    // 1
    if c.username != "" {
