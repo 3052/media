@@ -12,6 +12,44 @@ import (
    "path/filepath"
 )
 
+func (c *command) app_secret() string {
+   if c.intl {
+      return paramount.ComCbsCa.AppSecret
+   }
+   return paramount.ComCbsApp.AppSecret
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return ""
+      }
+      switch path.Base(req.URL.Path) {
+      case "anonymous-session-token.json", "getlicense":
+         return "L"
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+///
+
+type command struct {
+   job  maya.PlayReadyJob
+   name string
+   // 1
+   paramount string
+   intl      bool
+   // 2
+   dash string
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -41,45 +79,9 @@ func (c *command) run() error {
    return nil
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return ""
-      }
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense":
-         return "L"
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 type user_cache struct {
    Item *paramount.Item
    Mpd  *paramount.Mpd
-}
-
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.ComCbsCa.AppSecret
-   }
-   return paramount.ComCbsApp.AppSecret
-}
-
-type command struct {
-   job  maya.PlayReadyJob
-   name string
-   // 1
-   paramount string
-   intl      bool
-   // 2
-   dash string
 }
 
 func (c *command) do_paramount() error {
