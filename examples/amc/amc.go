@@ -14,6 +14,28 @@ import (
    "path/filepath"
 )
 
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
 func (c *command) do_email_password() error {
    var client amc.Client
    err := client.Unauth()
@@ -108,6 +130,7 @@ func (c *command) do_episode() error {
    }
    return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
 }
+
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -138,28 +161,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
 }
 
 type command struct {
