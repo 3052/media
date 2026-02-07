@@ -12,6 +12,73 @@ import (
    "path/filepath"
 )
 
+func (c *command) app_secret() string {
+   if c.intl {
+      return paramount.ComCbsCa.AppSecret
+   }
+   return paramount.ComCbsApp.AppSecret
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return ""
+      }
+      switch path.Base(req.URL.Path) {
+      case "anonymous-session-token.json", "getlicense":
+         return "L"
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Cookie *http.Cookie
+   Item   *paramount.Item
+   Mpd    *paramount.Mpd
+}
+
+func (c *command) do_username_password() error {
+   at, err := paramount.GetAt(paramount.ComCbsApp.AppSecret)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Cookie, err = paramount.Login(at, c.username, c.password)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &cache)
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -63,64 +130,11 @@ type command struct {
    password string
    // 2
    paramount string
+   // 2, 3
    intl      bool
    // 3
-   dash string
+   dash   string
    cookie bool
-}
-
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.ComCbsCa.AppSecret
-   }
-   return paramount.ComCbsApp.AppSecret
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return ""
-      }
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense":
-         return "L"
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Cookie *http.Cookie
-   Item *paramount.Item
-   Mpd  *paramount.Mpd
-}
-
-func (c *command) do_username_password() error {
-   at, err := paramount.GetAt(paramount.ComCbsApp.AppSecret)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.Cookie, err = paramount.Login(at, c.username, c.password)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &cache)
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (c *command) run() error {
@@ -137,6 +151,7 @@ func (c *command) run() error {
    flag.StringVar(&c.password, "P", "", "password")
    // 2
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
+   // 2, 3
    flag.BoolVar(&c.intl, "i", false, "intl")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
@@ -160,17 +175,4 @@ func (c *command) run() error {
    }
    flag.Usage()
    return nil
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
 }

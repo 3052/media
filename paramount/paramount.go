@@ -21,6 +21,7 @@ import (
 func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
    var req http.Request
    req.Header = http.Header{}
+   req.URL = &url.URL{}
    req.URL.Scheme = "https"
    req.URL.Host = "www.paramountplus.com"
    req.URL.RawQuery = url.Values{
