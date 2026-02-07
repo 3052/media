@@ -13,53 +13,56 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/canal/userCache.xml"
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Player.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
 
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
-   flag.IntVar(&c.config.Threads, "T", 2, "threads")
-   flag.BoolVar(&c.subtitles, "S", false, "subtitles")
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   flag.IntVar(&c.season, "s", 0, "season")
-   flag.StringVar(&c.tracking, "t", "", "tracking")
-   flag.Parse()
+type user_cache struct {
+   Dash     *canal.Dash
+   Player  *canal.Player
+   Session *canal.Session
+}
 
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
+func (c *command) do_email_password() error {
+   var ticket canal.Ticket
+   err := ticket.Fetch()
+   if err != nil {
+      return err
    }
-   if c.refresh {
-      return c.do_refresh()
+   login, err := ticket.Login(c.email, c.password)
+   if err != nil {
+      return err
    }
-   if c.address != "" {
-      return c.do_address()
+   var session canal.Session
+   err = session.Fetch(login.SsoToken)
+   if err != nil {
+      return err
    }
-   if c.tracking != "" {
-      if c.season >= 1 {
-         return c.do_tracking_season()
-      }
-      return c.do_tracking()
+   return write(c.name, &user_cache{Session: &session})
+}
+
+func get(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
    }
-   if c.subtitles {
-      return c.do_subtitles()
+   defer resp.Body.Close()
+   file, err := os.Create(path.Base(address))
+   if err != nil {
+      return err
    }
-   if c.dash != "" {
-      return c.do_dash()
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
+   if err != nil {
+      return err
    }
-   flag.Usage()
    return nil
 }
 
@@ -83,6 +86,79 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    return cache, nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/canal/userCache.xml"
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   // 3
+   flag.StringVar(&c.address, "a", "", "address")
+   // 4
+   flag.StringVar(&c.tracking, "t", "", "tracking")
+   flag.IntVar(&c.season, "s", 0, "season")
+   // 5
+   flag.BoolVar(&c.subtitles, "S", false, "subtitles")
+   // 6
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.Parse()
+   // 1
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   // 2
+   if c.refresh {
+      return c.do_refresh()
+   }
+   // 3
+   if c.address != "" {
+      return c.do_address()
+   }
+   // 4
+   if c.tracking != "" {
+      if c.season >= 1 {
+         return c.do_tracking_season()
+      }
+      return c.do_tracking()
+   }
+   // 5
+   if c.subtitles {
+      return c.do_subtitles()
+   }
+   // 6
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   flag.Usage()
+   return nil
 }
 
 func (c *command) do_refresh() error {
@@ -124,93 +200,6 @@ func (c *command) do_tracking_season() error {
    return nil
 }
 
-func (c *command) do_tracking() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   cache.Player, err = cache.Session.Player(c.tracking)
-   if err != nil {
-      return err
-   }
-   cache.Mpd, err = cache.Player.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-
-func (c *command) do_email_password() error {
-   var ticket canal.Ticket
-   err := ticket.Fetch()
-   if err != nil {
-      return err
-   }
-   login, err := ticket.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Fetch(login.SsoToken)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &user_cache{Session: &session})
-}
-
-type user_cache struct {
-   Mpd     *canal.Mpd
-   Player  *canal.Player
-   Session *canal.Session
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.Player.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-func get(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   file, err := os.Create(path.Base(address))
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = file.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".dash" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) do_subtitles() error {
    cache, err := read(c.name)
    if err != nil {
@@ -226,14 +215,40 @@ func (c *command) do_subtitles() error {
 }
 
 type command struct {
-   address   string
-   config    maya.Config
-   dash      string
-   email     string
+   job    maya.WidevineJob
    name      string
+   // 1
+   email     string
    password  string
+   // 2
    refresh   bool
-   season    int
-   subtitles bool
+   // 3
+   address   string
+   // 4
    tracking  string
+   season    int
+   // 5
+   subtitles bool
+   // 6
+   dash      string
+}
+
+func (c *command) do_tracking() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   cache.Player, err = cache.Session.Player(c.tracking)
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.Player.Dash()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

@@ -16,6 +16,26 @@ import (
    "time"
 )
 
+func (p *Player) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 const device_serial = "!!!!"
 
 // Global variables for authentication
@@ -120,24 +140,6 @@ func (l *Login) Error() string {
    data.WriteString("\nmessage = ")
    data.WriteString(l.Message)
    return data.String()
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (p *Player) Mpd() (*Mpd, error) {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
 }
 
 type Player struct {

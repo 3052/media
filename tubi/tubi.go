@@ -10,6 +10,26 @@ import (
    "strconv"
 )
 
+func (v *VideoResource) Dash() (*Dash, error) {
+   resp, err := http.Get(v.Manifest.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url *url.URL
+}
+
 func (c *Content) Fetch(id int) error {
    var req http.Request
    req.Header = http.Header{}
@@ -40,19 +60,6 @@ func (c *Content) Fetch(id int) error {
       return errors.New("no video resources found")
    }
    return nil
-}
-
-func (v *VideoResource) Mpd() (*url.URL, []byte, error) {
-   resp, err := http.Get(v.Manifest.Url)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   return resp.Request.URL, data, nil
 }
 
 type VideoResource struct {

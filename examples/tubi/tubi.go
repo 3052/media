@@ -7,11 +7,26 @@ import (
    "flag"
    "log"
    "net/http"
-   "net/url"
    "os"
    "path"
    "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.VideoResource.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -33,20 +48,21 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/tubi/userCache.xml"
-
-   flag.IntVar(&c.config.Threads, "T", 2, "threads")
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   // 1
    flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
+   // 2
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-
+   // 1
    if c.tubi >= 1 {
       return c.do_tubi()
    }
+   // 2
    if c.dash != "" {
       return c.do_dash()
    }
@@ -61,11 +77,11 @@ func (c *command) do_tubi() error {
       return err
    }
    var cache user_cache
-   cache.VideoResource = &content.VideoResources[0]
-   cache.Mpd, cache.MpdBody, err = cache.VideoResource.Mpd()
+   cache.Dash, err = cache.VideoResource.Dash()
    if err != nil {
       return err
    }
+   cache.VideoResource = &content.VideoResources[0]
    data, err := xml.Marshal(cache)
    if err != nil {
       return err
@@ -75,34 +91,19 @@ func (c *command) do_tubi() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd, cache.MpdBody)
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
 type command struct {
-   config maya.Config
-   dash   string
+   job maya.WidevineJob
    name   string
+   // 1
    tubi   int
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.VideoResource.Widevine(data)
-   }
-   return c.config.Download(cache.Mpd, cache.MpdBody, c.dash)
+   // 2
+   dash   string
 }
 
 type user_cache struct {
-   Mpd           *url.URL
-   MpdBody       []byte
+   Dash *tubi.Dash
    VideoResource *tubi.VideoResource
 }
