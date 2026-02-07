@@ -11,6 +11,26 @@ import (
    "strings"
 )
 
+func (m Manifest) Dash() (*Dash, error) {
+   resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 const query_resolve_path = `
 query resolvePath($path: String!) {
    resolvedPath(path: $path) {
@@ -145,24 +165,6 @@ func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
 }
 
 type Manifest []byte
-
-func (m Manifest) Mpd() (*Mpd, error) {
-   resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
 
 type Playback struct {
    ContentPackages []struct {
