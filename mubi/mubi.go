@@ -12,6 +12,26 @@ import (
    "strings"
 )
 
+func (s *SecureUrl) Dash() (*Dash, error) {
+   resp, err := http.Get(s.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func (l *LinkCode) Fetch() error {
    var req http.Request
    req.Header = http.Header{}
@@ -107,24 +127,6 @@ type SecureUrl struct {
    } `json:"text_track_urls"`
    Url         string // MPD
    UserMessage string `json:"user_message"`
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (s *SecureUrl) Mpd() (*Mpd, error) {
-   resp, err := http.Get(s.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
 }
 
 const forbidden = "HTTP Status 403 – Forbidden"
