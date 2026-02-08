@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/hulu"
-   "encoding/xml"
    "flag"
    "log"
    "net/http"
@@ -17,13 +16,9 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/hulu/userCache.xml"
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -31,6 +26,8 @@ func (c *command) run() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
    // 1
    if c.email != "" {
@@ -46,30 +43,56 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d", "C", "P"},
+   })
    return nil
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playlist.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
+type user_cache struct {
+   Dash     *hulu.Dash
+   Playlist *hulu.Playlist
+   Session  *hulu.Session
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
    if err != nil {
-      return nil, err
+      log.Fatal(err)
    }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
 }
 
 func (c *command) do_email_password() error {
@@ -78,11 +101,11 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Session: &session})
+   return maya.Write(c.name, &user_cache{Session: &session})
 }
 
 func (c *command) do_address() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -102,56 +125,13 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   cache.Mpd, err = cache.Playlist.Mpd()
+   cache.Dash, err = cache.Playlist.Dash()
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
-}
-
-type command struct {
-   name     string
-   job   maya.WidevineJob
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   dash     string
-}
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Playlist.Widevine(data)
-   }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
-}
-
-type user_cache struct {
-   Mpd      *hulu.Mpd
-   Playlist *hulu.Playlist
-   Session  *hulu.Session
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

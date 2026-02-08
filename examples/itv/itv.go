@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/itv"
-   "encoding/xml"
    "errors"
    "flag"
    "fmt"
@@ -52,12 +51,7 @@ func (c *command) run() error {
 }
 
 func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -120,12 +114,7 @@ func (c *command) do_playlist() error {
    if err != nil {
       return err
    }
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
