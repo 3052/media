@@ -98,40 +98,6 @@ func (c *command) run() error {
    return nil
 }
 
-type command struct {
-   name    string
-   // 1
-   movie   string
-   // 2
-   show    string
-   // 3
-   episode string
-   // 4
-   dash    string
-   job  maya.WidevineJob
-}
-
-///
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = pluto.Widevine
-   return c.job.Download(cache.Dash.Url, cache.Dash.Body, c.dash)
-}
-
-func (c *command) do_show() error {
-   var series pluto.Series
-   err := series.Fetch(c.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(&series.Vod[0])
-   return write(c.name, &user_cache{Series: &series})
-}
-
 func (c *command) do_movie() error {
    var series pluto.Series
    err := series.Fetch(c.movie)
@@ -147,7 +113,41 @@ func (c *command) do_movie() error {
    if err != nil {
       return err
    }
-   return maya.Representations(dash.Url, dash.Body)
+   return maya.ListDash(dash.Body, dash.Url)
+}
+
+type command struct {
+   name    string
+   // 1
+   movie   string
+   // 2
+   show    string
+   // 3
+   episode string
+   // 4
+   dash    string
+   job  maya.WidevineJob
+}
+
+///
+
+func (c *command) do_show() error {
+   var series pluto.Series
+   err := series.Fetch(c.show)
+   if err != nil {
+      return err
+   }
+   fmt.Println(&series.Vod[0])
+   return write(c.name, &user_cache{Series: &series})
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = pluto.Widevine
+   return c.job.Download(cache.Dash.Url, cache.Dash.Body, c.dash)
 }
 
 func (c *command) do_episode() error {

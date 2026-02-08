@@ -11,6 +11,26 @@ import (
    "strings"
 )
 
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (a *Asset) Dash() (*Dash, error) {
+   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
 // authorization server issues a new refresh token, in which case the
 // client MUST discard the old refresh token and replace it with the new
 // refresh token
@@ -65,24 +85,6 @@ func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
       return nil, errors.New("program is not available for playback")
    }
    return result, nil
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (a *Asset) Mpd() (*Mpd, error) {
-   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
 }
 
 type Asset struct {
