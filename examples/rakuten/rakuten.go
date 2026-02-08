@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/rakuten"
-   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -14,7 +13,7 @@ import (
 )
 
 func (c *command) do_language_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -39,7 +38,7 @@ func (c *command) do_language_dash() error {
 }
 
 func (c *command) do_language() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -63,33 +62,11 @@ func (c *command) do_language() error {
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func main() {
@@ -108,7 +85,7 @@ func main() {
 }
 
 type user_cache struct {
-   Dash    *rakuten.Dash
+   Dash   *rakuten.Dash
    Movie  *rakuten.Movie
    TvShow *rakuten.TvShow
 }
@@ -173,7 +150,7 @@ func (c *command) do_movie() error {
       return err
    }
    fmt.Println(item)
-   return write(c.name, &user_cache{Movie: &movie})
+   return maya.Write(c.name, &user_cache{Movie: &movie})
 }
 
 // print seasons
@@ -188,12 +165,12 @@ func (c *command) do_show() error {
       return err
    }
    fmt.Println(show_data)
-   return write(c.name, &user_cache{TvShow: &show})
+   return maya.Write(c.name, &user_cache{TvShow: &show})
 }
 
 // print episodes
 func (c *command) do_season() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -211,16 +188,16 @@ func (c *command) do_season() error {
 }
 
 type command struct {
-   name     string
+   name string
    // 1
-   movie    string
+   movie string
    // 2
-   show     string
+   show string
    // 3
-   season   string
+   season string
    // 4
    episode  string
    language string
    dash     string
-   job   maya.WidevineJob
+   job      maya.WidevineJob
 }

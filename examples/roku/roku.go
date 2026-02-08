@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/roku"
-   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -13,40 +12,14 @@ import (
    "path/filepath"
 )
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/roku/userCache.xml"
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
    // 1
    flag.BoolVar(&c.connection, "c", false, "connection")
    // 2
@@ -56,6 +29,8 @@ func (c *command) run() error {
    flag.BoolVar(&c.get_user, "g", false, "get user")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
    // 1
    if c.connection {
@@ -73,96 +48,30 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"c"},
+      {"s"},
+      {"r", "g"},
+      {"d", "C", "P"},
+   })
    return nil
 }
 
-func (c *command) do_connection() error {
-   var (
-      cache user_cache
-      err   error
-   )
-   cache.Connection, err = roku.NewConnection(nil)
-   if err != nil {
-      return err
-   }
-   cache.LinkCode, err = cache.Connection.LinkCode()
-   if err != nil {
-      return err
-   }
-   fmt.Println(cache.LinkCode)
-   return write(c.name, &cache)
-}
-
-func (c *command) do_set_user() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   cache.User, err = cache.Connection.User(cache.LinkCode)
-   if err != nil {
-      return err
-   }
-   return write(c.name, cache)
-}
-
-func (c *command) do_roku() error {
-   cache := &user_cache{}
-   if c.get_user {
-      var err error
-      cache, err = read(c.name)
-      if err != nil {
-         return err
-      }
-   }
-   connection, err := roku.NewConnection(cache.User)
-   if err != nil {
-      return err
-   }
-   cache.Playback, err = connection.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   cache.Mpd, err = cache.Playback.Mpd()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
-}
-
-type command struct {
-   job  maya.WidevineJob
-   name string
-   // 1
-   connection bool
-   // 2
-   set_user bool
-   // 3
-   roku     string
-   get_user bool
-   // 4
-   dash string
-}
-
 func (c *command) do_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
       return cache.Playback.Widevine(data)
    }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
 type user_cache struct {
    Connection *roku.Connection
    LinkCode   *roku.LinkCode
-   Mpd        *roku.Mpd
+   Dash       *roku.Dash
    Playback   *roku.Playback
    User       *roku.User
 }
@@ -179,4 +88,75 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
+}
+
+func (c *command) do_connection() error {
+   var (
+      cache user_cache
+      err   error
+   )
+   cache.Connection, err = roku.NewConnection(nil)
+   if err != nil {
+      return err
+   }
+   cache.LinkCode, err = cache.Connection.LinkCode()
+   if err != nil {
+      return err
+   }
+   fmt.Println(cache.LinkCode)
+   return maya.Write(c.name, &cache)
+}
+
+func (c *command) do_set_user() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   cache.User, err = cache.Connection.User(cache.LinkCode)
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, cache)
+}
+
+func (c *command) do_roku() error {
+   cache := &user_cache{}
+   if c.get_user {
+      var err error
+      cache, err = maya.Read[user_cache](c.name)
+      if err != nil {
+         return err
+      }
+   }
+   connection, err := roku.NewConnection(cache.User)
+   if err != nil {
+      return err
+   }
+   cache.Playback, err = connection.Playback(c.roku)
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type command struct {
+   name string
+   // 1
+   connection bool
+   // 2
+   set_user bool
+   // 3
+   roku     string
+   get_user bool
+   // 4
+   dash string
+   job  maya.WidevineJob
 }

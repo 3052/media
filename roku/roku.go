@@ -10,20 +10,22 @@ import (
    "strings"
 )
 
-func (p *Playback) Mpd() (*Mpd, error) {
+func (p *Playback) Dash() (*Dash, error) {
    resp, err := http.Get(p.Url)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
    if err != nil {
       return nil, err
    }
-   return &Mpd{data, resp.Request.URL}, nil
+   result.Url = resp.Request.URL
+   return &result, nil
 }
 
-type Mpd struct {
+type Dash struct {
    Body    []byte
    Url *url.URL
 }
