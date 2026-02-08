@@ -14,63 +14,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_address() error {
-   titles, err := itv.Titles(itv.LegacyId(c.address))
-   if err != nil {
-      return err
-   }
-   for i, title := range titles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&title)
-   }
-   return nil
-}
-
-type command struct {
-   address  string
-   config   maya.Config
-   dash     string
-   name     string
-   playlist string
-}
-
-func (c *command) do_playlist() error {
-   var title itv.Title
-   title.LatestAvailableVersion.PlaylistUrl = c.playlist
-   playlist, err := title.Playlist()
-   if err != nil {
-      return err
-   }
-   var (
-      cache user_cache
-      ok    bool
-   )
-   cache.MediaFile, ok = playlist.FullHd()
-   if !ok {
-      return errors.New(".FullHd()")
-   }
-   cache.Mpd, err = cache.MediaFile.Mpd()
-   if err != nil {
-      return err
-   }
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-type user_cache struct {
-   MediaFile *itv.MediaFile
-   Mpd       *itv.Mpd
-}
-
 func (c *command) do_dash() error {
    data, err := os.ReadFile(c.name)
    if err != nil {
@@ -81,10 +24,15 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   c.config.Send = func(data []byte) ([]byte, error) {
+   c.job.Send = func(data []byte) ([]byte, error) {
       return cache.MediaFile.Widevine(data)
    }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   Dash      *itv.Dash
+   MediaFile *itv.MediaFile
 }
 
 func main() {
@@ -107,28 +55,90 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/itv/userCache.xml"
-
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   // 1
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   // 2
    flag.StringVar(&c.playlist, "p", "", "playlist URL")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-
+   // 1
    if c.address != "" {
       return c.do_address()
    }
+   // 2
    if c.playlist != "" {
       return c.do_playlist()
    }
+   // 3
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage(
+      []string{"a"},
+      []string{"p"},
+      []string{"d", "C", "P"},
+   )
    return nil
+}
+
+func (c *command) do_address() error {
+   titles, err := itv.Titles(itv.LegacyId(c.address))
+   if err != nil {
+      return err
+   }
+   for i, title := range titles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&title)
+   }
+   return nil
+}
+
+func (c *command) do_playlist() error {
+   var title itv.Title
+   title.LatestAvailableVersion.PlaylistUrl = c.playlist
+   playlist, err := title.Playlist()
+   if err != nil {
+      return err
+   }
+   var (
+      cache user_cache
+      ok    bool
+   )
+   cache.MediaFile, ok = playlist.FullHd()
+   if !ok {
+      return errors.New(".FullHd()")
+   }
+   cache.Dash, err = cache.MediaFile.Dash()
+   if err != nil {
+      return err
+   }
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", c.name)
+   err = os.WriteFile(c.name, data, os.ModePerm)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   playlist string
+   // 3
+   dash string
+   job  maya.WidevineJob
 }

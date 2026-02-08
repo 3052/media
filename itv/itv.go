@@ -13,6 +13,31 @@ import (
    "strings"
 )
 
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (m *MediaFile) Dash() (*Dash, error) {
+   var err error
+   http.DefaultClient.Jar, err = cookiejar.New(nil)
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
 func Titles(legacyId string) ([]Title, error) {
    var data strings.Builder
    err := json.NewEncoder(&data).Encode(map[string]string{
@@ -232,29 +257,6 @@ func LegacyId(link string) string {
    parts := strings.Split(base, "a")
    // 3. Join them back together with '/'
    return strings.Join(parts, "/")
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (m *MediaFile) Mpd() (*Mpd, error) {
-   var err error
-   http.DefaultClient.Jar, err = cookiejar.New(nil)
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
 }
 
 func graphql_compact(data string) string {
