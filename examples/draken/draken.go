@@ -12,28 +12,72 @@ import (
 )
 
 func main() {
-   http.DefaultTransport = &draken.Transport
    log.SetFlags(log.Ltime)
-   var set flag_set
-   err := set.New()
+   maya.Transport(func(*http.Request) string {
+      return "L"
+   })
+   err := new(command).run()
    if err != nil {
-      panic(err)
-   }
-   switch {
-   case set.address != "":
-      err = set.do_address()
-   case set.email_password():
-      err = set.do_login()
-   default:
-      flag.Usage()
-   }
-   if err != nil {
-      panic(err)
+      log.Fatal(err)
    }
 }
 
-func (f *flag_set) do_address() error {
-   data, err := os.ReadFile(f.cache + "/draken/Login")
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   c.name = cache + "/draken/userCache.xml"
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   // 1
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   // 2
+   if c.address != "" {
+      return c.do_address()
+   }
+   // 3
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d", "C", "P"},
+   })
+   return nil
+}
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   address  string
+   // 3
+   dash string
+   job   maya.WidevineJob
+}
+
+///
+
+func (c *command) do_address() error {
+   data, err := os.ReadFile(c.cache + "/draken/Login")
    if err != nil {
       return err
    }
@@ -43,7 +87,7 @@ func (f *flag_set) do_address() error {
       return err
    }
    var movie draken.Movie
-   err = movie.Fetch(path.Base(f.address))
+   err = movie.Fetch(path.Base(c.address))
    if err != nil {
       return err
    }
@@ -59,58 +103,21 @@ func (f *flag_set) do_address() error {
    if err != nil {
       return err
    }
-   f.config.Send = func(data []byte) ([]byte, error) {
+   c.job.Send = func(data []byte) ([]byte, error) {
       return login.Widevine(play, data)
    }
-   return f.filters.Filter(resp, &f.config)
+   return c.filters.Filter(resp, &c.job)
 }
 
-func (f *flag_set) do_login() error {
-   data, err := draken.FetchLogin(f.email, f.password)
+func (c *command) do_login() error {
+   data, err := draken.FetchLogin(c.email, c.password)
    if err != nil {
       return err
    }
-   return write_file(f.cache+"/draken/Login", data)
+   return write_file(c.cache+"/draken/Login", data)
 }
 
 func write_file(name string, data []byte) error {
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
-}
-
-func (f *flag_set) email_password() bool {
-   if f.email != "" {
-      if f.password != "" {
-         return true
-      }
-   }
-   return false
-}
-
-type flag_set struct {
-   address  string
-   cache    string
-   config   maya.Config
-   email    string
-   filters  maya.Filters
-   password string
-}
-
-func (f *flag_set) New() error {
-   var err error
-   f.cache, err = os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   f.cache = filepath.ToSlash(f.cache)
-   f.config.ClientId = f.cache + "/L3/client_id.bin"
-   f.config.PrivateKey = f.cache + "/L3/private_key.pem"
-   flag.StringVar(&f.config.ClientId, "C", f.config.ClientId, "client ID")
-   flag.StringVar(&f.config.PrivateKey, "P", f.config.PrivateKey, "private key")
-   flag.StringVar(&f.address, "a", "", "address")
-   flag.StringVar(&f.email, "e", "", "email")
-   flag.Var(&f.filters, "f", maya.FilterUsage)
-   flag.StringVar(&f.password, "p", "", "password")
-   flag.Parse()
-   return nil
 }
