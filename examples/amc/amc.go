@@ -64,14 +64,14 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage(
-      []string{"E", "P"},
-      []string{"r"},
-      []string{"S"},
-      []string{"s"},
-      []string{"e"},
-      []string{"d", "c", "p"},
-   )
+   maya.Usage([][]string{
+      {"E", "P"},
+      {"r"},
+      {"S"},
+      {"s"},
+      {"e"},
+      {"d", "c", "p"},
+   })
    return nil
 }
 

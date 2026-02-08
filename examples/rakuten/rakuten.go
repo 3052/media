@@ -56,58 +56,71 @@ type user_cache struct {
    TvShow *rakuten.TvShow
 }
 
-///
-
-type command struct {
-   config   maya.Config
-   dash     string
-   episode  string
-   language string
-   movie    string
-   name     string
-   season   string
-   show     string
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/rakuten/userCache.xml"
-
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   // 1
+   flag.StringVar(&c.movie, "m", "", "movie URL")
+   // 2
+   flag.StringVar(&c.show, "s", "", "TV show URL")
+   // 3
    flag.StringVar(&c.season, "S", "", "season ID")
+   // 4
+   flag.StringVar(&c.episode, "e", "", "episode ID")
    flag.StringVar(&c.language, "a", "", "audio language")
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.episode, "e", "", "episode ID")
-   flag.StringVar(&c.movie, "m", "", "movie URL")
-   flag.StringVar(&c.show, "s", "", "TV show URL")
-   flag.IntVar(&c.config.Threads, "t", 4, "threads")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-
+   // 1
    if c.movie != "" {
       return c.do_movie()
    }
+   // 2
    if c.show != "" {
       return c.do_show()
    }
+   // 3
    if c.season != "" {
       return c.do_season()
    }
+   // 4
    if c.language != "" {
       if c.dash != "" {
          return c.do_language_dash()
       }
       return c.do_language()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"m"},
+      {"s"},
+      {"S"},
+      {"e", "a", "d", "C", "P"},
+   })
    return nil
 }
+
+type command struct {
+   name     string
+   // 1
+   movie    string
+   // 2
+   show     string
+   // 3
+   season   string
+   // 4
+   episode  string
+   language string
+   dash     string
+   job   maya.WidevineJob
+}
+
+///
 
 // print episodes
 func (c *command) do_season() error {
@@ -176,10 +189,10 @@ func (c *command) do_language_dash() error {
    if err != nil {
       return err
    }
-   c.config.Send = func(data []byte) ([]byte, error) {
+   c.job.Send = func(data []byte) ([]byte, error) {
       return stream.Widevine(data)
    }
-   return c.config.Download(cache.Dash.Url, cache.Dash.Body, c.dash)
+   return c.job.Download(cache.Dash.Url, cache.Dash.Body, c.dash)
 }
 
 func (c *command) do_language() error {
