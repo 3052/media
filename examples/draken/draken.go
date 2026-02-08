@@ -11,6 +11,19 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return login.Widevine(play, data)
+   }
+   return c.filters.Filter(resp, &c.job)
+}
+
+type user_cache struct {
+   Dash *draken.Dash
+   Login *draken.Login
+   Playback *draken.Playback
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(*http.Request) string {
@@ -62,6 +75,66 @@ func (c *command) run() error {
    return nil
 }
 
+func (c *command) do_email_password() error {
+   var login draken.Login
+   err := login.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return write(c.name, &user_cache{Login: &login})
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func (c *command) do_address() error {
+   var movie draken.Movie
+   err = movie.Fetch(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   entitlement, err := cache.Login.Entitlement(movie)
+   if err != nil {
+      return err
+   }
+   cache.Playback, err = cache.Login.Playback(&movie, entitlement)
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
 type command struct {
    name string
    // 1
@@ -72,52 +145,4 @@ type command struct {
    // 3
    dash string
    job   maya.WidevineJob
-}
-
-///
-
-func (c *command) do_address() error {
-   data, err := os.ReadFile(c.cache + "/draken/Login")
-   if err != nil {
-      return err
-   }
-   var login draken.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   var movie draken.Movie
-   err = movie.Fetch(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   title, err := login.Entitlement(movie)
-   if err != nil {
-      return err
-   }
-   play, err := login.Playback(&movie, title)
-   if err != nil {
-      return err
-   }
-   resp, err := http.Get(play.Playlist)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return login.Widevine(play, data)
-   }
-   return c.filters.Filter(resp, &c.job)
-}
-
-func (c *command) do_login() error {
-   data, err := draken.FetchLogin(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return write_file(c.cache+"/draken/Login", data)
-}
-
-func write_file(name string, data []byte) error {
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }

@@ -14,6 +14,28 @@ import (
    "path/filepath"
 )
 
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -149,28 +171,6 @@ type user_cache struct {
    Header http.Header
    Dash   *amc.Dash
    Source *amc.Source
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
 }
 
 func main() {

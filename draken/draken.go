@@ -9,45 +9,6 @@ import (
    "net/url"
 )
 
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Playlist)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Dash struct {
-   Body []byte
-   Url *url.URL
-}
-
-type Playback struct {
-   Headers  map[string]string
-   Playlist string // MPD
-}
-
-const get_custom_id = `
-query GetCustomIdFullMovie($customId: ID!) {
-   viewer {
-      viewableCustomId(customId: $customId) {
-         ... on Movie {
-            defaultPlayable {
-               id
-            }
-         }
-      }
-   }
-}
-`
-
 type Login struct {
    Token string
 }
@@ -70,6 +31,45 @@ func (l *Login) Fetch(identity, accessKey string) error {
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(l)
 }
+
+type Dash struct {
+   Body []byte
+   Url *url.URL
+}
+
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Playlist)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Playback struct {
+   Headers  map[string]string
+   Playlist string // MPD
+}
+
+const get_custom_id = `
+query GetCustomIdFullMovie($customId: ID!) {
+   viewer {
+      viewableCustomId(customId: $customId) {
+         ... on Movie {
+            defaultPlayable {
+               id
+            }
+         }
+      }
+   }
+}
+`
 
 func FetchAsset(customId string) (*AssetItem, error) {
    data, err := json.Marshal(map[string]any{
