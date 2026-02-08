@@ -10,6 +10,31 @@ import (
    "strings"
 )
 
+func (f *Format) Dash() (*Dash, error) {
+   resp, err := http.Get(f.MediaLocator)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url *url.URL
+}
+
+type Format struct {
+   Format       string
+   MediaLocator string // MPD
+}
+
 func join(data ...string) string {
    return strings.Join(data, "")
 }
@@ -116,11 +141,6 @@ func (e *Entitlement) Dash() (*Format, bool) {
       }
    }
    return nil, false
-}
-
-type Format struct {
-   Format       string
-   MediaLocator string // MPD
 }
 
 func (i *Identity) Session() (*Session, error) {

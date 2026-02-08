@@ -11,40 +11,11 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
+func (c *command) do_dash() error {
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return title.Widevine(data)
    }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rtbf/userCache.xml"
-
-   flag.StringVar(&c.config.ClientId, "C", c.config.ClientId, "client ID")
-   flag.StringVar(&c.config.PrivateKey, "P", c.config.PrivateKey, "private key")
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   flag.Parse()
-
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   flag.Usage()
-   return nil
-}
-
-type user_cache struct {
-   Account rtbf.Account
-   Mpd     *url.URL
-   MpdBody []byte
+   return c.filters.Filter(resp, &c.job)
 }
 
 func write(name string, cache *user_cache) error {
@@ -54,6 +25,57 @@ func write(name string, cache *user_cache) error {
    }
    log.Println("WriteFile", name)
    return os.WriteFile(name, data, os.ModePerm)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(*http.Request) string {
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   c.name = cache + "/rtbf/userCache.xml"
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   // 1
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   // 2
+   if c.address != "" {
+      return c.do_address()
+   }
+   // 3
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d", "C", "P"},
+   })
+   return nil
 }
 
 func (c *command) do_email_password() error {
@@ -66,37 +88,38 @@ func (c *command) do_email_password() error {
 }
 
 type command struct {
-   config maya.Config
    name   string
    // 1
    email    string
    password string
+   
    // 2
    address string
    // 3
    dash string
+   job maya.WidevineJob
 }
 
-///
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+type user_cache struct {
+   Account *rtbf.Account
+   Dash *rtbf.Dash
+   Entitlement *rtbf.Entitlement
+}
 
 func (c *command) do_address() error {
-   data, err := os.ReadFile(c.name + "/rtbf/Login")
-   if err != nil {
-      return err
-   }
-   var login rtbf.Login
-   err = login.Unmarshal(data)
-   if err != nil {
-      return err
-   }
-   jwt, err := login.Jwt()
-   if err != nil {
-      return err
-   }
-   gigya, err := jwt.Login()
-   if err != nil {
-      return err
-   }
    path, err := rtbf.GetPath(c.address)
    if err != nil {
       return err
@@ -105,39 +128,33 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   data, err = gigya.Entitlement(asset_id)
+   cache, err := read(c.name)
    if err != nil {
       return err
    }
-   var title rtbf.Entitlement
-   err = title.Unmarshal(data)
+   identity, err := cache.Account.Identity()
    if err != nil {
       return err
    }
-   format, ok := title.Dash()
+   session, err := identity.Session()
+   if err != nil {
+      return err
+   }
+   cache.Entitlement, err = session.Entitlement(asset_id)
+   if err != nil {
+      return err
+   }
+   format, ok := cache.Entitlement.Dash()
    if !ok {
       return errors.New(".Dash()")
    }
-   resp, err := http.Get(format.MediaLocator)
+   cache.Dash, err = format.Dash()
    if err != nil {
       return err
    }
-}
-
-func (c *command) do_dash() error {
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return title.Widevine(data)
-   }
-   return c.filters.Filter(resp, &c.config)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(*http.Request) string {
-      return "L"
-   })
-   err := new(command).run()
+   err = write(c.name, cache)
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
