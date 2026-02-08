@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/criterion"
-   "encoding/xml"
    "errors"
    "flag"
    "log"
@@ -18,19 +17,18 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
    c.name = cache + "/criterion/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.Parse()
    // 1
    if c.email != "" {
@@ -46,17 +44,12 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d", "C", "P"},
+   })
    return nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (c *command) do_email_password() error {
@@ -65,24 +58,10 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Token: &token})
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
+   return maya.Write(c.name, &user_cache{Token: &token})
 }
 
 type command struct {
-   job  maya.WidevineJob
    name string
    // 1
    email    string
@@ -91,17 +70,18 @@ type command struct {
    address string
    // 3
    dash string
+   job  maya.WidevineJob
 }
 
 func (c *command) do_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
       return cache.MediaFile.Widevine(data)
    }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
 func main() {
@@ -117,14 +97,15 @@ func main() {
       log.Fatal(err)
    }
 }
+
 type user_cache struct {
+   Dash      *criterion.Dash
    MediaFile *criterion.MediaFile
-   Mpd       *criterion.Mpd
    Token     *criterion.Token
 }
 
 func (c *command) do_address() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -145,13 +126,13 @@ func (c *command) do_address() error {
    if !ok {
       return errors.New(".Dash()")
    }
-   cache.Mpd, err = cache.MediaFile.Mpd()
+   cache.Dash, err = cache.MediaFile.Dash()
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

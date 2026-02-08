@@ -10,6 +10,26 @@ import (
    "strings"
 )
 
+func (m *MediaFile) Dash() (*Dash, error) {
+   resp, err := http.Get(m.Links.Source.Href)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func (t *Token) GetError() error {
    if t.Error == "" {
       return nil
@@ -119,21 +139,6 @@ func join(items ...string) string {
    return strings.Join(items, "")
 }
 
-func (m *MediaFile) Mpd() (*Mpd, error) {
-   resp, err := http.Get(m.Links.Source.Href)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var media Mpd
-   media.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   media.Url = resp.Request.URL
-   return &media, nil
-}
-
 type MediaFile struct {
    DrmAuthorizationToken string `json:"drm_authorization_token"`
    Links                 struct {
@@ -168,11 +173,6 @@ type VideoItem struct {
          Href string // https://api.vhx.tv/videos/3460957/files
       }
    } `json:"_links"`
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
 }
 
 func (m MediaFiles) Dash() (*MediaFile, bool) {

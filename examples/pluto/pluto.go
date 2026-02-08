@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/pluto"
-   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -14,7 +13,7 @@ import (
 )
 
 func (c *command) do_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -39,28 +38,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func (c *command) run() error {
@@ -118,7 +95,7 @@ func (c *command) do_movie() error {
    if err != nil {
       return err
    }
-   err = write(c.name, &user_cache{Dash: &dash})
+   err = maya.Write(c.name, &user_cache{Dash: &dash})
    if err != nil {
       return err
    }
@@ -132,7 +109,7 @@ func (c *command) do_show() error {
       return err
    }
    fmt.Println(&series.Vod[0])
-   return write(c.name, &user_cache{Series: &series})
+   return maya.Write(c.name, &user_cache{Series: &series})
 }
 
 type command struct {
@@ -149,7 +126,7 @@ type command struct {
 }
 
 func (c *command) do_episode() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -163,7 +140,7 @@ func (c *command) do_episode() error {
       return err
    }
    cache.Dash = &dash
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
