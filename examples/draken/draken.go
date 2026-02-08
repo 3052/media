@@ -3,7 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/draken"
-   "encoding/xml"
+   "encoding/json"
    "flag"
    "log"
    "net/http"
@@ -85,7 +85,7 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   c.name = cache + "/draken/userCache.xml"
+   c.name = cache + "/draken/userCache.json"
    c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
    c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
    // 1
@@ -130,7 +130,7 @@ func (c *command) do_email_password() error {
 }
 
 func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
+   data, err := json.Marshal(cache)
    if err != nil {
       return err
    }
@@ -144,7 +144,7 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
+   err = json.Unmarshal(data, cache)
    if err != nil {
       return nil, err
    }

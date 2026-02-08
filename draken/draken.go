@@ -9,6 +9,11 @@ import (
    "net/url"
 )
 
+type Playback struct {
+   Headers  map[string]string
+   Playlist string // MPD
+}
+
 func (l Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -164,11 +169,6 @@ func (p *Playback) Dash() (*Dash, error) {
    }
    result.Url = resp.Request.URL
    return &result, nil
-}
-
-type Playback struct {
-   Headers  map[string]string
-   Playlist string // MPD
 }
 
 type MovieItem struct {

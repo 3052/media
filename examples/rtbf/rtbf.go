@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/rtbf"
-   "encoding/xml"
    "errors"
    "flag"
    "log"
@@ -12,87 +11,8 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_email_password() error {
-   var account rtbf.Account
-   err := account.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return write(c.name, &user_cache{Account: &account})
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.WidevineJob
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
-type user_cache struct {
-   Account     *rtbf.Account
-   Dash        *rtbf.Dash
-   Entitlement *rtbf.Entitlement
-}
-
-func (c *command) do_address() error {
-   path, err := rtbf.GetPath(c.address)
-   if err != nil {
-      return err
-   }
-   asset_id, err := rtbf.FetchAssetId(path)
-   if err != nil {
-      return err
-   }
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   identity, err := cache.Account.Identity()
-   if err != nil {
-      return err
-   }
-   session, err := identity.Session()
-   if err != nil {
-      return err
-   }
-   cache.Entitlement, err = session.Entitlement(asset_id)
-   if err != nil {
-      return err
-   }
-   format, ok := cache.Entitlement.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   cache.Dash, err = format.Dash()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
 func (c *command) do_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -100,15 +20,6 @@ func (c *command) do_dash() error {
       return cache.Entitlement.Widevine(data)
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func main() {
@@ -160,4 +71,71 @@ func (c *command) run() error {
       {"d", "C", "P"},
    })
    return nil
+}
+
+func (c *command) do_email_password() error {
+   var account rtbf.Account
+   err := account.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, &user_cache{Account: &account})
+}
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+
+type user_cache struct {
+   Account     *rtbf.Account
+   Dash        *rtbf.Dash
+   Entitlement *rtbf.Entitlement
+}
+
+func (c *command) do_address() error {
+   path, err := rtbf.GetPath(c.address)
+   if err != nil {
+      return err
+   }
+   asset_id, err := rtbf.FetchAssetId(path)
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   identity, err := cache.Account.Identity()
+   if err != nil {
+      return err
+   }
+   session, err := identity.Session()
+   if err != nil {
+      return err
+   }
+   cache.Entitlement, err = session.Entitlement(asset_id)
+   if err != nil {
+      return err
+   }
+   format, ok := cache.Entitlement.Dash()
+   if !ok {
+      return errors.New(".Dash()")
+   }
+   cache.Dash, err = format.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
