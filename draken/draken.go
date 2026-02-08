@@ -9,6 +9,31 @@ import (
    "net/url"
 )
 
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Playlist)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url *url.URL
+}
+
+type Playback struct {
+   Headers  map[string]string
+   Playlist string // MPD
+}
+
 const get_custom_id = `
 query GetCustomIdFullMovie($customId: ID!) {
    viewer {
@@ -195,11 +220,6 @@ func (l Login) Playback(asset *AssetItem, title *Entitlement) (*Playback, error)
       return nil, err
    }
    return result, nil
-}
-
-type Playback struct {
-   Headers  map[string]string
-   Playlist string // MPD
 }
 
 func (l Login) Widevine(play *Playback, data []byte) ([]byte, error) {
