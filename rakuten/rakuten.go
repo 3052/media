@@ -12,6 +12,26 @@ import (
    "strings"
 )
 
+func (s *StreamData) Dash() (*Dash, error) {
+   resp, err := http.Get(s.StreamInfos[0].Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func buildURL(marketCode, endpoint, id string) (string, error) {
    classID, ok := classificationMap[marketCode]
    if !ok {
@@ -255,23 +275,6 @@ type StreamRequestPayload struct {
    DeviceStreamVideoQuality VideoQuality `json:"device_stream_video_quality"`
    AudioLanguage            string       `json:"audio_language"`
    ContentId                string       `json:"content_id"`
-}
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (s *StreamData) Mpd() (*Mpd, error) {
-   resp, err := http.Get(s.StreamInfos[0].Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
 }
 
 // join takes a variable number of strings and returns them combined into one string without separators.

@@ -67,30 +67,13 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   // 1
-   usage("e", "p")
-   // 2
-   usage("r")
-   // 3
-   usage("a")
-   // 4
-   usage("t", "s")
-   // 5
-   usage("S")
-   // 6
-   usage("d", "C", "P")
+   maya.Usage("e", "p")
+   maya.Usage("r")
+   maya.Usage("a")
+   maya.Usage("t", "s")
+   maya.Usage("S")
+   maya.Usage("d", "C", "P")
    return nil
-}
-
-func usage(names ...string) {
-   for _, name := range names {
-      look := flag.Lookup(name)
-      fmt.Printf("-%v %v\n", look.Name, look.Usage)
-      if look.DefValue != "" {
-         fmt.Printf("\tdefault %v\n", look.DefValue)
-      }
-   }
-   fmt.Println()
 }
 
 func (c *command) do_dash() error {

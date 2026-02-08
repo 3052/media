@@ -162,12 +162,12 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   usage("E", "P")
-   usage("r")
-   usage("S")
-   usage("s")
-   usage("e")
-   usage("d", "c", "p")
+   maya.Usage("E", "P")
+   maya.Usage("r")
+   maya.Usage("S")
+   maya.Usage("s")
+   maya.Usage("e")
+   maya.Usage("d", "c", "p")
    return nil
 }
 

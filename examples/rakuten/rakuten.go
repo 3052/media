@@ -13,6 +13,62 @@ import (
    "path/filepath"
 )
 
+func read(name string) (*user_cache, error) {
+   data, err := os.ReadFile(name)
+   if err != nil {
+      return nil, err
+   }
+   cache := &user_cache{}
+   err = xml.Unmarshal(data, cache)
+   if err != nil {
+      return nil, err
+   }
+   return cache, nil
+}
+
+func write(name string, cache *user_cache) error {
+   data, err := xml.Marshal(cache)
+   if err != nil {
+      return err
+   }
+   log.Println("WriteFile", name)
+   return os.WriteFile(name, data, os.ModePerm)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash    *rakuten.Dash
+   Movie  *rakuten.Movie
+   TvShow *rakuten.TvShow
+}
+
+///
+
+type command struct {
+   config   maya.Config
+   dash     string
+   episode  string
+   language string
+   movie    string
+   name     string
+   season   string
+   show     string
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -101,35 +157,6 @@ func (c *command) do_movie() error {
    return write(c.name, &user_cache{Movie: &movie})
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Movie  *rakuten.Movie
-   Mpd    *rakuten.Mpd
-   TvShow *rakuten.TvShow
-}
 func (c *command) do_language_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -152,18 +179,7 @@ func (c *command) do_language_dash() error {
    c.config.Send = func(data []byte) ([]byte, error) {
       return stream.Widevine(data)
    }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type command struct {
-   config   maya.Config
-   dash     string
-   episode  string
-   language string
-   movie    string
-   name     string
-   season   string
-   show     string
+   return c.config.Download(cache.Dash.Url, cache.Dash.Body, c.dash)
 }
 
 func (c *command) do_language() error {
@@ -187,7 +203,7 @@ func (c *command) do_language() error {
    if err != nil {
       return err
    }
-   cache.Mpd, err = stream.Mpd()
+   cache.Dash, err = stream.Dash()
    if err != nil {
       return err
    }
@@ -195,18 +211,6 @@ func (c *command) do_language() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
+   return maya.Representations(cache.Dash.Url, cache.Dash.Body)
 }
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}

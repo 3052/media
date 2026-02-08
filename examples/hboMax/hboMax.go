@@ -55,16 +55,11 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   // 1
-   usage("i", "m")
-   // 2
-   usage("l")
-   // 3
-   usage("a", "s")
-   // 4
-   usage("e")
-   // 5
-   usage("d", "t", "C", "E")
+   maya.Usage("i", "m")
+   maya.Usage("l")
+   maya.Usage("a", "s")
+   maya.Usage("e")
+   maya.Usage("d", "t", "C", "E")
    return nil
 }
 
