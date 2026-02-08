@@ -15,6 +15,26 @@ import (
    "time"
 )
 
+func (s Stream) Dash() (*Dash, error) {
+   resp, err := http.Get(strings.Replace(s.PlaybackUrl, "_2sec", "", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func (m *Metadata) Stream() (*Stream, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -48,24 +68,6 @@ func (m *Metadata) Stream() (*Stream, error) {
 
 func join(data ...string) string {
    return strings.Join(data, "")
-}
-
-func (s Stream) Mpd() (*Mpd, error) {
-   resp, err := http.Get(strings.Replace(s.PlaybackUrl, "_2sec", "", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
 }
 
 const drmProxySecret = "Whn8QFuLFM7Heiz6fYCYga7cYPM8ARe6"

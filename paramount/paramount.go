@@ -17,6 +17,38 @@ import (
    "strings"
 )
 
+func (i *Item) Dash() (*Dash, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "link.theplatform.com",
+      Path: join(
+         "/s/", i.CmsAccountId,
+         "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
+         "/", i.ContentId,
+      ),
+      RawQuery: "formats=MPEG-DASH",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 // 576p L3
 func Widevine(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
    var req http.Request
@@ -162,31 +194,6 @@ func (s *SessionToken) Send(data []byte) ([]byte, error) {
    return data, nil
 }
 
-func (i *Item) Mpd() (*Mpd, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "link.theplatform.com",
-      Path: join(
-         "/s/", i.CmsAccountId,
-         "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
-         "/", i.ContentId,
-      ),
-      RawQuery: "formats=MPEG-DASH",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
-}
-
 type Item struct {
    CmsAccountId string
    ContentId    string
@@ -194,11 +201,6 @@ type Item struct {
 
 func join(items ...string) string {
    return strings.Join(items, "")
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
 }
 
 const (
