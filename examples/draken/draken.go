@@ -3,6 +3,7 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/draken"
+   "encoding/xml"
    "flag"
    "log"
    "net/http"
@@ -11,16 +12,60 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return login.Widevine(play, data)
+func (c *command) do_address() error {
+   movie, err := draken.FetchMovie(path.Base(c.address))
+   if err != nil {
+      return err
    }
-   return c.filters.Filter(resp, &c.job)
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   entitlement, err := cache.Login.Entitlement(movie)
+   if err != nil {
+      return err
+   }
+   cache.Playback, err = cache.Login.Playback(movie, entitlement)
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Login.Widevine(cache.Playback, data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
 type user_cache struct {
-   Dash *draken.Dash
-   Login *draken.Login
+   Dash     *draken.Dash
+   Login    *draken.Login
    Playback *draken.Playback
 }
 
@@ -104,45 +149,4 @@ func read(name string) (*user_cache, error) {
       return nil, err
    }
    return cache, nil
-}
-
-func (c *command) do_address() error {
-   var movie draken.Movie
-   err = movie.Fetch(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   entitlement, err := cache.Login.Entitlement(movie)
-   if err != nil {
-      return err
-   }
-   cache.Playback, err = cache.Login.Playback(&movie, entitlement)
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = cache.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   address  string
-   // 3
-   dash string
-   job   maya.WidevineJob
 }
