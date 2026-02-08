@@ -13,47 +13,81 @@ import (
    "path/filepath"
 )
 
-///
+func (c *command) do_dash() error {
+   data, err := os.ReadFile(c.name)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   err = xml.Unmarshal(data, &cache)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash       *plex.Dash
+   MediaPart *plex.MediaPart
+   User      *plex.User
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/plex/userCache.xml"
-
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   // 1
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.BoolVar(&c.ifconfig, "i", false, "ifconfig.co")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
    flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
+   // 2
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-
-   if c.ifconfig {
-      return do_ifconfig()
-   }
+   // 1
    if c.address != "" {
       return c.do_address()
    }
+   // 2
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"a", "x"},
+      {"d", "c", "p"},
+   })
    return nil
 }
 
 type command struct {
-   address         string
-   config          maya.Config
-   dash            string
-   ifconfig        bool
    name            string
+   // 1
+   address         string
    x_forwarded_for string
+   // 2
+   dash            string
+   job          maya.WidevineJob
 }
 
 func (c *command) do_address() error {
@@ -82,7 +116,7 @@ func (c *command) do_address() error {
    if !ok {
       return errors.New(".Dash()")
    }
-   cache.Mpd, err = user.Mpd(cache.MediaPart, c.x_forwarded_for)
+   cache.Dash, err = user.Dash(cache.MediaPart, c.x_forwarded_for)
    if err != nil {
       return err
    }
@@ -96,54 +130,5 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Mpd.Url, cache.Mpd.Body)
-}
-
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.config.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
-   }
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   MediaPart *plex.MediaPart
-   Mpd       *plex.Mpd
-   User      *plex.User
-}
-
-func do_ifconfig() error {
-   resp, err := http.Get("http://ifconfig.co")
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   _, err = os.Stdout.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

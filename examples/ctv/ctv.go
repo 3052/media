@@ -17,13 +17,13 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   var cache ctv.Mpd
-   err = xml.Unmarshal(data, &cache)
+   var dash ctv.Dash
+   err = xml.Unmarshal(data, &dash)
    if err != nil {
       return err
    }
-   c.config.Send = ctv.Widevine
-   return c.config.Download(cache.Url, cache.Body, c.dash)
+   c.job.Send = ctv.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func main() {
@@ -46,33 +46,29 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/ctv/mpd.xml"
-
+   c.name = cache + "/ctv/dash.xml"
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   // 1
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
+   // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-
+   // 1
    if c.address != "" {
       return c.do_address()
    }
+   // 2
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"a"},
+      {"d", "c", "p"},
+   })
    return nil
-}
-
-type command struct {
-   address string
-   config  maya.Config
-   dash    string
-   name    string
 }
 
 func (c *command) do_address() error {
@@ -96,11 +92,11 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   cache, err := manifest.Mpd()
+   dash, err := manifest.Dash()
    if err != nil {
       return err
    }
-   data, err := xml.Marshal(cache)
+   data, err := xml.Marshal(dash)
    if err != nil {
       return err
    }
@@ -109,5 +105,14 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   return maya.Representations(cache.Url, cache.Body)
+   return maya.ListDash(dash.Body, dash.Url)
+}
+
+type command struct {
+   name    string
+   // 1
+   address string
+   // 2
+   dash    string
+   job  maya.WidevineJob
 }

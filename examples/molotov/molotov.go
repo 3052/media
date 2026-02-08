@@ -12,6 +12,12 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   Asset *molotov.Asset
+   Login *molotov.Login
+   Mpd   *molotov.Mpd
+}
+
 func (c *command) do_dash() error {
    cache, err := read(c.name)
    if err != nil {
@@ -21,12 +27,6 @@ func (c *command) do_dash() error {
       return cache.Asset.Widevine(data)
    }
    return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
-type user_cache struct {
-   Asset *molotov.Asset
-   Login *molotov.Login
-   Mpd   *molotov.Mpd
 }
 
 func main() {
