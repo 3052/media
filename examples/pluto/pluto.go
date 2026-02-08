@@ -13,8 +13,17 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = pluto.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
 type user_cache struct {
-   Dash    *pluto.Dash
+   Dash   *pluto.Dash
    Series *pluto.Series
 }
 
@@ -116,21 +125,6 @@ func (c *command) do_movie() error {
    return maya.ListDash(dash.Body, dash.Url)
 }
 
-type command struct {
-   name    string
-   // 1
-   movie   string
-   // 2
-   show    string
-   // 3
-   episode string
-   // 4
-   dash    string
-   job  maya.WidevineJob
-}
-
-///
-
 func (c *command) do_show() error {
    var series pluto.Series
    err := series.Fetch(c.show)
@@ -141,13 +135,17 @@ func (c *command) do_show() error {
    return write(c.name, &user_cache{Series: &series})
 }
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = pluto.Widevine
-   return c.job.Download(cache.Dash.Url, cache.Dash.Body, c.dash)
+type command struct {
+   name string
+   // 1
+   movie string
+   // 2
+   show string
+   // 3
+   episode string
+   // 4
+   dash string
+   job  maya.WidevineJob
 }
 
 func (c *command) do_episode() error {
@@ -169,5 +167,5 @@ func (c *command) do_episode() error {
    if err != nil {
       return err
    }
-   return maya.Representations(dash.Url, dash.Body)
+   return maya.ListDash(dash.Body, dash.Url)
 }
