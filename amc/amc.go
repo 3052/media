@@ -11,6 +11,35 @@ import (
    "strings"
 )
 
+func GetDash(sources []Source) (*Source, bool) {
+   for _, source_var := range sources {
+      if source_var.Type == "application/dash+xml" {
+         return &source_var, true
+      }
+   }
+   return nil, false
+}
+
+func (s *Source) Dash() (*Dash, error) {
+   resp, err := http.Get(s.Src)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 type Client struct {
    Data struct {
       AccessToken  string `json:"access_token"`
@@ -233,11 +262,6 @@ func (m *Metadata) String() string {
    return data.String()
 }
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (n *Node) ExtractEpisodes() ([]*Metadata, error) {
    for _, listNode := range n.Children {
       if listNode.Type != "list" {
@@ -332,26 +356,4 @@ func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func Dash(sources []Source) (*Source, bool) {
-   for _, source_var := range sources {
-      if source_var.Type == "application/dash+xml" {
-         return &source_var, true
-      }
-   }
-   return nil, false
-}
-
-func (s *Source) Mpd() (*Mpd, error) {
-   resp, err := http.Get(s.Src)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
 }
