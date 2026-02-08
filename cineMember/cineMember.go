@@ -10,6 +10,31 @@ import (
    "strings"
 )
 
+func (m *MediaLink) Dash() (*Dash, error) {
+   resp, err := http.Get(m.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type MediaLink struct {
+   MimeType string
+   Url      string
+}
+
 // extracts the numeric ID and converts it to an integer
 func FetchId(link string) (int, error) {
    resp, err := http.Get(link)
@@ -34,29 +59,6 @@ func FetchId(link string) (int, error) {
    }
    // 3. Convert string to integer
    return strconv.Atoi(idStr)
-}
-
-func (m *MediaLink) Mpd() (*Mpd, error) {
-   resp, err := http.Get(m.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
-}
-
-type MediaLink struct {
-   MimeType string
-   Url      string
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
 }
 
 // Fetch performs the HEAD request to cinemember.nl and populates the Session

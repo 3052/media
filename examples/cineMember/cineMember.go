@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/cineMember"
-   "encoding/xml"
    "errors"
    "flag"
    "log"
@@ -12,28 +11,6 @@ import (
    "path"
    "path/filepath"
 )
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -63,30 +40,34 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d"},
+   })
    return nil
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
    if err != nil {
-      return nil, err
+      log.Fatal(err)
    }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
 }
 
 func (c *command) do_email_password() error {
@@ -99,17 +80,16 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Session: &session})
+   return maya.Write(c.name, &user_cache{Session: &session})
 }
 
 type user_cache struct {
-   Mpd     *cineMember.Mpd
+   Dash    *cineMember.Dash
    Session *cineMember.Session
 }
 
 type command struct {
    name string
-   job  maya.Job
    // 1
    email    string
    password string
@@ -117,10 +97,11 @@ type command struct {
    address string
    // 3
    dash string
+   job  maya.Job
 }
 
 func (c *command) do_address() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -136,13 +117,13 @@ func (c *command) do_address() error {
    if !ok {
       return errors.New(".Dash()")
    }
-   cache.Mpd, err = link.Mpd()
+   cache.Dash, err = link.Dash()
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/canal"
-   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -79,7 +78,7 @@ func (c *command) run() error {
 }
 
 func (c *command) do_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -90,7 +89,7 @@ func (c *command) do_dash() error {
 }
 
 type user_cache struct {
-   Dash     *canal.Dash
+   Dash    *canal.Dash
    Player  *canal.Player
    Session *canal.Session
 }
@@ -110,7 +109,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Session: &session})
+   return maya.Write(c.name, &user_cache{Session: &session})
 }
 
 func get(address string) error {
@@ -131,28 +130,6 @@ func get(address string) error {
    return nil
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -168,7 +145,7 @@ func main() {
 }
 
 func (c *command) do_refresh() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -176,7 +153,7 @@ func (c *command) do_refresh() error {
    if err != nil {
       return err
    }
-   return write(c.name, cache)
+   return maya.Write(c.name, cache)
 }
 
 func (c *command) do_address() error {
@@ -189,7 +166,7 @@ func (c *command) do_address() error {
 }
 
 func (c *command) do_tracking_season() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -207,7 +184,7 @@ func (c *command) do_tracking_season() error {
 }
 
 func (c *command) do_subtitles() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -221,26 +198,26 @@ func (c *command) do_subtitles() error {
 }
 
 type command struct {
-   job    maya.WidevineJob
-   name      string
+   job  maya.WidevineJob
+   name string
    // 1
-   email     string
-   password  string
+   email    string
+   password string
    // 2
-   refresh   bool
+   refresh bool
    // 3
-   address   string
+   address string
    // 4
-   tracking  string
-   season    int
+   tracking string
+   season   int
    // 5
    subtitles bool
    // 6
-   dash      string
+   dash string
 }
 
 func (c *command) do_tracking() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -252,7 +229,7 @@ func (c *command) do_tracking() error {
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
