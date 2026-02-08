@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/hboMax"
-   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -35,7 +34,6 @@ func (c *command) run() error {
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 5
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -64,38 +62,16 @@ func (c *command) run() error {
       {"l"},
       {"a", "s"},
       {"e"},
-      {"d", "t", "C", "E"},
+      {"d", "C", "E"},
    })
    return nil
 }
 
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
 type user_cache struct {
    Login    *hboMax.Login
-   Mpd      *hboMax.Mpd
+   Dash     *hboMax.Dash
    Playback *hboMax.Playback
    St       *hboMax.St
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
 }
 
 func main() {
@@ -113,30 +89,29 @@ func main() {
 }
 
 type command struct {
-   name   string
+   name string
    // 1
    initiate bool
-   market string
+   market   string
    // 2
    login bool
    // 3
    address string
-   season int
+   season  int
    // 4
    edit string
    // 5
    dash string
-   job    maya.PlayReadyJob
+   job  maya.PlayReadyJob
 }
 
-// 1
 func (c *command) do_initiate() error {
    var st hboMax.St
    err := st.Fetch()
    if err != nil {
       return err
    }
-   err = write(c.name, &user_cache{St: &st})
+   err = maya.Write(c.name, &user_cache{St: &st})
    if err != nil {
       return err
    }
@@ -148,9 +123,8 @@ func (c *command) do_initiate() error {
    return nil
 }
 
-// 2
 func (c *command) do_login() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -158,17 +132,16 @@ func (c *command) do_login() error {
    if err != nil {
       return err
    }
-   return write(c.name, cache)
+   return maya.Write(c.name, cache)
 }
 
-// 3
 func (c *command) do_address() error {
    var show hboMax.ShowKey
    err := show.Parse(c.address)
    if err != nil {
       return err
    }
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -191,9 +164,8 @@ func (c *command) do_address() error {
    return nil
 }
 
-// 4
 func (c *command) do_edit() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -201,25 +173,24 @@ func (c *command) do_edit() error {
    if err != nil {
       return err
    }
-   cache.Mpd, err = cache.Playback.Mpd()
+   cache.Dash, err = cache.Playback.Dash()
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Mpd.Body, cache.Mpd.Url)
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
-// 5
 func (c *command) do_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
       return cache.Playback.PlayReady(data)
    }
-   return c.job.DownloadDash(cache.Mpd.Body, cache.Mpd.Url, c.dash)
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }

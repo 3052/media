@@ -12,6 +12,28 @@ import (
    "strings"
 )
 
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
@@ -161,21 +183,6 @@ func (l Login) Season(show *ShowKey, number int) (*Videos, error) {
       return nil, err
    }
    return result, nil
-}
-
-func (p *Playback) Mpd() (*Mpd, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Mpd{data, resp.Request.URL}, nil
 }
 
 func (p *Playback) PlayReady(data []byte) ([]byte, error) {
@@ -452,7 +459,3 @@ func (v *Video) String() string {
    return data.String()
 }
 
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}

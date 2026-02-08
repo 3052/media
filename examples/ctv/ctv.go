@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/ctv"
-   "encoding/xml"
    "flag"
    "log"
    "net/http"
@@ -12,13 +11,40 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
+func (c *command) do_address() error {
+   link_path, err := ctv.GetPath(c.address)
    if err != nil {
       return err
    }
-   var dash ctv.Dash
-   err = xml.Unmarshal(data, &dash)
+   resolve, err := ctv.Resolve(link_path)
+   if err != nil {
+      return err
+   }
+   axis, err := resolve.AxisContent()
+   if err != nil {
+      return err
+   }
+   playback, err := axis.Playback()
+   if err != nil {
+      return err
+   }
+   manifest, err := axis.Manifest(playback)
+   if err != nil {
+      return err
+   }
+   dash, err := manifest.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
+}
+
+func (c *command) do_dash() error {
+   dash, err := maya.Read[ctv.Dash](c.name)
    if err != nil {
       return err
    }
@@ -71,48 +97,11 @@ func (c *command) run() error {
    return nil
 }
 
-func (c *command) do_address() error {
-   link_path, err := ctv.GetPath(c.address)
-   if err != nil {
-      return err
-   }
-   resolve, err := ctv.Resolve(link_path)
-   if err != nil {
-      return err
-   }
-   axis, err := resolve.AxisContent()
-   if err != nil {
-      return err
-   }
-   playback, err := axis.Playback()
-   if err != nil {
-      return err
-   }
-   manifest, err := axis.Manifest(playback)
-   if err != nil {
-      return err
-   }
-   dash, err := manifest.Dash()
-   if err != nil {
-      return err
-   }
-   data, err := xml.Marshal(dash)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
-}
-
 type command struct {
-   name    string
+   name string
    // 1
    address string
    // 2
-   dash    string
+   dash string
    job  maya.WidevineJob
 }

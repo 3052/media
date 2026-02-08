@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/disney"
-   "encoding/xml"
    "flag"
    "fmt"
    "log"
@@ -18,10 +17,9 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
    c.name = cache + "/disney/userCache.xml"
+   c.job.CertificateChain = filepath.Join(cache, "/SL3000/CertificateChain")
+   c.job.EncryptSignKey = filepath.Join(cache, "/SL3000/EncryptSignKey")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -32,10 +30,9 @@ func (c *command) run() error {
    // 4
    flag.StringVar(&c.media_id, "m", "", "media ID")
    // 5
+   flag.StringVar(&c.hls, "h", "", "HLS ID")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
-   flag.StringVar(&c.hls, "h", "", "HLS ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.Parse()
    // 1
    if c.email != "" {
@@ -59,7 +56,13 @@ func (c *command) run() error {
    if c.hls != "" {
       return c.do_hls()
    }
-   flag.Usage()
+   maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"s"},
+      {"m"},
+      {"h", "C", "E"},
+   })
    return nil
 }
 
@@ -77,11 +80,11 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &cache)
+   return maya.Write(c.name, &cache)
 }
 
 func (c *command) do_address() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -98,7 +101,7 @@ func (c *command) do_address() error {
 }
 
 func (c *command) do_season() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -111,7 +114,7 @@ func (c *command) do_season() error {
 }
 
 func (c *command) do_media_id() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -123,7 +126,7 @@ func (c *command) do_media_id() error {
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
@@ -131,7 +134,6 @@ func (c *command) do_media_id() error {
 }
 
 type command struct {
-   job  maya.PlayReadyJob
    name string
    // 1
    email    string
@@ -144,10 +146,11 @@ type command struct {
    media_id string
    // 5
    hls string
+   job maya.PlayReadyJob
 }
 
 func (c *command) do_hls() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -160,28 +163,6 @@ func (c *command) do_hls() error {
 type user_cache struct {
    Account *disney.Account
    Hls     *disney.Hls
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = xml.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
 }
 
 func main() {
