@@ -13,27 +13,9 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.config.Send = pluto.Widevine
-   return c.config.Download(cache.Mpd.Url, cache.Mpd.Body, c.dash)
-}
-
 type user_cache struct {
-   Mpd    *pluto.Mpd
+   Dash    *pluto.Dash
    Series *pluto.Series
-}
-
-type command struct {
-   config  maya.Config
-   dash    string
-   episode string
-   movie   string
-   name    string
-   show    string
 }
 
 func main() {
@@ -48,16 +30,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) do_show() error {
-   var series pluto.Series
-   err := series.Fetch(c.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(&series.Vod[0])
-   return write(c.name, &user_cache{Series: &series})
 }
 
 func read(name string) (*user_cache, error) {
@@ -87,34 +59,77 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.config.ClientId = cache + "/L3/client_id.bin"
-   c.config.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/pluto/userCache.xml"
-
-   flag.StringVar(&c.config.ClientId, "c", c.config.ClientId, "client ID")
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.episode, "e", "", "episode ID")
+   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
+   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   // 1
    flag.StringVar(&c.movie, "m", "", "movie ID")
-   flag.StringVar(&c.config.PrivateKey, "p", c.config.PrivateKey, "private key")
+   // 2
    flag.StringVar(&c.show, "s", "", "show ID")
-   flag.IntVar(&c.config.Threads, "t", 2, "threads")
+   // 3
+   flag.StringVar(&c.episode, "e", "", "episode ID")
+   // 4
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-
+   // 1
    if c.movie != "" {
       return c.do_movie()
    }
+   // 2
    if c.show != "" {
       return c.do_show()
    }
+   // 3
    if c.episode != "" {
       return c.do_episode()
    }
+   // 4
    if c.dash != "" {
       return c.do_dash()
    }
-   flag.Usage()
+   maya.Usage(
+      []string{"m"},
+      []string{"s"},
+      []string{"e"},
+      []string{"d", "c", "p"},
+   )
    return nil
+}
+
+type command struct {
+   name    string
+   // 1
+   movie   string
+   // 2
+   show    string
+   // 3
+   episode string
+   // 4
+   dash    string
+   job  maya.WidevineJob
+}
+
+///
+
+func (c *command) do_dash() error {
+   cache, err := read(c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = pluto.Widevine
+   return c.job.Download(cache.Dash.Url, cache.Dash.Body, c.dash)
+}
+
+func (c *command) do_show() error {
+   var series pluto.Series
+   err := series.Fetch(c.show)
+   if err != nil {
+      return err
+   }
+   fmt.Println(&series.Vod[0])
+   return write(c.name, &user_cache{Series: &series})
 }
 
 func (c *command) do_movie() error {
@@ -123,16 +138,16 @@ func (c *command) do_movie() error {
    if err != nil {
       return err
    }
-   var mpd pluto.Mpd
-   err = mpd.Fetch(series.GetMovieURL())
+   var dash pluto.Dash
+   err = dash.Fetch(series.GetMovieURL())
    if err != nil {
       return err
    }
-   err = write(c.name, &user_cache{Mpd: &mpd})
+   err = write(c.name, &user_cache{Dash: &dash})
    if err != nil {
       return err
    }
-   return maya.Representations(mpd.Url, mpd.Body)
+   return maya.Representations(dash.Url, dash.Body)
 }
 
 func (c *command) do_episode() error {
@@ -144,15 +159,15 @@ func (c *command) do_episode() error {
    if err != nil {
       return err
    }
-   var mpd pluto.Mpd
-   err = mpd.Fetch(link)
+   var dash pluto.Dash
+   err = dash.Fetch(link)
    if err != nil {
       return err
    }
-   cache.Mpd = &mpd
+   cache.Dash = &dash
    err = write(c.name, cache)
    if err != nil {
       return err
    }
-   return maya.Representations(mpd.Url, mpd.Body)
+   return maya.Representations(dash.Url, dash.Body)
 }

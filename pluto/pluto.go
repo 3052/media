@@ -10,6 +10,29 @@ import (
    "strconv"
 )
 
+func (d *Dash) Fetch(link *url.URL) error {
+   var req http.Request
+   req.Method = "GET"
+   req.URL = link
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   d.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   d.Url = resp.Request.URL
+   return nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func (s *Series) Fetch(id string) error {
    var req http.Request
    req.Header = http.Header{}
@@ -41,30 +64,6 @@ func (s *Series) Fetch(id string) error {
    if s.Vod[0].Id != id {
       return errors.New("id mismatch")
    }
-   return nil
-}
-
-type Mpd struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (m *Mpd) Fetch(link *url.URL) error {
-   var req http.Request
-   // The Request's URL and Header fields must be initialized
-   req.Header = http.Header{}
-   req.Method = "GET"
-   req.URL = link
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   m.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   m.Url = resp.Request.URL
    return nil
 }
 
