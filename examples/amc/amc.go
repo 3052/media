@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/amc"
-   "encoding/json"
    "errors"
    "flag"
    "fmt"
@@ -14,33 +13,76 @@ import (
    "path/filepath"
 )
 
-type user_cache struct {
-   Client *amc.Client
-   Dash   *amc.Dash
-   Header http.Header
-   Source *amc.Source
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = json.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
-
-func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Source.Widevine(cache.BcJwt, data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   BcJwt  string
+   Client *amc.Client
+   Dash   *amc.Dash
+   Source *amc.Source
+}
+
+func (c *command) do_season() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   season, err := cache.Client.SeasonEpisodes(c.season)
+   if err != nil {
+      return err
+   }
+   episodes, err := season.ExtractEpisodes()
+   if err != nil {
+      return err
+   }
+   for i, episode := range episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(episode)
+   }
+   return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4f" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   refresh bool
+   // 3
+   series int
+   // 4
+   season int
+   // 5
+   episode int
+   // 6
+   dash string
+   job  maya.WidevineJob
 }
 
 func (c *command) run() error {
@@ -108,11 +150,11 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Client: &client})
+   return maya.Write(c.name, &user_cache{Client: &client})
 }
 
 func (c *command) do_refresh() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -120,11 +162,11 @@ func (c *command) do_refresh() error {
    if err != nil {
       return err
    }
-   return write(c.name, cache)
+   return maya.Write(c.name, cache)
 }
 
 func (c *command) do_series() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -145,93 +187,28 @@ func (c *command) do_series() error {
    return nil
 }
 
-func (c *command) do_season() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   season, err := cache.Client.SeasonEpisodes(c.season)
-   if err != nil {
-      return err
-   }
-   episodes, err := season.ExtractEpisodes()
-   if err != nil {
-      return err
-   }
-   for i, episode := range episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(episode)
-   }
-   return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4f" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   refresh bool
-   // 3
-   series int
-   // 4
-   season int
-   // 5
-   episode int
-   // 6
-   dash string
-   job  maya.WidevineJob
-}
-
 func (c *command) do_episode() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   header, sources, err := cache.Client.Playback(c.episode)
+   sources, header, err := cache.Client.Playback(c.episode)
    if err != nil {
       return err
    }
-   cache.Header = header
-   source, ok := amc.GetDash(sources)
+   var ok bool
+   cache.Source, ok = amc.GetDash(sources)
    if !ok {
-      return errors.New("amc.Dash")
+      return errors.New("amc.GetDash")
    }
-   cache.Source = source
-   cache.Dash, err = source.Dash()
+   cache.BcJwt = amc.BcJwt(header)
+   cache.Dash, err = cache.Source.Dash()
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func (c *command) do_dash() error {
-   cache, err := read(c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Source.Widevine(cache.Header, data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }

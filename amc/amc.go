@@ -11,11 +11,29 @@ import (
    "strings"
 )
 
-func (c *Client) Playback(id int) (http.Header, []Source, error) {
-   var link strings.Builder
-   link.WriteString("https://gw.cds.amcn.com/playback-id/api/v1/playback/")
-   link.WriteString(strconv.Itoa(id))
-   body, err := json.Marshal(map[string]any{
+func BcJwt(header http.Header) string {
+   return header.Get("x-amcn-bc-jwt")
+}
+
+func (s *Source) Widevine(bcJwt string, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("bcov-auth", bcJwt)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (c *Client) Playback(id int) ([]Source, http.Header, error) {
+   data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
          "lat":          0,
          "mode":         "on-demand",
@@ -28,12 +46,9 @@ func (c *Client) Playback(id int) (http.Header, []Source, error) {
    if err != nil {
       return nil, nil, err
    }
-   req, err := http.NewRequest(
-      "POST", link.String(), bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, nil, err
-   }
+   var req http.Request
+   req.Method = "POST"
+   req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("x-amcn-device-ad-id", "-")
@@ -43,19 +58,17 @@ func (c *Client) Playback(id int) (http.Header, []Source, error) {
    req.Header.Set("x-amcn-service-id", "amcplus")
    req.Header.Set("x-amcn-tenant", "amcn")
    req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "gw.cds.amcn.com",
+      Path: "/playback-id/api/v1/playback/" + strconv.Itoa(id),
+   }
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, nil, err
    }
    defer resp.Body.Close()
-   body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   // 1 ugly
-   if len(body) == 0 {
-      return nil, nil, errors.New(resp.Status)
-   }
    var result struct {
       Data struct {
          PlaybackJsonData struct {
@@ -64,33 +77,24 @@ func (c *Client) Playback(id int) (http.Header, []Source, error) {
       }
       Error string
    }
-   err = json.Unmarshal(body, &result)
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, nil, err
    }
-   // 2 bad
    if result.Error != "" {
       return nil, nil, errors.New(result.Error)
    }
-   // 3 good
-   return resp.Header, result.Data.PlaybackJsonData.Sources, nil
+   return result.Data.PlaybackJsonData.Sources, resp.Header, nil
 }
 
-func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("bcov-auth", header.Get("x-amcn-bc-jwt"))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+type Source struct {
+   KeySystems struct {
+      ComWidevineAlpha *struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // URL to the MPD manifest
+   Type string // e.g., "application/dash+xml"
 }
 
 func (c *Client) Unauth() error {
@@ -360,12 +364,3 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    return nil, errors.New("could not find the seasons list within the manifest")
 }
 
-type Source struct {
-   KeySystems struct {
-      ComWidevineAlpha *struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // URL to the MPD manifest
-   Type string // e.g., "application/dash+xml"
-}
