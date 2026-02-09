@@ -7,12 +7,8 @@ import (
    "io"
    "net/http"
    "net/url"
+   "strings"
 )
-
-type Playback struct {
-   Headers  map[string]string
-   Playlist string // MPD
-}
 
 func (l Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
    var req http.Request
@@ -36,9 +32,75 @@ func (l Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
       return nil, err
    }
    if result.Error != nil {
-      return nil, errors.New(result.Error.UserMessage)
+      return nil, result.Error
    }
    return &result, nil
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("message = ")
+   data.WriteString(e.Message)
+   data.WriteString("\nuser message = ")
+   data.WriteString(e.UserMessage)
+   return data.String()
+}
+
+type Error struct {
+   Message string
+   UserMessage string `json:"user_message"`
+}
+
+type Entitlement struct {
+   Token string
+   Error *Error
+}
+
+func (l *Login) Fetch(identity, accessKey string) error {
+   data, err := json.Marshal(map[string]string{
+      "accessKey": accessKey,
+      "identity":  identity,
+   })
+   if err != nil {
+      return err
+   }
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "client-api.magine.com",
+      Path: "/api/login/v2/auth/email",
+   }
+   req.Header = http.Header{}
+   magine_accesstoken.set(req.Header)
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(l)
+   if err != nil {
+      return err
+   }
+   if l.Message != "" {
+      return errors.New(l.Message)
+   }
+   return nil
+}
+
+type Login struct {
+   Message string
+   Token string
+}
+
+var magine_accesstoken = header{
+   "magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663",
+}
+
+type Playback struct {
+   Headers  map[string]string
+   Playlist string // MPD
 }
 
 func (l Login) Playback(movie *MovieItem, title *Entitlement) (*Playback, error) {
@@ -128,29 +190,6 @@ query GetCustomIdFullMovie($customId: ID!) {
 }
 `
 
-type Login struct {
-   Token string
-}
-
-func (l *Login) Fetch(identity, accessKey string) error {
-   data, err := json.Marshal(map[string]string{
-      "accessKey": accessKey,
-      "identity":  identity,
-   })
-   if err != nil {
-      return err
-   }
-   resp, err := http.Post(
-      "https://drakenfilm.se/api/auth/login", "application/json",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
-}
-
 type Dash struct {
    Body []byte
    Url *url.URL
@@ -175,10 +214,6 @@ type MovieItem struct {
    DefaultPlayable struct {
       Id string
    }
-}
-
-var magine_accesstoken = header{
-   "magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663",
 }
 
 var magine_play_devicemodel = header{
@@ -213,13 +248,6 @@ func (h *header) set(head http.Header) {
 type header struct {
    key   string
    value string
-}
-
-type Entitlement struct {
-   Error *struct {
-      UserMessage string `json:"user_message"`
-   }
-   Token string
 }
 
 func (l Login) Widevine(play *Playback, data []byte) ([]byte, error) {

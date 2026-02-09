@@ -17,9 +17,10 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
-   c.job.CertificateChain = filepath.Join(cache, "/SL3000/CertificateChain")
-   c.job.EncryptSignKey = filepath.Join(cache, "/SL3000/EncryptSignKey")
+   cache = filepath.ToSlash(cache)
    c.name = cache + "/hboMax/userCache.xml"
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
    // 1
    flag.BoolVar(&c.initiate, "i", false, "device initiate")
    flag.StringVar(
@@ -37,23 +38,18 @@ func (c *command) run() error {
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   // 1
    if c.initiate {
       return c.do_initiate()
    }
-   // 2
    if c.login {
       return c.do_login()
    }
-   // 3
    if c.address != "" {
       return c.do_address()
    }
-   // 4
    if c.edit != "" {
       return c.do_edit()
    }
-   // 5
    if c.dash != "" {
       return c.do_dash()
    }

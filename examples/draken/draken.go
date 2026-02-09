@@ -12,6 +12,17 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(*http.Request) string {
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -135,15 +146,4 @@ type user_cache struct {
    Dash     *draken.Dash
    Login    *draken.Login
    Playback *draken.Playback
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(*http.Request) string {
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
