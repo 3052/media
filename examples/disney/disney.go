@@ -17,9 +17,10 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
+   cache = filepath.ToSlash(cache)
    c.name = cache + "/disney/userCache.xml"
-   c.job.CertificateChain = filepath.Join(cache, "/SL3000/CertificateChain")
-   c.job.EncryptSignKey = filepath.Join(cache, "/SL3000/EncryptSignKey")
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -34,25 +35,20 @@ func (c *command) run() error {
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   // 1
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
       }
    }
-   // 2
    if c.address != "" {
       return c.do_address()
    }
-   // 3
    if c.season != "" {
       return c.do_season()
    }
-   // 4
    if c.media_id != "" {
       return c.do_media_id()
    }
-   // 5
    if c.hls != "" {
       return c.do_hls()
    }

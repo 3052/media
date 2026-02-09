@@ -11,6 +11,44 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/ctv/dash.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   // 1
+   flag.StringVar(&c.address, "a", "", "address")
+   // 2
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   maya.Usage([][]string{
+      {"a"},
+      {"d", "c", "p"},
+   })
+   return nil
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   dash string
+   job  maya.WidevineJob
+}
+
 func (c *command) do_address() error {
    link_path, err := ctv.GetPath(c.address)
    if err != nil {
@@ -65,43 +103,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   c.name = cache + "/ctv/dash.xml"
-   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
-   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
-   // 1
-   flag.StringVar(&c.address, "a", "", "address")
-   // 2
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
-   flag.Parse()
-   // 1
-   if c.address != "" {
-      return c.do_address()
-   }
-   // 2
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   maya.Usage([][]string{
-      {"a"},
-      {"d", "c", "p"},
-   })
-   return nil
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   dash string
-   job  maya.WidevineJob
 }

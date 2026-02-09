@@ -17,9 +17,10 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
+   cache = filepath.ToSlash(cache)
    c.name = cache + "/canal/userCache.xml"
-   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
-   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -37,32 +38,26 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-   // 1
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
       }
    }
-   // 2
    if c.refresh {
       return c.do_refresh()
    }
-   // 3
    if c.address != "" {
       return c.do_address()
    }
-   // 4
    if c.tracking != "" {
       if c.season >= 1 {
          return c.do_tracking_season()
       }
       return c.do_tracking()
    }
-   // 5
    if c.subtitles {
       return c.do_subtitles()
    }
-   // 6
    if c.dash != "" {
       return c.do_dash()
    }
