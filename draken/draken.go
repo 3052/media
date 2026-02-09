@@ -10,6 +10,56 @@ import (
    "strings"
 )
 
+func (l Login) Widevine(play *Playback, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   magine_accesstoken.set(req.Header)
+   for key, value := range play.Headers {
+      req.Header.Set(key, value)
+   }
+   req.Header.Set("authorization", "Bearer "+l.Token)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type Playback struct {
+   Headers  map[string]string
+   Playlist string // MPD
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("message = ")
+   data.WriteString(e.Message)
+   data.WriteString("\nuser message = ")
+   data.WriteString(e.UserMessage)
+   return data.String()
+}
+
+type Error struct {
+   Message string
+   UserMessage string `json:"user_message"`
+}
+
+type Entitlement struct {
+   Token string
+   Error *Error
+}
+
+type Login struct {
+   Message string
+   Token string
+}
+
 func (l Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -35,25 +85,6 @@ func (l Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
       return nil, result.Error
    }
    return &result, nil
-}
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("message = ")
-   data.WriteString(e.Message)
-   data.WriteString("\nuser message = ")
-   data.WriteString(e.UserMessage)
-   return data.String()
-}
-
-type Error struct {
-   Message string
-   UserMessage string `json:"user_message"`
-}
-
-type Entitlement struct {
-   Token string
-   Error *Error
 }
 
 func (l *Login) Fetch(identity, accessKey string) error {
@@ -89,18 +120,8 @@ func (l *Login) Fetch(identity, accessKey string) error {
    return nil
 }
 
-type Login struct {
-   Message string
-   Token string
-}
-
 var magine_accesstoken = header{
    "magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663",
-}
-
-type Playback struct {
-   Headers  map[string]string
-   Playlist string // MPD
 }
 
 func (l Login) Playback(movie *MovieItem, title *Entitlement) (*Playback, error) {
@@ -248,25 +269,4 @@ func (h *header) set(head http.Header) {
 type header struct {
    key   string
    value string
-}
-
-func (l Login) Widevine(play *Playback, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   magine_accesstoken.set(req.Header)
-   for key, value := range play.Headers {
-      req.Header.Set(key, value)
-   }
-   req.Header.Set("authorization", "Bearer "+l.Token)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
