@@ -13,6 +13,11 @@ import (
 )
 
 func (s *SecureUrl) Dash() (*Dash, error) {
+   s.Url = strings.NewReplacer(
+      ".AVC1", "",
+      ".ex-eac3", "",
+      ".ex-vtt", "",
+   ).Replace(s.Url)
    resp, err := http.Get(s.Url)
    if err != nil {
       return nil, err
@@ -25,6 +30,43 @@ func (s *SecureUrl) Dash() (*Dash, error) {
    }
    result.Url = resp.Request.URL
    return &result, nil
+}
+
+func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "api.mubi.com",
+      Path: join("/v3/films/", strconv.Itoa(filmId), "/viewing/secure_url"),
+   }
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+s.Token)
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   req.Header.Set("user-agent", "Firefox")
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result SecureUrl
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.UserMessage != "" {
+      return nil, errors.New(result.UserMessage)
+   }
+   return &result, nil
+}
+
+type SecureUrl struct {
+   TextTrackUrls []struct {
+      Id  string
+      Url string
+   } `json:"text_track_urls"`
+   Url         string // MPD
+   UserMessage string `json:"user_message"`
 }
 
 type Dash struct {
@@ -84,49 +126,6 @@ var ClientCountry = "US"
 
 func join(items ...string) string {
    return strings.Join(items, "")
-}
-
-// if you do this you get 4K, but ONLY VP9 no H.264
-var ClientAcceptVideoCodecs = "vp9"
-
-func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
-   var req http.Request
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "api.mubi.com",
-      Path: join("/v3/films/", strconv.Itoa(filmId), "/viewing/secure_url"),
-   }
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+s.Token)
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   req.Header.Set("user-agent", "Firefox")
-   if ClientAcceptVideoCodecs != "" {
-      req.Header.Set("client-accept-video-codecs", ClientAcceptVideoCodecs)
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result SecureUrl
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.UserMessage != "" {
-      return nil, errors.New(result.UserMessage)
-   }
-   return &result, nil
-}
-
-type SecureUrl struct {
-   TextTrackUrls []struct {
-      Id  string
-      Url string
-   } `json:"text_track_urls"`
-   Url         string // MPD
-   UserMessage string `json:"user_message"`
 }
 
 const forbidden = "HTTP Status 403 – Forbidden"

@@ -17,9 +17,10 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
+   cache = filepath.ToSlash(cache)
    c.name = cache + "/roku/userCache.xml"
-   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
-   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
    flag.BoolVar(&c.connection, "c", false, "connection")
    // 2
@@ -32,19 +33,15 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-   // 1
    if c.connection {
       return c.do_connection()
    }
-   // 2
    if c.set_user {
       return c.do_set_user()
    }
-   // 3
    if c.roku != "" {
       return c.do_roku()
    }
-   // 4
    if c.dash != "" {
       return c.do_dash()
    }
