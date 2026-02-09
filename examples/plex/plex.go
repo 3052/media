@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/plex"
-   "encoding/xml"
    "errors"
    "flag"
    "log"
@@ -13,50 +12,14 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   data, err := os.ReadFile(c.name)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   err = xml.Unmarshal(data, &cache)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash       *plex.Dash
-   MediaPart *plex.MediaPart
-   User      *plex.User
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   c.name = cache + "/plex/userCache.xml"
    c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
    c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   c.name = cache + "/plex/userCache.xml"
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
@@ -65,11 +28,9 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   // 1
    if c.address != "" {
       return c.do_address()
    }
-   // 2
    if c.dash != "" {
       return c.do_dash()
    }
@@ -81,13 +42,13 @@ func (c *command) run() error {
 }
 
 type command struct {
-   name            string
+   name string
    // 1
    address         string
    x_forwarded_for string
    // 2
-   dash            string
-   job          maya.WidevineJob
+   dash string
+   job  maya.WidevineJob
 }
 
 func (c *command) do_address() error {
@@ -121,14 +82,40 @@ func (c *command) do_address() error {
       return err
    }
    cache.User = &user
-   data, err := xml.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", c.name)
-   err = os.WriteFile(c.name, data, os.ModePerm)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash      *plex.Dash
+   MediaPart *plex.MediaPart
+   User      *plex.User
 }

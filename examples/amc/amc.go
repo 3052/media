@@ -14,6 +14,13 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   Client *amc.Client
+   Dash   *amc.Dash
+   Header http.Header
+   Source *amc.Source
+}
+
 func read(name string) (*user_cache, error) {
    data, err := os.ReadFile(name)
    if err != nil {
@@ -60,29 +67,23 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   // 1
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
       }
    }
-   // 2
    if c.refresh {
       return c.do_refresh()
    }
-   // 3
    if c.series >= 1 {
       return c.do_series()
    }
-   // 4
    if c.season >= 1 {
       return c.do_season()
    }
-   // 5
    if c.episode >= 1 {
       return c.do_episode()
    }
-   // 6
    if c.dash != "" {
       return c.do_dash()
    }
@@ -164,13 +165,6 @@ func (c *command) do_season() error {
       fmt.Println(episode)
    }
    return nil
-}
-
-type user_cache struct {
-   Client *amc.Client
-   Header http.Header
-   Dash   *amc.Dash
-   Source *amc.Source
 }
 
 func main() {

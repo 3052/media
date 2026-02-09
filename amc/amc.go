@@ -11,6 +11,128 @@ import (
    "strings"
 )
 
+func (c *Client) Playback(id int) (http.Header, []Source, error) {
+   var link strings.Builder
+   link.WriteString("https://gw.cds.amcn.com/playback-id/api/v1/playback/")
+   link.WriteString(strconv.Itoa(id))
+   body, err := json.Marshal(map[string]any{
+      "adtags": map[string]any{
+         "lat":          0,
+         "mode":         "on-demand",
+         "playerHeight": 0,
+         "playerWidth":  0,
+         "ppid":         0,
+         "url":          "-",
+      },
+   })
+   if err != nil {
+      return nil, nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", link.String(), bytes.NewReader(body),
+   )
+   if err != nil {
+      return nil, nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, nil, err
+   }
+   defer resp.Body.Close()
+   body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, nil, err
+   }
+   // 1 ugly
+   if len(body) == 0 {
+      return nil, nil, errors.New(resp.Status)
+   }
+   var result struct {
+      Data struct {
+         PlaybackJsonData struct {
+            Sources []Source
+         }
+      }
+      Error string
+   }
+   err = json.Unmarshal(body, &result)
+   if err != nil {
+      return nil, nil, err
+   }
+   // 2 bad
+   if result.Error != "" {
+      return nil, nil, errors.New(result.Error)
+   }
+   // 3 good
+   return resp.Header, result.Data.PlaybackJsonData.Sources, nil
+}
+
+func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("bcov-auth", header.Get("x-amcn-bc-jwt"))
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+func (c *Client) Unauth() error {
+   var req http.Request
+   req.Method = "POST"
+   req.Header = http.Header{}
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "gw.cds.amcn.com",
+      Path: "/auth-orchestration-id/api/v1/unauth",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+func (c *Client) Refresh() error {
+   var req http.Request
+   req.Method = "POST"
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "gw.cds.amcn.com",
+      Path: "/auth-orchestration-id/api/v1/refresh",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
 func GetDash(sources []Source) (*Source, bool) {
    for _, source_var := range sources {
       if source_var.Type == "application/dash+xml" {
@@ -45,34 +167,6 @@ type Client struct {
       AccessToken  string `json:"access_token"`
       RefreshToken string `json:"refresh_token"`
    }
-}
-
-func (c *Client) Unauth() error {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/unauth"
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-func (c *Client) Refresh() error {
-   req, _ := http.NewRequest("POST", "https://gw.cds.amcn.com", nil)
-   req.URL.Path = "/auth-orchestration-id/api/v1/refresh"
-   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
 }
 
 func (c *Client) Login(email, password string) error {
@@ -175,71 +269,6 @@ func (c *Client) SeriesDetail(id int) (*Node, error) {
    return &result.Data, nil
 }
 
-func (c *Client) Playback(id int) (http.Header, []Source, error) {
-   var link strings.Builder
-   link.WriteString("https://gw.cds.amcn.com/playback-id/api/v1/playback/")
-   link.WriteString(strconv.Itoa(id))
-   body, err := json.Marshal(map[string]any{
-      "adtags": map[string]any{
-         "lat":          0,
-         "mode":         "on-demand",
-         "playerHeight": 0,
-         "playerWidth":  0,
-         "ppid":         0,
-         "url":          "-",
-      },
-   })
-   if err != nil {
-      return nil, nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", link.String(), bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-amcn-device-ad-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-service-id", "amcplus")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, nil, err
-   }
-   defer resp.Body.Close()
-   body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, nil, err
-   }
-   // 1 ugly
-   if len(body) == 0 {
-      return nil, nil, errors.New(resp.Status)
-   }
-   var result struct {
-      Data struct {
-         PlaybackJsonData struct {
-            Sources []Source
-         }
-      }
-      Error string
-   }
-   err = json.Unmarshal(body, &result)
-   if err != nil {
-      return nil, nil, err
-   }
-   // 2 bad
-   if result.Error != "" {
-      return nil, nil, errors.New(result.Error)
-   }
-   // 3 good
-   return resp.Header, result.Data.PlaybackJsonData.Sources, nil
-}
-
 type Metadata struct {
    EpisodeNumber int
    Nid           int
@@ -279,17 +308,17 @@ func (n *Node) ExtractEpisodes() ([]*Metadata, error) {
 }
 
 type Node struct {
-   Type       string `json:"type"`
-   Children   []Node `json:"children,omitempty"`
+   Type       string 
+   Children   []Node 
    Properties struct {
-      ManifestType string `json:"manifestType,omitempty"`
+      ManifestType string 
+      Metadata *Metadata 
       Text         *struct {
          Title struct {
-            Title string `json:"title"`
-         } `json:"title"`
-      } `json:"text,omitempty"`
-      Metadata *Metadata `json:"metadata,omitempty"`
-   } `json:"properties"`
+            Title string 
+         } 
+      } 
+   } 
 }
 
 func (n *Node) ExtractSeasons() ([]*Metadata, error) {
@@ -339,21 +368,4 @@ type Source struct {
    } `json:"key_systems"`
    Src  string // URL to the MPD manifest
    Type string // e.g., "application/dash+xml"
-}
-
-func (s *Source) Widevine(header http.Header, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("bcov-auth", header.Get("x-amcn-bc-jwt"))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
