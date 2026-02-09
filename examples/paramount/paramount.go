@@ -16,9 +16,10 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
+   cache = filepath.ToSlash(cache)
    c.name = cache + "/paramount/userCache.xml"
-   c.job.CertificateChain = filepath.Join(cache, "/SL2000/CertificateChain")
-   c.job.EncryptSignKey = filepath.Join(cache, "/SL2000/EncryptSignKey")
+   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    // 1
    flag.StringVar(&c.username, "U", "", "username")
    flag.StringVar(&c.password, "P", "", "password")

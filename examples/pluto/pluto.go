@@ -12,42 +12,15 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = pluto.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   Dash   *pluto.Dash
-   Series *pluto.Series
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
+   cache = filepath.ToSlash(cache)
    c.name = cache + "/pluto/userCache.xml"
-   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
-   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
    flag.StringVar(&c.movie, "m", "", "movie ID")
    // 2
@@ -59,19 +32,15 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   // 1
    if c.movie != "" {
       return c.do_movie()
    }
-   // 2
    if c.show != "" {
       return c.do_show()
    }
-   // 3
    if c.episode != "" {
       return c.do_episode()
    }
-   // 4
    if c.dash != "" {
       return c.do_dash()
    }
@@ -145,4 +114,31 @@ func (c *command) do_episode() error {
       return err
    }
    return maya.ListDash(dash.Body, dash.Url)
+}
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = pluto.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   Dash   *pluto.Dash
+   Series *pluto.Series
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

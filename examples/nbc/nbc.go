@@ -16,9 +16,10 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
+   cache = filepath.ToSlash(cache)
    c.name = cache + "/nbc/dash.xml"
-   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
-   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    // 2

@@ -11,6 +11,44 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/molotov/userCache.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d", "C", "P"},
+   })
+   return nil
+}
+
 func (c *command) do_email_password() error {
    var login molotov.Login
    err := login.Fetch(c.email, c.password)
@@ -94,41 +132,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
-   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
-   c.name = cache + "/molotov/userCache.xml"
-   // 1
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   // 2
-   flag.StringVar(&c.address, "a", "", "address")
-   // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   maya.Usage([][]string{
-      {"e", "p"},
-      {"a"},
-      {"d", "C", "P"},
-   })
-   return nil
 }
