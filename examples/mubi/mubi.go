@@ -17,9 +17,10 @@ func (c *command) run() error {
    if err != nil {
       return err
    }
+   cache = filepath.ToSlash(cache)
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
    c.name = cache + "/mubi/userCache.xml"
-   c.job.ClientId = filepath.Join(cache, "/L3/client_id.bin")
-   c.job.PrivateKey = filepath.Join(cache, "/L3/private_key.pem")
    // 1
    flag.BoolVar(&c.code, "c", false, "link code")
    // 2
@@ -28,6 +29,7 @@ func (c *command) run() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -47,7 +49,7 @@ func (c *command) run() error {
       {"c"},
       {"s"},
       {"a"},
-      {"d", "C", "P"},
+      {"d", "t", "C", "P"},
    })
    return nil
 }
