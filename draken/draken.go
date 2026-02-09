@@ -10,6 +10,103 @@ import (
    "strings"
 )
 
+func (l *Login) Fetch(identity, accessKey string) error {
+   data, err := json.Marshal(map[string]string{
+      "accessKey": accessKey,
+      "identity":  identity,
+   })
+   if err != nil {
+      return err
+   }
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "client-api.magine.com",
+      Path: "/api/login/v2/auth/email",
+   }
+   req.Header = http.Header{}
+   magine_accesstoken.set(req.Header)
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(l)
+   if err != nil {
+      return err
+   }
+   if l.Message != "" {
+      return errors.New(l.Message)
+   }
+   return nil
+}
+
+func (l Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   magine_accesstoken.set(req.Header)
+   req.Header.Set("authorization", "Bearer "+l.Token)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "client-api.magine.com",
+      Path: "/api/entitlement/v2/asset/" + movie.DefaultPlayable.Id,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Entitlement
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != nil {
+      return nil, result.Error
+   }
+   return &result, nil
+}
+
+type Entitlement struct {
+   Token string
+   Error *Error
+}
+
+func (l Login) Playback(movie *MovieItem, title *Entitlement) (*Playback, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   x_forwarded_for.set(req.Header)
+   magine_accesstoken.set(req.Header)
+   magine_play_devicemodel.set(req.Header)
+   magine_play_deviceplatform.set(req.Header)
+   magine_play_devicetype.set(req.Header)
+   magine_play_drm.set(req.Header)
+   magine_play_protocol.set(req.Header)
+   req.Header.Set("authorization", "Bearer "+l.Token)
+   req.Header.Set("magine-play-deviceid", "!")
+   req.Header.Set("magine-play-entitlementid", title.Token)
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "client-api.magine.com",
+      Path: "/api/playback/v1/preflight/asset/" + movie.DefaultPlayable.Id,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Playback{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 func (l Login) Widevine(play *Playback, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
@@ -50,110 +147,13 @@ type Error struct {
    UserMessage string `json:"user_message"`
 }
 
-type Entitlement struct {
-   Token string
-   Error *Error
-}
-
 type Login struct {
    Message string
    Token string
 }
 
-func (l Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   magine_accesstoken.set(req.Header)
-   req.Header.Set("authorization", "Bearer "+l.Token)
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "client-api.magine.com",
-      Path: "/api/entitlement/v2/asset/" + movie.DefaultPlayable.Id,
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Entitlement
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != nil {
-      return nil, result.Error
-   }
-   return &result, nil
-}
-
-func (l *Login) Fetch(identity, accessKey string) error {
-   data, err := json.Marshal(map[string]string{
-      "accessKey": accessKey,
-      "identity":  identity,
-   })
-   if err != nil {
-      return err
-   }
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "client-api.magine.com",
-      Path: "/api/login/v2/auth/email",
-   }
-   req.Header = http.Header{}
-   magine_accesstoken.set(req.Header)
-   req.Body = io.NopCloser(bytes.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(l)
-   if err != nil {
-      return err
-   }
-   if l.Message != "" {
-      return errors.New(l.Message)
-   }
-   return nil
-}
-
 var magine_accesstoken = header{
    "magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663",
-}
-
-func (l Login) Playback(movie *MovieItem, title *Entitlement) (*Playback, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   x_forwarded_for.set(req.Header)
-   magine_accesstoken.set(req.Header)
-   magine_play_devicemodel.set(req.Header)
-   magine_play_deviceplatform.set(req.Header)
-   magine_play_devicetype.set(req.Header)
-   magine_play_drm.set(req.Header)
-   magine_play_protocol.set(req.Header)
-   req.Header.Set("authorization", "Bearer "+l.Token)
-   req.Header.Set("magine-play-deviceid", "!")
-   req.Header.Set("magine-play-entitlementid", title.Token)
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host: "client-api.magine.com",
-      Path: "/api/playback/v1/preflight/asset/" + movie.DefaultPlayable.Id,
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Playback{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
 
 func FetchMovie(customId string) (*MovieItem, error) {
