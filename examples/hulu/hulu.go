@@ -27,6 +27,7 @@ func (c *command) run() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -44,7 +45,7 @@ func (c *command) run() error {
    maya.Usage([][]string{
       {"e", "p"},
       {"a"},
-      {"d", "C", "P"},
+      {"d", "t", "C", "P"},
    })
    return nil
 }
