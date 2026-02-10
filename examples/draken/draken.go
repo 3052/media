@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/draken"
-   "encoding/json"
    "flag"
    "log"
    "net/http"
@@ -12,9 +11,18 @@ import (
    "path/filepath"
 )
 
+type user_cache struct {
+   Dash     *draken.Dash
+   Login    *draken.Login
+   Playback *draken.Playback
+}
+
 func main() {
    log.SetFlags(log.Ltime)
-   maya.Transport(func(*http.Request) string {
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
       return "LP"
    })
    err := new(command).run()
@@ -29,7 +37,7 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/draken/userCache.json"
+   c.name = cache + "/draken/userCache.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
@@ -67,36 +75,15 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return write(c.name, &user_cache{Login: &login})
+   return maya.Write(c.name, &user_cache{Login: &login})
 }
 
-func write(name string, cache *user_cache) error {
-   data, err := json.Marshal(cache)
-   if err != nil {
-      return err
-   }
-   log.Println("WriteFile", name)
-   return os.WriteFile(name, data, os.ModePerm)
-}
-
-func read(name string) (*user_cache, error) {
-   data, err := os.ReadFile(name)
-   if err != nil {
-      return nil, err
-   }
-   cache := &user_cache{}
-   err = json.Unmarshal(data, cache)
-   if err != nil {
-      return nil, err
-   }
-   return cache, nil
-}
 func (c *command) do_address() error {
    movie, err := draken.FetchMovie(path.Base(c.address))
    if err != nil {
       return err
    }
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -112,7 +99,7 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   err = write(c.name, cache)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
@@ -132,7 +119,7 @@ type command struct {
 }
 
 func (c *command) do_dash() error {
-   cache, err := read(c.name)
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
@@ -140,10 +127,4 @@ func (c *command) do_dash() error {
       return cache.Login.Widevine(cache.Playback, data)
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   Dash     *draken.Dash
-   Login    *draken.Login
-   Playback *draken.Playback
 }
