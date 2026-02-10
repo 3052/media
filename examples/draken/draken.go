@@ -11,26 +11,6 @@ import (
    "path/filepath"
 )
 
-type user_cache struct {
-   Dash     *draken.Dash
-   Login    *draken.Login
-   Playback *draken.Playback
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -47,6 +27,7 @@ func (c *command) run() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -64,7 +45,7 @@ func (c *command) run() error {
    maya.Usage([][]string{
       {"e", "p"},
       {"a"},
-      {"d", "C", "P"},
+      {"d", "t", "C", "P"},
    })
    return nil
 }
@@ -127,4 +108,23 @@ func (c *command) do_dash() error {
       return cache.Login.Widevine(cache.Playback, data)
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+type user_cache struct {
+   Dash     *draken.Dash
+   Login    *draken.Login
+   Playback *draken.Playback
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
