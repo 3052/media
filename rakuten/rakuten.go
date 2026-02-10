@@ -12,6 +12,20 @@ import (
    "strings"
 )
 
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+var classificationMap = map[string]int{
+   "cz": 272,
+   "dk": 283,
+   "es": 5,
+   "fr": 23,
+   "ie": 41,
+   "nl": 69,
+   "pl": 277,
+   "pt": 64,
+   "se": 282,
+   "uk": 18,
+}
+
 func (s *StreamData) Dash() (*Dash, error) {
    resp, err := http.Get(s.StreamInfos[0].Url)
    if err != nil {
@@ -49,20 +63,6 @@ func buildURL(marketCode, endpoint, id string) (string, error) {
       "?",
       params.Encode(),
    ), nil
-}
-
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-var classificationMap = map[string]int{
-   "cz": 272,
-   "dk": 283,
-   "es": 5,
-   "fr": 23,
-   "ie": 41,
-   "nl": 69,
-   "pl": 277,
-   "pt": 64,
-   "se": 282,
-   "uk": 18,
 }
 
 func (m *Movie) ParseURL(rawLink string) error {

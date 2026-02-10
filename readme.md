@@ -8,26 +8,27 @@
 
 Go packages for streaming API authentication, metadata, and DRM playback
 
-1. PlutoTV: Live TV & Free Movies
-2. Tubi: Free Movies & Live TV
-3. HBO Max: Stream TV & Movies
-4. Hulu: Stream TV shows & movies
-5. Plex: Stream Movies & TV
-6. CANAL+, Live and catch-up TV
-7. Paramount+
-8. ITVX
-9. The NBC App - Stream TV Shows
-10. Molotov - TV en direct, replay
-11. MUBI: Curated Cinema
-12. Rakuten TV -Movies & TV Series
-13. CTV
-14. Kanopy
-15. AMC+
-16. RTBF Auvio : direct et replay
-17. The Roku Channel
-18. The Criterion Channel
-19. Draken Film
-20. CineMember
+1. (us) disney-plus
+2. (us) hulu
+3. (us) hbo-max
+4. (us) the-roku-channel
+5. (us) amc-plus
+6. (us) kanopy
+7. (us) criterion-channel
+8. (us) nbc
+9. (us) mubi
+10. (us) pluto-tv
+11. (us) plex
+12. (us) tubi-tv
+13. (us) paramount-plus-premium
+14. (uk) rakuten-tv
+15. (uk) itvx
+16. (be) rtbf-auvio
+17. (ca) ctv
+18. (cz) canal-plus
+19. (fr) molotov-tv
+20. (nl) cinemember
+21. (se) draken-films
 
 ## contact
 
