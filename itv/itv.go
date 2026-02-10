@@ -50,8 +50,8 @@ func Titles(legacyId string) ([]Title, error) {
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "content-inventory.prd.oasvc.itv.com",
-      Path: "/discovery",
+      Host:   "content-inventory.prd.oasvc.itv.com",
+      Path:   "/discovery",
       RawQuery: url.Values{
          "query":     {graphql_compact(programme_page)},
          "variables": {data.String()},

@@ -458,4 +458,3 @@ func (v *Video) String() string {
    data.WriteString(v.Relationships.Edit.Data.Id)
    return data.String()
 }
-

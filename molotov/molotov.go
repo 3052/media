@@ -40,8 +40,8 @@ func (l *Login) Refresh() error {
    req.Header.Set("x-molotov-agent", customer_area)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "fapi.molotov.tv",
-      Path: "/v3/auth/refresh/" + l.Auth.RefreshToken,
+      Host:   "fapi.molotov.tv",
+      Path:   "/v3/auth/refresh/" + l.Auth.RefreshToken,
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -60,8 +60,8 @@ func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
    req.Header = http.Header{}
    req.Header.Set("x-molotov-agent", customer_area)
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "fapi.molotov.tv",
+      Scheme:   "https",
+      Host:     "fapi.molotov.tv",
       RawQuery: "access_token=" + l.Auth.AccessToken,
       Path: join(
          "/v2/channels/",
@@ -210,6 +210,7 @@ const (
    browser_app   = `{ "app_build": 4, "app_id": "browser_app", "inner_app_version_name": "5.7.0" }`
    customer_area = `{ "app_build": 1, "app_id": "customer_area" }`
 )
+
 type MediaId struct {
    Program int
    Channel int

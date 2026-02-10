@@ -17,9 +17,9 @@ func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
       req.Header.Set("X-Forwarded-For", forwardedFor)
    }
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "vod.provider.plex.tv",
-      Path: part.Key, // /library/parts/6730016e43b96c02321d7860-dash.mpd
+      Scheme:   "https",
+      Host:     "vod.provider.plex.tv",
+      Path:     part.Key, // /library/parts/6730016e43b96c02321d7860-dash.mpd
       RawQuery: "x-plex-token=" + u.AuthToken,
    }
    resp, err := http.DefaultClient.Do(&req)
@@ -99,8 +99,8 @@ func (u *User) Fetch() error {
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "plex.tv",
-      Path: "/api/v2/users/anonymous",
+      Host:   "plex.tv",
+      Path:   "/api/v2/users/anonymous",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -116,8 +116,8 @@ func (u User) RatingKey(rawUrl string) (*ItemMetadata, error) {
    req.Header.Set("accept", "application/json")
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "discover.provider.plex.tv",
-      Path: "/library/metadata/matches",
+      Host:   "discover.provider.plex.tv",
+      Path:   "/library/metadata/matches",
       RawQuery: url.Values{
          "url":          {rawUrl},
          "x-plex-token": {u.AuthToken},
@@ -156,8 +156,8 @@ func (u User) Media(item *ItemMetadata, forwardedFor string) (*ItemMetadata, err
    }
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "vod.provider.plex.tv",
-      Path: "/library/metadata/" + item.RatingKey,
+      Host:   "vod.provider.plex.tv",
+      Path:   "/library/metadata/" + item.RatingKey,
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {

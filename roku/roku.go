@@ -26,8 +26,8 @@ func (p *Playback) Dash() (*Dash, error) {
 }
 
 type Dash struct {
-   Body    []byte
-   Url *url.URL
+   Body []byte
+   Url  *url.URL
 }
 
 const user_agent = "trc-googletv; production; 0"
@@ -92,8 +92,8 @@ func NewConnection(current *User) (*Connection, error) {
    }
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "googletv.web.roku.com",
-      Path: "/api/v1/account/token",
+      Host:   "googletv.web.roku.com",
+      Path:   "/api/v1/account/token",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -116,8 +116,8 @@ func (c *Connection) User(link *LinkCode) (*User, error) {
    req.Header.Set("x-roku-content-token", c.AuthToken)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "googletv.web.roku.com",
-      Path: "/api/v1/account/activation/" + link.Code,
+      Host:   "googletv.web.roku.com",
+      Path:   "/api/v1/account/activation/" + link.Code,
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {

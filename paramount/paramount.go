@@ -22,7 +22,7 @@ func (i *Item) Dash() (*Dash, error) {
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "link.theplatform.com",
+      Host:   "link.theplatform.com",
       Path: join(
          "/s/", i.CmsAccountId,
          "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
@@ -136,9 +136,9 @@ func Login(at, username, password string) (*http.Cookie, error) {
    var req http.Request
    req.Method = "POST"
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "www.paramountplus.com",
-      Path: "/apps-api/v2.0/androidphone/auth/login.json",
+      Scheme:   "https",
+      Host:     "www.paramountplus.com",
+      Path:     "/apps-api/v2.0/androidphone/auth/login.json",
       RawQuery: url.Values{"at": {at}}.Encode(),
    }
    req.Header = http.Header{}
@@ -267,9 +267,9 @@ func FetchItem(at, cId string) (*Item, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "www.paramountplus.com",
-      Path: join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
+      Scheme:   "https",
+      Host:     "www.paramountplus.com",
+      Path:     join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
       RawQuery: url.Values{"at": {at}}.Encode(),
    }
    resp, err := http.DefaultClient.Do(&req)

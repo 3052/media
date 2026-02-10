@@ -113,7 +113,7 @@ func (a *Account) Season(id string) (*Season, error) {
    req.URL = &url.URL{
       Scheme: "https",
       Host:   "disney.api.edge.bamgrid.com",
-      Path: "/explore/v1.12/season/" + id,
+      Path:   "/explore/v1.12/season/" + id,
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -137,9 +137,9 @@ func (a *Account) Page(entity string) (*Page, error) {
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
    req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.api.edge.bamgrid.com",
-      Path:   "/explore/v1.12/page/entity-" + entity,
+      Scheme:   "https",
+      Host:     "disney.api.edge.bamgrid.com",
+      Path:     "/explore/v1.12/page/entity-" + entity,
       RawQuery: "limit=0",
    }
    resp, err := http.DefaultClient.Do(&req)
@@ -150,7 +150,7 @@ func (a *Account) Page(entity string) (*Page, error) {
    var result struct {
       Data struct {
          Errors []Error // region
-         Page Page
+         Page   Page
       }
       Errors []Error // auth.expired
    }
@@ -200,7 +200,7 @@ func (e *Error) Error() string {
 type Error struct {
    Code        string
    Description string
-   Extensions *struct {
+   Extensions  *struct {
       Code string
    }
    Message string
@@ -265,7 +265,7 @@ func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, er
       return nil, err
    }
    req.Header.Set(
-      "authorization", "Bearer " + d.Token.AccessToken,
+      "authorization", "Bearer "+d.Token.AccessToken,
    )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -437,7 +437,7 @@ type AccountWithoutActiveProfile struct {
          }
       }
    }
-   Errors []Error
+   Errors     []Error
    Extensions struct {
       Sdk struct {
          Token struct {

@@ -120,6 +120,7 @@ type command struct {
    dash     string
    job      maya.WidevineJob
 }
+
 func (c *command) do_language_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {

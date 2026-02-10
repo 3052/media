@@ -36,8 +36,8 @@ func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
    var req http.Request
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "api.mubi.com",
-      Path: join("/v3/films/", strconv.Itoa(filmId), "/viewing/secure_url"),
+      Host:   "api.mubi.com",
+      Path:   join("/v3/films/", strconv.Itoa(filmId), "/viewing/secure_url"),
    }
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+s.Token)
@@ -81,8 +81,8 @@ func (l *LinkCode) Fetch() error {
    req.Header.Set("client-country", ClientCountry)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "api.mubi.com",
-      Path: "/v3/link_code",
+      Host:   "api.mubi.com",
+      Path:   "/v3/link_code",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -99,8 +99,8 @@ func FetchId(slug string) (int, error) {
    req.Header.Set("client-country", ClientCountry)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "api.mubi.com",
-      Path: "/v3/films/" + slug,
+      Host:   "api.mubi.com",
+      Path:   "/v3/films/" + slug,
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -242,8 +242,8 @@ func (s *Session) Viewing(filmId int) error {
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "api.mubi.com",
-      Path: join("/v3/films/", strconv.Itoa(filmId), "/viewing"),
+      Host:   "api.mubi.com",
+      Path:   join("/v3/films/", strconv.Itoa(filmId), "/viewing"),
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {

@@ -27,7 +27,7 @@ func (v *VideoResource) Dash() (*Dash, error) {
 
 type Dash struct {
    Body []byte
-   Url *url.URL
+   Url  *url.URL
 }
 
 func (c *Content) Fetch(id int) error {
@@ -35,8 +35,8 @@ func (c *Content) Fetch(id int) error {
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "uapi.adrise.tv",
-      Path: "/cms/content",
+      Host:   "uapi.adrise.tv",
+      Path:   "/cms/content",
       RawQuery: url.Values{
          "content_id": {strconv.Itoa(id)},
          "deviceId":   {"!"},

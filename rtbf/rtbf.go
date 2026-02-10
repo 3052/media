@@ -27,7 +27,7 @@ func (f *Format) Dash() (*Dash, error) {
 
 type Dash struct {
    Body []byte
-   Url *url.URL
+   Url  *url.URL
 }
 
 type Format struct {
@@ -46,7 +46,7 @@ func (s *Session) Entitlement(assetId string) (*Entitlement, error) {
    req.Header.Set("authorization", "Bearer "+s.SessionToken)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "exposure.api.redbee.live",
+      Host:   "exposure.api.redbee.live",
       Path: join(
          "/v2/customer/RTBF/businessunit/Auvio/entitlement/", assetId, "/play",
       ),

@@ -61,8 +61,8 @@ func (c *Client) Playback(id int) ([]Source, http.Header, error) {
    req.Body = io.NopCloser(bytes.NewReader(data))
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "gw.cds.amcn.com",
-      Path: "/playback-id/api/v1/playback/" + strconv.Itoa(id),
+      Host:   "gw.cds.amcn.com",
+      Path:   "/playback-id/api/v1/playback/" + strconv.Itoa(id),
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -108,8 +108,8 @@ func (c *Client) Unauth() error {
    req.Header.Set("x-amcn-tenant", "amcn")
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "gw.cds.amcn.com",
-      Path: "/auth-orchestration-id/api/v1/unauth",
+      Host:   "gw.cds.amcn.com",
+      Path:   "/auth-orchestration-id/api/v1/unauth",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -126,8 +126,8 @@ func (c *Client) Refresh() error {
    req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "gw.cds.amcn.com",
-      Path: "/auth-orchestration-id/api/v1/refresh",
+      Host:   "gw.cds.amcn.com",
+      Path:   "/auth-orchestration-id/api/v1/refresh",
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -252,8 +252,8 @@ func (c *Client) SeriesDetail(id int) (*Node, error) {
    req.Header.Set("x-amcn-tenant", "amcn")
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "gw.cds.amcn.com",
-      Path: data.String(),
+      Host:   "gw.cds.amcn.com",
+      Path:   data.String(),
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -312,17 +312,17 @@ func (n *Node) ExtractEpisodes() ([]*Metadata, error) {
 }
 
 type Node struct {
-   Type       string 
-   Children   []Node 
+   Type       string
+   Children   []Node
    Properties struct {
-      ManifestType string 
-      Metadata *Metadata 
+      ManifestType string
+      Metadata     *Metadata
       Text         *struct {
          Title struct {
-            Title string 
-         } 
-      } 
-   } 
+            Title string
+         }
+      }
+   }
 }
 
 func (n *Node) ExtractSeasons() ([]*Metadata, error) {
@@ -363,4 +363,3 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    // If all loops complete without returning, the target was not found.
    return nil, errors.New("could not find the seasons list within the manifest")
 }
-

@@ -42,9 +42,9 @@ func (l *Login) Membership() (*Membership, error) {
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-version", x_version)
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "www.kanopy.com",
-      Path: "/kapi/memberships",
+      Scheme:   "https",
+      Host:     "www.kanopy.com",
+      Path:     "/kapi/memberships",
       RawQuery: "userId=" + strconv.Itoa(l.UserId),
    }
    resp, err := http.DefaultClient.Do(&req)

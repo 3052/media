@@ -67,13 +67,13 @@ func (e *Error) Error() string {
 }
 
 type Error struct {
-   Message string
+   Message     string
    UserMessage string `json:"user_message"`
 }
 
 type Login struct {
    Message string
-   Token string
+   Token   string
 }
 
 const get_custom_id = `
@@ -92,7 +92,7 @@ query GetCustomIdFullMovie($customId: ID!) {
 
 type Dash struct {
    Body []byte
-   Url *url.URL
+   Url  *url.URL
 }
 
 func (p *Playback) Dash() (*Dash, error) {
@@ -147,7 +147,7 @@ func (l *Login) Widevine(play *Playback, data []byte) ([]byte, error) {
 type Playback struct {
    Headers struct {
       MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
-      MaginePlaySession string `json:"Magine-Play-Session"`
+      MaginePlaySession       string `json:"Magine-Play-Session"`
    }
    Playlist string // MPD
 }
@@ -157,8 +157,8 @@ func (l *Login) Playback(movie *MovieItem, title *Entitlement) (*Playback, error
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "client-api.magine.com",
-      Path: "/api/playback/v1/preflight/asset/" + movie.DefaultPlayable.Id,
+      Host:   "client-api.magine.com",
+      Path:   "/api/playback/v1/preflight/asset/" + movie.DefaultPlayable.Id,
    }
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+l.Token)
@@ -197,8 +197,8 @@ func (l *Login) Fetch(identity, accessKey string) error {
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "client-api.magine.com",
-      Path: "/api/login/v2/auth/email",
+      Host:   "client-api.magine.com",
+      Path:   "/api/login/v2/auth/email",
    }
    req.Header = http.Header{}
    req.Header.Set("magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663")
@@ -223,8 +223,8 @@ func (l *Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "client-api.magine.com",
-      Path: "/api/entitlement/v2/asset/" + movie.DefaultPlayable.Id,
+      Host:   "client-api.magine.com",
+      Path:   "/api/entitlement/v2/asset/" + movie.DefaultPlayable.Id,
    }
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+l.Token)

@@ -102,8 +102,8 @@ func (a *AxisContent) Playback() (*Playback, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "capi.9c9media.com",
+      Scheme:   "https",
+      Host:     "capi.9c9media.com",
       RawQuery: "$include=[ContentPackages]",
       Path: join(
          "/destinations/",
@@ -129,8 +129,8 @@ func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "capi.9c9media.com",
+      Scheme:   "https",
+      Host:     "capi.9c9media.com",
       RawQuery: "action=reference",
       Path: join(
          "/destinations/",

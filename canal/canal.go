@@ -244,8 +244,8 @@ func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
    req.Header.Set("authorization", "Bearer "+s.Token)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "tvapi-hlm2.solocoo.tv",
-      Path: "/v1/assets",
+      Host:   "tvapi-hlm2.solocoo.tv",
+      Path:   "/v1/assets",
       RawQuery: join(
          "limit=99&query=episodes,",
          tracking,

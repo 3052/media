@@ -61,6 +61,7 @@ func TestPlayReady(t *testing.T) {
 func TestLog(t *testing.T) {
    t.Log(address_tests, classification_tests)
 }
+
 var classification_tests = []string{
    "https://rakuten.tv/cz?content_type=movies&content_id=transvulcania-the-people-s-run",
    "https://rakuten.tv/dk/movies/a-time-to-kill",

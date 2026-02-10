@@ -40,7 +40,7 @@ func (m *Metadata) Stream() (*Stream, error) {
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "lemonade.nbc.com",
+      Host:   "lemonade.nbc.com",
       Path: join(
          "/v1/vod/", strconv.Itoa(m.MpxAccountId),
          "/", strconv.Itoa(m.MpxGuid),

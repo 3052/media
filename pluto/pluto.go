@@ -38,8 +38,8 @@ func (s *Series) Fetch(id string) error {
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "boot.pluto.tv",
-      Path: "/v4/start",
+      Host:   "boot.pluto.tv",
+      Path:   "/v4/start",
       RawQuery: url.Values{
          "appName":           {app_name},
          "appVersion":        {"9"},

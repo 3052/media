@@ -36,8 +36,8 @@ func (s *Session) DeepLink(id string) (*DeepLink, error) {
    req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "discover.hulu.com",
-      Path: "/content/v5/deeplink/playback",
+      Host:   "discover.hulu.com",
+      Path:   "/content/v5/deeplink/playback",
       RawQuery: url.Values{
          "id":        {id},
          "namespace": {"entity"},
