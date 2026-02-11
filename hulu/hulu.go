@@ -10,110 +10,8 @@ import (
    "strings"
 )
 
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (p *Playlist) Dash() (*Dash, error) {
-   resp, err := http.Get(p.StreamUrl)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-func (s *Session) DeepLink(id string) (*DeepLink, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "discover.hulu.com",
-      Path:   "/content/v5/deeplink/playback",
-      RawQuery: url.Values{
-         "id":        {id},
-         "namespace": {"entity"},
-      }.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result DeepLink
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Message != "" {
-      return nil, errors.New(result.Message)
-   }
-   return &result, nil
-}
-
-func (s *Session) Fetch(email, password string) error {
-   resp, err := http.PostForm(
-      "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
-         "friendly_name": {"!"},
-         "password":      {password},
-         "serial_number": {"!"},
-         "user_email":    {email},
-      },
-   )
-   if err != nil {
-      return err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var data strings.Builder
-      err = resp.Write(&data)
-      if err != nil {
-         return err
-      }
-      return errors.New(data.String())
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(s)
-}
-
-// returns user_token only
-func (s *Session) TokenRefresh() error {
-   resp, err := http.PostForm(
-      "https://auth.hulu.com/v1/device/device_token/authenticate", url.Values{
-         "action":       {"token_refresh"},
-         "device_token": {s.Data.DeviceToken},
-      },
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(s)
-}
-
-type Playlist struct {
-   DashPrServer string `json:"dash_pr_server"`
-   WvServer     string `json:"wv_server"`
-   Message      string
-   StreamUrl    string `json:"stream_url"` // MPD
-}
-
-type Session struct {
-   Data struct {
-      DeviceToken string `json:"device_token"`
-      UserToken   string `json:"user_token"`
-   }
-}
-
-// 1080p (FHD) L3, SL2000
-// 1440p (QHD) SL3000
+// 1080p L3, SL2000
+// 1440p SL3000
 func (s *Session) Playlist(deep *DeepLink) (*Playlist, error) {
    data, err := json.Marshal(map[string]any{
       "deejay_device_id": deejay[0].device_id,
@@ -337,3 +235,105 @@ var deejay = []struct {
       key_version: 1,
    },
 }
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (p *Playlist) Dash() (*Dash, error) {
+   resp, err := http.Get(p.StreamUrl)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+func (s *Session) DeepLink(id string) (*DeepLink, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "discover.hulu.com",
+      Path:   "/content/v5/deeplink/playback",
+      RawQuery: url.Values{
+         "id":        {id},
+         "namespace": {"entity"},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result DeepLink
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
+   }
+   return &result, nil
+}
+
+func (s *Session) Fetch(email, password string) error {
+   resp, err := http.PostForm(
+      "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
+         "friendly_name": {"!"},
+         "password":      {password},
+         "serial_number": {"!"},
+         "user_email":    {email},
+      },
+   )
+   if err != nil {
+      return err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var data strings.Builder
+      err = resp.Write(&data)
+      if err != nil {
+         return err
+      }
+      return errors.New(data.String())
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(s)
+}
+
+// returns user_token only
+func (s *Session) TokenRefresh() error {
+   resp, err := http.PostForm(
+      "https://auth.hulu.com/v1/device/device_token/authenticate", url.Values{
+         "action":       {"token_refresh"},
+         "device_token": {s.Data.DeviceToken},
+      },
+   )
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(s)
+}
+
+type Playlist struct {
+   DashPrServer string `json:"dash_pr_server"`
+   WvServer     string `json:"wv_server"`
+   Message      string
+   StreamUrl    string `json:"stream_url"` // MPD
+}
+
+type Session struct {
+   Data struct {
+      DeviceToken string `json:"device_token"`
+      UserToken   string `json:"user_token"`
+   }
+}
+

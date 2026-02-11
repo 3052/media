@@ -10,6 +10,19 @@ import (
    "strings"
 )
 
+// Widevine fetches the license key
+func (p *Playback) Widevine(payload []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Widevine.LicenseServer, "application/x-protobuf",
+      bytes.NewReader(payload),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (p *Playback) Dash() (*Dash, error) {
    resp, err := http.Get(p.Url)
    if err != nil {
@@ -45,19 +58,6 @@ type LinkCode struct {
 // User represents the persistent saved account token.
 type User struct {
    Token string
-}
-
-// Widevine fetches the license key
-func (p *Playback) Widevine(payload []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Widevine.LicenseServer, "application/x-protobuf",
-      bytes.NewReader(payload),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
 
 // String generates the user instructions
