@@ -10,130 +10,6 @@ import (
    "strings"
 )
 
-// 1080p L3, SL2000
-// 1440p SL3000
-func (s *Session) Playlist(deep *DeepLink) (*Playlist, error) {
-   data, err := json.Marshal(map[string]any{
-      "deejay_device_id": deejay[0].device_id,
-      "version":          deejay[0].key_version,
-      "content_eab_id":   deep.EabId,
-      "unencrypted":      true,
-      "playback": map[string]any{
-         "audio": map[string]any{
-            "codecs": map[string]any{
-               "selection_mode": "ALL",
-               "values": []any{
-                  map[string]string{"type": "AAC"},
-                  map[string]string{"type": "EC3"},
-               },
-            },
-         },
-         "drm": map[string]any{
-            "multi_key":      true, // NEED THIS FOR 4K UHD
-            "selection_mode": "ALL",
-            "values": []any{
-               map[string]string{
-                  "security_level": "L3",
-                  "type":           "WIDEVINE",
-                  "version":        "MODULAR",
-               },
-               map[string]string{
-                  "security_level": "SL2000",
-                  "type":           "PLAYREADY",
-                  "version":        "V2",
-               },
-            },
-         },
-         "version": 2, // needs to be exactly 2 for 1080p
-         "manifest": map[string]string{
-            "type": "DASH",
-         },
-         "segments": map[string]any{
-            "selection_mode": "ALL",
-            "values": []any{
-               map[string]any{
-                  "type": "FMP4",
-                  "encryption": map[string]string{
-                     "mode": "CENC",
-                     "type": "CENC",
-                  },
-               },
-            },
-         },
-         "video": map[string]any{
-            "codecs": map[string]any{
-               "selection_mode": "ALL",
-               "values": []any{
-                  map[string]any{
-                     "height":  9999,
-                     "level":   "9",
-                     "profile": "HIGH",
-                     "type":    "H264",
-                     "width":   9999,
-                  },
-                  map[string]any{
-                     "height":  9999,
-                     "level":   "9",
-                     "profile": "MAIN_10",
-                     "tier":    "MAIN",
-                     "type":    "H265",
-                     "width":   9999,
-                  },
-               },
-            },
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://play.hulu.com/v6/playlist", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
-   req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Playlist
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Message != "" {
-      return nil, errors.New(result.Message)
-   }
-   return &result, nil
-}
-
-type DeepLink struct {
-   EabId   string `json:"eab_id"`
-   Message string
-}
-
-// hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
-// hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
-func Id(link string) (string, error) {
-   slash := strings.LastIndex(link, "/")
-   if slash == -1 {
-      return "", errors.New("no slash found in URL")
-   }
-   part := link[slash+1:]
-   len_part := len(part)
-   const len_uuid = 36
-   if len_part > len_uuid {
-      if part[len_part-len_uuid-1] == '-' {
-         return part[len_part-len_uuid:], nil
-      }
-   }
-   return part, nil
-}
-
 func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.DashPrServer, "", bytes.NewReader(data),
@@ -337,3 +213,126 @@ type Session struct {
    }
 }
 
+// 1080p L3, SL2000
+// 1440p SL3000
+func (s *Session) Playlist(deep *DeepLink) (*Playlist, error) {
+   data, err := json.Marshal(map[string]any{
+      "deejay_device_id": deejay[0].device_id,
+      "version":          deejay[0].key_version,
+      "content_eab_id":   deep.EabId,
+      "unencrypted":      true,
+      "playback": map[string]any{
+         "audio": map[string]any{
+            "codecs": map[string]any{
+               "selection_mode": "ALL",
+               "values": []any{
+                  map[string]string{"type": "AAC"},
+                  map[string]string{"type": "EC3"},
+               },
+            },
+         },
+         "drm": map[string]any{
+            "multi_key":      true, // NEED THIS FOR 4K UHD
+            "selection_mode": "ALL",
+            "values": []any{
+               map[string]string{
+                  "security_level": "L3",
+                  "type":           "WIDEVINE",
+                  "version":        "MODULAR",
+               },
+               map[string]string{
+                  "security_level": "SL2000",
+                  "type":           "PLAYREADY",
+                  "version":        "V2",
+               },
+            },
+         },
+         "version": 2, // needs to be exactly 2 for 1080p
+         "manifest": map[string]string{
+            "type": "DASH",
+         },
+         "segments": map[string]any{
+            "selection_mode": "ALL",
+            "values": []any{
+               map[string]any{
+                  "type": "FMP4",
+                  "encryption": map[string]string{
+                     "mode": "CENC",
+                     "type": "CENC",
+                  },
+               },
+            },
+         },
+         "video": map[string]any{
+            "codecs": map[string]any{
+               "selection_mode": "ALL",
+               "values": []any{
+                  map[string]any{
+                     "height":  9999,
+                     "level":   "9",
+                     "profile": "HIGH",
+                     "type":    "H264",
+                     "width":   9999,
+                  },
+                  map[string]any{
+                     "height":  9999,
+                     "level":   "9",
+                     "profile": "MAIN_10",
+                     "tier":    "MAIN",
+                     "type":    "H265",
+                     "width":   9999,
+                  },
+               },
+            },
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://play.hulu.com/v6/playlist", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+s.Data.UserToken)
+   req.Header.Set("content-type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Playlist
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
+   }
+   return &result, nil
+}
+
+type DeepLink struct {
+   EabId   string `json:"eab_id"`
+   Message string
+}
+
+// hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+// hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+func Id(link string) (string, error) {
+   slash := strings.LastIndex(link, "/")
+   if slash == -1 {
+      return "", errors.New("no slash found in URL")
+   }
+   part := link[slash+1:]
+   len_part := len(part)
+   const len_uuid = 36
+   if len_part > len_uuid {
+      if part[len_part-len_uuid-1] == '-' {
+         return part[len_part-len_uuid:], nil
+      }
+   }
+   return part, nil
+}
