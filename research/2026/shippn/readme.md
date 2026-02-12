@@ -1,3 +1,0 @@
-# shippn
-
-https://shippn.com

@@ -10,61 +10,6 @@ import (
    "strconv"
 )
 
-func (s *StreamInfo) Dash() (*Dash, error) {
-   req, err := http.NewRequest("", s.Url, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("user-agent", "Mozilla")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (l *Login) Membership() (*Membership, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+l.Jwt)
-   req.Header.Set("user-agent", user_agent)
-   req.Header.Set("x-version", x_version)
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.kanopy.com",
-      Path:     "/kapi/memberships",
-      RawQuery: "userId=" + strconv.Itoa(l.UserId),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      List []Membership
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.List[0], nil
-}
-
 func (l *Login) PlayResponse(member *Membership, videoId int) (*PlayResponse, error) {
    data, err := json.Marshal(map[string]int{
       "domainId": member.DomainId,
@@ -89,15 +34,20 @@ func (l *Login) PlayResponse(member *Membership, videoId int) (*PlayResponse, er
       return nil, err
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   play := &PlayResponse{}
-   err = json.NewDecoder(resp.Body).Decode(play)
+   var play PlayResponse
+   err = json.NewDecoder(resp.Body).Decode(&play)
    if err != nil {
       return nil, err
    }
-   return play, nil
+   if play.ErrorMsgLong != "" {
+      return nil, errors.New(play.ErrorMsgLong)
+   }
+   return &play, nil
+}
+
+type PlayResponse struct {
+   ErrorMsgLong string `json:"error_msg_long"`
+   Manifests    []StreamInfo
 }
 
 const (
@@ -160,11 +110,6 @@ func (l *Login) Fetch(email, password string) error {
    return json.NewDecoder(resp.Body).Decode(l)
 }
 
-type PlayResponse struct {
-   ErrorMsgLong string `json:"error_msg_long"`
-   Manifests    []StreamInfo
-}
-
 func (l *Login) Widevine(info *StreamInfo, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://www.kanopy.com", bytes.NewReader(data),
@@ -185,4 +130,58 @@ func (l *Login) Widevine(info *StreamInfo, data []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
+}
+func (s *StreamInfo) Dash() (*Dash, error) {
+   req, err := http.NewRequest("", s.Url, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("user-agent", "Mozilla")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (l *Login) Membership() (*Membership, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+l.Jwt)
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-version", x_version)
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.kanopy.com",
+      Path:     "/kapi/memberships",
+      RawQuery: "userId=" + strconv.Itoa(l.UserId),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      List []Membership
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.List[0], nil
 }
