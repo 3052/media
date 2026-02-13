@@ -55,7 +55,7 @@ func TestSignWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile(cache + "/peacock/peacock.json", data, os.ModePerm)
+   err = os.WriteFile(cache+"/peacock/peacock.json", data, os.ModePerm)
    if err != nil {
       t.Fatal(err)
    }

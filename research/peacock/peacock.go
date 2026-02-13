@@ -9,6 +9,7 @@ import (
    "encoding/json"
    "errors"
    "fmt"
+   "io"
    "net/http"
    "net/url"
    "slices"
@@ -19,7 +20,7 @@ import (
 func FetchIdSession(user, password string) (*http.Cookie, error) {
    data := url.Values{
       "userIdentifier": {user},
-      "password": {password},
+      "password":       {password},
    }.Encode()
    req, err := http.NewRequest(
       "POST", "https://rango.id.peacocktv.com/signin/service/international",
@@ -28,10 +29,10 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("content-type": "application/x-www-form-urlencoded")
-   req.Header.Set("x-skyott-proposition": "NBCUOTT")
-   req.Header.Set("x-skyott-provider": "NBCU")
-   req.Header.Set("x-skyott-territory": Territory)
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   req.Header.Set("x-skyott-proposition", "NBCUOTT")
+   req.Header.Set("x-skyott-provider", "NBCU")
+   req.Header.Set("x-skyott-territory", Territory)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -43,7 +44,7 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
       if err != nil {
          return nil, err
       }
-      return errors.New(data.String())
+      return nil, errors.New(data.String())
    }
    for _, cookie := range resp.Cookies() {
       if cookie.Name == "idsession" {
@@ -54,8 +55,8 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
 }
 
 const (
-   sky_client = "NBCU-ANDROID-v3"
-   sky_key = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
+   sky_client  = "NBCU-ANDROID-v3"
+   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
    sky_version = "1.0"
 )
 
@@ -66,14 +67,12 @@ type AuthToken struct {
    UserToken string
 }
 
-///
-
 func (a *AuthToken) Fetch(idSession *http.Cookie) error {
    body, err := json.Marshal(map[string]any{
       "auth": map[string]string{
-         "authScheme": "MESSO",
-         "proposition": "NBCUOTT",
-         "provider": "NBCU",
+         "authScheme":        "MESSO",
+         "proposition":       "NBCUOTT",
+         "provider":          "NBCU",
          "providerTerritory": Territory,
       },
       "device": map[string]string{
@@ -93,9 +92,9 @@ func (a *AuthToken) Fetch(idSession *http.Cookie) error {
          //    "errorCode": "OVP_00014",
          //    "description": "Maximum number of streaming devices exceeded"
          // }
-         "id": "PC",
+         "id":       "PC",
          "platform": "ANDROIDTV",
-         "type": "TV",
+         "type":     "TV",
       },
    })
    if err != nil {
@@ -112,31 +111,21 @@ func (a *AuthToken) Fetch(idSession *http.Cookie) error {
    req.Header.Set("x-sky-signature", sign(req.Method, req.URL.Path, nil, body))
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
    if resp.StatusCode != http.StatusOK {
       var data bytes.Buffer
-      resp.Write(&data)
-      return nil, errors.New(data.String())
-   }
-   auth := new(AuthToken)
-   if err := json.NewDecoder(resp.Body).Decode(auth); err != nil {
-      return nil, err
-   }
-   return auth, nil
-}
-
-func (v VideoPlayout) Akamai() (string, bool) {
-   for _, endpoint := range v.Asset.Endpoints {
-      if endpoint.CDN == "AKAMAI" {
-         return endpoint.URL, true
+      err = resp.Write(&data)
+      if err != nil {
+         return err
       }
+      return errors.New(data.String())
    }
-   return "", false
+   return json.NewDecoder(resp.Body).Decode(a)
 }
 
-type VideoPlayout struct {
+type Playout struct {
    Asset struct {
       Endpoints []struct {
          CDN string
@@ -144,84 +133,17 @@ type VideoPlayout struct {
       }
    }
    Protection struct {
-      LicenceAcquisitionUrl string // wikipedia.org/wiki/License
+      LicenceAcquisitionUrl string
    }
 }
 
-func (VideoPlayout) RequestHeader() (http.Header, error) {
-   return http.Header{}, nil
-}
-
-func (VideoPlayout) RequestBody(data []byte) ([]byte, error) {
-   return data, nil
-}
-
-func (VideoPlayout) ResponseBody(data []byte) ([]byte, error) {
-   return data, nil
-}
-
-func (v VideoPlayout) RequestUrl() (string, bool) {
-   return v.Protection.LicenceAcquisitionUrl, true
-}
-
-func (a AuthToken) Video(content_id string) (*VideoPlayout, error) {
-   body, err := func() ([]byte, error) {
-      type capability struct {
-         Acodec string `json:"acodec"`
-         Container string `json:"container"`
-         Protection string `json:"protection"`
-         Transport string `json:"transport"`
-         Vcodec string `json:"vcodec"`
+func (v Playout) Akamai() (string, bool) {
+   for _, endpoint := range v.Asset.Endpoints {
+      if endpoint.CDN == "AKAMAI" {
+         return endpoint.URL, true
       }
-      var s struct {
-         ContentId string `json:"contentId"`
-         Device struct {
-            Capabilities []capability `json:"capabilities"`
-         } `json:"device"`
-      }
-      s.ContentId = content_id
-      s.Device.Capabilities = []capability{
-         {
-            Acodec: "AAC",
-            Container: "ISOBMFF",
-            Protection: "WIDEVINE",
-            Transport: "DASH",
-            Vcodec: "H264",
-         },
-      }
-      return json.Marshal(s)
-   }()
-   if err != nil {
-      return nil, err
    }
-   req, err := http.NewRequest(
-      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
-      bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // `application/json` fails
-   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
-   req.Header.Set("x-skyott-usertoken", a.UserToken)
-   req.Header.Set(
-      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      var data bytes.Buffer
-      resp.Write(&data)
-      return nil, errors.New(data.String())
-   }
-   video := new(VideoPlayout)
-   if err := json.NewDecoder(resp.Body).Decode(video); err != nil {
-      return nil, err
-   }
-   return video, nil
+   return "", false
 }
 
 func sign(method, path string, head http.Header, body []byte) string {
@@ -231,7 +153,7 @@ func sign(method, path string, head http.Header, body []byte) string {
       for k := range head {
          k = strings.ToLower(k)
          if strings.HasPrefix(k, "x-skyott-") {
-            s = append(s, k + ": " + head.Get(k) + "\n")
+            s = append(s, k+": "+head.Get(k)+"\n")
          }
       }
       slices.Sort(s)
@@ -265,4 +187,66 @@ func sign(method, path string, head http.Header, body []byte) string {
       return string(data)
    }
    return sky_ott()
+}
+
+func (a AuthToken) Video(contentId string) (*Playout, error) {
+   body, err := json.Marshal(map[string]any{
+      "contentId": contentId,
+      "device": map[string]any{
+         "capabilities": []any{
+            map[string]string{
+               "acodec":     "AAC",
+               "container":  "ISOBMFF",
+               "protection": "WIDEVINE",
+               "transport":  "DASH",
+               "vcodec":     "H264",
+            },
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
+      bytes.NewReader(body),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // `application/json` fails
+   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
+   req.Header.Set("x-skyott-usertoken", a.UserToken)
+   req.Header.Set(
+      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      var data bytes.Buffer
+      err = resp.Write(&data)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(data.String())
+   }
+   play := &Playout{}
+   err = json.NewDecoder(resp.Body).Decode(play)
+   if err != nil {
+      return nil, err
+   }
+   return play, nil
+}
+func (p *Playout) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Protection.LicenceAcquisitionUrl, "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
