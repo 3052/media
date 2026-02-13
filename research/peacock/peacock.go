@@ -17,7 +17,70 @@ import (
    "time"
 )
 
-func (a AuthToken) Video(contentId string) (*Playout, error) {
+func (a *AuthToken) Fetch(idSession *http.Cookie) error {
+   body, err := json.Marshal(map[string]any{
+      "auth": map[string]string{
+         "authScheme":        "MESSO",
+         "proposition":       "NBCUOTT",
+         "provider":          "NBCU",
+         "providerTerritory": Territory,
+      },
+      "device": map[string]string{
+         // if empty /drm/widevine/acquirelicense will fail with
+         // {
+         //    "errorCode": "OVP_00306",
+         //    "description": "Security failure"
+         // }
+         "drmDeviceId": "UNKNOWN",
+         // if incorrect /video/playouts/vod will fail with
+         // {
+         //    "errorCode": "OVP_00311",
+         //    "description": "Unknown deviceId"
+         // }
+         // changing this too often will result in a four hour block
+         // {
+         //    "errorCode": "OVP_00014",
+         //    "description": "Maximum number of streaming devices exceeded"
+         // }
+         "id":       "PC",
+         "platform": "ANDROIDTV",
+         "type":     "TV",
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://ovp.peacocktv.com/auth/tokens", bytes.NewReader(body),
+   )
+   if err != nil {
+      return err
+   }
+   req.AddCookie(idSession)
+   req.Header.Set("content-type", "application/vnd.tokens.v1+json")
+   req.Header.Set("x-sky-signature", sign(req.Method, req.URL.Path, nil, body))
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(a)
+   if err != nil {
+      return err
+   }
+   if a.Description != "" {
+      return errors.New(a.Description)
+   }
+   return nil
+}
+
+// userToken is good for one day
+type AuthToken struct {
+   Description string
+   UserToken string
+}
+
+func (a *AuthToken) Video(contentId string) (*Playout, error) {
    body, err := json.Marshal(map[string]any{
       "contentId": contentId,
       "device": map[string]any{
@@ -77,64 +140,6 @@ type Playout struct {
    }
 }
 
-func (a *AuthToken) Fetch(idSession *http.Cookie) error {
-   body, err := json.Marshal(map[string]any{
-      "auth": map[string]string{
-         "authScheme":        "MESSO",
-         "proposition":       "NBCUOTT",
-         "provider":          "NBCU",
-         "providerTerritory": Territory,
-      },
-      "device": map[string]string{
-         // if empty /drm/widevine/acquirelicense will fail with
-         // {
-         //    "errorCode": "OVP_00306",
-         //    "description": "Security failure"
-         // }
-         "drmDeviceId": "UNKNOWN",
-         // if incorrect /video/playouts/vod will fail with
-         // {
-         //    "errorCode": "OVP_00311",
-         //    "description": "Unknown deviceId"
-         // }
-         // changing this too often will result in a four hour block
-         // {
-         //    "errorCode": "OVP_00014",
-         //    "description": "Maximum number of streaming devices exceeded"
-         // }
-         "id":       "PC",
-         "platform": "ANDROIDTV",
-         "type":     "TV",
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://ovp.peacocktv.com/auth/tokens", bytes.NewReader(body),
-   )
-   if err != nil {
-      return err
-   }
-   req.AddCookie(idSession)
-   req.Header.Set("content-type", "application/vnd.tokens.v1+json")
-   req.Header.Set("x-sky-signature", sign(req.Method, req.URL.Path, nil, body))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      var data bytes.Buffer
-      err = resp.Write(&data)
-      if err != nil {
-         return err
-      }
-      return errors.New(data.String())
-   }
-   return json.NewDecoder(resp.Body).Decode(a)
-}
-
 func FetchIdSession(user, password string) (*http.Cookie, error) {
    data := url.Values{
       "userIdentifier": {user},
@@ -179,11 +184,6 @@ const (
 )
 
 var Territory = "US"
-
-// userToken is good for one day
-type AuthToken struct {
-   UserToken string
-}
 
 func (v Playout) Akamai() (string, bool) {
    for _, endpoint := range v.Asset.Endpoints {
