@@ -17,54 +17,64 @@ import (
    "time"
 )
 
-func FetchIdSession(user, password string) (*http.Cookie, error) {
-   data := url.Values{
-      "userIdentifier": {user},
-      "password":       {password},
-   }.Encode()
+func (a AuthToken) Video(contentId string) (*Playout, error) {
+   body, err := json.Marshal(map[string]any{
+      "contentId": contentId,
+      "device": map[string]any{
+         "capabilities": []any{
+            map[string]string{
+               "acodec":     "AAC",
+               "container":  "ISOBMFF",
+               "protection": "WIDEVINE",
+               "transport":  "DASH",
+               "vcodec":     "H264",
+            },
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
    req, err := http.NewRequest(
-      "POST", "https://rango.id.peacocktv.com/signin/service/international",
-      strings.NewReader(data),
+      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
+      bytes.NewReader(body),
    )
    if err != nil {
       return nil, err
    }
-   req.Header.Set("content-type", "application/x-www-form-urlencoded")
-   req.Header.Set("x-skyott-proposition", "NBCUOTT")
-   req.Header.Set("x-skyott-provider", "NBCU")
-   req.Header.Set("x-skyott-territory", Territory)
+   // `application/json` fails
+   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
+   req.Header.Set("x-skyott-usertoken", a.UserToken)
+   req.Header.Set(
+      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
+   )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusCreated {
-      var data strings.Builder
-      err = resp.Write(&data)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(data.String())
+   var play Playout
+   err = json.NewDecoder(resp.Body).Decode(&play)
+   if err != nil {
+      return nil, err
    }
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "idsession" {
-         return cookie, nil
-      }
+   if play.Description != "" {
+      return nil, errors.New(play.Description)
    }
-   return nil, http.ErrNoCookie
+   return &play, nil
 }
 
-const (
-   sky_client  = "NBCU-ANDROID-v3"
-   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
-   sky_version = "1.0"
-)
-
-var Territory = "US"
-
-// userToken is good for one day
-type AuthToken struct {
-   UserToken string
+type Playout struct {
+   Asset struct {
+      Endpoints []struct {
+         CDN string
+         URL string
+      }
+   }
+   Description string
+   Protection struct {
+      LicenceAcquisitionUrl string
+   }
 }
 
 func (a *AuthToken) Fetch(idSession *http.Cookie) error {
@@ -125,16 +135,54 @@ func (a *AuthToken) Fetch(idSession *http.Cookie) error {
    return json.NewDecoder(resp.Body).Decode(a)
 }
 
-type Playout struct {
-   Asset struct {
-      Endpoints []struct {
-         CDN string
-         URL string
+func FetchIdSession(user, password string) (*http.Cookie, error) {
+   data := url.Values{
+      "userIdentifier": {user},
+      "password":       {password},
+   }.Encode()
+   req, err := http.NewRequest(
+      "POST", "https://rango.id.peacocktv.com/signin/service/international",
+      strings.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   req.Header.Set("x-skyott-proposition", "NBCUOTT")
+   req.Header.Set("x-skyott-provider", "NBCU")
+   req.Header.Set("x-skyott-territory", Territory)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusCreated {
+      var data strings.Builder
+      err = resp.Write(&data)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(data.String())
+   }
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "idsession" {
+         return cookie, nil
       }
    }
-   Protection struct {
-      LicenceAcquisitionUrl string
-   }
+   return nil, http.ErrNoCookie
+}
+
+const (
+   sky_client  = "NBCU-ANDROID-v3"
+   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
+   sky_version = "1.0"
+)
+
+var Territory = "US"
+
+// userToken is good for one day
+type AuthToken struct {
+   UserToken string
 }
 
 func (v Playout) Akamai() (string, bool) {
@@ -189,57 +237,6 @@ func sign(method, path string, head http.Header, body []byte) string {
    return sky_ott()
 }
 
-func (a AuthToken) Video(contentId string) (*Playout, error) {
-   body, err := json.Marshal(map[string]any{
-      "contentId": contentId,
-      "device": map[string]any{
-         "capabilities": []any{
-            map[string]string{
-               "acodec":     "AAC",
-               "container":  "ISOBMFF",
-               "protection": "WIDEVINE",
-               "transport":  "DASH",
-               "vcodec":     "H264",
-            },
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
-      bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // `application/json` fails
-   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
-   req.Header.Set("x-skyott-usertoken", a.UserToken)
-   req.Header.Set(
-      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      var data bytes.Buffer
-      err = resp.Write(&data)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(data.String())
-   }
-   play := &Playout{}
-   err = json.NewDecoder(resp.Body).Decode(play)
-   if err != nil {
-      return nil, err
-   }
-   return play, nil
-}
 func (p *Playout) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.Protection.LicenceAcquisitionUrl, "", bytes.NewReader(data),

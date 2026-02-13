@@ -2,27 +2,56 @@ package peacock
 
 import (
    "fmt"
+   "net/http"
    "os"
    "os/exec"
    "testing"
 )
+
+func TestVideo(t *testing.T) {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(cache + "/peacock/peacock.txt")
+   if err != nil {
+      t.Fatal(err)
+   }
+   id, err := http.ParseSetCookie(string(data))
+   if err != nil {
+      t.Fatal(err)
+   }
+   var token AuthToken
+   err = token.Fetch(id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   video, err := token.Video(content_id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Printf("%+v\n", video)
+}
 
 func TestSignRead(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
    }
-   data, err := os.ReadFile(cache + "/peacock/peacock.json")
+   data, err := os.ReadFile(cache + "/peacock/peacock.txt")
    if err != nil {
       t.Fatal(err)
    }
-   var sign SignIn
-   sign.Unmarshal(data)
-   auth, err := sign.Auth()
+   id, err := http.ParseSetCookie(string(data))
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n", auth)
+   var token AuthToken
+   err = token.Fetch(id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Printf("%+v\n", token)
 }
 
 func output(name string, arg ...string) (string, error) {
@@ -42,12 +71,7 @@ func TestSignWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var sign SignIn
-   err = sign.New(user, password)
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := sign.Marshal()
+   id, err := FetchIdSession(user, password)
    if err != nil {
       t.Fatal(err)
    }
@@ -55,35 +79,13 @@ func TestSignWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   err = os.WriteFile(cache+"/peacock/peacock.json", data, os.ModePerm)
+   err = os.WriteFile(
+      cache+"/peacock/peacock.txt", []byte(id.String()), os.ModePerm,
+   )
    if err != nil {
       t.Fatal(err)
    }
-}
-func TestVideo(t *testing.T) {
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   text, err := os.ReadFile(home + "/peacock.json")
-   if err != nil {
-      t.Fatal(err)
-   }
-   var sign SignIn
-   sign.Unmarshal(text)
-   auth, err := sign.Auth()
-   if err != nil {
-      t.Fatal(err)
-   }
-   video, err := auth.Video(content_id)
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Printf("%+v\n", video)
 }
 
 // peacocktv.com/watch/playback/vod/GMO_00000000224510_02_HDSDR
-const (
-   content_id = "GMO_00000000224510_02_HDSDR"
-   raw_key_id = "0016e23473ebe77d93d8d1a72dc690d7"
-)
+const content_id = "GMO_00000000224510_02_HDSDR"
