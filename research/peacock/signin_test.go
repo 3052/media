@@ -7,26 +7,33 @@ import (
    "testing"
 )
 
+func output(name string, arg ...string) (string, error) {
+   data, err := exec.Command(name, arg).Output()
+   if err != nil {
+      return "", err
+   }
+   return string(data), nil
+}
+
 func TestSignWrite(t *testing.T) {
-   slog.SetLogLoggerLevel(slog.LevelDebug)
-   user, password := os.Getenv("peacock_username"), os.Getenv("peacock_password")
-   if user == "" {
-      t.Fatal("peacock_username")
+   user, err := output("credential", "-h=peacocktv.com", "-k=user")
+   if err != nil {
+      t.Fatal(err)
+   }
+   password, err := output("credential", "-h=peacocktv.com")
+   if err != nil {
+      t.Fatal(err)
    }
    var sign SignIn
    err := sign.New(user, password)
    if err != nil {
       t.Fatal(err)
    }
-   text, err := sign.Marshal()
+   data, err := sign.Marshal()
    if err != nil {
       t.Fatal(err)
    }
-   home, err := os.UserHomeDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   os.WriteFile(home + "/peacock.json", text, 0666)
+   os.WriteFile("peacock.json", data, 0666)
 }
 
 func TestSignRead(t *testing.T) {
@@ -34,12 +41,12 @@ func TestSignRead(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   text, err := os.ReadFile(home + "/peacock.json")
+   data, err := os.ReadFile(home + "/peacock.json")
    if err != nil {
       t.Fatal(err)
    }
    var sign SignIn
-   sign.Unmarshal(text)
+   sign.Unmarshal(data)
    auth, err := sign.Auth()
    if err != nil {
       t.Fatal(err)

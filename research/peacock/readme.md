@@ -1,54 +1,41 @@
 # peacock
 
-how to get SkyOTT key?
-
 ## account
 
-1. https://privacy.com
-2. New Card
-3. Create Card
-4. $10
-5. Single-Use
-6. Set $10 Spend Limit
-7. https://peacocktv.com/plans/all-monthly
-8. Monthly
-9. GET PREMIUM
-10. Email
-11. Password
-12. Re-enter Password
-13. First Name
-14. Last Name
-15. Gender
-16. Birth Year
-17. Zip Code
-18. CREATE ACCOUNT
-19. first name
-20. last name
-21. address
-22. city
-23. state
-24. zip
-25. card number
-26. expiry date
-27. CVC
-28. SUBSCRIBE
-29. PAY NOW
+1. https://peacocktv.com
+2. get started
+3. PREMIUM
+   1. monthly
+   2. choose
+4. Email
+5. Password
+6. Re-enter Password
+7. First Name
+8. Last Name
+9. Gender
+10. Birth Year
+11. Zip Code
+12. CREATE ACCOUNT
+13. debit card
+14. first name
+15. last name
+16. address
+17. city
+18. state
+19. zip
+20. card number
+21. expiry date
+22. CVC
+23. by checking the box, you agree to pay
+24. SUBSCRIBE
+25. by checking the box, you agree to pay (again)
+26. subscribe (again)
+
+## how to get SkyOTT key?
+
+use sky.js
 
 ## android
-
-~~~
-> play -a com.peacocktv.peacockandroid
-downloads: 34.82 million
-files: APK APK APK APK
-name: Peacock TV: Stream TV & Movies
-offered by: Peacock TV LLC
-price: 0 USD
-requires: 7.0 and up
-size: 67.11 megabyte
-updated on: Feb 7, 2024
-version code: 124050214
-version name: 5.2.14
-~~~
 
 https://play.google.com/store/apps/details?id=com.peacocktv.peacockandroid
 
