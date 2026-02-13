@@ -12,6 +12,25 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash   *pluto.Dash
+   Series *pluto.Series
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -22,9 +41,9 @@ func (c *command) run() error {
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
-   flag.StringVar(&c.movie, "m", "", "movie ID")
+   flag.StringVar(&c.movie, "m", "", "movie URL")
    // 2
-   flag.StringVar(&c.show, "s", "", "show ID")
+   flag.StringVar(&c.show, "s", "", "show URL")
    // 3
    flag.StringVar(&c.episode, "e", "", "episode ID")
    // 4
@@ -51,34 +70,6 @@ func (c *command) run() error {
       {"d", "c", "p"},
    })
    return nil
-}
-
-func (c *command) do_movie() error {
-   var series pluto.Series
-   err := series.Fetch(c.movie)
-   if err != nil {
-      return err
-   }
-   var dash pluto.Dash
-   err = dash.Fetch(series.GetMovieURL())
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, &user_cache{Dash: &dash})
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
-}
-
-func (c *command) do_show() error {
-   var series pluto.Series
-   err := series.Fetch(c.show)
-   if err != nil {
-      return err
-   }
-   fmt.Println(&series.Vod[0])
-   return maya.Write(c.name, &user_cache{Series: &series})
 }
 
 type command struct {
@@ -115,6 +106,7 @@ func (c *command) do_episode() error {
    }
    return maya.ListDash(dash.Body, dash.Url)
 }
+
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -124,21 +116,30 @@ func (c *command) do_dash() error {
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
-type user_cache struct {
-   Dash   *pluto.Dash
-   Series *pluto.Series
+func (c *command) do_movie() error {
+   var series pluto.Series
+   err := series.Fetch(path.Base(c.movie))
+   if err != nil {
+      return err
+   }
+   var dash pluto.Dash
+   err = dash.Fetch(series.GetMovieURL())
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, &user_cache{Dash: &dash})
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
+func (c *command) do_show() error {
+   var series pluto.Series
+   err := series.Fetch(path.Base(c.show))
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   fmt.Println(&series.Vod[0])
+   return maya.Write(c.name, &user_cache{Series: &series})
 }

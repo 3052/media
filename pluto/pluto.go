@@ -8,7 +8,74 @@ import (
    "net/http"
    "net/url"
    "strconv"
+   "strings"
 )
+
+// pluto.tv/on-demand/movies/64946365c5ae350013623630
+// pluto.tv/on-demand/movies/disobedience-ca-2018-1-1
+func (s *Series) Fetch(movieShow string) error {
+   data := url.Values{}
+   data.Set("appName", app_name)
+   data.Set("appVersion", "9")
+   data.Set("clientID", "9")
+   data.Set("clientModelNumber", "9")
+   data.Set("deviceMake", "9")
+   data.Set("deviceModel", "9")
+   data.Set("deviceVersion", "9")
+   data.Set("drmCapabilities", drm_capabilities)
+   if strings.Contains(movieShow, "-") {
+      data.Set("episodeSlugs", movieShow)
+   } else {
+      data.Set("seriesIDs", movieShow)
+   }
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "boot.pluto.tv",
+      Path: "/v4/start",
+      RawQuery: data.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
+   if err != nil {
+      return err
+   }
+   if strings.Contains(movieShow, "-") {
+      if s.Vod[0].Slug != movieShow {
+         return errors.New("slug mismatch")
+      }
+   } else {
+      if s.Vod[0].Id != movieShow {
+         return errors.New("id mismatch")
+      }
+   }
+   return nil
+}
+
+type Vod struct {
+   Id      string
+   Seasons []struct {
+      Episodes []struct {
+         Id       string `json:"_id"`
+         Name     string
+         Number   int64
+         Stitched Stitched
+      }
+      Number int64
+   }
+   Slug string
+   Stitched *Stitched
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
 
 func (d *Dash) Fetch(link *url.URL) error {
    var req http.Request
@@ -25,45 +92,6 @@ func (d *Dash) Fetch(link *url.URL) error {
       return err
    }
    d.Url = resp.Request.URL
-   return nil
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (s *Series) Fetch(id string) error {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "boot.pluto.tv",
-      Path:   "/v4/start",
-      RawQuery: url.Values{
-         "appName":           {app_name},
-         "appVersion":        {"9"},
-         "clientID":          {"9"},
-         "clientModelNumber": {"9"},
-         "deviceMake":        {"9"},
-         "deviceModel":       {"9"},
-         "deviceVersion":     {"9"},
-         "drmCapabilities":   {drm_capabilities},
-         "seriesIDs":         {id},
-      }.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Vod[0].Id != id {
-      return errors.New("id mismatch")
-   }
    return nil
 }
 
@@ -113,11 +141,6 @@ func (s *Series) GetEpisodeURL(episodeID string) (*url.URL, error) {
    return nil, errors.New("episode not found")
 }
 
-type Series struct {
-   SessionToken string
-   Vod          []Vod
-}
-
 // buildStitcherURL manually constructs the URL struct.
 func (s *Series) buildStitcherURL(path string) *url.URL {
    stitcher := &url.URL{
@@ -129,26 +152,6 @@ func (s *Series) buildStitcherURL(path string) *url.URL {
    values.Set("jwt", s.SessionToken)
    stitcher.RawQuery = values.Encode()
    return stitcher
-}
-
-type Stitched struct {
-   Paths []struct {
-      Path string
-   }
-}
-
-type Vod struct {
-   Id      string
-   Seasons []struct {
-      Episodes []struct {
-         Id       string `json:"_id"`
-         Name     string
-         Number   int64
-         Stitched Stitched
-      }
-      Number int64
-   }
-   Stitched *Stitched
 }
 
 func (v *Vod) String() string {
@@ -174,4 +177,14 @@ func (v *Vod) String() string {
       }
    }
    return string(data)
+}
+type Stitched struct {
+   Paths []struct {
+      Path string
+   }
+}
+
+type Series struct {
+   SessionToken string
+   Vod          []Vod
 }
