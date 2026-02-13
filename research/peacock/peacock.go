@@ -17,6 +17,105 @@ import (
    "time"
 )
 
+func (a *AssetEndpoint) Dash() (*Dash, error) {
+   resp, err := http.Get(a.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url *url.URL
+}
+
+type AssetEndpoint struct {
+   Cdn string
+   Url string
+}
+
+func (p *Playout) Akamai() (string, bool) {
+   for _, endpoint := range p.Asset.Endpoints {
+      if endpoint.Cdn == "AKAMAI" {
+         return endpoint.Url, true
+      }
+   }
+   return "", false
+}
+
+type Playout struct {
+   Asset struct {
+      Endpoints []AssetEndpoint
+   }
+   Description string
+   Protection struct {
+      LicenceAcquisitionUrl string
+   }
+}
+
+func (a *AuthToken) Video(contentId string) (*Playout, error) {
+   body, err := json.Marshal(map[string]any{
+      "contentId": contentId,
+      "device": map[string]any{
+         "capabilities": []any{
+            map[string]string{
+               "acodec":     "AAC",
+               "container":  "ISOBMFF",
+               "protection": "WIDEVINE",
+               "transport":  "DASH",
+               "vcodec":     "H264",
+            },
+         },
+         "maxVideoFormat": "HD",
+      },
+      "personaParentalControlRating": 9,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
+      bytes.NewReader(body),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // `application/json` fails
+   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
+   req.Header.Set("x-skyott-usertoken", a.UserToken)
+   req.Header.Set(
+      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var play Playout
+   err = json.NewDecoder(resp.Body).Decode(&play)
+   if err != nil {
+      return nil, err
+   }
+   if play.Description != "" {
+      return nil, errors.New(play.Description)
+   }
+   return &play, nil
+}
+
+const (
+   sky_client  = "NBCU-ANDROID-v3"
+   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
+   sky_version = "1.0"
+)
+
 func (a *AuthToken) Fetch(idSession *http.Cookie) error {
    body, err := json.Marshal(map[string]any{
       "auth": map[string]string{
@@ -80,66 +179,6 @@ type AuthToken struct {
    UserToken string
 }
 
-func (a *AuthToken) Video(contentId string) (*Playout, error) {
-   body, err := json.Marshal(map[string]any{
-      "contentId": contentId,
-      "device": map[string]any{
-         "capabilities": []any{
-            map[string]string{
-               "acodec":     "AAC",
-               "container":  "ISOBMFF",
-               "protection": "WIDEVINE",
-               "transport":  "DASH",
-               "vcodec":     "H264",
-            },
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
-      bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // `application/json` fails
-   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
-   req.Header.Set("x-skyott-usertoken", a.UserToken)
-   req.Header.Set(
-      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var play Playout
-   err = json.NewDecoder(resp.Body).Decode(&play)
-   if err != nil {
-      return nil, err
-   }
-   if play.Description != "" {
-      return nil, errors.New(play.Description)
-   }
-   return &play, nil
-}
-
-type Playout struct {
-   Asset struct {
-      Endpoints []struct {
-         CDN string
-         URL string
-      }
-   }
-   Description string
-   Protection struct {
-      LicenceAcquisitionUrl string
-   }
-}
-
 func FetchIdSession(user, password string) (*http.Cookie, error) {
    data := url.Values{
       "userIdentifier": {user},
@@ -177,22 +216,7 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
    return nil, http.ErrNoCookie
 }
 
-const (
-   sky_client  = "NBCU-ANDROID-v3"
-   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
-   sky_version = "1.0"
-)
-
 var Territory = "US"
-
-func (v Playout) Akamai() (string, bool) {
-   for _, endpoint := range v.Asset.Endpoints {
-      if endpoint.CDN == "AKAMAI" {
-         return endpoint.URL, true
-      }
-   }
-   return "", false
-}
 
 func sign(method, path string, head http.Header, body []byte) string {
    timestamp := time.Now().Unix()

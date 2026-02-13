@@ -8,6 +8,9 @@ import (
    "testing"
 )
 
+// peacocktv.com/watch/playback/vod/GMO_00000000091566_02_HDSDR/6668f89a-b581-36ac-9895-7783aa16b471
+const content_id = "GMO_00000000091566_02_HDSDR"
+
 func TestVideo(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -86,6 +89,3 @@ func TestSignWrite(t *testing.T) {
       t.Fatal(err)
    }
 }
-
-// peacocktv.com/watch/playback/vod/GMO_00000000224510_02_HDSDR
-const content_id = "GMO_00000000224510_02_HDSDR"
