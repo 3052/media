@@ -35,6 +35,7 @@ func (c *command) run() error {
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 5
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -58,7 +59,7 @@ func (c *command) run() error {
       {"l"},
       {"a", "s"},
       {"e"},
-      {"d", "C", "E"},
+      {"d", "t", "C", "E"},
    })
    return nil
 }
