@@ -49,10 +49,8 @@ func (s *Series) Fetch(movieShow string) error {
       if s.Vod[0].Slug != movieShow {
          return errors.New("slug mismatch")
       }
-   } else {
-      if s.Vod[0].Id != movieShow {
-         return errors.New("id mismatch")
-      }
+   } else if s.Vod[0].Id != movieShow {
+      return errors.New("id mismatch")
    }
    return nil
 }

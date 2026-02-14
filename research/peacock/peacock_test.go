@@ -11,7 +11,7 @@ import (
 // peacocktv.com/watch/playback/vod/GMO_00000000091566_02_HDSDR/6668f89a-b581-36ac-9895-7783aa16b471
 const content_id = "GMO_00000000091566_02_HDSDR"
 
-func TestVideo(t *testing.T) {
+func TestPlayout(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
       t.Fatal(err)
@@ -29,11 +29,11 @@ func TestVideo(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   video, err := token.Video(content_id)
+   play, err := token.Playout(content_id)
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n", video)
+   fmt.Printf("%+v\n", play)
 }
 
 func TestSignRead(t *testing.T) {

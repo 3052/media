@@ -54,6 +54,9 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
       }, // required
    })
    var req http.Request
+   if err != nil {
+      return nil, err
+   }
    req.Body = io.NopCloser(bytes.NewReader(data))
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)

@@ -17,49 +17,6 @@ import (
    "time"
 )
 
-func sign(method, path string, head http.Header, body []byte) string {
-   timestamp := time.Now().Unix()
-   text_headers := func() string {
-      var s []string
-      for k := range head {
-         k = strings.ToLower(k)
-         if strings.HasPrefix(k, "x-skyott-") {
-            s = append(s, k+": "+head.Get(k)+"\n")
-         }
-      }
-      slices.Sort(s)
-      return strings.Join(s, "")
-   }()
-   headers_md5 := md5.Sum([]byte(text_headers))
-   payload_md5 := md5.Sum(body)
-   signature := func() string {
-      h := hmac.New(sha1.New, []byte(sky_key))
-      fmt.Fprintln(h, method)
-      fmt.Fprintln(h, path)
-      fmt.Fprintln(h)
-      fmt.Fprintln(h, sky_client)
-      fmt.Fprintln(h, sky_version)
-      fmt.Fprintf(h, "%x\n", headers_md5)
-      fmt.Fprintln(h, timestamp)
-      fmt.Fprintf(h, "%x\n", payload_md5)
-      hashed := h.Sum(nil)
-      return base64.StdEncoding.EncodeToString(hashed[:])
-   }
-   sky_ott := func() string {
-      data := []byte("SkyOTT")
-      // must be quoted
-      data = fmt.Appendf(data, " client=%q", sky_client)
-      // must be quoted
-      data = fmt.Appendf(data, ",signature=%q", signature())
-      // must be quoted
-      data = fmt.Appendf(data, `,timestamp="%v"`, timestamp)
-      // must be quoted
-      data = fmt.Appendf(data, ",version=%q", sky_version)
-      return string(data)
-   }
-   return sky_ott()
-}
-
 func (p *Playout) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.Protection.LicenceAcquisitionUrl, "", bytes.NewReader(data),
@@ -70,51 +27,8 @@ func (p *Playout) Widevine(data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
-func (a *AssetEndpoint) Dash() (*Dash, error) {
-   resp, err := http.Get(a.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
 
-type Dash struct {
-   Body []byte
-   Url *url.URL
-}
-
-type AssetEndpoint struct {
-   Cdn string
-   Url string
-}
-
-func (p *Playout) Akamai() (string, bool) {
-   for _, endpoint := range p.Asset.Endpoints {
-      if endpoint.Cdn == "AKAMAI" {
-         return endpoint.Url, true
-      }
-   }
-   return "", false
-}
-
-type Playout struct {
-   Asset struct {
-      Endpoints []AssetEndpoint
-   }
-   Description string
-   Protection struct {
-      LicenceAcquisitionUrl string
-   }
-}
-
-func (a *AuthToken) Video(contentId string) (*Playout, error) {
+func (a *AuthToken) Playout(contentId string) (*Playout, error) {
    body, err := json.Marshal(map[string]any{
       "contentId": contentId,
       "device": map[string]any{
@@ -152,15 +66,15 @@ func (a *AuthToken) Video(contentId string) (*Playout, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var play Playout
-   err = json.NewDecoder(resp.Body).Decode(&play)
+   var result Playout
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if play.Description != "" {
-      return nil, errors.New(play.Description)
+   if result.Description != "" {
+      return nil, errors.New(result.Description)
    }
-   return &play, nil
+   return &result, nil
 }
 
 const (
@@ -270,3 +184,89 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
 }
 
 var Territory = "US"
+func sign(method, path string, head http.Header, body []byte) string {
+   timestamp := time.Now().Unix()
+   text_headers := func() string {
+      var s []string
+      for k := range head {
+         k = strings.ToLower(k)
+         if strings.HasPrefix(k, "x-skyott-") {
+            s = append(s, k+": "+head.Get(k)+"\n")
+         }
+      }
+      slices.Sort(s)
+      return strings.Join(s, "")
+   }()
+   headers_md5 := md5.Sum([]byte(text_headers))
+   payload_md5 := md5.Sum(body)
+   signature := func() string {
+      h := hmac.New(sha1.New, []byte(sky_key))
+      fmt.Fprintln(h, method)
+      fmt.Fprintln(h, path)
+      fmt.Fprintln(h)
+      fmt.Fprintln(h, sky_client)
+      fmt.Fprintln(h, sky_version)
+      fmt.Fprintf(h, "%x\n", headers_md5)
+      fmt.Fprintln(h, timestamp)
+      fmt.Fprintf(h, "%x\n", payload_md5)
+      hashed := h.Sum(nil)
+      return base64.StdEncoding.EncodeToString(hashed[:])
+   }
+   sky_ott := func() string {
+      data := []byte("SkyOTT")
+      // must be quoted
+      data = fmt.Appendf(data, " client=%q", sky_client)
+      // must be quoted
+      data = fmt.Appendf(data, ",signature=%q", signature())
+      // must be quoted
+      data = fmt.Appendf(data, `,timestamp="%v"`, timestamp)
+      // must be quoted
+      data = fmt.Appendf(data, ",version=%q", sky_version)
+      return string(data)
+   }
+   return sky_ott()
+}
+
+func (a *AssetEndpoint) Dash() (*Dash, error) {
+   resp, err := http.Get(a.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url *url.URL
+}
+
+type AssetEndpoint struct {
+   Cdn string
+   Url string
+}
+
+func (p *Playout) Akamai() (string, bool) {
+   for _, endpoint := range p.Asset.Endpoints {
+      if endpoint.Cdn == "AKAMAI" {
+         return endpoint.Url, true
+      }
+   }
+   return "", false
+}
+
+type Playout struct {
+   Asset struct {
+      Endpoints []AssetEndpoint
+   }
+   Description string
+   Protection struct {
+      LicenceAcquisitionUrl string
+   }
+}
