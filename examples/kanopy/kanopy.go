@@ -12,6 +12,34 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+///
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   kanopy int
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -66,32 +94,6 @@ type user_cache struct {
    Dash       *kanopy.Dash
    Login      *kanopy.Login
    StreamInfo *kanopy.StreamInfo
-}
-
-func main() {
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   log.SetFlags(log.Ltime)
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   kanopy int
-   // 3
-   dash string
-   job  maya.WidevineJob
 }
 
 func (c *command) do_email_password() error {

@@ -1,15 +1,77 @@
 package main
 
 import (
-   "154.pages.dev/media/peacock"
    "errors"
+   "flag"
    "fmt"
    "net/http"
    "os"
+   "path/filepath"
 )
 
-func (f flags) download() error {
-   text, err := os.ReadFile(f.home + "/peacock.json")
+func main() {
+   maya.Transport(func(*http.Request) string {
+      return "L"
+   })
+   log.SetFlags(log.Ltime)
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+///
+
+type command struct {
+   // 1
+   email string
+   password string
+   // 2
+   representation string
+   s internal.Stream
+   home string
+   peacock string
+   v log.Level
+}
+
+func (c *command) New() error {
+   flag.StringVar(&c.peacock, "b", "", "Peacock ID")
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.representation, "i", "", "representation")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.TextVar(&c.v.Level, "v", c.v.Level, "level")
+   flag.StringVar(&c.s.ClientId, "c", c.s.ClientId, "client ID")
+   flag.StringVar(&c.s.PrivateKey, "k", c.s.PrivateKey, "private key")
+   flag.Parse()
+   c.v.Set()
+   log.Transport{}.Set()
+   switch {
+   case c.password != "":
+      err := c.authenticate()
+      if err != nil {
+         panic(err)
+      }
+   case c.peacock != "":
+      err := c.download()
+      if err != nil {
+         panic(err)
+      }
+   default:
+      flag.Usage()
+   }
+   var err error
+   c.home, err = os.UserHomeDir()
+   if err != nil {
+      return err
+   }
+   c.home = filepath.ToSlash(c.home)
+   c.s.ClientId = c.home + "/widevine/client_id.bin"
+   c.s.PrivateKey = c.home + "/widevine/private_key.pem"
+   return nil
+}
+
+func (c command) download() error {
+   text, err := os.ReadFile(c.home + "/peacock.json")
    if err != nil {
       return err
    }
@@ -19,7 +81,7 @@ func (f flags) download() error {
    if err != nil {
       return err
    }
-   video, err := auth.Video(f.peacock)
+   video, err := auth.Video(c.peacock)
    if err != nil {
       return err
    }
@@ -31,20 +93,20 @@ func (f flags) download() error {
    if err != nil {
       return err
    }
-   media, err := f.s.DASH(req)
+   media, err := c.s.DASH(req)
    if err != nil {
       return err
    }
    for _, medium := range media {
-      if medium.ID == f.representation {
+      if medium.ID == c.representation {
          var node peacock.QueryNode
-         err := node.New(f.peacock)
+         err := node.New(c.peacock)
          if err != nil {
             return err
          }
-         f.s.Name = node
-         f.s.Poster = video
-         return f.s.Download(medium)
+         c.s.Name = node
+         c.s.Poster = video
+         return c.s.Download(medium)
       }
    }
    // 2 MPD all
@@ -57,9 +119,9 @@ func (f flags) download() error {
    return nil
 }
 
-func (f flags) authenticate() error {
+func (c command) authenticate() error {
    var sign peacock.SignIn
-   err := sign.New(f.email, f.password)
+   err := sign.New(c.email, c.password)
    if err != nil {
       return err
    }
@@ -67,5 +129,5 @@ func (f flags) authenticate() error {
    if err != nil {
       return err
    }
-   return os.WriteFile(f.home + "/peacock.json", text, 0666)
+   return os.WriteFile(c.home + "/peacock.json", text, 0666)
 }
