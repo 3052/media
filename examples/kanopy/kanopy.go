@@ -26,29 +26,15 @@ func main() {
    }
 }
 
-///
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   kanopy int
-   // 3
-   dash string
-   job  maya.WidevineJob
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/kanopy/userCache.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/kanopy/userCache.xml"
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -71,13 +57,26 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"e", "p"},
       {"k"},
       {"d", "t", "C", "P"},
    })
-   return nil
 }
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   kanopy int
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+
+///
 
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)

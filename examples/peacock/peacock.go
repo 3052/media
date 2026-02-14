@@ -20,58 +20,73 @@ func main() {
    }
 }
 
-///
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/peacock/userCache.xml"
+   // 1
+   flag.StringVar(&c.email, "email", "", "email")
+   flag.StringVar(&c.password, "password", "", "password")
+   // 2
+   flag.StringVar(&c.peacock, "p", "", "Peacock ID")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.peacock != "" {
+      return c.do_peacock()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"email", "password"},
+      {"p"},
+      {"d", "C", "P"},
+   })
+}
 
 type command struct {
+   name string
+   
    // 1
    email string
    password string
    // 2
-   representation string
-   s internal.Stream
-   home string
    peacock string
-   v log.Level
+   // 3
+   dash string
+   job maya.WidevineJob
 }
 
-func (c *command) New() error {
-   flag.StringVar(&c.peacock, "b", "", "Peacock ID")
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.representation, "i", "", "representation")
-   flag.StringVar(&c.password, "p", "", "password")
-   flag.TextVar(&c.v.Level, "v", c.v.Level, "level")
-   flag.StringVar(&c.s.ClientId, "c", c.s.ClientId, "client ID")
-   flag.StringVar(&c.s.PrivateKey, "k", c.s.PrivateKey, "private key")
-   flag.Parse()
-   c.v.Set()
-   log.Transport{}.Set()
-   switch {
-   case c.password != "":
-      err := c.authenticate()
-      if err != nil {
-         panic(err)
-      }
-   case c.peacock != "":
-      err := c.download()
-      if err != nil {
-         panic(err)
-      }
-   default:
-      flag.Usage()
-   }
-   var err error
-   c.home, err = os.UserHomeDir()
+///
+
+func (c command) do_email_password() error {
+   var sign peacock.SignIn
+   err := sign.New(c.email, c.password)
    if err != nil {
       return err
    }
-   c.home = filepath.ToSlash(c.home)
-   c.s.ClientId = c.home + "/widevine/client_id.bin"
-   c.s.PrivateKey = c.home + "/widevine/private_key.pem"
-   return nil
+   text, err := sign.Marshal()
+   if err != nil {
+      return err
+   }
+   return os.WriteFile(c.name + "/peacock.json", text, 0666)
 }
 
-func (c command) download() error {
-   text, err := os.ReadFile(c.home + "/peacock.json")
+func (c command) do_peacock() error {
+   text, err := os.ReadFile(c.name + "/peacock.json")
    if err != nil {
       return err
    }
@@ -93,20 +108,20 @@ func (c command) download() error {
    if err != nil {
       return err
    }
-   media, err := c.s.DASH(req)
+   media, err := c.job.DASH(req)
    if err != nil {
       return err
    }
    for _, medium := range media {
-      if medium.ID == c.representation {
+      if medium.ID == c.dash {
          var node peacock.QueryNode
          err := node.New(c.peacock)
          if err != nil {
             return err
          }
-         c.s.Name = node
-         c.s.Poster = video
-         return c.s.Download(medium)
+         c.job.Name = node
+         c.job.Poster = video
+         return c.job.Download(medium)
       }
    }
    // 2 MPD all
@@ -117,17 +132,4 @@ func (c command) download() error {
       fmt.Println(medium)
    }
    return nil
-}
-
-func (c command) authenticate() error {
-   var sign peacock.SignIn
-   err := sign.New(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   text, err := sign.Marshal()
-   if err != nil {
-      return err
-   }
-   return os.WriteFile(c.home + "/peacock.json", text, 0666)
 }
