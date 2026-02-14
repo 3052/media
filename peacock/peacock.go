@@ -17,15 +17,34 @@ import (
    "time"
 )
 
-func (p *Playout) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Protection.LicenceAcquisitionUrl, "", bytes.NewReader(data),
+func (p *Playout) Widevine(body []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", p.Protection.LicenceAcquisitionUrl, bytes.NewReader(body),
    )
    if err != nil {
       return nil, err
    }
+   req.Header.Set(
+      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
    defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
    return io.ReadAll(resp.Body)
+}
+
+func (p *Playout) Fastly() (string, bool) {
+   for _, endpoint := range p.Asset.Endpoints {
+      if endpoint.Cdn == "FASTLY" {
+         return endpoint.Url, true
+      }
+   }
+   return "", false
 }
 
 func (a *AuthToken) Playout(contentId string) (*Playout, error) {
@@ -143,7 +162,7 @@ func (a *AuthToken) Fetch(idSession *http.Cookie) error {
 // userToken is good for one day
 type AuthToken struct {
    Description string
-   UserToken string
+   UserToken   string
 }
 
 func FetchIdSession(user, password string) (*http.Cookie, error) {
@@ -184,6 +203,7 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
 }
 
 var Territory = "US"
+
 func sign(method, path string, head http.Header, body []byte) string {
    timestamp := time.Now().Unix()
    text_headers := func() string {
@@ -244,7 +264,7 @@ func (a *AssetEndpoint) Dash() (*Dash, error) {
 
 type Dash struct {
    Body []byte
-   Url *url.URL
+   Url  *url.URL
 }
 
 type AssetEndpoint struct {
@@ -252,21 +272,12 @@ type AssetEndpoint struct {
    Url string
 }
 
-func (p *Playout) Akamai() (string, bool) {
-   for _, endpoint := range p.Asset.Endpoints {
-      if endpoint.Cdn == "AKAMAI" {
-         return endpoint.Url, true
-      }
-   }
-   return "", false
-}
-
 type Playout struct {
    Asset struct {
       Endpoints []AssetEndpoint
    }
    Description string
-   Protection struct {
+   Protection  struct {
       LicenceAcquisitionUrl string
    }
 }
