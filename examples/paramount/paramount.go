@@ -30,6 +30,7 @@ func (c *command) run() error {
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -47,7 +48,7 @@ func (c *command) run() error {
    maya.Usage([][]string{
       {"U", "P"},
       {"p", "i"},
-      {"d", "i", "c", "C", "E"},
+      {"d", "i", "c", "t", "C", "E"},
    })
    return nil
 }
@@ -138,7 +139,6 @@ func (c *command) app_secret() string {
    }
    return paramount.ComCbsApp.AppSecret
 }
-
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -147,7 +147,7 @@ func main() {
          return ""
       }
       switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense":
+      case "anonymous-session-token.json", "getlicense", "rightsmanager.asmx":
          return "L"
       }
       return "LP"

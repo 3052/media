@@ -17,6 +17,59 @@ import (
    "time"
 )
 
+func sign(method, path string, head http.Header, body []byte) string {
+   timestamp := time.Now().Unix()
+   text_headers := func() string {
+      var s []string
+      for k := range head {
+         k = strings.ToLower(k)
+         if strings.HasPrefix(k, "x-skyott-") {
+            s = append(s, k+": "+head.Get(k)+"\n")
+         }
+      }
+      slices.Sort(s)
+      return strings.Join(s, "")
+   }()
+   headers_md5 := md5.Sum([]byte(text_headers))
+   payload_md5 := md5.Sum(body)
+   signature := func() string {
+      h := hmac.New(sha1.New, []byte(sky_key))
+      fmt.Fprintln(h, method)
+      fmt.Fprintln(h, path)
+      fmt.Fprintln(h)
+      fmt.Fprintln(h, sky_client)
+      fmt.Fprintln(h, sky_version)
+      fmt.Fprintf(h, "%x\n", headers_md5)
+      fmt.Fprintln(h, timestamp)
+      fmt.Fprintf(h, "%x\n", payload_md5)
+      hashed := h.Sum(nil)
+      return base64.StdEncoding.EncodeToString(hashed[:])
+   }
+   sky_ott := func() string {
+      data := []byte("SkyOTT")
+      // must be quoted
+      data = fmt.Appendf(data, " client=%q", sky_client)
+      // must be quoted
+      data = fmt.Appendf(data, ",signature=%q", signature())
+      // must be quoted
+      data = fmt.Appendf(data, `,timestamp="%v"`, timestamp)
+      // must be quoted
+      data = fmt.Appendf(data, ",version=%q", sky_version)
+      return string(data)
+   }
+   return sky_ott()
+}
+
+func (p *Playout) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Protection.LicenceAcquisitionUrl, "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
 func (a *AssetEndpoint) Dash() (*Dash, error) {
    resp, err := http.Get(a.Url)
    if err != nil {
@@ -217,57 +270,3 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
 }
 
 var Territory = "US"
-
-func sign(method, path string, head http.Header, body []byte) string {
-   timestamp := time.Now().Unix()
-   text_headers := func() string {
-      var s []string
-      for k := range head {
-         k = strings.ToLower(k)
-         if strings.HasPrefix(k, "x-skyott-") {
-            s = append(s, k+": "+head.Get(k)+"\n")
-         }
-      }
-      slices.Sort(s)
-      return strings.Join(s, "")
-   }()
-   headers_md5 := md5.Sum([]byte(text_headers))
-   payload_md5 := md5.Sum(body)
-   signature := func() string {
-      h := hmac.New(sha1.New, []byte(sky_key))
-      fmt.Fprintln(h, method)
-      fmt.Fprintln(h, path)
-      fmt.Fprintln(h)
-      fmt.Fprintln(h, sky_client)
-      fmt.Fprintln(h, sky_version)
-      fmt.Fprintf(h, "%x\n", headers_md5)
-      fmt.Fprintln(h, timestamp)
-      fmt.Fprintf(h, "%x\n", payload_md5)
-      hashed := h.Sum(nil)
-      return base64.StdEncoding.EncodeToString(hashed[:])
-   }
-   sky_ott := func() string {
-      data := []byte("SkyOTT")
-      // must be quoted
-      data = fmt.Appendf(data, " client=%q", sky_client)
-      // must be quoted
-      data = fmt.Appendf(data, ",signature=%q", signature())
-      // must be quoted
-      data = fmt.Appendf(data, `,timestamp="%v"`, timestamp)
-      // must be quoted
-      data = fmt.Appendf(data, ",version=%q", sky_version)
-      return string(data)
-   }
-   return sky_ott()
-}
-
-func (p *Playout) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Protection.LicenceAcquisitionUrl, "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}

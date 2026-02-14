@@ -12,28 +12,6 @@ import (
    "strings"
 )
 
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (l *Login) playback(edit_id, drm string) (*Playback, error) {
    data, err := json.Marshal(map[string]any{
       "editId":               edit_id,
@@ -75,9 +53,6 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
          }, // required
       }, // required
    })
-   if err != nil {
-      return nil, err
-   }
    var req http.Request
    req.Body = io.NopCloser(bytes.NewReader(data))
    req.Header = http.Header{}
@@ -457,4 +432,25 @@ func (v *Video) String() string {
    data.WriteString("\nedit id = ")
    data.WriteString(v.Relationships.Edit.Data.Id)
    return data.String()
+}
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
 }
