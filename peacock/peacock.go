@@ -17,6 +17,122 @@ import (
    "time"
 )
 
+func FetchIdSession(user, password string) (*http.Cookie, error) {
+   data := url.Values{
+      "userIdentifier": {user},
+      "password":       {password},
+   }.Encode()
+   req, err := http.NewRequest(
+      "POST", "https://rango.id.peacocktv.com/signin/service/international",
+      strings.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   req.Header.Set("x-skyott-proposition", "NBCUOTT")
+   req.Header.Set("x-skyott-provider", "NBCU")
+   req.Header.Set("x-skyott-territory", Territory)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusCreated {
+      var data strings.Builder
+      err = resp.Write(&data)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(data.String())
+   }
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "idsession" {
+         return cookie, nil
+      }
+   }
+   return nil, http.ErrNoCookie
+}
+
+var Territory = "US"
+
+func sign(method, path string, head http.Header, body []byte) string {
+   timestamp := time.Now().Unix()
+   text_headers := func() string {
+      var s []string
+      for k := range head {
+         k = strings.ToLower(k)
+         if strings.HasPrefix(k, "x-skyott-") {
+            s = append(s, k+": "+head.Get(k)+"\n")
+         }
+      }
+      slices.Sort(s)
+      return strings.Join(s, "")
+   }()
+   headers_md5 := md5.Sum([]byte(text_headers))
+   payload_md5 := md5.Sum(body)
+   signature := func() string {
+      h := hmac.New(sha1.New, []byte(sky_key))
+      fmt.Fprintln(h, method)
+      fmt.Fprintln(h, path)
+      fmt.Fprintln(h)
+      fmt.Fprintln(h, sky_client)
+      fmt.Fprintln(h, sky_version)
+      fmt.Fprintf(h, "%x\n", headers_md5)
+      fmt.Fprintln(h, timestamp)
+      fmt.Fprintf(h, "%x\n", payload_md5)
+      hashed := h.Sum(nil)
+      return base64.StdEncoding.EncodeToString(hashed[:])
+   }
+   sky_ott := func() string {
+      data := []byte("SkyOTT")
+      // must be quoted
+      data = fmt.Appendf(data, " client=%q", sky_client)
+      // must be quoted
+      data = fmt.Appendf(data, ",signature=%q", signature())
+      // must be quoted
+      data = fmt.Appendf(data, `,timestamp="%v"`, timestamp)
+      // must be quoted
+      data = fmt.Appendf(data, ",version=%q", sky_version)
+      return string(data)
+   }
+   return sky_ott()
+}
+
+func (a *AssetEndpoint) Dash() (*Dash, error) {
+   resp, err := http.Get(a.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type AssetEndpoint struct {
+   Cdn string
+   Url string
+}
+
+type Playout struct {
+   Asset struct {
+      Endpoints []AssetEndpoint
+   }
+   Description string
+   Protection  struct {
+      LicenceAcquisitionUrl string
+   }
+}
 func (p *Playout) Widevine(body []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", p.Protection.LicenceAcquisitionUrl, bytes.NewReader(body),
@@ -163,121 +279,4 @@ func (a *AuthToken) Fetch(idSession *http.Cookie) error {
 type AuthToken struct {
    Description string
    UserToken   string
-}
-
-func FetchIdSession(user, password string) (*http.Cookie, error) {
-   data := url.Values{
-      "userIdentifier": {user},
-      "password":       {password},
-   }.Encode()
-   req, err := http.NewRequest(
-      "POST", "https://rango.id.peacocktv.com/signin/service/international",
-      strings.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/x-www-form-urlencoded")
-   req.Header.Set("x-skyott-proposition", "NBCUOTT")
-   req.Header.Set("x-skyott-provider", "NBCU")
-   req.Header.Set("x-skyott-territory", Territory)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusCreated {
-      var data strings.Builder
-      err = resp.Write(&data)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(data.String())
-   }
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "idsession" {
-         return cookie, nil
-      }
-   }
-   return nil, http.ErrNoCookie
-}
-
-var Territory = "US"
-
-func sign(method, path string, head http.Header, body []byte) string {
-   timestamp := time.Now().Unix()
-   text_headers := func() string {
-      var s []string
-      for k := range head {
-         k = strings.ToLower(k)
-         if strings.HasPrefix(k, "x-skyott-") {
-            s = append(s, k+": "+head.Get(k)+"\n")
-         }
-      }
-      slices.Sort(s)
-      return strings.Join(s, "")
-   }()
-   headers_md5 := md5.Sum([]byte(text_headers))
-   payload_md5 := md5.Sum(body)
-   signature := func() string {
-      h := hmac.New(sha1.New, []byte(sky_key))
-      fmt.Fprintln(h, method)
-      fmt.Fprintln(h, path)
-      fmt.Fprintln(h)
-      fmt.Fprintln(h, sky_client)
-      fmt.Fprintln(h, sky_version)
-      fmt.Fprintf(h, "%x\n", headers_md5)
-      fmt.Fprintln(h, timestamp)
-      fmt.Fprintf(h, "%x\n", payload_md5)
-      hashed := h.Sum(nil)
-      return base64.StdEncoding.EncodeToString(hashed[:])
-   }
-   sky_ott := func() string {
-      data := []byte("SkyOTT")
-      // must be quoted
-      data = fmt.Appendf(data, " client=%q", sky_client)
-      // must be quoted
-      data = fmt.Appendf(data, ",signature=%q", signature())
-      // must be quoted
-      data = fmt.Appendf(data, `,timestamp="%v"`, timestamp)
-      // must be quoted
-      data = fmt.Appendf(data, ",version=%q", sky_version)
-      return string(data)
-   }
-   return sky_ott()
-}
-
-func (a *AssetEndpoint) Dash() (*Dash, error) {
-   resp, err := http.Get(a.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type AssetEndpoint struct {
-   Cdn string
-   Url string
-}
-
-type Playout struct {
-   Asset struct {
-      Endpoints []AssetEndpoint
-   }
-   Description string
-   Protection  struct {
-      LicenceAcquisitionUrl string
-   }
 }

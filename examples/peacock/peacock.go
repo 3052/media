@@ -57,12 +57,28 @@ func (c *command) run() error {
    })
 }
 
+func (c *command) do_email_password() error {
+   var (
+      cache user_cache
+      err error
+   )
+   cache.Cookie, err = peacock.FetchIdSession(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, &cache)
+}
+
+type user_cache struct {
+   Cookie *http.Cookie
+}
+
 type command struct {
    name string
-   
    // 1
    email string
    password string
+   
    // 2
    peacock string
    // 3
@@ -72,20 +88,55 @@ type command struct {
 
 ///
 
-func (c command) do_email_password() error {
-   var sign peacock.SignIn
-   err := sign.New(c.email, c.password)
+func (c *command) do_peacock() error {
+   cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   text, err := sign.Marshal()
+   /////////////////////////////////
+   auth, err := sign.Auth()
    if err != nil {
       return err
    }
-   return os.WriteFile(c.name + "/peacock.json", text, 0666)
+   video, err := auth.Video(c.peacock)
+   if err != nil {
+      return err
+   }
+   akamai, ok := video.Akamai()
+   if !ok {
+      return errors.New("peacock.VideoPlayout.Akamai")
+   }
+   req, err := http.NewRequest("", akamai, nil)
+   if err != nil {
+      return err
+   }
+   media, err := c.job.DASH(req)
+   if err != nil {
+      return err
+   }
+   for _, medium := range media {
+      if medium.ID == c.dash {
+         var node peacock.QueryNode
+         err := node.New(c.peacock)
+         if err != nil {
+            return err
+         }
+         c.job.Name = node
+         c.job.Poster = video
+         return c.job.Download(medium)
+      }
+   }
+   // 2 MPD all
+   for i, medium := range media {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(medium)
+   }
+   return nil
 }
 
-func (c command) do_peacock() error {
+func (c *command) do_dash() error {
    text, err := os.ReadFile(c.name + "/peacock.json")
    if err != nil {
       return err

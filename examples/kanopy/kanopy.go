@@ -76,19 +76,6 @@ type command struct {
    job  maya.WidevineJob
 }
 
-///
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Login.Widevine(cache.StreamInfo, data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
 type user_cache struct {
    Dash       *kanopy.Dash
    Login      *kanopy.Login
@@ -103,6 +90,8 @@ func (c *command) do_email_password() error {
    }
    return maya.Write(c.name, &user_cache{Login: &login})
 }
+
+///
 
 func (c *command) do_kanopy() error {
    cache, err := maya.Read[user_cache](c.name)
@@ -131,4 +120,15 @@ func (c *command) do_kanopy() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Login.Widevine(cache.StreamInfo, data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
