@@ -17,40 +17,9 @@ import (
    "strings"
 )
 
-func (i *Item) Dash() (*Dash, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "link.theplatform.com",
-      Path: join(
-         "/s/", i.CmsAccountId,
-         "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
-         "/", i.ContentId,
-      ),
-      RawQuery: "formats=MPEG-DASH",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-// 576p L3
-func Widevine(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
+// 1080p SL2000
+// 1440p SL2000 + cookie
+func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{}
@@ -62,9 +31,9 @@ func Widevine(at, contentId string, cookie *http.Cookie) (*SessionToken, error) 
    }.Encode()
    if cookie != nil {
       req.AddCookie(cookie)
-      req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/session-token.json"
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/session-token.json"
    } else {
-      req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json"
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json"
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -87,9 +56,8 @@ func Widevine(at, contentId string, cookie *http.Cookie) (*SessionToken, error) 
    return &token, nil
 }
 
-// 1080p SL2000
-// 1440p SL2000 + cookie
-func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
+// 576p L3
+func Widevine(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{}
@@ -101,9 +69,9 @@ func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error)
    }.Encode()
    if cookie != nil {
       req.AddCookie(cookie)
-      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/session-token.json"
+      req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/session-token.json"
    } else {
-      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json"
+      req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json"
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -308,4 +276,35 @@ type Provider struct {
 type SessionToken struct {
    LsSession string `json:"ls_session"`
    Url       string
+}
+func (i *Item) Dash() (*Dash, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "link.theplatform.com",
+      Path: join(
+         "/s/", i.CmsAccountId,
+         "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
+         "/", i.ContentId,
+      ),
+      RawQuery: "formats=MPEG-DASH",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
 }
