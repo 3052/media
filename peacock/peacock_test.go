@@ -10,6 +10,27 @@ import (
    "testing"
 )
 
+func TestSignRead(t *testing.T) {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      t.Fatal(err)
+   }
+   data, err := os.ReadFile(cache + "/peacock/peacock.txt")
+   if err != nil {
+      t.Fatal(err)
+   }
+   id, err := http.ParseSetCookie(string(data))
+   if err != nil {
+      t.Fatal(err)
+   }
+   var token AuthToken
+   err = token.Fetch(id)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Printf("%+v\n", token)
+}
+
 func TestSignWrite(t *testing.T) {
    user, err := output("credential", "-h=peacocktv.com", "-k=user")
    if err != nil {
@@ -100,27 +121,6 @@ func TestLicense(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-}
-
-func TestSignRead(t *testing.T) {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(cache + "/peacock/peacock.txt")
-   if err != nil {
-      t.Fatal(err)
-   }
-   id, err := http.ParseSetCookie(string(data))
-   if err != nil {
-      t.Fatal(err)
-   }
-   var token AuthToken
-   err = token.Fetch(id)
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Printf("%+v\n", token)
 }
 
 func output(name string, arg ...string) (string, error) {

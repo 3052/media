@@ -17,6 +17,122 @@ import (
    "time"
 )
 
+func generate_sky_ott(method, path string, headers http.Header, body []byte) string {
+   // Sort headers by key.
+   headerKeys := make([]string, 0, len(headers))
+   for k := range headers {
+      headerKeys = append(headerKeys, k)
+   }
+   slices.Sort(headerKeys)
+   // Build the special headers string.
+   var headersBuilder bytes.Buffer
+   for _, key := range headerKeys {
+      lowerKey := strings.ToLower(key)
+      if strings.HasPrefix(lowerKey, "x-skyott-") {
+         value := headers.Get(key)
+         headersBuilder.WriteString(lowerKey)
+         headersBuilder.WriteString(": ")
+         headersBuilder.WriteString(value)
+         headersBuilder.WriteByte('\n')
+      }
+   }
+   // MD5 the headers string and request body.
+   headersHash := md5.Sum(headersBuilder.Bytes())
+   headersMD5 := fmt.Sprintf("%x", headersHash)
+   bodyHash := md5.Sum(body)
+   bodyMD5 := fmt.Sprintf("%x", bodyHash)
+   // Get current timestamp string directly.
+   timestampStr := fmt.Sprint(time.Now().Unix())
+   // Construct the payload to be signed for the HMAC.
+   var payload bytes.Buffer
+   payload.WriteString(method)
+   payload.WriteByte('\n')
+   payload.WriteString(path)
+   payload.WriteByte('\n')
+   payload.WriteByte('\n')
+   payload.WriteString(sky_client)
+   payload.WriteByte('\n')
+   payload.WriteString(sky_version)
+   payload.WriteByte('\n')
+   payload.WriteString(headersMD5)
+   payload.WriteByte('\n')
+   payload.WriteString(timestampStr)
+   payload.WriteByte('\n')
+   payload.WriteString(bodyMD5)
+   payload.WriteByte('\n')
+   // Calculate the HMAC signature.
+   mac := hmac.New(sha1.New, []byte(sky_key))
+   mac.Write(payload.Bytes())
+   signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+   // Format the final output string.
+   return fmt.Sprintf(
+      "SkyOTT client=%q,signature=%q,timestamp=%q,version=%q",
+      sky_client,
+      signature,
+      timestampStr,
+      sky_version,
+   )
+}
+
+func (a *AuthToken) Fetch(idSession *http.Cookie) error {
+   body, err := json.Marshal(map[string]any{
+      "auth": map[string]string{
+         "authScheme":        "MESSO",
+         "proposition":       "NBCUOTT",
+         "provider":          "NBCU",
+         "providerTerritory": Territory,
+      },
+      "device": map[string]string{
+         // if empty /drm/widevine/acquirelicense will fail with
+         // {
+         //    "errorCode": "OVP_00306",
+         //    "description": "Security failure"
+         // }
+         "drmDeviceId": "UNKNOWN",
+         // if incorrect /video/playouts/vod will fail with
+         // {
+         //    "errorCode": "OVP_00311",
+         //    "description": "Unknown deviceId"
+         // }
+         // changing this too often will result in a four hour block
+         // {
+         //    "errorCode": "OVP_00014",
+         //    "description": "Maximum number of streaming devices exceeded"
+         // }
+         "id":       "PC",
+         "platform": "ANDROIDTV",
+         "type":     "TV",
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://ovp.peacocktv.com/auth/tokens", bytes.NewReader(body),
+   )
+   if err != nil {
+      return err
+   }
+   req.AddCookie(idSession)
+   req.Header.Set("content-type", "application/vnd.tokens.v1+json")
+   req.Header.Set(
+      "x-sky-signature", generate_sky_ott(req.Method, req.URL.Path, nil, body),
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(a)
+   if err != nil {
+      return err
+   }
+   if a.Description != "" {
+      return errors.New(a.Description)
+   }
+   return nil
+}
+
 func FetchIdSession(user, password string) (*http.Cookie, error) {
    data := url.Values{
       "userIdentifier": {user},
@@ -56,49 +172,6 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
 
 var Territory = "US"
 
-func sign(method, path string, head http.Header, body []byte) string {
-   timestamp := time.Now().Unix()
-   text_headers := func() string {
-      var s []string
-      for k := range head {
-         k = strings.ToLower(k)
-         if strings.HasPrefix(k, "x-skyott-") {
-            s = append(s, k+": "+head.Get(k)+"\n")
-         }
-      }
-      slices.Sort(s)
-      return strings.Join(s, "")
-   }()
-   headers_md5 := md5.Sum([]byte(text_headers))
-   payload_md5 := md5.Sum(body)
-   signature := func() string {
-      h := hmac.New(sha1.New, []byte(sky_key))
-      fmt.Fprintln(h, method)
-      fmt.Fprintln(h, path)
-      fmt.Fprintln(h)
-      fmt.Fprintln(h, sky_client)
-      fmt.Fprintln(h, sky_version)
-      fmt.Fprintf(h, "%x\n", headers_md5)
-      fmt.Fprintln(h, timestamp)
-      fmt.Fprintf(h, "%x\n", payload_md5)
-      hashed := h.Sum(nil)
-      return base64.StdEncoding.EncodeToString(hashed[:])
-   }
-   sky_ott := func() string {
-      data := []byte("SkyOTT")
-      // must be quoted
-      data = fmt.Appendf(data, " client=%q", sky_client)
-      // must be quoted
-      data = fmt.Appendf(data, ",signature=%q", signature())
-      // must be quoted
-      data = fmt.Appendf(data, `,timestamp="%v"`, timestamp)
-      // must be quoted
-      data = fmt.Appendf(data, ",version=%q", sky_version)
-      return string(data)
-   }
-   return sky_ott()
-}
-
 func (a *AssetEndpoint) Dash() (*Dash, error) {
    resp, err := http.Get(a.Url)
    if err != nil {
@@ -133,6 +206,7 @@ type Playout struct {
       LicenceAcquisitionUrl string
    }
 }
+
 func (p *Playout) Widevine(body []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", p.Protection.LicenceAcquisitionUrl, bytes.NewReader(body),
@@ -141,7 +215,8 @@ func (p *Playout) Widevine(body []byte) ([]byte, error) {
       return nil, err
    }
    req.Header.Set(
-      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
+      "x-sky-signature",
+      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
    )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -194,7 +269,8 @@ func (a *AuthToken) Playout(contentId string) (*Playout, error) {
    req.Header.Set("content-type", "application/vnd.playvod.v1+json")
    req.Header.Set("x-skyott-usertoken", a.UserToken)
    req.Header.Set(
-      "x-sky-signature", sign(req.Method, req.URL.Path, req.Header, body),
+      "x-sky-signature",
+      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
    )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
@@ -217,63 +293,6 @@ const (
    sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
    sky_version = "1.0"
 )
-
-func (a *AuthToken) Fetch(idSession *http.Cookie) error {
-   body, err := json.Marshal(map[string]any{
-      "auth": map[string]string{
-         "authScheme":        "MESSO",
-         "proposition":       "NBCUOTT",
-         "provider":          "NBCU",
-         "providerTerritory": Territory,
-      },
-      "device": map[string]string{
-         // if empty /drm/widevine/acquirelicense will fail with
-         // {
-         //    "errorCode": "OVP_00306",
-         //    "description": "Security failure"
-         // }
-         "drmDeviceId": "UNKNOWN",
-         // if incorrect /video/playouts/vod will fail with
-         // {
-         //    "errorCode": "OVP_00311",
-         //    "description": "Unknown deviceId"
-         // }
-         // changing this too often will result in a four hour block
-         // {
-         //    "errorCode": "OVP_00014",
-         //    "description": "Maximum number of streaming devices exceeded"
-         // }
-         "id":       "PC",
-         "platform": "ANDROIDTV",
-         "type":     "TV",
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://ovp.peacocktv.com/auth/tokens", bytes.NewReader(body),
-   )
-   if err != nil {
-      return err
-   }
-   req.AddCookie(idSession)
-   req.Header.Set("content-type", "application/vnd.tokens.v1+json")
-   req.Header.Set("x-sky-signature", sign(req.Method, req.URL.Path, nil, body))
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(a)
-   if err != nil {
-      return err
-   }
-   if a.Description != "" {
-      return errors.New(a.Description)
-   }
-   return nil
-}
 
 // userToken is good for one day
 type AuthToken struct {
