@@ -17,6 +17,28 @@ import (
    "time"
 )
 
+func (p *Playout) Widevine(body []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", p.Protection.LicenceAcquisitionUrl, bytes.NewReader(body),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set(
+      "x-sky-signature",
+      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 func (p *Playout) Fastly() (*AssetEndpoint, bool) {
    for _, endpoint := range p.Asset.Endpoints {
       if endpoint.Cdn == "FASTLY" {
@@ -276,26 +298,4 @@ type Playout struct {
    Protection  struct {
       LicenceAcquisitionUrl string
    }
-}
-
-func (p *Playout) Widevine(body []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", p.Protection.LicenceAcquisitionUrl, bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set(
-      "x-sky-signature",
-      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
