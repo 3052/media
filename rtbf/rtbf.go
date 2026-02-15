@@ -10,6 +10,27 @@ import (
    "strings"
 )
 
+type Entitlement struct {
+   AssetId   string
+   Formats   []Format
+   Message   string
+   PlayToken string
+}
+
+type Format struct {
+   Format       string
+   MediaLocator string // MPD
+}
+
+func (e *Entitlement) Dash() (*Format, bool) {
+   for _, each := range e.Formats {
+      if each.Format == "DASH" {
+         return &each, true
+      }
+   }
+   return nil, false
+}
+
 func (f *Format) Dash() (*Dash, error) {
    resp, err := http.Get(f.MediaLocator)
    if err != nil {
@@ -28,11 +49,6 @@ func (f *Format) Dash() (*Dash, error) {
 type Dash struct {
    Body []byte
    Url  *url.URL
-}
-
-type Format struct {
-   Format       string
-   MediaLocator string // MPD
 }
 
 func join(data ...string) string {
@@ -56,15 +72,15 @@ func (s *Session) Entitlement(assetId string) (*Entitlement, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   title := &Entitlement{}
-   err = json.NewDecoder(resp.Body).Decode(title)
+   var result Entitlement{}
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if title.Message != "" {
-      return nil, errors.New(title.Message)
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
    }
-   return title, nil
+   return &result, nil
 }
 
 type Account struct {
@@ -125,22 +141,6 @@ func (e *Entitlement) Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(value.Message)
    }
    return io.ReadAll(resp.Body)
-}
-
-type Entitlement struct {
-   AssetId   string
-   Formats   []Format
-   Message   string
-   PlayToken string
-}
-
-func (e *Entitlement) Dash() (*Format, bool) {
-   for _, each := range e.Formats {
-      if each.Format == "DASH" {
-         return &each, true
-      }
-   }
-   return nil, false
 }
 
 func (i *Identity) Session() (*Session, error) {
