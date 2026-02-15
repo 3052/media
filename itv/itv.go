@@ -13,6 +13,30 @@ import (
    "strings"
 )
 
+func (p *Playlist) FullHd() (*MediaFile, error) {
+   for _, file := range p.Playlist.Video.MediaFiles {
+      if file.Resolution == "1080" {
+         return &file, nil
+      }
+   }
+   return nil, errors.New("full hd (1080p) media file not found")
+}
+
+type Playlist struct {
+   Error    string
+   Playlist struct {
+      Video struct {
+         MediaFiles []MediaFile
+      }
+   }
+}
+
+type MediaFile struct {
+   Href          string
+   KeyServiceUrl string
+   Resolution    string
+}
+
 type Dash struct {
    Body []byte
    Url  *url.URL
@@ -170,21 +194,6 @@ func (p *Playlist) playReady(id string) error {
    return json.NewDecoder(resp.Body).Decode(p)
 }
 
-type Playlist struct {
-   Error    string
-   Playlist struct {
-      Video struct {
-         MediaFiles []MediaFile
-      }
-   }
-}
-
-type MediaFile struct {
-   Href          string
-   KeyServiceUrl string
-   Resolution    string
-}
-
 const programme_page = `
 query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
    titles(
@@ -206,15 +215,6 @@ query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
    }
 }
 `
-
-func (p *Playlist) FullHd() (*MediaFile, bool) {
-   for _, file := range p.Playlist.Video.MediaFiles {
-      if file.Resolution == "1080" {
-         return &file, true
-      }
-   }
-   return nil, false
-}
 
 func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(

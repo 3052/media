@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/itv"
-   "errors"
    "flag"
    "fmt"
    "log"
@@ -13,6 +12,39 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_playlist() error {
+   var title itv.Title
+   title.LatestAvailableVersion.PlaylistUrl = c.playlist
+   playlist, err := title.Playlist()
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.MediaFile, err = playlist.FullHd()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.MediaFile.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   playlist string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -90,41 +122,4 @@ func (c *command) do_address() error {
       fmt.Println(&title)
    }
    return nil
-}
-
-func (c *command) do_playlist() error {
-   var title itv.Title
-   title.LatestAvailableVersion.PlaylistUrl = c.playlist
-   playlist, err := title.Playlist()
-   if err != nil {
-      return err
-   }
-   var (
-      cache user_cache
-      ok    bool
-   )
-   cache.MediaFile, ok = playlist.FullHd()
-   if !ok {
-      return errors.New(".FullHd()")
-   }
-   cache.Dash, err = cache.MediaFile.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   playlist string
-   // 3
-   dash string
-   job  maya.WidevineJob
 }

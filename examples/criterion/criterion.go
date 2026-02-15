@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/criterion"
-   "errors"
    "flag"
    "log"
    "net/http"
@@ -11,6 +10,38 @@ import (
    "path"
    "path/filepath"
 )
+
+func (c *command) do_address() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   err = cache.Token.Refresh()
+   if err != nil {
+      return err
+   }
+   item, err := cache.Token.Item(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   files, err := cache.Token.Files(item)
+   if err != nil {
+      return err
+   }
+   cache.MediaFile, err = files.Dash()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.MediaFile.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -99,37 +130,4 @@ type user_cache struct {
    Dash      *criterion.Dash
    MediaFile *criterion.MediaFile
    Token     *criterion.Token
-}
-
-func (c *command) do_address() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   err = cache.Token.Refresh()
-   if err != nil {
-      return err
-   }
-   item, err := cache.Token.Item(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   files, err := cache.Token.Files(item)
-   if err != nil {
-      return err
-   }
-   var ok bool
-   cache.MediaFile, ok = files.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   cache.Dash, err = cache.MediaFile.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

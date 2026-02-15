@@ -10,6 +10,15 @@ import (
    "strings"
 )
 
+func (m MediaFiles) Dash() (*MediaFile, error) {
+   for _, file := range m {
+      if file.Method == "dash" {
+         return &file, nil
+      }
+   }
+   return nil, errors.New("DASH media file not found")
+}
+
 func (m *MediaFile) Dash() (*Dash, error) {
    resp, err := http.Get(m.Links.Source.Href)
    if err != nil {
@@ -173,13 +182,4 @@ type VideoItem struct {
          Href string // https://api.vhx.tv/videos/3460957/files
       }
    } `json:"_links"`
-}
-
-func (m MediaFiles) Dash() (*MediaFile, bool) {
-   for _, file := range m {
-      if file.Method == "dash" {
-         return &file, true
-      }
-   }
-   return nil, false
 }
