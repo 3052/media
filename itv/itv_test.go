@@ -8,14 +8,6 @@ import (
    "testing"
 )
 
-func output(name string, arg ...string) (string, error) {
-   data, err := exec.Command(name, arg...).Output()
-   if err != nil {
-      return "", err
-   }
-   return string(data), nil
-}
-
 func TestPlayReady(t *testing.T) {
    user, err := output("credential", "-h=api.nordvpn.com", "-k=user")
    if err != nil {
@@ -37,9 +29,9 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   hd, ok := play.FullHd()
-   if !ok {
-      t.Fatal(".FullHd()")
+   hd, err := play.FullHd()
+   if err != nil {
+      t.Fatal(err)
    }
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -51,6 +43,14 @@ func TestPlayReady(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
+}
+
+func output(name string, arg ...string) (string, error) {
+   data, err := exec.Command(name, arg...).Output()
+   if err != nil {
+      return "", err
+   }
+   return string(data), nil
 }
 
 var watch_tests = []struct {

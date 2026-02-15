@@ -12,26 +12,28 @@ import (
 
 type Entitlement struct {
    AssetId   string
-   Formats   []Format
+   Formats   []FormatItem
    Message   string
    PlayToken string
 }
 
-type Format struct {
+type FormatItem struct {
    Format       string
    MediaLocator string // MPD
 }
 
-func (e *Entitlement) Dash() (*Format, bool) {
-   for _, each := range e.Formats {
-      if each.Format == "DASH" {
-         return &each, true
+// Dash finds the "DASH" format in the Entitlement's formats.
+// It returns the FormatItem if found, otherwise it returns an error.
+func (e *Entitlement) Dash() (*FormatItem, error) {
+   for _, format := range e.Formats {
+      if format.Format == "DASH" {
+         return &format, nil
       }
    }
-   return nil, false
+   return nil, errors.New("DASH format not found")
 }
 
-func (f *Format) Dash() (*Dash, error) {
+func (f *FormatItem) Dash() (*Dash, error) {
    resp, err := http.Get(f.MediaLocator)
    if err != nil {
       return nil, err
@@ -72,7 +74,7 @@ func (s *Session) Entitlement(assetId string) (*Entitlement, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result Entitlement{}
+   var result Entitlement
    err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
