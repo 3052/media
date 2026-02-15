@@ -10,6 +10,16 @@ import (
    "strings"
 )
 
+func (s *Stream) Dash() (*MediaLink, error) {
+   for i := range s.Links {
+      if s.Links[i].MimeType == "application/dash+xml" {
+         return &s.Links[i], nil
+      }
+   }
+   // Create and return the error directly.
+   return nil, errors.New("DASH link not found")
+}
+
 func (m *MediaLink) Dash() (*Dash, error) {
    resp, err := http.Get(m.Url)
    if err != nil {
@@ -145,22 +155,4 @@ type Stream struct {
    Error    string
    Links    []MediaLink
    NoAccess bool
-}
-
-func (s *Stream) Vtt() (*MediaLink, bool) {
-   for _, link := range s.Links {
-      if link.MimeType == "text/vtt" {
-         return &link, true
-      }
-   }
-   return nil, false
-}
-
-func (s *Stream) Dash() (*MediaLink, bool) {
-   for _, link := range s.Links {
-      if link.MimeType == "application/dash+xml" {
-         return &link, true
-      }
-   }
-   return nil, false
 }

@@ -11,6 +11,15 @@ import (
    "strings"
 )
 
+func GetDash(sources []DataSource) (*DataSource, error) {
+   for _, source := range sources {
+      if source.Type == "application/dash+xml" {
+         return &source, nil
+      }
+   }
+   return nil, errors.New("dash source not found")
+}
+
 func BcJwt(header http.Header) string {
    return header.Get("x-amcn-bc-jwt")
 }
@@ -55,7 +64,7 @@ func (c *Client) Refresh() error {
    return json.NewDecoder(resp.Body).Decode(c)
 }
 
-func (c *Client) Playback(id int) ([]Source, http.Header, error) {
+func (c *Client) Playback(id int) ([]DataSource, http.Header, error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
          "lat":          0,
@@ -95,7 +104,7 @@ func (c *Client) Playback(id int) ([]Source, http.Header, error) {
    var result struct {
       Data struct {
          PlaybackJsonData struct {
-            Sources []Source
+            Sources []DataSource
          }
       }
       Error string
@@ -201,9 +210,9 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    return nil, errors.New("could not find the seasons list within the manifest")
 }
 
-func (s *Source) Widevine(bcJwt string, data []byte) ([]byte, error) {
+func (d *DataSource) Widevine(bcJwt string, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
-      "POST", s.KeySystems.ComWidevineAlpha.LicenseUrl,
+      "POST", d.KeySystems.ComWidevineAlpha.LicenseUrl,
       bytes.NewReader(data),
    )
    if err != nil {
@@ -218,7 +227,7 @@ func (s *Source) Widevine(bcJwt string, data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-type Source struct {
+type DataSource struct {
    KeySystems struct {
       ComWidevineAlpha *struct {
          LicenseUrl string `json:"license_url"`
@@ -228,19 +237,8 @@ type Source struct {
    Type string // e.g., "application/dash+xml"
 }
 
-///
-
-func GetDash(sources []Source) (*Source, bool) {
-   for _, source_var := range sources {
-      if source_var.Type == "application/dash+xml" {
-         return &source_var, true
-      }
-   }
-   return nil, false
-}
-
-func (s *Source) Dash() (*Dash, error) {
-   resp, err := http.Get(s.Src)
+func (d *DataSource) Dash() (*Dash, error) {
+   resp, err := http.Get(d.Src)
    if err != nil {
       return nil, err
    }

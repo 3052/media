@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/amc"
-   "errors"
    "flag"
    "fmt"
    "log"
@@ -12,6 +11,31 @@ import (
    "path"
    "path/filepath"
 )
+
+func (c *command) do_episode() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   sources, header, err := cache.Client.Playback(c.episode)
+   if err != nil {
+      return err
+   }
+   cache.DataSource, err = amc.GetDash(sources)
+   if err != nil {
+      return err
+   }
+   cache.BcJwt = amc.BcJwt(header)
+   cache.Dash, err = cache.DataSource.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -115,47 +139,22 @@ func (c *command) do_series() error {
    return nil
 }
 
-func (c *command) do_episode() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   sources, header, err := cache.Client.Playback(c.episode)
-   if err != nil {
-      return err
-   }
-   var ok bool
-   cache.Source, ok = amc.GetDash(sources)
-   if !ok {
-      return errors.New("amc.GetDash")
-   }
-   cache.BcJwt = amc.BcJwt(header)
-   cache.Dash, err = cache.Source.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Source.Widevine(cache.BcJwt, data)
+      return cache.DataSource.Widevine(cache.BcJwt, data)
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
 type user_cache struct {
-   BcJwt  string
-   Client *amc.Client
-   Dash   *amc.Dash
-   Source *amc.Source
+   BcJwt      string
+   Client     *amc.Client
+   Dash       *amc.Dash
+   DataSource *amc.DataSource
 }
 
 func (c *command) do_season() error {

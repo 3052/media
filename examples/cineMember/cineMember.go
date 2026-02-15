@@ -3,7 +3,6 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/media/cineMember"
-   "errors"
    "flag"
    "log"
    "net/http"
@@ -11,6 +10,34 @@ import (
    "path"
    "path/filepath"
 )
+
+func (c *command) do_address() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   id, err := cineMember.FetchId(c.address)
+   if err != nil {
+      return err
+   }
+   stream, err := cache.Session.Stream(id)
+   if err != nil {
+      return err
+   }
+   link, err := stream.Dash()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = link.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -97,32 +124,4 @@ type command struct {
    // 3
    dash string
    job  maya.Job
-}
-
-func (c *command) do_address() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   id, err := cineMember.FetchId(c.address)
-   if err != nil {
-      return err
-   }
-   stream, err := cache.Session.Stream(id)
-   if err != nil {
-      return err
-   }
-   link, ok := stream.Dash()
-   if !ok {
-      return errors.New(".Dash()")
-   }
-   cache.Dash, err = link.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

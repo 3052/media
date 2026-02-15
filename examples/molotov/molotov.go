@@ -41,12 +41,11 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
       {"d", "C", "P"},
    })
-   return nil
 }
 
 func (c *command) do_email_password() error {

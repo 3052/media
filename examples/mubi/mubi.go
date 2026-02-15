@@ -45,13 +45,12 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"c"},
       {"s"},
       {"a"},
       {"d", "t", "C", "P"},
    })
-   return nil
 }
 
 func (c *command) do_code() error {
