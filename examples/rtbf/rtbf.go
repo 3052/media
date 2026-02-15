@@ -41,12 +41,11 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
       {"d", "C", "P"},
    })
-   return nil
 }
 
 func (c *command) do_email_password() error {
@@ -115,6 +114,7 @@ func (c *command) do_address() error {
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
+
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {

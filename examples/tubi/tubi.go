@@ -35,11 +35,10 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"t"},
       {"d", "c", "p"},
    })
-   return nil
 }
 
 func (c *command) do_tubi() error {

@@ -54,14 +54,13 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"i", "m"},
       {"l"},
       {"a", "s"},
       {"e"},
       {"d", "t", "C", "E"},
    })
-   return nil
 }
 
 type user_cache struct {

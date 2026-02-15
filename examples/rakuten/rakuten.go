@@ -49,13 +49,12 @@ func (c *command) run() error {
       }
       return c.do_language()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"m"},
       {"s"},
       {"S"},
       {"e", "a", "d", "C", "P"},
    })
-   return nil
 }
 
 func (c *command) do_movie() error {

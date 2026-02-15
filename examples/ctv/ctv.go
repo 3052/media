@@ -33,11 +33,10 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"a"},
       {"d", "c", "p"},
    })
-   return nil
 }
 
 type command struct {

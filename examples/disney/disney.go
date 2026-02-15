@@ -52,14 +52,13 @@ func (c *command) run() error {
    if c.hls != "" {
       return c.do_hls()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
       {"s"},
       {"m"},
       {"h", "C", "E"},
    })
-   return nil
 }
 
 func (c *command) do_email_password() error {

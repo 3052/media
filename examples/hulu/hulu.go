@@ -11,6 +11,43 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
+   c.name = cache + "/hulu/userCache.xml"
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.Parse()
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d", "C", "E"},
+   })
+}
+
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -94,42 +131,4 @@ type command struct {
    // 3
    dash string
    job  maya.PlayReadyJob
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
-   c.name = cache + "/hulu/userCache.xml"
-   // 1
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   // 2
-   flag.StringVar(&c.address, "a", "", "address")
-   // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   maya.Usage([][]string{
-      {"e", "p"},
-      {"a"},
-      {"d", "C", "E"},
-   })
-   return nil
 }

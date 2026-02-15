@@ -42,12 +42,11 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
       {"d", "t", "C", "P"},
    })
-   return nil
 }
 
 func (c *command) do_email_password() error {
@@ -109,6 +108,7 @@ func (c *command) do_dash() error {
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
+
 type user_cache struct {
    Dash     *draken.Dash
    Login    *draken.Login

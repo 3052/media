@@ -40,12 +40,11 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
       {"d"},
    })
-   return nil
 }
 
 func (c *command) do_dash() error {

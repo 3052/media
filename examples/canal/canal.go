@@ -61,7 +61,7 @@ func (c *command) run() error {
    if c.dash != "" {
       return c.do_dash()
    }
-   maya.Usage([][]string{
+   return maya.Usage([][]string{
       {"e", "p"},
       {"r"},
       {"a"},
@@ -69,7 +69,6 @@ func (c *command) run() error {
       {"S"},
       {"d", "C", "P"},
    })
-   return nil
 }
 
 func (c *command) do_dash() error {
