@@ -10,6 +10,32 @@ import (
    "strings"
 )
 
+type ItemMetadata struct {
+   Media []struct {
+      Part     []MediaPart
+      Protocol string
+   }
+   RatingKey string
+}
+
+type MediaPart struct {
+   Key     string
+   License string
+}
+
+func (i *ItemMetadata) Dash() (*MediaPart, error) {
+   for _, media := range i.Media {
+      if media.Protocol == "dash" {
+         // Success: Return the part and a nil error.
+         // This will panic if media.Part is empty, matching the
+         // behavior of your original function.
+         return &media.Part[0], nil
+      }
+   }
+   // Failure: No "dash" protocol was found.
+   return nil, errors.New("DASH media part not found")
+}
+
 func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -36,31 +62,18 @@ func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
    return &result, nil
 }
 
-type ItemMetadata struct {
-   Media []struct {
-      Part     []MediaPart
-      Protocol string
-   }
-   RatingKey string
-}
-
-type MediaPart struct {
-   Key     string
-   License string
-}
-
 type User struct {
    AuthToken string
 }
 
 // https://watch.plex.tv/movie/memento-2000
 // https://watch.plex.tv/watch/movie/memento-2000
-func GetPath(rawUrl string) (string, error) {
-   u, err := url.Parse(rawUrl)
+func GetPath(rawLink string) (string, error) {
+   link, err := url.Parse(rawLink)
    if err != nil {
       return "", err
    }
-   return strings.TrimPrefix(u.Path, "/watch"), nil
+   return strings.TrimPrefix(link.Path, "/watch"), nil
 }
 
 func (u User) Widevine(part *MediaPart, data []byte) ([]byte, error) {
@@ -82,14 +95,6 @@ func (u User) Widevine(part *MediaPart, data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (i *ItemMetadata) Dash() (*MediaPart, bool) {
-   for _, media := range i.Media {
-      if media.Protocol == "dash" {
-         return &media.Part[0], true
-      }
-   }
-   return nil, false
-}
 func (u *User) Fetch() error {
    var req http.Request
    req.Header = http.Header{}

@@ -10,7 +10,27 @@ import (
    "strconv"
 )
 
-func (l *Login) PlayResponse(member *Membership, videoId int) (*PlayResponse, error) {
+type PlayManifest struct {
+   DrmLicenseId string
+   ManifestType string
+   Url          string
+}
+
+type Plays struct {
+   ErrorMsgLong string `json:"error_msg_long"`
+   Manifests    []PlayManifest
+}
+
+func (p *Plays) Dash() (*PlayManifest, error) {
+   for _, manifest := range p.Manifests {
+      if manifest.ManifestType == "dash" {
+         return &manifest, nil
+      }
+   }
+   return nil, errors.New("dash manifest not found")
+}
+
+func (l *Login) Plays(member *Membership, videoId int) (*Plays, error) {
    data, err := json.Marshal(map[string]int{
       "domainId": member.DomainId,
       "userId":   l.UserId,
@@ -34,20 +54,15 @@ func (l *Login) PlayResponse(member *Membership, videoId int) (*PlayResponse, er
       return nil, err
    }
    defer resp.Body.Close()
-   var play PlayResponse
-   err = json.NewDecoder(resp.Body).Decode(&play)
+   var result Plays
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if play.ErrorMsgLong != "" {
-      return nil, errors.New(play.ErrorMsgLong)
+   if result.ErrorMsgLong != "" {
+      return nil, errors.New(result.ErrorMsgLong)
    }
-   return &play, nil
-}
-
-type PlayResponse struct {
-   ErrorMsgLong string `json:"error_msg_long"`
-   Manifests    []StreamInfo
+   return &result, nil
 }
 
 const (
@@ -55,23 +70,8 @@ const (
    x_version  = "!/!/!/!"
 )
 
-type StreamInfo struct {
-   DrmLicenseId string
-   ManifestType string
-   Url          string
-}
-
 type Membership struct {
    DomainId int
-}
-
-func (p *PlayResponse) Dash() (*StreamInfo, bool) {
-   for _, info := range p.Manifests {
-      if info.ManifestType == "dash" {
-         return &info, true
-      }
-   }
-   return nil, false
 }
 
 // good for 10 years
@@ -110,14 +110,14 @@ func (l *Login) Fetch(email, password string) error {
    return json.NewDecoder(resp.Body).Decode(l)
 }
 
-func (l *Login) Widevine(info *StreamInfo, data []byte) ([]byte, error) {
+func (l *Login) Widevine(manifest *PlayManifest, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST", "https://www.kanopy.com", bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
    }
-   req.URL.Path = "/kapi/licenses/widevine/" + info.DrmLicenseId
+   req.URL.Path = "/kapi/licenses/widevine/" + manifest.DrmLicenseId
    req.Header.Set("user-agent", user_agent)
    req.Header.Set("x-version", x_version)
    req.Header.Set("authorization", "Bearer "+l.Jwt)
@@ -131,8 +131,9 @@ func (l *Login) Widevine(info *StreamInfo, data []byte) ([]byte, error) {
    }
    return io.ReadAll(resp.Body)
 }
-func (s *StreamInfo) Dash() (*Dash, error) {
-   req, err := http.NewRequest("", s.Url, nil)
+
+func (p *PlayManifest) Dash() (*Dash, error) {
+   req, err := http.NewRequest("", p.Url, nil)
    if err != nil {
       return nil, err
    }
