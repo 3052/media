@@ -10,6 +10,16 @@ import (
    "testing"
 )
 
+var watch = struct {
+   content_id string
+   key_id     string
+   url        string
+}{
+   content_id: "GMO_00000000091566_02_HDSDR",
+   key_id:     "3016b29577190c2f1a4653203a2313f7",
+   url:        "https://peacocktv.com/watch/playback/vod/GMO_00000000091566_02_HDSDR/6668f89a-b581-36ac-9895-7783aa16b471",
+}
+
 func TestSignRead(t *testing.T) {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -54,16 +64,6 @@ func TestSignWrite(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-}
-
-var watch = struct {
-   content_id string
-   key_id     string
-   url        string
-}{
-   content_id: "GMO_00000000091566_02_HDSDR",
-   key_id:     "3016b29577190c2f1a4653203a2313f7",
-   url:        "https://peacocktv.com/watch/playback/vod/GMO_00000000091566_02_HDSDR/6668f89a-b581-36ac-9895-7783aa16b471",
 }
 
 func TestLicense(t *testing.T) {

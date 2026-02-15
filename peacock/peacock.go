@@ -39,13 +39,13 @@ func (p *Playout) Widevine(body []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-func (p *Playout) Fastly() (*AssetEndpoint, bool) {
+func (p *Playout) Fastly() (*AssetEndpoint, error) {
    for _, endpoint := range p.Asset.Endpoints {
       if endpoint.Cdn == "FASTLY" {
-         return &endpoint, true
+         return &endpoint, nil
       }
    }
-   return nil, false
+   return nil, errors.New("FASTLY endpoint not found")
 }
 
 func (a *AssetEndpoint) Dash() (*Dash, error) {

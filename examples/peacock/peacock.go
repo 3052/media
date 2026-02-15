@@ -1,100 +1,21 @@
 package main
 
 import (
-   "errors"
+   "41.neocities.org/maya"
+   "41.neocities.org/media/peacock"
    "flag"
-   "fmt"
+   "log"
    "net/http"
    "os"
+   "path"
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   text, err := os.ReadFile(c.name + "/peacock.json")
-   if err != nil {
-      return err
-   }
-   var sign peacock.SignIn
-   sign.Unmarshal(text)
-   auth, err := sign.Auth()
-   if err != nil {
-      return err
-   }
-   video, err := auth.Video(c.peacock)
-   if err != nil {
-      return err
-   }
-   akamai, ok := video.Akamai()
-   if !ok {
-      return errors.New("peacock.VideoPlayout.Akamai")
-   }
-   req, err := http.NewRequest("", akamai, nil)
-   if err != nil {
-      return err
-   }
-   media, err := c.job.DASH(req)
-   if err != nil {
-      return err
-   }
-   for _, medium := range media {
-      if medium.ID == c.dash {
-         var node peacock.QueryNode
-         err := node.New(c.peacock)
-         if err != nil {
-            return err
-         }
-         c.job.Name = node
-         c.job.Poster = video
-         return c.job.Download(medium)
-      }
-   }
-   // 2 MPD all
-   for i, medium := range media {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(medium)
-   }
-   return nil
-}
-
-func (c *command) do_peacock() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   var token peacock.Token
-   err = token.Fetch(cache.Cookie)
-   if err != nil {
-      return err
-   }
-   cache.Playout, err = token.Playout(c.peacock)
-   if err != nil {
-      return err
-   }
-   endpoint, ok := cache.Playout.Fastly()
-   if !ok {
-      return errors.New(".Fastly()")
-   }
-   cache.Dash, err = endpoint.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-type user_cache struct {
-   Cookie *http.Cookie
-   Dash *peacock.Dash
-   Playout *peacock.Playout
-}
-
 func main() {
-   maya.Transport(func(*http.Request) string {
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
       return "L"
    })
    log.SetFlags(log.Ltime)
@@ -144,7 +65,7 @@ func (c *command) run() error {
 func (c *command) do_email_password() error {
    var (
       cache user_cache
-      err error
+      err   error
    )
    cache.Cookie, err = peacock.FetchIdSession(c.email, c.password)
    if err != nil {
@@ -156,12 +77,57 @@ func (c *command) do_email_password() error {
 type command struct {
    name string
    // 1
-   email string
+   email    string
    password string
    // 2
    peacock string
    // 3
    dash string
-   job maya.WidevineJob
+   job  maya.WidevineJob
 }
 
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.Playout.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func (c *command) do_peacock() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   var token peacock.Token
+   err = token.Fetch(cache.Cookie)
+   if err != nil {
+      return err
+   }
+   cache.Playout, err = token.Playout(c.peacock)
+   if err != nil {
+      return err
+   }
+   endpoint, err := cache.Playout.Fastly()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = endpoint.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type user_cache struct {
+   Cookie  *http.Cookie
+   Dash    *peacock.Dash
+   Playout *peacock.Playout
+}
