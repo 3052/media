@@ -15,6 +15,46 @@ func BcJwt(header http.Header) string {
    return header.Get("x-amcn-bc-jwt")
 }
 
+func (c *Client) Unauth() error {
+   var req http.Request
+   req.Method = "POST"
+   req.Header = http.Header{}
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "gw.cds.amcn.com",
+      Path:   "/auth-orchestration-id/api/v1/unauth",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+func (c *Client) Refresh() error {
+   var req http.Request
+   req.Method = "POST"
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "gw.cds.amcn.com",
+      Path:   "/auth-orchestration-id/api/v1/refresh",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
 func (c *Client) Playback(id int) ([]Source, http.Header, error) {
    data, err := json.Marshal(map[string]any{
       "adtags": map[string]any{
@@ -68,6 +108,28 @@ func (c *Client) Playback(id int) ([]Source, http.Header, error) {
       return nil, nil, errors.New(result.Error)
    }
    return result.Data.PlaybackJsonData.Sources, resp.Header, nil
+}
+
+type Metadata struct {
+   EpisodeNumber int
+   Nid           int
+   Title         string
+}
+
+func (m *Metadata) String() string {
+   var data strings.Builder
+   if m.EpisodeNumber >= 0 {
+      data.WriteString("episode = ")
+      data.WriteString(strconv.Itoa(m.EpisodeNumber))
+   }
+   if data.Len() >= 1 {
+      data.WriteByte('\n')
+   }
+   data.WriteString("title = ")
+   data.WriteString(m.Title)
+   data.WriteString("\nnid = ")
+   data.WriteString(strconv.Itoa(m.Nid))
+   return data.String()
 }
 
 func (n *Node) ExtractEpisodes() ([]*Metadata, error) {
@@ -156,8 +218,6 @@ func (s *Source) Widevine(bcJwt string, data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-///
-
 type Source struct {
    KeySystems struct {
       ComWidevineAlpha *struct {
@@ -168,45 +228,7 @@ type Source struct {
    Type string // e.g., "application/dash+xml"
 }
 
-func (c *Client) Unauth() error {
-   var req http.Request
-   req.Method = "POST"
-   req.Header = http.Header{}
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "gw.cds.amcn.com",
-      Path:   "/auth-orchestration-id/api/v1/unauth",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-func (c *Client) Refresh() error {
-   var req http.Request
-   req.Method = "POST"
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+c.Data.RefreshToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "gw.cds.amcn.com",
-      Path:   "/auth-orchestration-id/api/v1/refresh",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
+///
 
 func GetDash(sources []Source) (*Source, bool) {
    for _, source_var := range sources {
@@ -342,26 +364,4 @@ func (c *Client) SeriesDetail(id int) (*Node, error) {
       return nil, err
    }
    return &result.Data, nil
-}
-
-type Metadata struct {
-   EpisodeNumber int
-   Nid           int
-   Title         string
-}
-
-func (m *Metadata) String() string {
-   var data strings.Builder
-   if m.EpisodeNumber >= 0 {
-      data.WriteString("episode = ")
-      data.WriteString(strconv.Itoa(m.EpisodeNumber))
-   }
-   if data.Len() >= 1 {
-      data.WriteByte('\n')
-   }
-   data.WriteString("title = ")
-   data.WriteString(m.Title)
-   data.WriteString("\nnid = ")
-   data.WriteString(strconv.Itoa(m.Nid))
-   return data.String()
 }
