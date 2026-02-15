@@ -11,20 +11,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   log.SetFlags(log.Ltime)
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -41,6 +27,7 @@ func (c *command) run() error {
    flag.StringVar(&c.peacock, "p", "", "Peacock ID")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -58,7 +45,7 @@ func (c *command) run() error {
    return maya.Usage([][]string{
       {"email", "password"},
       {"p"},
-      {"d", "C", "P"},
+      {"d", "t", "C", "P"},
    })
 }
 
@@ -130,4 +117,17 @@ type user_cache struct {
    Cookie  *http.Cookie
    Dash    *peacock.Dash
    Playout *peacock.Playout
+}
+func main() {
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return ""
+      }
+      return "L"
+   })
+   log.SetFlags(log.Ltime)
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
