@@ -17,6 +17,102 @@ import (
    "time"
 )
 
+func (p *Playout) Fastly() (*AssetEndpoint, bool) {
+   for _, endpoint := range p.Asset.Endpoints {
+      if endpoint.Cdn == "FASTLY" {
+         return &endpoint, true
+      }
+   }
+   return nil, false
+}
+
+func (a *AssetEndpoint) Dash() (*Dash, error) {
+   resp, err := http.Get(a.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type AssetEndpoint struct {
+   Cdn string
+   Url string
+}
+
+func (t *Token) Playout(contentId string) (*Playout, error) {
+   body, err := json.Marshal(map[string]any{
+      "contentId": contentId,
+      "device": map[string]any{
+         "capabilities": []any{
+            map[string]string{
+               "acodec":     "AAC",
+               "container":  "ISOBMFF",
+               "protection": "WIDEVINE",
+               "transport":  "DASH",
+               "vcodec":     "H264",
+            },
+         },
+         "maxVideoFormat": "HD",
+      },
+      "personaParentalControlRating": 9,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
+      bytes.NewReader(body),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // `application/json` fails
+   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
+   req.Header.Set("x-skyott-usertoken", t.UserToken)
+   req.Header.Set(
+      "x-sky-signature",
+      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Playout
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Description != "" {
+      return nil, errors.New(result.Description)
+   }
+   return &result, nil
+}
+
+const (
+   sky_client  = "NBCU-ANDROID-v3"
+   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
+   sky_version = "1.0"
+)
+
+// userToken is good for one day
+type Token struct {
+   Description string
+   UserToken   string
+}
+
 func generate_sky_ott(method, path string, headers http.Header, body []byte) string {
    // Sort headers by key.
    headerKeys := make([]string, 0, len(headers))
@@ -74,7 +170,7 @@ func generate_sky_ott(method, path string, headers http.Header, body []byte) str
    )
 }
 
-func (a *AuthToken) Fetch(idSession *http.Cookie) error {
+func (t *Token) Fetch(idSession *http.Cookie) error {
    body, err := json.Marshal(map[string]any{
       "auth": map[string]string{
          "authScheme":        "MESSO",
@@ -123,12 +219,12 @@ func (a *AuthToken) Fetch(idSession *http.Cookie) error {
       return err
    }
    defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(a)
+   err = json.NewDecoder(resp.Body).Decode(t)
    if err != nil {
       return err
    }
-   if a.Description != "" {
-      return errors.New(a.Description)
+   if t.Description != "" {
+      return errors.New(t.Description)
    }
    return nil
 }
@@ -172,31 +268,6 @@ func FetchIdSession(user, password string) (*http.Cookie, error) {
 
 var Territory = "US"
 
-func (a *AssetEndpoint) Dash() (*Dash, error) {
-   resp, err := http.Get(a.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type AssetEndpoint struct {
-   Cdn string
-   Url string
-}
-
 type Playout struct {
    Asset struct {
       Endpoints []AssetEndpoint
@@ -227,75 +298,4 @@ func (p *Playout) Widevine(body []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-func (p *Playout) Fastly() (string, bool) {
-   for _, endpoint := range p.Asset.Endpoints {
-      if endpoint.Cdn == "FASTLY" {
-         return endpoint.Url, true
-      }
-   }
-   return "", false
-}
-
-func (a *AuthToken) Playout(contentId string) (*Playout, error) {
-   body, err := json.Marshal(map[string]any{
-      "contentId": contentId,
-      "device": map[string]any{
-         "capabilities": []any{
-            map[string]string{
-               "acodec":     "AAC",
-               "container":  "ISOBMFF",
-               "protection": "WIDEVINE",
-               "transport":  "DASH",
-               "vcodec":     "H264",
-            },
-         },
-         "maxVideoFormat": "HD",
-      },
-      "personaParentalControlRating": 9,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://ovp.peacocktv.com/video/playouts/vod",
-      bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // `application/json` fails
-   req.Header.Set("content-type", "application/vnd.playvod.v1+json")
-   req.Header.Set("x-skyott-usertoken", a.UserToken)
-   req.Header.Set(
-      "x-sky-signature",
-      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Playout
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Description != "" {
-      return nil, errors.New(result.Description)
-   }
-   return &result, nil
-}
-
-const (
-   sky_client  = "NBCU-ANDROID-v3"
-   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
-   sky_version = "1.0"
-)
-
-// userToken is good for one day
-type AuthToken struct {
-   Description string
-   UserToken   string
 }

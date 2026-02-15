@@ -69,21 +69,21 @@ func (c *command) do_email_password() error {
    return maya.Write(c.name, &cache)
 }
 
-type user_cache struct {
-   Cookie *http.Cookie
-}
-
 type command struct {
    name string
    // 1
    email string
    password string
-   
    // 2
    peacock string
    // 3
    dash string
    job maya.WidevineJob
+}
+
+type user_cache struct {
+   Cookie *http.Cookie
+   Dash *peacock.Dash
 }
 
 ///
@@ -93,47 +93,28 @@ func (c *command) do_peacock() error {
    if err != nil {
       return err
    }
-   /////////////////////////////////
-   auth, err := sign.Auth()
+   var token peacock.Token
+   err = token.Fetch(cache.Cookie)
    if err != nil {
       return err
    }
-   video, err := auth.Video(c.peacock)
+   playout, err := token.Playout(c.peacock)
    if err != nil {
       return err
    }
-   akamai, ok := video.Akamai()
+   endpoint, ok := video.Fastly()
    if !ok {
-      return errors.New("peacock.VideoPlayout.Akamai")
+      return errors.New(".Fastly()")
    }
-   req, err := http.NewRequest("", akamai, nil)
+   cache.Dash, err = endpoint.Dash()
    if err != nil {
       return err
    }
-   media, err := c.job.DASH(req)
+   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
-   for _, medium := range media {
-      if medium.ID == c.dash {
-         var node peacock.QueryNode
-         err := node.New(c.peacock)
-         if err != nil {
-            return err
-         }
-         c.job.Name = node
-         c.job.Poster = video
-         return c.job.Download(medium)
-      }
-   }
-   // 2 MPD all
-   for i, medium := range media {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(medium)
-   }
-   return nil
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
 func (c *command) do_dash() error {

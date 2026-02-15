@@ -23,12 +23,12 @@ func TestSignRead(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var token AuthToken
-   err = token.Fetch(id)
+   var auth Token
+   err = auth.Fetch(id)
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n", token)
+   fmt.Printf("%+v\n", auth)
 }
 
 func TestSignWrite(t *testing.T) {
@@ -108,12 +108,12 @@ func TestLicense(t *testing.T) {
    if err != nil {
       t.Fatal(err)
    }
-   var token AuthToken
-   err = token.Fetch(id)
+   var auth Token
+   err = auth.Fetch(id)
    if err != nil {
       t.Fatal(err)
    }
-   play, err := token.Playout(watch.content_id)
+   play, err := auth.Playout(watch.content_id)
    if err != nil {
       t.Fatal(err)
    }
