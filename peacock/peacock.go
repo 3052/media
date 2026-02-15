@@ -17,11 +17,20 @@ import (
    "time"
 )
 
-func (t *Token) Playout(contentId string) (*Playout, error) {
+const (
+   sky_client  = "NBCU-ANDROID-v3"
+   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
+   sky_version = "1.0"
+)
+
+// userToken is good for one day
+type Token struct {
+   Description string
+   UserToken   string
+}
+
+func (t *Token) Playout(variantId string) (*Playout, error) {
    body, err := json.Marshal(map[string]any{
-      //"providerVariantId": "c84393dc-6aca-3466-b3cd-76f44c79a236",
-      //"contentId": "GMO_00000000261361_02_HDSDR",
-      "contentId": contentId,
       "device": map[string]any{
          "capabilities": []any{
             map[string]string{
@@ -35,6 +44,8 @@ func (t *Token) Playout(contentId string) (*Playout, error) {
          "maxVideoFormat": "HD",
       },
       "personaParentalControlRating": 9,
+      // "contentId": "GMO_00000000261361_02_HDSDR",
+      "providerVariantId": variantId,
    })
    if err != nil {
       return nil, err
@@ -69,11 +80,7 @@ func (t *Token) Playout(contentId string) (*Playout, error) {
    return &result, nil
 }
 
-const (
-   sky_client  = "NBCU-ANDROID-v3"
-   sky_key     = "JuLQgyFz9n89D9pxcN6ZWZXKWfgj2PNBUb32zybj"
-   sky_version = "1.0"
-)
+///
 
 func generate_sky_ott(method, path string, headers http.Header, body []byte) string {
    // Sort headers by key.
@@ -295,10 +302,4 @@ type Dash struct {
 type AssetEndpoint struct {
    Cdn string
    Url string
-}
-
-// userToken is good for one day
-type Token struct {
-   Description string
-   UserToken   string
 }

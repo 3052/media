@@ -7,16 +7,13 @@ import (
    "testing"
 )
 
-var watch = struct {
-   content_id string
-   url        string
-}{
-   content_id: "GMO_00000000091566_02_HDSDR",
-   url:        "https://peacocktv.com/watch/playback/vod/GMO_00000000091566_02_HDSDR/6668f89a-b581-36ac-9895-7783aa16b471",
+var bugonia = []string{
+   "https://peacocktv.com/watch/asset/movies/bugonia/c84393dc-6aca-3466-b3cd-76f44c79a236",
+   "https://peacocktv.com/watch/playback/vod/GMO_00000000261361_02_HDSDR/c84393dc-6aca-3466-b3cd-76f44c79a236",
 }
 
 func TestWatch(t *testing.T) {
-   t.Log(watch)
+   t.Log(bugonia)
 }
 
 func TestSignRead(t *testing.T) {
