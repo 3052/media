@@ -2,10 +2,10 @@ module 41.neocities.org/media
 
 go 1.24.0
 
-require 41.neocities.org/maya v1.22.5
+require 41.neocities.org/maya v1.22.6
 
 require (
-	41.neocities.org/drm v1.7.8 // indirect
+	41.neocities.org/drm v1.7.9 // indirect
 	41.neocities.org/luna v1.33.0 // indirect
 	41.neocities.org/protobuf v1.6.0 // indirect
 	41.neocities.org/sofia v1.13.4 // indirect
