@@ -186,18 +186,22 @@ func (m *Media) RequestSeason(seasonId string) (*SeasonData, error) {
    return &wrapper.Data, nil
 }
 
-// RequestStream requests the stream for a movie or a specific TV show episode (POST).
-// For TV shows, the contentId should be the episodeId.
-func (m *Media) RequestStream(contentId, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
-   var contentType string
-   if m.Type == MovieType {
-      contentType = "movies"
-   } else if m.Type == TvShowType {
-      contentType = "episodes"
-   } else {
-      return nil, errors.New("unsupported content type for streaming")
+// MovieStream requests the stream for this movie (POST).
+// The movie's own ID is used as the contentId.
+func (m *Media) MovieStream(audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
+   if m.Type != MovieType {
+      return nil, errors.New("cannot request a movie stream for non-movie content")
    }
-   return makeStreamRequest(m.MarketCode, contentType, contentId, player, quality, audioLanguage)
+   return makeStreamRequest(m.MarketCode, "movies", m.Id, player, quality, audioLanguage)
+}
+
+// EpisodeStream requests the stream for a specific TV Show Episode (POST).
+func (m *Media) EpisodeStream(episodeId string, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
+   if m.Type != TvShowType {
+      return nil, errors.New("cannot request an episode stream for non-tv-show content")
+   }
+   // For TV content, the standard Rakuten content_type for streaming an episode is "episodes"
+   return makeStreamRequest(m.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
 }
 
 func (s *StreamData) Dash() (*Dash, error) {

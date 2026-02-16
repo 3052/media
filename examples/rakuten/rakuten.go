@@ -12,6 +12,108 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   var stream *rakuten.StreamData
+   switch {
+   case cache.Movie != nil:
+      stream, err = cache.Movie.RequestStream(
+         c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+      )
+   case cache.TvShow != nil:
+      stream, err = cache.TvShow.RequestStream(
+         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
+      )
+   }
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return stream.Widevine(data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func (c *command) do_language() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   var stream *rakuten.StreamData
+   switch cache.Media.Type {
+   case rakuten.MovieType:
+      stream, err = cache.Media.MovieStream(
+         c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+      )
+   case rakuten.TvShowType:
+      stream, err = cache.Media.EpisodeStream(
+         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+      )
+   }
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = stream.Dash()
+   if err != nil {
+      return err
+   }
+   cache.Language = c.language
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type user_cache struct {
+   Dash   *rakuten.Dash
+   Language string
+   Media *rakuten.Media
+}
+func (c *command) do_address() error {
+   var media rakuten.Media
+   err := media.ParseURL(c.address)
+   if err != nil {
+      return err
+   }
+   switch media.Type {
+   case rakuten.MovieType:
+      item, err := media.RequestMovie()
+      if err != nil {
+         return err
+      }
+      fmt.Println(item)
+   case rakuten.TvShowType:
+      item, err := media.RequestTvShow()
+      if err != nil {
+         return err
+      }
+      fmt.Println(item)
+   }
+   return maya.Write(c.name, &user_cache{Media: &media})
+}
+
+func (c *command) do_season() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   season, err := cache.Media.RequestSeason(c.season)
+   if err != nil {
+      return err
+   }
+   for i, item := range season.Episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&item)
+   }
+   return nil
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -26,12 +128,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-type user_cache struct {
-   Dash   *rakuten.Dash
-   Movie  *rakuten.Movie
-   TvShow *rakuten.TvShow
 }
 
 func (c *command) run() error {
@@ -87,107 +183,4 @@ type command struct {
    // 4
    dash     string
    job      maya.WidevineJob
-}
-
-///
-
-func (c *command) do_address() error {
-   var movie rakuten.Movie
-   err := movie.ParseURL(c.movie)
-   if err != nil {
-      return err
-   }
-   item, err := movie.Request()
-   if err != nil {
-      return err
-   }
-   fmt.Println(item)
-   return maya.Write(c.name, &user_cache{Movie: &movie})
-   var show rakuten.TvShow
-   err := show.ParseURL(c.show)
-   if err != nil {
-      return err
-   }
-   show_data, err := show.Request()
-   if err != nil {
-      return err
-   }
-   fmt.Println(show_data)
-   return maya.Write(c.name, &user_cache{TvShow: &show})
-}
-
-// print episodes
-func (c *command) do_season() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   season, err := cache.TvShow.RequestSeason(c.season)
-   if err != nil {
-      return err
-   }
-   for i, item := range season.Episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&item)
-   }
-   return nil
-}
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch {
-   case cache.Movie != nil:
-      stream, err = cache.Movie.RequestStream(
-         c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   case cache.TvShow != nil:
-      stream, err = cache.TvShow.RequestStream(
-         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.HD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return stream.Widevine(data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func (c *command) do_language() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch {
-   case cache.Movie != nil:
-      stream, err = cache.Movie.RequestStream(
-         c.language,
-         rakuten.Player.Widevine, rakuten.Quality.FHD,
-      )
-   case cache.TvShow != nil:
-      stream, err = cache.TvShow.RequestStream(
-         c.episode, c.language,
-         rakuten.Player.Widevine, rakuten.Quality.FHD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = stream.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
