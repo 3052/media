@@ -34,6 +34,11 @@ const (
    TvShowType ContentType = "tv_shows"
 )
 
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 // Media represents a piece of content, which can be a Movie or a TV Show.
 type Media struct {
    Id         string // Matches "content_id" or "tv_show_id" in URLs
@@ -196,7 +201,7 @@ func (m *Media) MovieStream(audioLanguage string, player PlayerType, quality Vid
 }
 
 // EpisodeStream requests the stream for a specific TV Show Episode (POST).
-func (m *Media) EpisodeStream(episodeId string, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
+func (m *Media) EpisodeStream(episodeId, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
    if m.Type != TvShowType {
       return nil, errors.New("cannot request an episode stream for non-tv-show content")
    }
@@ -204,7 +209,7 @@ func (m *Media) EpisodeStream(episodeId string, audioLanguage string, player Pla
    return makeStreamRequest(m.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
 }
 
-func (s *StreamData) Dash() (*Dash, error) {
+func (s StreamData) Dash() (*Dash, error) {
    resp, err := http.Get(s.StreamInfos[0].Url)
    if err != nil {
       return nil, err
@@ -219,10 +224,72 @@ func (s *StreamData) Dash() (*Dash, error) {
    return &result, nil
 }
 
-type Dash struct {
-   Body []byte
-   Url  *url.URL
+// makeStreamRequest handles the common logic for the POST stream request and
+// parsing
+func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
+   classID, ok := classificationMap[marketCode]
+   if !ok {
+      return nil, fmt.Errorf("unsupported market code: %s", marketCode)
+   }
+
+   payload := StreamRequestPayload{
+      AudioQuality:             "2.0",
+      DeviceIdentifier:         DeviceID,
+      DeviceSerial:             "not implemented",
+      SubtitleLanguage:         "MIS",
+      VideoType:                "stream",
+      Player:                   player,
+      ClassificationId:         classID,
+      ContentType:              contentType,
+      DeviceStreamVideoQuality: quality,
+      AudioLanguage:            audioLanguage,
+      ContentId:                contentId,
+   }
+
+   jsonData, err := json.Marshal(payload)
+   if err != nil {
+      return nil, err
+   }
+
+   apiURL := "https://gizmo.rakuten.tv/v3/avod/streamings"
+   req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("Content-Type", "application/json")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var wrapper struct {
+      Data   StreamData `json:"data"`
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&wrapper)
+   if err != nil {
+      return nil, err
+   }
+   if len(wrapper.Errors) >= 1 {
+      return nil, errors.New(wrapper.Errors[0].Message)
+   }
+   return &wrapper.Data, nil
 }
+
+func (s StreamData) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.StreamInfos[0].LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+///
 
 func buildURL(marketCode, endpoint, id string) (string, error) {
    classID, ok := classificationMap[marketCode]
@@ -344,10 +411,6 @@ var Player = struct {
    Widevine:  DeviceID + ":DASH-CENC:WVM",
 }
 
-// --- Shared Structs for Nested JSON ---
-
-// --- Response Data Structs ---
-
 type SeasonData struct {
    Episodes []VideoItem `json:"episodes"`
 }
@@ -369,70 +432,4 @@ type StreamRequestPayload struct {
 // join takes a variable number of strings and returns them combined into one string without separators.
 func join(strs ...string) string {
    return strings.Join(strs, "")
-}
-
-// makeStreamRequest handles the common logic for the POST stream request and
-// parsing
-func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
-   classID, ok := classificationMap[marketCode]
-   if !ok {
-      return nil, fmt.Errorf("unsupported market code: %s", marketCode)
-   }
-
-   payload := StreamRequestPayload{
-      AudioQuality:             "2.0",
-      DeviceIdentifier:         DeviceID,
-      DeviceSerial:             "not implemented",
-      SubtitleLanguage:         "MIS",
-      VideoType:                "stream",
-      Player:                   player,
-      ClassificationId:         classID,
-      ContentType:              contentType,
-      DeviceStreamVideoQuality: quality,
-      AudioLanguage:            audioLanguage,
-      ContentId:                contentId,
-   }
-
-   jsonData, err := json.Marshal(payload)
-   if err != nil {
-      return nil, err
-   }
-
-   apiURL := "https://gizmo.rakuten.tv/v3/avod/streamings"
-   req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("Content-Type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var wrapper struct {
-      Data   StreamData `json:"data"`
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&wrapper)
-   if err != nil {
-      return nil, err
-   }
-   if len(wrapper.Errors) >= 1 {
-      return nil, errors.New(wrapper.Errors[0].Message)
-   }
-   return &wrapper.Data, nil
-}
-
-func (s StreamData) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.StreamInfos[0].LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
