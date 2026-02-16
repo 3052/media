@@ -26,6 +26,180 @@ var classificationMap = map[string]int{
    "uk": 18,
 }
 
+// ContentType defines the type of media.
+type ContentType string
+
+const (
+   MovieType  ContentType = "movies"
+   TvShowType ContentType = "tv_shows"
+)
+
+// Media represents a piece of content, which can be a Movie or a TV Show.
+type Media struct {
+   Id         string // Matches "content_id" or "tv_show_id" in URLs
+   MarketCode string
+   Type       ContentType
+}
+
+// ParseURL attempts to parse a URL and populate the Media struct.
+func (m *Media) ParseURL(rawLink string) error {
+   link, err := url.Parse(rawLink)
+   if err != nil {
+      return err
+   }
+   marketCode, err := extractMarketCode(link.Path)
+   if err != nil {
+      return err
+   }
+   m.MarketCode = marketCode
+
+   // 1. Check Query Parameters
+   query := link.Query()
+   contentType := query.Get("content_type")
+   if contentType == "movies" || contentType == "tv_shows" {
+      var id string
+      if contentType == "movies" {
+         id = query.Get("content_id")
+         if id == "" {
+            return errors.New("url missing content_id param")
+         }
+      } else {
+         id = query.Get("tv_show_id")
+         if id == "" {
+            return errors.New("url missing tv_show_id param")
+         }
+      }
+      m.Id = id
+      m.Type = ContentType(contentType)
+      return nil
+   }
+
+   // 2. Check Path Segments
+   path := strings.Trim(link.Path, "/")
+   segments := strings.Split(path, "/")
+
+   for _, seg := range segments {
+      if seg == "movies" || seg == "tv_shows" {
+         id := segments[len(segments)-1]
+         if id == seg {
+            return fmt.Errorf("url does not contain a specific %s id", seg)
+         }
+         m.Id = id
+         m.Type = ContentType(seg)
+         return nil
+      }
+   }
+   return errors.New("not a movie or tv show url")
+}
+
+// RequestMovie fetches movie details (GET).
+func (m *Media) RequestMovie() (*VideoItem, error) {
+   if m.Type != MovieType {
+      return nil, errors.New("cannot request movie details for a non-movie content type")
+   }
+   fullURL, err := buildURL(m.MarketCode, "movies", m.Id)
+   if err != nil {
+      return nil, err
+   }
+
+   resp, err := http.Get(fullURL)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+
+   var wrapper struct {
+      Data VideoItem `json:"data"`
+   }
+
+   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+      return nil, err
+   }
+
+   return &wrapper.Data, nil
+}
+
+// RequestTvShow fetches TV show details like seasons (GET).
+func (m *Media) RequestTvShow() (*TvShowData, error) {
+   if m.Type != TvShowType {
+      return nil, errors.New("cannot request tv show details for a non-tv show content type")
+   }
+   fullURL, err := buildURL(m.MarketCode, "tv_shows", m.Id)
+   if err != nil {
+      return nil, err
+   }
+
+   resp, err := http.Get(fullURL)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+
+   var wrapper struct {
+      Data TvShowData `json:"data"`
+   }
+
+   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+      return nil, err
+   }
+
+   return &wrapper.Data, nil
+}
+
+// RequestSeason fetches episodes for a specific season (GET).
+// This method is only applicable to TV Shows.
+func (m *Media) RequestSeason(seasonId string) (*SeasonData, error) {
+   if m.Type != TvShowType {
+      return nil, errors.New("cannot request season for a non-tv show content type")
+   }
+   fullURL, err := buildURL(m.MarketCode, "seasons", seasonId)
+   if err != nil {
+      return nil, err
+   }
+
+   resp, err := http.Get(fullURL)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+
+   var wrapper struct {
+      Data SeasonData `json:"data"`
+   }
+
+   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+      return nil, err
+   }
+
+   return &wrapper.Data, nil
+}
+
+// RequestStream requests the stream for a movie or a specific TV show episode (POST).
+// For TV shows, the contentId should be the episodeId.
+func (m *Media) RequestStream(contentId, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
+   var contentType string
+   if m.Type == MovieType {
+      contentType = "movies"
+   } else if m.Type == TvShowType {
+      contentType = "episodes"
+   } else {
+      return nil, errors.New("unsupported content type for streaming")
+   }
+   return makeStreamRequest(m.MarketCode, contentType, contentId, player, quality, audioLanguage)
+}
+
 func (s *StreamData) Dash() (*Dash, error) {
    resp, err := http.Get(s.StreamInfos[0].Url)
    if err != nil {
@@ -63,95 +237,6 @@ func buildURL(marketCode, endpoint, id string) (string, error) {
       "?",
       params.Encode(),
    ), nil
-}
-
-func (m *Movie) ParseURL(rawLink string) error {
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return err
-   }
-   marketCode, err := extractMarketCode(link.Path)
-   if err != nil {
-      return err
-   }
-   // 1. Check Query Parameters
-   // Pattern: ?content_type=movies&content_id=...
-   query := link.Query()
-   if query.Get("content_type") == "movies" {
-      id := query.Get("content_id")
-      if id == "" {
-         return errors.New("url missing content_id param")
-      }
-
-      m.MarketCode = marketCode
-      m.Id = id
-      return nil
-   }
-
-   // 2. Check Path Segments
-   // Pattern: /nl/movies/id OR /nl/player/movies/stream/id
-   path := strings.Trim(link.Path, "/")
-   segments := strings.Split(path, "/")
-
-   for _, seg := range segments {
-      if seg == "movies" {
-         // Assuming the ID is the last segment
-         id := segments[len(segments)-1]
-         if id == "movies" {
-            return errors.New("url does not contain a specific movie id")
-         }
-
-         m.MarketCode = marketCode
-         m.Id = id
-         return nil
-      }
-   }
-   return errors.New("not a movie url")
-}
-
-// ParseURL attempts to parse a URL and populate the TvShow struct.
-// Usage:
-//
-//   var t TvShow
-//   err := t.ParseURL("https://rakuten.tv/...")
-func (t *TvShow) ParseURL(rawLink string) error {
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return err
-   }
-   marketCode, err := extractMarketCode(link.Path)
-   if err != nil {
-      return err
-   }
-   // 1. Check Query Parameters
-   // Pattern: ?content_type=tv_shows&tv_show_id=...
-   query := link.Query()
-   if query.Get("content_type") == "tv_shows" {
-      id := query.Get("tv_show_id")
-      if id == "" {
-         return errors.New("url missing tv_show_id param")
-      }
-      t.MarketCode = marketCode
-      t.Id = id
-      return nil
-   }
-   // 2. Check Path Segments
-   // Pattern: /nl/tv_shows/id
-   path := strings.Trim(link.Path, "/")
-   segments := strings.Split(path, "/")
-   for _, seg := range segments {
-      if seg == "tv_shows" {
-         // Assuming the ID is the last segment
-         id := segments[len(segments)-1]
-         if id == "tv_shows" {
-            return errors.New("url does not contain a specific tv show id")
-         }
-         t.MarketCode = marketCode
-         t.Id = id
-         return nil
-      }
-   }
-   return errors.New("not a tv show url")
 }
 
 // extractMarketCode extracts the first segment of the path (e.g., "nl", "uk").
@@ -336,47 +421,6 @@ func makeStreamRequest(marketCode, contentType, contentId string, player PlayerT
    return &wrapper.Data, nil
 }
 
-// --- Movie Type and Methods ---
-
-type Movie struct {
-   Id         string // Matches "content_id" in URLs
-   MarketCode string
-}
-
-// Request fetches movie details (GET).
-func (m *Movie) Request() (*VideoItem, error) {
-   fullURL, err := buildURL(m.MarketCode, "movies", m.Id)
-   if err != nil {
-      return nil, err
-   }
-
-   resp, err := http.Get(fullURL)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-
-   var wrapper struct {
-      Data VideoItem `json:"data"`
-   }
-
-   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
-      return nil, err
-   }
-
-   return &wrapper.Data, nil
-}
-
-// RequestStream requests the stream for this movie (POST).
-// Arguments: audioLanguage, player, quality.
-func (m *Movie) RequestStream(audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
-   return makeStreamRequest(m.MarketCode, "movies", m.Id, player, quality, audioLanguage)
-}
-
 func (s StreamData) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       s.StreamInfos[0].LicenseUrl, "application/x-protobuf",
@@ -387,74 +431,4 @@ func (s StreamData) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-// --- TvShow Type and Methods ---
-
-type TvShow struct {
-   Id         string // Matches "tv_show_id" in URLs
-   MarketCode string
-}
-
-// Request fetches TV show details like seasons (GET).
-func (t *TvShow) Request() (*TvShowData, error) {
-   fullURL, err := buildURL(t.MarketCode, "tv_shows", t.Id)
-   if err != nil {
-      return nil, err
-   }
-
-   resp, err := http.Get(fullURL)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-
-   var wrapper struct {
-      Data TvShowData `json:"data"`
-   }
-
-   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
-      return nil, err
-   }
-
-   return &wrapper.Data, nil
-}
-
-// RequestSeason fetches episodes for a specific season (GET).
-func (t *TvShow) RequestSeason(seasonId string) (*SeasonData, error) {
-   fullURL, err := buildURL(t.MarketCode, "seasons", seasonId)
-   if err != nil {
-      return nil, err
-   }
-
-   resp, err := http.Get(fullURL)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-
-   var wrapper struct {
-      Data SeasonData `json:"data"`
-   }
-
-   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
-      return nil, err
-   }
-
-   return &wrapper.Data, nil
-}
-
-// RequestStream requests the stream for a specific Episode (POST).
-// Arguments: episodeId, audioLanguage, player, quality.
-func (t *TvShow) RequestStream(episodeId string, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
-   // For TV content, the standard Rakuten content_type for streaming an episode is "episodes"
-   return makeStreamRequest(t.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
 }

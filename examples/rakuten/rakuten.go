@@ -12,6 +12,28 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      // everything needs proxy
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return "P"
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash   *rakuten.Dash
+   Movie  *rakuten.Movie
+   TvShow *rakuten.TvShow
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -22,42 +44,54 @@ func (c *command) run() error {
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
-   flag.StringVar(&c.movie, "m", "", "movie URL")
+   flag.StringVar(&c.movie, "a", "", "address")
    // 2
-   flag.StringVar(&c.show, "s", "", "TV show URL")
+   flag.StringVar(&c.season, "s", "", "season ID")
    // 3
-   flag.StringVar(&c.season, "S", "", "season ID")
-   // 4
    flag.StringVar(&c.episode, "e", "", "episode ID")
-   flag.StringVar(&c.language, "a", "", "audio language")
+   flag.StringVar(&c.language, "A", "", "audio language")
+   // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   if c.movie != "" {
-      return c.do_movie()
-   }
-   if c.show != "" {
-      return c.do_show()
+   if c.address != "" {
+      return c.do_address()
    }
    if c.season != "" {
       return c.do_season()
    }
    if c.language != "" {
-      if c.dash != "" {
-         return c.do_language_dash()
-      }
       return c.do_language()
    }
+   if c.dash != "" {
+      return c.do_dash()
+   }
    return maya.Usage([][]string{
-      {"m"},
+      {"a"},
       {"s"},
-      {"S"},
-      {"e", "a", "d", "C", "P"},
+      {"e", "A"},
+      {"d", "c", "p"},
    })
 }
 
-func (c *command) do_movie() error {
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   season string
+   // 3
+   episode  string
+   language string
+   // 4
+   dash     string
+   job      maya.WidevineJob
+}
+
+///
+
+func (c *command) do_address() error {
    var movie rakuten.Movie
    err := movie.ParseURL(c.movie)
    if err != nil {
@@ -69,10 +103,6 @@ func (c *command) do_movie() error {
    }
    fmt.Println(item)
    return maya.Write(c.name, &user_cache{Movie: &movie})
-}
-
-// print seasons
-func (c *command) do_show() error {
    var show rakuten.TvShow
    err := show.ParseURL(c.show)
    if err != nil {
@@ -105,22 +135,7 @@ func (c *command) do_season() error {
    return nil
 }
 
-type command struct {
-   name string
-   // 1
-   movie string
-   // 2
-   show string
-   // 3
-   season string
-   // 4
-   episode  string
-   language string
-   dash     string
-   job      maya.WidevineJob
-}
-
-func (c *command) do_language_dash() error {
+func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
@@ -175,25 +190,4 @@ func (c *command) do_language() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash   *rakuten.Dash
-   Movie  *rakuten.Movie
-   TvShow *rakuten.TvShow
 }

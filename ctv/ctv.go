@@ -11,6 +11,21 @@ import (
    "strings"
 )
 
+func Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      "https://license.9c9media.ca/widevine", "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 func (m Manifest) Dash() (*Dash, error) {
    resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
    if err != nil {
@@ -62,18 +77,6 @@ query axisContent($id: ID!) {
    }
 }
 `
-
-func Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      "https://license.9c9media.ca/widevine", "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
 
 // https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
 func GetPath(rawLink string) (string, error) {
