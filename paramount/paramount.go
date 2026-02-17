@@ -17,52 +17,61 @@ import (
    "strings"
 )
 
-func (c *Content) Item() (*Item, error) {
-   at, err := GetAt(c.AppSecret())
+// Parse populates the Content struct by parsing the given Paramount+ URL.
+// It assumes the receiver (c) is a zero-value struct.
+func (c *Content) Parse(link string) error {
+   const urlPrefix = "https://paramountplus.com/"
+   // 1. Validate and trim the base URL prefix.
+   if !strings.HasPrefix(link, urlPrefix) {
+      return errors.New("invalid URL prefix")
+   }
+   path := strings.TrimPrefix(link, urlPrefix)
+   // 2. Split the remaining path into components.
+   parts := strings.Split(path, "/")
+   // 3. A valid path must have at least 3 parts.
+   if len(parts) < 3 {
+      return errors.New("invalid URL path: not enough components")
+   }
+   // 4. The ID is always the last part.
+   c.Id = parts[len(parts)-1]
+   if c.Id == "" {
+      return errors.New("invalid URL path: ID is missing")
+   }
+   // 5. Determine the type and country code based on path structure.
+   if len(parts) >= 4 && len(parts[0]) == 2 {
+      // Structure with country code: [cc, type, slug/video, id]
+      c.CountryCode = parts[0]
+      c.Type = parts[1]
+   } else {
+      // Structure without country code: [type, slug/video, id]
+      c.Type = parts[0]
+   }
+   // 6. Validate the assigned type.
+   if c.Type != "movies" && c.Type != "shows" {
+      return errors.New("invalid content type")
+   }
+   return nil // Success
+}
+
+func (s *SessionToken) Send(data []byte) ([]byte, error) {
+   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
    if err != nil {
       return nil, err
    }
-   var req http.Request
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.paramountplus.com",
-      Path:     join("/apps-api/v2.0/androidphone/video/cid/", c.Id, ".json"),
-      RawQuery: url.Values{"at": {at}}.Encode(),
-   }
-   req.Header = http.Header{}
-   resp, err := http.DefaultClient.Do(&req)
+   req.Header.Set("authorization", "Bearer "+s.LsSession)
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK { // error 403 406
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      ItemList []Item
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
+   data, err = io.ReadAll(resp.Body)
    if err != nil {
       return nil, err
    }
-   if len(result.ItemList) == 0 { // error 200
-      return nil, errors.New("item list zero length")
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(string(data))
    }
-   return &result.ItemList[0], nil
-}
-
-func (c *Content) AppSecret() string {
-   if c.CountryCode != "" {
-      return AppSecrets[0].ComCbsCa
-   }
-   return AppSecrets[0].ComCbsApp
-}
-
-// Content holds extracted data from a Paramount+ URL.
-type Content struct {
-   Id          string
-   CountryCode string
-   Type        string // "movies" or "shows"
+   return data, nil
 }
 
 var AppSecrets = []struct {
@@ -187,6 +196,7 @@ func (i *Item) Dash() (*Dash, error) {
    result.Url = resp.Request.URL
    return &result, nil
 }
+
 // WARNING IF YOU RUN THIS TOO MANY TIMES YOU WILL GET AN IP BAN. HOWEVER THE BAN
 // IS ONLY FOR THE ANDROID CLIENT NOT WEB CLIENT
 func Login(at, username, password string) (*http.Cookie, error) {
@@ -223,59 +233,118 @@ func Login(at, username, password string) (*http.Cookie, error) {
    }
    return nil, http.ErrNoCookie
 }
-// Parse populates the Content struct by parsing the given Paramount+ URL.
-// It assumes the receiver (c) is a zero-value struct.
-func (c *Content) Parse(link string) error {
-   const urlPrefix = "https://paramountplus.com/"
-   // 1. Validate and trim the base URL prefix.
-   if !strings.HasPrefix(link, urlPrefix) {
-      return errors.New("invalid URL prefix")
-   }
-   path := strings.TrimPrefix(link, urlPrefix)
-   // 2. Split the remaining path into components.
-   parts := strings.Split(path, "/")
-   // 3. A valid path must have at least 3 parts.
-   if len(parts) < 3 {
-      return errors.New("invalid URL path: not enough components")
-   }
-   // 4. The ID is always the last part.
-   c.Id = parts[len(parts)-1]
-   if c.Id == "" {
-      return errors.New("invalid URL path: ID is missing")
-   }
-   // 5. Determine the type and country code based on path structure.
-   if len(parts) >= 4 && len(parts[0]) == 2 {
-      // Structure with country code: [cc, type, slug/video, id]
-      c.CountryCode = parts[0]
-      c.Type = parts[1]
-   } else {
-      // Structure without country code: [type, slug/video, id]
-      c.Type = parts[0]
-   }
-   // 6. Validate the assigned type.
-   if c.Type != "movies" && c.Type != "shows" {
-      return errors.New("invalid content type")
-   }
-   return nil // Success
-}
 
-func (s *SessionToken) Send(data []byte) ([]byte, error) {
-   req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
+// 576p L3
+func (c *Content) Widevine() (*SessionToken, error) {
+   at, err := GetAt(c.AppSecret())
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer "+s.LsSession)
-   resp, err := http.DefaultClient.Do(req)
+   var req http.Request
+   req.URL = &url.URL{}
+   req.URL.Scheme = "https"
+   req.URL.Host = "www.paramountplus.com"
+   req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json"
+   req.URL.RawQuery = url.Values{
+      "at":        {at},
+      "contentId": {c.Id},
+   }.Encode()
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
+   var result SessionToken
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(string(data))
+   return &result, nil
+}
+
+// 1080p SL2000
+// 1440p SL2000 + cookie
+func (c *Content) PlayReady(cookie *http.Cookie) (*SessionToken, error) {
+   at, err := GetAt(c.AppSecret())
+   if err != nil {
+      return nil, err
    }
-   return data, nil
+   var req http.Request
+   req.URL = &url.URL{}
+   req.URL.Scheme = "https"
+   req.URL.Host = "www.paramountplus.com"
+   req.URL.RawQuery = url.Values{
+      "at":        {at},
+      "contentId": {c.Id},
+   }.Encode()
+   if cookie != nil {
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/session-token.json"
+      req.AddCookie(cookie)
+   } else {
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json"
+   }
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result SessionToken
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result, nil
+}
+
+func (c *Content) Item() (*Item, error) {
+   at, err := GetAt(c.AppSecret())
+   if err != nil {
+      return nil, err
+   }
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.paramountplus.com",
+      Path:     join("/apps-api/v2.0/androidphone/video/cid/", c.Id, ".json"),
+      RawQuery: url.Values{"at": {at}}.Encode(),
+   }
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK { // error 403 406
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      ItemList []Item
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.ItemList) == 0 { // error 200
+      return nil, errors.New("item list zero length")
+   }
+   return &result.ItemList[0], nil
+}
+
+func (c *Content) AppSecret() string {
+   if c.CountryCode != "" {
+      return AppSecrets[0].ComCbsCa
+   }
+   return AppSecrets[0].ComCbsApp
+}
+
+// Content holds extracted data from a Paramount+ URL.
+type Content struct {
+   Id          string
+   CountryCode string
+   Type        string // "movies" or "shows"
 }
