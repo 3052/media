@@ -148,7 +148,7 @@ SecretKeySpec secretKeySpec = new SecretKeySpec(b("302a6a0d70a7e9b967f91d39fef3e
 com.cbs.app:
 
 ~~~
-sources/com/cbs/app/dagger/DataLayerModule.java
+sources\com\cbs\app\config\UsaMobileAppConfigProvider.java
 ~~~
 
 https://apkmirror.com/apk/cbs-interactive-inc/paramount
