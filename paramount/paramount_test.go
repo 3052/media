@@ -8,11 +8,11 @@ func TestLog(t *testing.T) {
 
 var contents = [][]string{
    {
-      "https://paramountplus.com/gb/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
       "https://paramountplus.com/ie/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
+      "https://paramountplus.com/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
    },
    {
-      "https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ",
+      "https://paramountplus.com/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ",
       "https://paramountplus.com/ie/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ",
    },
    {
