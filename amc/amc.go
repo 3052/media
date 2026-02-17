@@ -119,6 +119,48 @@ func (c *Client) Playback(id int) ([]DataSource, http.Header, error) {
    return result.Data.PlaybackJsonData.Sources, resp.Header, nil
 }
 
+func (d *DataSource) Widevine(bcJwt string, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", d.KeySystems.ComWidevineAlpha.LicenseUrl,
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("bcov-auth", bcJwt)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type DataSource struct {
+   KeySystems struct {
+      ComWidevineAlpha *struct {
+         LicenseUrl string `json:"license_url"`
+      } `json:"com.widevine.alpha"`
+   } `json:"key_systems"`
+   Src  string // URL to the MPD manifest
+   Type string // e.g., "application/dash+xml"
+}
+
+func (d *DataSource) Dash() (*Dash, error) {
+   resp, err := http.Get(d.Src)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
 type Metadata struct {
    EpisodeNumber int
    Nid           int
@@ -210,47 +252,7 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    return nil, errors.New("could not find the seasons list within the manifest")
 }
 
-func (d *DataSource) Widevine(bcJwt string, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", d.KeySystems.ComWidevineAlpha.LicenseUrl,
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("bcov-auth", bcJwt)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type DataSource struct {
-   KeySystems struct {
-      ComWidevineAlpha *struct {
-         LicenseUrl string `json:"license_url"`
-      } `json:"com.widevine.alpha"`
-   } `json:"key_systems"`
-   Src  string // URL to the MPD manifest
-   Type string // e.g., "application/dash+xml"
-}
-
-func (d *DataSource) Dash() (*Dash, error) {
-   resp, err := http.Get(d.Src)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
+///
 
 type Dash struct {
    Body []byte

@@ -11,6 +11,45 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/plex/userCache.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   // 1
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
+   // 2
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"a", "x"},
+      {"d", "t", "c", "p"},
+   })
+}
+
+type command struct {
+   name string
+   // 1
+   address         string
+   x_forwarded_for string
+   // 2
+   dash string
+   job  maya.WidevineJob
+}
 func (c *command) do_address() error {
    var user plex.User
    err := user.Fetch()
@@ -75,42 +114,4 @@ type user_cache struct {
    Dash      *plex.Dash
    MediaPart *plex.MediaPart
    User      *plex.User
-}
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/plex/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   // 1
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
-   // 2
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"a", "x"},
-      {"d", "c", "p"},
-   })
-}
-
-type command struct {
-   name string
-   // 1
-   address         string
-   x_forwarded_for string
-   // 2
-   dash string
-   job  maya.WidevineJob
 }

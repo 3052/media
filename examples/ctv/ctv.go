@@ -24,6 +24,7 @@ func (c *command) run() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -35,7 +36,7 @@ func (c *command) run() error {
    }
    return maya.Usage([][]string{
       {"a"},
-      {"d", "c", "p"},
+      {"d", "t", "c", "p"},
    })
 }
 
@@ -88,7 +89,6 @@ func (c *command) do_dash() error {
    c.job.Send = ctv.Widevine
    return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
-
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {

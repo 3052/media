@@ -10,6 +10,23 @@ import (
    "strings"
 )
 
+// https://watch.plex.tv/embed/movie/memento-2000
+// https://watch.plex.tv/movie/memento-2000
+// https://watch.plex.tv/watch/movie/memento-2000
+func GetPath(rawUrl string) (string, error) {
+   // Find the starting position of the "/movie/" marker.
+   startIndex := strings.Index(rawUrl, "/movie/")
+   if startIndex == -1 {
+      return "", errors.New("no /movie/ segment found in URL")
+   }
+   // The slug must not be empty. Check if the string ends right after "/movie/".
+   if len(rawUrl) == startIndex+len("/movie/") {
+      return "", errors.New("movie slug is empty")
+   }
+   // Return the slice from the start of the marker to the end of the string.
+   return rawUrl[startIndex:], nil
+}
+
 type ItemMetadata struct {
    Media []struct {
       Part     []MediaPart
@@ -64,16 +81,6 @@ func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
 
 type User struct {
    AuthToken string
-}
-
-// https://watch.plex.tv/movie/memento-2000
-// https://watch.plex.tv/watch/movie/memento-2000
-func GetPath(rawLink string) (string, error) {
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return "", err
-   }
-   return strings.TrimPrefix(link.Path, "/watch"), nil
 }
 
 func (u User) Widevine(part *MediaPart, data []byte) ([]byte, error) {

@@ -30,6 +30,7 @@ func (c *command) run() error {
    flag.BoolVar(&c.get_user, "g", false, "get user")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
