@@ -12,56 +12,12 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/roku/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   // 1
-   flag.BoolVar(&c.connection, "c", false, "connection")
-   // 2
-   flag.BoolVar(&c.set_user, "s", false, "set user")
-   // 3
-   flag.StringVar(&c.roku, "r", "", "Roku ID")
-   flag.BoolVar(&c.get_user, "g", false, "get user")
-   // 4
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.connection {
-      return c.do_connection()
-   }
-   if c.set_user {
-      return c.do_set_user()
-   }
-   if c.roku != "" {
-      return c.do_roku()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"c"},
-      {"s"},
-      {"r", "g"},
-      {"d", "C", "P"},
-   })
-}
-
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Playback.Widevine(data)
-   }
+   c.job.Send = cache.Playback.Widevine
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
@@ -143,6 +99,7 @@ type command struct {
    dash string
    job  maya.WidevineJob
 }
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.Transport(func(req *http.Request) string {
@@ -155,4 +112,45 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
+}
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/roku/userCache.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   // 1
+   flag.BoolVar(&c.connection, "c", false, "connection")
+   // 2
+   flag.BoolVar(&c.set_user, "s", false, "set user")
+   // 3
+   flag.StringVar(&c.roku, "r", "", "Roku ID")
+   flag.BoolVar(&c.get_user, "g", false, "get user")
+   // 4
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.connection {
+      return c.do_connection()
+   }
+   if c.set_user {
+      return c.do_set_user()
+   }
+   if c.roku != "" {
+      return c.do_roku()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"c"},
+      {"s"},
+      {"r", "g"},
+      {"d", "C", "P"},
+   })
 }

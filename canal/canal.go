@@ -28,22 +28,18 @@ func (s *Session) Player(tracking string) (*Player, error) {
    if err != nil {
       return nil, err
    }
-   req, err := http.NewRequest(
-      "POST", "https://tvapi-hlm2.solocoo.tv", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "tvapi-hlm2.solocoo.tv",
+      Path: join("/v1/assets/", tracking, "/play"),
    }
-   req.URL.Path = func() string {
-      var data strings.Builder
-      data.WriteString("/v1/assets/")
-      data.WriteString(tracking)
-      data.WriteString("/play")
-      return data.String()
-   }()
+   req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+s.Token)
    req.Header.Set("content-type", "application/json")
-   resp, err := http.DefaultClient.Do(req)
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
@@ -57,6 +53,10 @@ func (s *Session) Player(tracking string) (*Player, error) {
       return nil, errors.New(result.Message)
    }
    return &result, nil
+}
+
+func join(items ...string) string {
+   return strings.Join(items, "")
 }
 
 type Session struct {
@@ -264,10 +264,6 @@ func FetchTracking(link string) (string, error) {
       return "", errors.New("could not find closing quote for the attribute")
    }
    return before, nil
-}
-
-func join(items ...string) string {
-   return strings.Join(items, "")
 }
 
 type Episode struct {

@@ -387,12 +387,16 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
    if err != nil {
       return nil, err
    }
-   req, _ := http.NewRequest(
-      "POST",
-      // ctr-high also works
-      "https://disney.playback.edge.bamgrid.com/v7/playback/ctr-regular",
-      bytes.NewReader(data),
-   )
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "disney.playback.edge.bamgrid.com",
+      // ctr-high
+      // tv-drm-ctr-h265-atmos
+      Path: "/v7/playback/ctr-regular",
+   }
+   req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("x-dss-feature-filtering", "true")
@@ -400,7 +404,8 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
    req.Header.Set("x-application-version", "")
    req.Header.Set("x-bamsdk-client-id", "")
    req.Header.Set("x-bamsdk-version", "")
-   resp, err := http.DefaultClient.Do(req)
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }

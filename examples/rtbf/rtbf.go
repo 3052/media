@@ -10,54 +10,12 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_address() error {
-   path, err := rtbf.GetPath(c.address)
-   if err != nil {
-      return err
-   }
-   asset_id, err := rtbf.FetchAssetId(path)
-   if err != nil {
-      return err
-   }
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   identity, err := cache.Account.Identity()
-   if err != nil {
-      return err
-   }
-   session, err := identity.Session()
-   if err != nil {
-      return err
-   }
-   cache.Entitlement, err = session.Entitlement(asset_id)
-   if err != nil {
-      return err
-   }
-   format, err := cache.Entitlement.Dash()
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = format.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Entitlement.Widevine(data)
-   }
+   c.job.Send = cache.Entitlement.Widevine
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
@@ -133,4 +91,43 @@ type user_cache struct {
    Account     *rtbf.Account
    Dash        *rtbf.Dash
    Entitlement *rtbf.Entitlement
+}
+func (c *command) do_address() error {
+   path, err := rtbf.GetPath(c.address)
+   if err != nil {
+      return err
+   }
+   asset_id, err := rtbf.FetchAssetId(path)
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   identity, err := cache.Account.Identity()
+   if err != nil {
+      return err
+   }
+   session, err := identity.Session()
+   if err != nil {
+      return err
+   }
+   cache.Entitlement, err = session.Entitlement(asset_id)
+   if err != nil {
+      return err
+   }
+   format, err := cache.Entitlement.Dash()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = format.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
