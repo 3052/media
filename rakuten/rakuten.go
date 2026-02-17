@@ -12,8 +12,8 @@ import (
    "strings"
 )
 
-// DeviceID is the default identifier used for requests.
-const DeviceID = "atvui40"
+// VideoQuality defines the allowed video qualities for streaming.
+type VideoQuality string
 
 var Quality = struct {
    FHD VideoQuality
@@ -22,6 +22,9 @@ var Quality = struct {
    FHD: "FHD",
    HD:  "HD",
 }
+
+// DeviceID is the default identifier used for requests.
+const DeviceID = "atvui40"
 
 var Player = struct {
    PlayReady PlayerType
@@ -138,16 +141,11 @@ type VideoItem struct {
    ViewOptions ViewOptions `json:"view_options"`
 }
 
-// VideoQuality defines the allowed video qualities for streaming.
-type VideoQuality string
-
 type ViewOptions struct {
    Private struct {
       Streams []Stream `json:"streams"`
    } `json:"private"`
 }
-
-///
 
 type Dash struct {
    Body []byte

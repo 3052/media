@@ -17,14 +17,47 @@ import (
    "strings"
 )
 
-var ComCbsApp = Provider{
-   AppSecret: "9fc14cb03691c342",
-   Version:   "16.0.0",
+// Content holds extracted data from a Paramount+ URL.
+type Content struct {
+   ID          string
+   CountryCode string
+   Type        string // "movies" or "shows"
 }
 
-var ComCbsCa = Provider{
-   AppSecret: "6c68178445de8138",
-   Version:   "16.0.0",
+// Parse populates the Content struct by parsing the given Paramount+ URL.
+// It assumes the receiver (c) is a zero-value struct.
+func (c *Content) Parse(link string) error {
+   const urlPrefix = "https://paramountplus.com/"
+   // 1. Validate and trim the base URL prefix.
+   if !strings.HasPrefix(link, urlPrefix) {
+      return errors.New("invalid URL prefix")
+   }
+   path := strings.TrimPrefix(link, urlPrefix)
+   // 2. Split the remaining path into components.
+   parts := strings.Split(path, "/")
+   // 3. A valid path must have at least 3 parts.
+   if len(parts) < 3 {
+      return errors.New("invalid URL path: not enough components")
+   }
+   // 4. The ID is always the last part.
+   c.ID = parts[len(parts)-1]
+   if c.ID == "" {
+      return errors.New("invalid URL path: ID is missing")
+   }
+   // 5. Determine the type and country code based on path structure.
+   if len(parts) >= 4 && len(parts[0]) == 2 {
+      // Structure with country code: [cc, type, slug/video, id]
+      c.CountryCode = parts[0]
+      c.Type = parts[1]
+   } else {
+      // Structure without country code: [type, slug/video, id]
+      c.Type = parts[0]
+   }
+   // 6. Validate the assigned type.
+   if c.Type != "movies" && c.Type != "shows" {
+      return errors.New("invalid content type")
+   }
+   return nil // Success
 }
 
 func (s *SessionToken) Send(data []byte) ([]byte, error) {
@@ -110,11 +143,6 @@ func pkcs7_pad(data []byte, blockSize int) []byte {
       data = append(data, padByte)
    }
    return data
-}
-
-type Provider struct {
-   AppSecret string
-   Version   string
 }
 
 type SessionToken struct {
@@ -303,4 +331,20 @@ func Widevine(at, contentId string) (*SessionToken, error) {
       return nil, err
    }
    return &result, nil
+}
+
+var AppSecrets = []struct {
+   ComCbsApp string
+   ComCbsCa  string
+   Version   string
+}{
+   {
+      ComCbsApp: "9fc14cb03691c342",
+      ComCbsCa:  "6c68178445de8138",
+      Version:   "16.0.0",
+   },
+   {
+      ComCbsCa:  "4a81a3c936f63cd5",
+      Version:   "15.5.0",
+   },
 }

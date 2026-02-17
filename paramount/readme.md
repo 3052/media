@@ -142,3 +142,21 @@ install system certificate
 com\cbs\app\androiddata\retrofit\util\RetrofitUtil.java
 SecretKeySpec secretKeySpec = new SecretKeySpec(b("302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"), "AES");
 ~~~
+
+## how to get app secret?
+
+com.cbs.app:
+
+~~~
+sources/com/cbs/app/dagger/DataLayerModule.java
+~~~
+
+https://apkmirror.com/apk/cbs-interactive-inc/paramount
+
+com.cbs.ca:
+
+~~~
+sources/com/cbs/app/config/DefaultAppSecretProvider.java
+~~~
+
+https://apkmirror.com/apk/viacomcbs-streaming/paramount-android-tv
