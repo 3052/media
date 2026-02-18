@@ -1,3 +1,4 @@
+// to change location you must log in again
 package disney
 
 import (
@@ -18,15 +19,19 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
       return nil, err
    }
    data, err := json.Marshal(map[string]any{
-      "playbackId": playback_id,
       "playback": map[string]any{
          "attributes": map[string]any{
             "assetInsertionStrategy": "SGAI",
-            "codecs": map[string]bool{
+            "codecs": map[string]any{
                "supportsMultiCodecMaster": true, // 4K
+               "video": []string{
+                  "h.264",
+                  "h.265",
+               },
             },
          },
       },
+      "playbackId": playback_id,
    })
    if err != nil {
       return nil, err
@@ -35,19 +40,19 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "disney.playback.edge.bamgrid.com",
-      // ctr-high
-      // tv-drm-ctr-h265-atmos
+      Host:   "disney.playback.edge.bamgrid.com",
+      // Path: "/v7/playback/ctr-high",
+      // Path: "/v7/playback/tv-drm-ctr-h265-atmos",
       Path: "/v7/playback/ctr-regular",
    }
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
    req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-dss-feature-filtering", "true")
-   req.Header.Set("x-bamsdk-platform", "")
    req.Header.Set("x-application-version", "")
    req.Header.Set("x-bamsdk-client-id", "")
+   req.Header.Set("x-bamsdk-platform", "")
    req.Header.Set("x-bamsdk-version", "")
+   req.Header.Set("x-dss-feature-filtering", "true")
    req.Body = io.NopCloser(bytes.NewReader(data))
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -66,14 +71,6 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
       return nil, &result.Errors[0]
    }
    return &result.Stream, nil
-}
-
-type Stream struct {
-   Sources []struct {
-      Complete struct {
-         Url string
-      }
-   }
 }
 
 type AccountWithoutActiveProfile struct {
@@ -95,19 +92,6 @@ type AccountWithoutActiveProfile struct {
          }
       }
    }
-}
-
-func (s *Stream) Hls() (*Hls, error) {
-   resp, err := http.Get(s.Sources[0].Complete.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Hls{data, resp.Request.URL}, nil
 }
 
 type Account struct {
@@ -175,6 +159,7 @@ func GetEntity(link string) (string, error) {
    // The 'id' variable now holds the rest of the string after the marker.
    return id, nil
 }
+
 // SL2000 720p
 // SL3000 1080p
 func (a *Account) PlayReady(data []byte) ([]byte, error) {
@@ -529,4 +514,24 @@ type Season struct {
 type Hls struct {
    Body []byte
    Url  *url.URL
+}
+func (s *Stream) Hls() (*Hls, error) {
+   resp, err := http.Get(s.Sources[0].Complete.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Hls{data, resp.Request.URL}, nil
+}
+
+type Stream struct {
+   Sources []struct {
+      Complete struct {
+         Url string
+      }
+   }
 }

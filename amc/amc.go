@@ -11,17 +11,115 @@ import (
    "strings"
 )
 
-func GetDash(sources []DataSource) (*DataSource, error) {
-   for _, source := range sources {
-      if source.Type == "application/dash+xml" {
-         return &source, nil
-      }
-   }
-   return nil, errors.New("dash source not found")
-}
-
 func BcJwt(header http.Header) string {
    return header.Get("x-amcn-bc-jwt")
+}
+
+type Client struct {
+   Data struct {
+      AccessToken  string `json:"access_token"`
+      RefreshToken string `json:"refresh_token"`
+   }
+}
+
+func (c *Client) Login(email, password string) error {
+   data, err := json.Marshal(map[string]string{
+      "email":    email,
+      "password": password,
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.URL.Path = "/auth-orchestration-id/api/v1/login"
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-amcn-device-ad-id", "-")
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-service-group-id", "10")
+   req.Header.Set("x-amcn-service-id", "amcplus")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
+func (c *Client) SeasonEpisodes(id int) (*Node, error) {
+   var data strings.Builder
+   data.WriteString("/content-compiler-cr/api/v1/content/amcn/amcplus/type")
+   data.WriteString("/season-episodes/id/")
+   data.WriteString(strconv.Itoa(id))
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.URL = &url.URL{
+      Scheme: "https", Host: "gw.cds.amcn.com", Path: data.String(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      Data Node
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Data, nil
+}
+
+func (c *Client) SeriesDetail(id int) (*Node, error) {
+   var data strings.Builder
+   data.WriteString("/content-compiler-cr/api/v1/content/amcn/amcplus/type")
+   data.WriteString("/series-detail/id/")
+   data.WriteString(strconv.Itoa(id))
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "android")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "gw.cds.amcn.com",
+      Path:   data.String(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      Data Node
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Data, nil
 }
 
 func (c *Client) Unauth() error {
@@ -118,6 +216,17 @@ func (c *Client) Playback(id int) ([]DataSource, http.Header, error) {
    }
    return result.Data.PlaybackJsonData.Sources, resp.Header, nil
 }
+
+func GetDash(sources []DataSource) (*DataSource, error) {
+   for _, source := range sources {
+      if source.Type == "application/dash+xml" {
+         return &source, nil
+      }
+   }
+   return nil, errors.New("dash source not found")
+}
+
+///
 
 func (d *DataSource) Widevine(bcJwt string, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
@@ -252,116 +361,7 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    return nil, errors.New("could not find the seasons list within the manifest")
 }
 
-///
-
 type Dash struct {
    Body []byte
    Url  *url.URL
-}
-
-type Client struct {
-   Data struct {
-      AccessToken  string `json:"access_token"`
-      RefreshToken string `json:"refresh_token"`
-   }
-}
-
-func (c *Client) Login(email, password string) error {
-   data, err := json.Marshal(map[string]string{
-      "email":    email,
-      "password": password,
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://gw.cds.amcn.com", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.URL.Path = "/auth-orchestration-id/api/v1/login"
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-amcn-device-ad-id", "-")
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-service-group-id", "10")
-   req.Header.Set("x-amcn-service-id", "amcplus")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.Header.Set("x-ccpa-do-not-sell", "doNotPassData")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
-}
-
-func (c *Client) SeasonEpisodes(id int) (*Node, error) {
-   var data strings.Builder
-   data.WriteString("/content-compiler-cr/api/v1/content/amcn/amcplus/type")
-   data.WriteString("/season-episodes/id/")
-   data.WriteString(strconv.Itoa(id))
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "android")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.URL = &url.URL{
-      Scheme: "https", Host: "gw.cds.amcn.com", Path: data.String(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      Data Node
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Data, nil
-}
-
-func (c *Client) SeriesDetail(id int) (*Node, error) {
-   var data strings.Builder
-   data.WriteString("/content-compiler-cr/api/v1/content/amcn/amcplus/type")
-   data.WriteString("/series-detail/id/")
-   data.WriteString(strconv.Itoa(id))
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+c.Data.AccessToken)
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "android")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "gw.cds.amcn.com",
-      Path:   data.String(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      Data Node
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Data, nil
 }
