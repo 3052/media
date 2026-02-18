@@ -11,6 +11,15 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.Playout.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
 func (c *command) do_address() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -120,15 +129,4 @@ func (c *command) run() error {
       {"a"},
       {"d", "t", "C", "P"},
    })
-}
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Playout.Widevine(data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }

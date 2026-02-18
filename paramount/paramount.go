@@ -214,7 +214,7 @@ func (c *Content) Login(username, password string) (*http.Cookie, error) {
 
 // Content holds extracted data from a Paramount+ path.
 type Content struct {
-   ID          string
+   Id          string
    CountryCode string
    Type        string // "movies" or "shows"
 }
@@ -243,8 +243,8 @@ func (c *Content) Parse(path string) error {
       return errors.New("invalid path: not enough components for a content path")
    }
    // 5. The ID is always the last part.
-   c.ID = parts[len(parts)-1]
-   if c.ID == "" {
+   c.Id = parts[len(parts)-1]
+   if c.Id == "" {
       return errors.New("invalid path: ID is missing")
    }
    // 6. Determine the type and country code based on path structure.

@@ -27,9 +27,7 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return token.Send(data)
-   }
+   c.job.Send = token.Send
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 

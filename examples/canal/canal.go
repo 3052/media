@@ -12,73 +12,12 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/canal/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   // 1
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   // 2
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   // 3
-   flag.StringVar(&c.address, "a", "", "address")
-   // 4
-   flag.StringVar(&c.tracking, "t", "", "tracking")
-   flag.IntVar(&c.season, "s", 0, "season")
-   // 5
-   flag.BoolVar(&c.subtitles, "S", false, "subtitles")
-   // 6
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.refresh {
-      return c.do_refresh()
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.tracking != "" {
-      if c.season >= 1 {
-         return c.do_tracking_season()
-      }
-      return c.do_tracking()
-   }
-   if c.subtitles {
-      return c.do_subtitles()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"e", "p"},
-      {"r"},
-      {"a"},
-      {"t", "s"},
-      {"S"},
-      {"d", "C", "P"},
-   })
-}
-
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.Player.Widevine(data)
-   }
+   c.job.Send = cache.Player.Widevine
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
@@ -228,4 +167,62 @@ func (c *command) do_tracking() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/canal/userCache.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   // 3
+   flag.StringVar(&c.address, "a", "", "address")
+   // 4
+   flag.StringVar(&c.tracking, "t", "", "tracking")
+   flag.IntVar(&c.season, "s", 0, "season")
+   // 5
+   flag.BoolVar(&c.subtitles, "S", false, "subtitles")
+   // 6
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.refresh {
+      return c.do_refresh()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.tracking != "" {
+      if c.season >= 1 {
+         return c.do_tracking_season()
+      }
+      return c.do_tracking()
+   }
+   if c.subtitles {
+      return c.do_subtitles()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"e", "p"},
+      {"r"},
+      {"a"},
+      {"t", "s"},
+      {"S"},
+      {"d", "C", "P"},
+   })
 }
