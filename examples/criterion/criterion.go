@@ -11,6 +11,34 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.MediaFile.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.Transport(func(req *http.Request) string {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return ""
+      }
+      return "LP"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash      *criterion.Dash
+   MediaFile *criterion.MediaFile
+   Token     *criterion.Token
+}
 func (c *command) do_address() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -99,35 +127,4 @@ type command struct {
    // 3
    dash string
    job  maya.WidevineJob
-}
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.MediaFile.Widevine(data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash      *criterion.Dash
-   MediaFile *criterion.MediaFile
-   Token     *criterion.Token
 }
