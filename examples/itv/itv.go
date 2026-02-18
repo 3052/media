@@ -12,81 +12,12 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_playlist() error {
-   var title itv.Title
-   title.LatestAvailableVersion.PlaylistUrl = c.playlist
-   playlist, err := title.Playlist()
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.MediaFile, err = playlist.FullHd()
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = cache.MediaFile.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   playlist string
-   // 3
-   dash string
-   job  maya.WidevineJob
-}
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/itv/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   // 1
-   flag.StringVar(&c.address, "a", "", "address")
-   // 2
-   flag.StringVar(&c.playlist, "p", "", "playlist URL")
-   // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.playlist != "" {
-      return c.do_playlist()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"a"},
-      {"p"},
-      {"d", "C", "P"},
-   })
-}
-
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.MediaFile.Widevine(data)
-   }
+   c.job.Send = cache.MediaFile.Widevine
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
@@ -122,4 +53,71 @@ func (c *command) do_address() error {
       fmt.Println(&title)
    }
    return nil
+}
+func (c *command) do_playlist() error {
+   var title itv.Title
+   title.LatestAvailableVersion.PlaylistUrl = c.playlist
+   playlist, err := title.Playlist()
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.MediaFile, err = playlist.FullHd()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.MediaFile.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   playlist string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/itv/userCache.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   // 1
+   flag.StringVar(&c.address, "a", "", "address")
+   // 2
+   flag.StringVar(&c.playlist, "p", "", "playlist URL")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.playlist != "" {
+      return c.do_playlist()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"a"},
+      {"p"},
+      {"d", "C", "P"},
+   })
 }
