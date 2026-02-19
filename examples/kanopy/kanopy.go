@@ -11,42 +11,10 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_kanopy() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   member, err := cache.Login.Membership()
-   if err != nil {
-      return err
-   }
-   plays, err := cache.Login.Plays(member, c.kanopy)
-   if err != nil {
-      return err
-   }
-   cache.PlayManifest, err = plays.Dash()
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = cache.PlayManifest.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
 func main() {
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
    })
-   log.SetFlags(log.Ltime)
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -127,4 +95,31 @@ func (c *command) do_dash() error {
       return cache.Login.Widevine(cache.PlayManifest, data)
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+func (c *command) do_kanopy() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   member, err := cache.Login.Membership()
+   if err != nil {
+      return err
+   }
+   plays, err := cache.Login.Plays(member, c.kanopy)
+   if err != nil {
+      return err
+   }
+   cache.PlayManifest, err = plays.Dash()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.PlayManifest.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

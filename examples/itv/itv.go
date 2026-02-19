@@ -12,29 +12,11 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.MediaFile.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   Dash      *itv.Dash
-   MediaFile *itv.MediaFile
-}
-
 func main() {
    // ALL REQUEST ARE GEO BLOCKED
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".dash" {
-         return ""
-      }
-      return "LP"
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".dash"
    })
-   log.SetFlags(log.Ltime)
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -120,4 +102,17 @@ func (c *command) run() error {
       {"p"},
       {"d", "C", "P"},
    })
+}
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.MediaFile.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   Dash      *itv.Dash
+   MediaFile *itv.MediaFile
 }
