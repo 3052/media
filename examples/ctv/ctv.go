@@ -11,23 +11,53 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   proxy string
+   // 2
+   dash string
+   job  maya.WidevineJob
+}
+
+///
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/ctv/dash.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/ctv/dash.xml"
    // 1
    flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.proxy, "p", "", "proxy")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
+   
+   
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".m4a", ".m4v":
+         return "", false
+      }
+      return "", true
+   })
+   
    if c.address != "" {
       return c.do_address()
    }
@@ -36,17 +66,8 @@ func (c *command) run() error {
    }
    return maya.Usage([][]string{
       {"a"},
-      {"d", "t", "c", "p"},
+      {"d", "c", "p"},
    })
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   dash string
-   job  maya.WidevineJob
 }
 
 func (c *command) do_address() error {
@@ -88,18 +109,4 @@ func (c *command) do_dash() error {
    }
    c.job.Send = ctv.Widevine
    return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
-}
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4a", ".m4v":
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

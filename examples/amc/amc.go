@@ -12,6 +12,35 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4f"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   refresh bool
+   // 3
+   series int
+   // 4
+   season int
+   // 5
+   episode int
+   // 6
+   dash string
+   job  maya.WidevineJob
+}
+
 func (c *command) do_episode() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -177,36 +206,4 @@ func (c *command) do_season() error {
       fmt.Println(episode)
    }
    return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4f" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   refresh bool
-   // 3
-   series int
-   // 4
-   season int
-   // 5
-   episode int
-   // 6
-   dash string
-   job  maya.WidevineJob
 }

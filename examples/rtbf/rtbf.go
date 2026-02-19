@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-   log.SetFlags(log.Ltime)
    maya.SetTransport(func(*http.Request) (string, bool) {
       return "", true
    })

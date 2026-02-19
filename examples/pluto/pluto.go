@@ -12,6 +12,21 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash   *pluto.Dash
+   Series *pluto.Series
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -122,22 +137,4 @@ func (c *command) do_show() error {
    }
    fmt.Println(&series.Vod[0])
    return maya.Write(c.name, &user_cache{Series: &series})
-}
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash   *pluto.Dash
-   Series *pluto.Series
 }

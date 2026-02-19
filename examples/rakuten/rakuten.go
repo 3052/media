@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-   log.SetFlags(log.Ltime)
    maya.SetTransport(func(req *http.Request) (string, bool) {
       // everything needs proxy
       switch path.Ext(req.URL.Path) {
