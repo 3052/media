@@ -31,9 +31,9 @@ func (s *Series) Fetch(movieShow string) error {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "boot.pluto.tv",
-      Path: "/v4/start",
+      Scheme:   "https",
+      Host:     "boot.pluto.tv",
+      Path:     "/v4/start",
       RawQuery: data.Encode(),
    }
    resp, err := http.DefaultClient.Do(&req)
@@ -66,7 +66,7 @@ type Vod struct {
       }
       Number int64
    }
-   Slug string
+   Slug     string
    Stitched *Stitched
 }
 
@@ -176,6 +176,7 @@ func (v *Vod) String() string {
    }
    return string(data)
 }
+
 type Stitched struct {
    Paths []struct {
       Path string

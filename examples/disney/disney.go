@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
       case ".mp4", ".mp4a":
          return "", false
@@ -157,6 +157,7 @@ type command struct {
    hls string
    job maya.PlayReadyJob
 }
+
 func (c *command) do_hls() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {

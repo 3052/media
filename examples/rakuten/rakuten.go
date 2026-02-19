@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       // everything needs proxy
       switch path.Ext(req.URL.Path) {
       case ".isma", ".ismv":

@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".mp4"
    })
    err := new(command).run()

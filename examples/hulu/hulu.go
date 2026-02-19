@@ -115,8 +115,9 @@ type command struct {
    dash string
    job  maya.PlayReadyJob
 }
+
 func main() {
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
       case ".mp4", ".mp4a":
          return "", false

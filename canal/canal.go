@@ -32,8 +32,8 @@ func (s *Session) Player(tracking string) (*Player, error) {
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "tvapi-hlm2.solocoo.tv",
-      Path: join("/v1/assets/", tracking, "/play"),
+      Host:   "tvapi-hlm2.solocoo.tv",
+      Path:   join("/v1/assets/", tracking, "/play"),
    }
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+s.Token)
@@ -181,6 +181,7 @@ type Ticket struct {
    Message string
    Ticket  string
 }
+
 func (p *Player) Dash() (*Dash, error) {
    resp, err := http.Get(p.Url)
    if err != nil {

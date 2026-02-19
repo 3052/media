@@ -14,7 +14,7 @@ import (
 
 func main() {
    // ALL REQUEST ARE GEO BLOCKED
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".dash"
    })
    err := new(command).run()

@@ -28,7 +28,7 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
       case ".m4a", ".m4v":
          return "", false
@@ -98,7 +98,7 @@ type command struct {
    name string
    // 1
    address string
-   proxy string
+   proxy   string
    // 2
    dash string
    job  maya.WidevineJob

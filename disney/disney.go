@@ -515,6 +515,7 @@ type Hls struct {
    Body []byte
    Url  *url.URL
 }
+
 func (s *Stream) Hls() (*Hls, error) {
    resp, err := http.Get(s.Sources[0].Complete.Url)
    if err != nil {

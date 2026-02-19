@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".m4s"
    })
    err := new(command).run()
@@ -50,6 +50,7 @@ type command struct {
    dash string
    job  maya.Job
 }
+
 func (c *command) do_address() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {

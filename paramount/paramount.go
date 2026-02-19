@@ -111,9 +111,9 @@ var AppSecrets = []struct {
    ComCbsCa  string
 }{
    {
-      Version: "16.4.1",
+      Version:   "16.4.1",
       ComCbsApp: "7cd07f93a6e44cf7",
-      ComCbsCa: "68b4475a49bed95a",
+      ComCbsCa:  "68b4475a49bed95a",
    },
    {
       Version:   "16.0.0",

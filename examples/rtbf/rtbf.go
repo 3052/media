@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-   maya.SetTransport(func(*http.Request) (string, bool) {
+   maya.SetProxy(func(*http.Request) (string, bool) {
       return "", true
    })
    err := new(command).run()
@@ -92,6 +92,7 @@ type user_cache struct {
    Dash        *rtbf.Dash
    Entitlement *rtbf.Entitlement
 }
+
 func (c *command) do_address() error {
    path, err := rtbf.GetPath(c.address)
    if err != nil {

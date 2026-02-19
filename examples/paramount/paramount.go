@@ -34,7 +34,7 @@ func (c *command) run() error {
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   maya.SetTransport(func(req *http.Request) (string, bool) {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
       case ".m4s", ".mp4":
          return "", false
@@ -84,10 +84,10 @@ func (c *command) app_secret() string {
 }
 
 type user_cache struct {
-   Dash   *paramount.Dash
-   Cookie *http.Cookie
+   Dash      *paramount.Dash
+   Cookie    *http.Cookie
    ContentId string
-   Intl bool
+   Intl      bool
 }
 
 func (c *command) do_paramount() error {
@@ -152,7 +152,7 @@ type command struct {
    intl bool
    // 2
    paramount string
-   proxy string
+   proxy     string
    // 3
    dash   string
    cookie bool
