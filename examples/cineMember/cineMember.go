@@ -11,6 +11,45 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_email_password() error {
+   var session cineMember.Session
+   err := session.Fetch()
+   if err != nil {
+      return err
+   }
+   err = session.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, &user_cache{Session: &session})
+}
+
+type user_cache struct {
+   Dash    *cineMember.Dash
+   Session *cineMember.Session
+}
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.Job
+}
 func (c *command) do_address() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -80,48 +119,4 @@ func (c *command) do_dash() error {
       return err
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) do_email_password() error {
-   var session cineMember.Session
-   err := session.Fetch()
-   if err != nil {
-      return err
-   }
-   err = session.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, &user_cache{Session: &session})
-}
-
-type user_cache struct {
-   Dash    *cineMember.Dash
-   Session *cineMember.Session
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.Job
 }

@@ -49,6 +49,7 @@ func (c *command) run() error {
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
    
+   asdf
    
    maya.SetTransport(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {

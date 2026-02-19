@@ -11,6 +11,25 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".mp4"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_dash() error {
+   dash, err := maya.Read[nbc.Dash](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = nbc.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -70,27 +89,4 @@ type command struct {
    // 2
    dash string
    job  maya.WidevineJob
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) do_dash() error {
-   dash, err := maya.Read[nbc.Dash](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = nbc.Widevine
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }

@@ -12,34 +12,16 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Session.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   Dash     *mubi.Dash
-   LinkCode *mubi.LinkCode
-   Session  *mubi.Session
-}
-
 func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".dash" {
-         return ""
-      }
-      return "LP"
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".dash"
    })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
    }
 }
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -146,4 +128,18 @@ type command struct {
    // 4
    dash string
    job  maya.WidevineJob
+}
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.Session.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   Dash     *mubi.Dash
+   LinkCode *mubi.LinkCode
+   Session  *mubi.Session
 }

@@ -11,6 +11,22 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash      *plex.Dash
+   MediaPart *plex.MediaPart
+   User      *plex.User
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -50,6 +66,7 @@ type command struct {
    dash string
    job  maya.WidevineJob
 }
+
 func (c *command) do_address() error {
    var user plex.User
    err := user.Fetch()
@@ -94,24 +111,4 @@ func (c *command) do_dash() error {
       return cache.User.Widevine(cache.MediaPart, data)
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash      *plex.Dash
-   MediaPart *plex.MediaPart
-   User      *plex.User
 }
