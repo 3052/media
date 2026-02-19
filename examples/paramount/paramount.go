@@ -11,60 +11,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type command struct {
-   name string
-   // 1
-   username string
-   password string
-   // 1, 2
-   intl bool
-   // 2
-   paramount string
-   // 3
-   dash   string
-   cookie bool
-   job    maya.PlayReadyJob
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return ""
-      }
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense", "rightsmanager.asmx":
-         return "L"
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -103,6 +49,60 @@ func (c *command) run() error {
       {"p", "i"},
       {"d", "c", "C", "E"},
    })
+}
+
+func main() {
+   maya.Transport(func(req *http.Request) string {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return ""
+      }
+      switch path.Base(req.URL.Path) {
+      case "anonymous-session-token.json", "getlicense", "rightsmanager.asmx":
+         return "L"
+      }
+      return "LP"
+   })
+   log.SetFlags(log.Ltime)
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_dash() error {
+   at, err := paramount.GetAt(c.app_secret())
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type command struct {
+   name string
+   // 1
+   username string
+   password string
+   // 1, 2
+   intl bool
+   // 2
+   paramount string
+   // 3
+   dash   string
+   cookie bool
+   job    maya.PlayReadyJob
 }
 
 func (c *command) do_username_password() error {

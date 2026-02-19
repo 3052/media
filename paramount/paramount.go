@@ -17,6 +17,35 @@ import (
    "strings"
 )
 
+// 576p L3
+func (c *Content) Widevine() (*SessionToken, error) {
+   at, err := GetAt(c.AppSecret())
+   if err != nil {
+      return nil, err
+   }
+   var req http.Request
+   req.URL = &url.URL{}
+   req.URL.Scheme = "https"
+   req.URL.Host = "www.paramountplus.com"
+   req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json"
+   req.URL.RawQuery = url.Values{
+      "at":        {at},
+      "contentId": {c.Id},
+   }.Encode()
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result SessionToken
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result, nil
+}
+
 func (s *SessionToken) Send(data []byte) ([]byte, error) {
    req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
    if err != nil {
@@ -171,47 +200,6 @@ func FetchPath(address string) (string, error) {
    return resp.Request.URL.Path, nil
 }
 
-// WARNING IF YOU RUN THIS TOO MANY TIMES YOU WILL GET AN IP BAN. HOWEVER THE BAN
-// IS ONLY FOR THE ANDROID CLIENT NOT WEB CLIENT
-func (c *Content) Login(username, password string) (*http.Cookie, error) {
-   at, err := GetAt(c.AppSecret())
-   if err != nil {
-      return nil, err
-   }
-   data := url.Values{
-      "j_username": {username},
-      "j_password": {password},
-   }.Encode()
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.paramountplus.com",
-      Path:     "/apps-api/v2.0/androidphone/auth/login.json",
-      RawQuery: url.Values{"at": {at}}.Encode(),
-   }
-   req.Header = http.Header{}
-   req.Header.Set("content-type", "application/x-www-form-urlencoded")
-   // randomly fails if this is missing
-   req.Header.Set("user-agent", "!")
-   req.Body = io.NopCloser(strings.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   _, err = io.Copy(io.Discard, resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "CBS_COM" {
-         return cookie, nil
-      }
-   }
-   return nil, http.ErrNoCookie
-}
-
 // Content holds extracted data from a Paramount+ path.
 type Content struct {
    Id          string
@@ -270,6 +258,47 @@ func (c *Content) AppSecret() string {
    return AppSecrets[0].ComCbsApp
 }
 
+// WARNING IF YOU RUN THIS TOO MANY TIMES YOU WILL GET AN IP BAN. HOWEVER THE BAN
+// IS ONLY FOR THE ANDROID CLIENT NOT WEB CLIENT
+func (c *Content) Login(username, password string) (*http.Cookie, error) {
+   at, err := GetAt(c.AppSecret())
+   if err != nil {
+      return nil, err
+   }
+   data := url.Values{
+      "j_username": {username},
+      "j_password": {password},
+   }.Encode()
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.paramountplus.com",
+      Path:     "/apps-api/v2.0/androidphone/auth/login.json",
+      RawQuery: url.Values{"at": {at}}.Encode(),
+   }
+   req.Header = http.Header{}
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   // randomly fails if this is missing
+   req.Header.Set("user-agent", "!")
+   req.Body = io.NopCloser(strings.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   _, err = io.Copy(io.Discard, resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "CBS_COM" {
+         return cookie, nil
+      }
+   }
+   return nil, http.ErrNoCookie
+}
+
 ///
 
 func (c *Content) Item() (*Item, error) {
@@ -304,35 +333,6 @@ func (c *Content) Item() (*Item, error) {
       return nil, errors.New("item list zero length")
    }
    return &result.ItemList[0], nil
-}
-
-// 576p L3
-func (c *Content) Widevine() (*SessionToken, error) {
-   at, err := GetAt(c.AppSecret())
-   if err != nil {
-      return nil, err
-   }
-   var req http.Request
-   req.URL = &url.URL{}
-   req.URL.Scheme = "https"
-   req.URL.Host = "www.paramountplus.com"
-   req.URL.Path = "/apps-api/v3.1/androidphone/irdeto-control/anonymous-session-token.json"
-   req.URL.RawQuery = url.Values{
-      "at":        {at},
-      "contentId": {c.Id},
-   }.Encode()
-   req.Header = http.Header{}
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result SessionToken
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result, nil
 }
 
 // 1080p SL2000
