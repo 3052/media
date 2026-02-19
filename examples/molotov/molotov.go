@@ -11,6 +11,16 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -115,18 +125,4 @@ type user_cache struct {
    Asset *molotov.Asset
    Dash  *molotov.Dash
    Login *molotov.Login
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return ""
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

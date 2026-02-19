@@ -9,16 +9,6 @@ var resolved = []string{
    "https://paramountplus.com/shows/video/esJvFlqdrcS_kFHnpxSuYp449E7tTexD/",
 }
 
-func TestPath(t *testing.T) {
-   path, err := FetchPath(
-      "http://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q",
-   )
-   if err != nil {
-      t.Fatal(err)
-   }
-   t.Log(path)
-}
-
 func TestResolve(t *testing.T) {
    t.Log(resolved)
 }

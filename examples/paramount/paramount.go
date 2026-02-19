@@ -21,18 +21,30 @@ func (c *command) run() error {
    c.job.CertificateChain = cache + "/SL2000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    // 1
-   flag.StringVar(&c.username, "U", "", "username")
-   flag.StringVar(&c.password, "P", "", "password")
+   flag.StringVar(&c.username, "username", "", "username")
+   flag.StringVar(&c.password, "password", "", "password")
    // 1, 2
    flag.BoolVar(&c.intl, "i", false, "intl")
    // 2
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
+   flag.StringVar(&c.proxy, "P", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return "", false
+      }
+      switch path.Base(req.URL.Path) {
+      case "anonymous-session-token.json", "getlicense", "rightsmanager.asmx":
+         return "", true
+      }
+      return c.proxy, true
+   })
    if c.username != "" {
       if c.password != "" {
          return c.do_username_password()
@@ -49,60 +61,6 @@ func (c *command) run() error {
       {"p", "i"},
       {"d", "c", "C", "E"},
    })
-}
-
-func main() {
-   maya.Transport(func(req *http.Request) string {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return ""
-      }
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense", "rightsmanager.asmx":
-         return "L"
-      }
-      return "LP"
-   })
-   log.SetFlags(log.Ltime)
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) do_dash() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type command struct {
-   name string
-   // 1
-   username string
-   password string
-   // 1, 2
-   intl bool
-   // 2
-   paramount string
-   // 3
-   dash   string
-   cookie bool
-   job    maya.PlayReadyJob
 }
 
 func (c *command) do_username_password() error {
@@ -156,4 +114,47 @@ func (c *command) do_paramount() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+func (c *command) do_dash() error {
+   at, err := paramount.GetAt(c.app_secret())
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   username string
+   password string
+   // 1, 2
+   intl bool
+   // 2
+   paramount string
+   proxy string
+   // 3
+   dash   string
+   cookie bool
+   job    maya.PlayReadyJob
 }

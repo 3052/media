@@ -17,6 +17,44 @@ import (
    "strings"
 )
 
+// 1080p SL2000
+// 1440p SL2000 + cookie
+func (c *Content) PlayReady(cookie *http.Cookie) (*SessionToken, error) {
+   at, err := GetAt(c.AppSecret())
+   if err != nil {
+      return nil, err
+   }
+   var req http.Request
+   req.URL = &url.URL{}
+   req.URL.Scheme = "https"
+   req.URL.Host = "www.paramountplus.com"
+   req.URL.RawQuery = url.Values{
+      "at":        {at},
+      "contentId": {c.Id},
+   }.Encode()
+   if cookie != nil {
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/session-token.json"
+      req.AddCookie(cookie)
+   } else {
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json"
+   }
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result SessionToken
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result, nil
+}
+
 // 576p L3
 func (c *Content) Widevine() (*SessionToken, error) {
    at, err := GetAt(c.AppSecret())
@@ -299,8 +337,6 @@ func (c *Content) Login(username, password string) (*http.Cookie, error) {
    return nil, http.ErrNoCookie
 }
 
-///
-
 func (c *Content) Item() (*Item, error) {
    at, err := GetAt(c.AppSecret())
    if err != nil {
@@ -333,42 +369,4 @@ func (c *Content) Item() (*Item, error) {
       return nil, errors.New("item list zero length")
    }
    return &result.ItemList[0], nil
-}
-
-// 1080p SL2000
-// 1440p SL2000 + cookie
-func (c *Content) PlayReady(cookie *http.Cookie) (*SessionToken, error) {
-   at, err := GetAt(c.AppSecret())
-   if err != nil {
-      return nil, err
-   }
-   var req http.Request
-   req.URL = &url.URL{}
-   req.URL.Scheme = "https"
-   req.URL.Host = "www.paramountplus.com"
-   req.URL.RawQuery = url.Values{
-      "at":        {at},
-      "contentId": {c.Id},
-   }.Encode()
-   if cookie != nil {
-      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/session-token.json"
-      req.AddCookie(cookie)
-   } else {
-      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json"
-   }
-   req.Header = http.Header{}
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result SessionToken
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result, nil
 }
