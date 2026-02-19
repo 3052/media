@@ -12,6 +12,74 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetTransport(func(req *http.Request) (string, bool) {
+      // everything needs proxy
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return "", false
+      }
+      return "", true
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   season string
+   // 3
+   episode  string
+   language string
+   // 4
+   dash string
+   job  maya.WidevineJob
+}
+
+type user_cache struct {
+   Dash     *rakuten.Dash
+   Episode  string
+   Language string
+   Media    *rakuten.Media
+}
+
+func (c *command) do_language() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   var stream *rakuten.StreamData
+   switch cache.Media.Type {
+   case rakuten.MovieType:
+      stream, err = cache.Media.MovieStream(
+         c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+      )
+   case rakuten.TvShowType:
+      stream, err = cache.Media.EpisodeStream(
+         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+      )
+   }
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = stream.Dash()
+   if err != nil {
+      return err
+   }
+   cache.Episode = c.episode
+   cache.Language = c.language
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -120,73 +188,4 @@ func (c *command) do_season() error {
       fmt.Println(&item)
    }
    return nil
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
-      // everything needs proxy
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return "P"
-      }
-      return "LP"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   season string
-   // 3
-   episode  string
-   language string
-   // 4
-   dash string
-   job  maya.WidevineJob
-}
-
-type user_cache struct {
-   Dash     *rakuten.Dash
-   Episode  string
-   Language string
-   Media    *rakuten.Media
-}
-
-func (c *command) do_language() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch cache.Media.Type {
-   case rakuten.MovieType:
-      stream, err = cache.Media.MovieStream(
-         c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
-      )
-   case rakuten.TvShowType:
-      stream, err = cache.Media.EpisodeStream(
-         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = stream.Dash()
-   if err != nil {
-      return err
-   }
-   cache.Episode = c.episode
-   cache.Language = c.language
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }

@@ -10,6 +10,17 @@ import (
    "path/filepath"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetTransport(func(*http.Request) (string, bool) {
+      return "", true
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -19,16 +30,6 @@ func (c *command) do_dash() error {
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(*http.Request) string {
-      return "L"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
