@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-   log.SetFlags(log.Ltime)
    maya.SetTransport(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".mp4"
    })

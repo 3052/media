@@ -11,9 +11,9 @@
 6. birthdate
 7. gender
 8. agree & continue
-9. name on card
-10. card number (NEW EACH TIME)
-11. expiration
-12. cvc
+9. card number (NEW EACH TIME)
+10. expiration
+11. cvc
+12. name on card
 13. zip code
 14. agree & subscribe

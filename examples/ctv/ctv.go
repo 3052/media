@@ -11,26 +11,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   proxy string
-   // 2
-   dash string
-   job  maya.WidevineJob
-}
-
-///
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -48,17 +28,13 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-   
-   asdf
-   
    maya.SetTransport(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
       case ".m4a", ".m4v":
          return "", false
       }
-      return "", true
+      return c.proxy, true
    })
-   
    if c.address != "" {
       return c.do_address()
    }
@@ -66,8 +42,8 @@ func (c *command) run() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
-      {"a"},
-      {"d", "c", "p"},
+      {"a", "p"},
+      {"d", "C", "P"},
    })
 }
 
@@ -110,4 +86,20 @@ func (c *command) do_dash() error {
    }
    c.job.Send = ctv.Widevine
    return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   proxy string
+   // 2
+   dash string
+   job  maya.WidevineJob
 }

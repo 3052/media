@@ -12,27 +12,13 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_hls() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Account.PlayReady
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
-}
-
-type user_cache struct {
-   Account *disney.Account
-   Hls     *disney.Hls
-}
 func main() {
-   log.SetFlags(log.Ltime)
-   maya.Transport(func(req *http.Request) string {
+   maya.SetTransport(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
       case ".mp4", ".mp4a":
-         return ""
+         return "", false
       }
-      return "LP"
+      return "", true
    })
    err := new(command).run()
    if err != nil {
@@ -170,4 +156,17 @@ type command struct {
    // 5
    hls string
    job maya.PlayReadyJob
+}
+func (c *command) do_hls() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.Account.PlayReady
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+}
+
+type user_cache struct {
+   Account *disney.Account
+   Hls     *disney.Hls
 }
