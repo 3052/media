@@ -2,6 +2,12 @@
 
 ## us video, us location
 
+no cookie so 1080p:
+
+https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
+
+---------------------------------------------------------------------------------
+
 ## us video, us location, cookie
 
 ## us video, ca location

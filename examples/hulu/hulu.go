@@ -21,16 +21,23 @@ func (c *command) run() error {
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    c.name = cache + "/hulu/userCache.xml"
    // 1
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
+   flag.StringVar(&c.email, "email", "", "email")
+   flag.StringVar(&c.password, "password", "", "password")
    // 2
    flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(&c.proxy, "p", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return c.proxy, false
+      }
+      return c.proxy, true
+   })
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
@@ -48,6 +55,20 @@ func (c *command) run() error {
       {"d", "t", "C", "E"},
    })
 }
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   proxy string
+   // 3
+   dash string
+   job  maya.PlayReadyJob
+}
+
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -104,26 +125,7 @@ func (c *command) do_email_password() error {
    return maya.Write(c.name, &user_cache{Session: &session})
 }
 
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.PlayReadyJob
-}
-
 func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return "", false
-      }
-      return "", true
-   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
