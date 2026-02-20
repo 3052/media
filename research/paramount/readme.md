@@ -1,27 +1,55 @@
 # paramount
 
-## us video, us location
 
-no cookie so 1080p:
+## us video, no paramount proxy
+
+https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
+
+pass
+
+## us video, paramount proxy
+
+https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
+
+1. VPN CA
+2. pass
+
+## us video, no dash proxy, no cookie
+
+https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
+
+1. no cookie so 1080p
+2. pass
+
+## us video, dash proxy, no cookie
+
+https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
+
+1. VPN CA
+2. pass
+
+## us video, no dash proxy, cookie
 
 https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
 ---------------------------------------------------------------------------------
 
-## us video, us location, cookie
+## us video, dash proxy, cookie
 
-## us video, ca location
+## ie video, no paramount proxy
 
-## us video, ca location, cookie
+https://paramountplus.com/ie/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
 
-## ca video, us location
+## ie video, dash proxy, cookie
 
-## ca video, us location, cookie
+## ie video, dash proxy, no cookie
 
-## ca video, ca location
+## ie video, no dash proxy, cookie
 
-## ca video, ca location, cookie
+## ie video, no dash proxy, no cookie
 
-## ca video, mx location
+## ie video, paramount proxy
 
-## ca video, mx location, cookie
+
+
+
