@@ -16,8 +16,122 @@ import (
    "time"
 )
 
+func get_client(link *url.URL, body []byte) (string, error) {
+   encoding := base64.RawURLEncoding
+   // 1. base64 raw URL decode secret key
+   decoded_key, err := encoding.DecodeString(secret_key)
+   if err != nil {
+      return "", err
+   }
+   // Prepare timestamp as string immediately
+   timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+   body_checksum := sha256.Sum256(body)
+   encoded_body_hash := encoding.EncodeToString(body_checksum[:])
+   // 2. hmac.New(sha256.New, secret key)
+   hash := hmac.New(sha256.New, decoded_key)
+   // 3, 4, 5. Write components to the hasher
+   // link is now a string, so we pass it directly
+   io.WriteString(hash, link.String())
+   io.WriteString(hash, encoded_body_hash)
+   io.WriteString(hash, timestamp)
+   // 6. base64 raw URL encode the hmac sum
+   signature := encoding.EncodeToString(hash.Sum(nil))
+   // Construct final result string using strings.Builder
+   var data strings.Builder
+   data.WriteString("Client key=")
+   data.WriteString(client_key)
+   data.WriteString(",time=")
+   data.WriteString(timestamp)
+   data.WriteString(",sig=")
+   data.WriteString(signature)
+   return data.String(), nil
+}
+
+func FetchTracking(link string) (string, error) {
+   resp, err := http.Get(link)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", errors.New(resp.Status)
+   }
+   var data strings.Builder
+   _, err = io.Copy(&data, resp.Body)
+   if err != nil {
+      return "", err
+   }
+   const start_key = `data-algolia-convert-tracking="`
+   _, after, found := strings.Cut(data.String(), start_key)
+   if !found {
+      return "", fmt.Errorf("attribute key %q not found", start_key)
+   }
+   before, _, found := strings.Cut(after, `"`)
+   if !found {
+      return "", errors.New("could not find closing quote for the attribute")
+   }
+   return before, nil
+}
+
 func join(items ...string) string {
    return strings.Join(items, "")
+}
+
+type Episode struct {
+   Desc   string
+   Id     string
+   Params struct {
+      SeriesEpisode int
+   }
+   Title string
+}
+
+func (e *Episode) String() string {
+   var data strings.Builder
+   data.WriteString("episode = ")
+   data.WriteString(strconv.Itoa(e.Params.SeriesEpisode))
+   data.WriteString("\ntitle = ")
+   data.WriteString(e.Title)
+   data.WriteString("\ndesc = ")
+   data.WriteString(e.Desc)
+   data.WriteString("\ntracking = ")
+   data.WriteString(e.Id)
+   return data.String()
+}
+
+type Login struct {
+   Label    string
+   Message  string
+   SsoToken string // this last one day
+}
+
+func (l *Login) Error() string {
+   var data strings.Builder
+   data.WriteString("label = ")
+   data.WriteString(l.Label)
+   data.WriteString("\nmessage = ")
+   data.WriteString(l.Message)
+   return data.String()
+}
+
+type Player struct {
+   Drm struct {
+      LicenseUrl string
+   }
+   Message   string
+   Subtitles []struct {
+      Url string
+   }
+   Url string // MPD
+}
+
+func (p *Player) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
 
 func (s *Session) Fetch(ssoToken string) error {
@@ -86,8 +200,6 @@ func (s *Session) Player(tracking string) (*Player, error) {
    return &result, nil
 }
 
-///
-
 type Session struct {
    Message  string
    SsoToken string
@@ -127,6 +239,8 @@ func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
    }
    return result.Assets, nil
 }
+
+///
 
 func (t *Ticket) Login(username, password string) (*Login, error) {
    data, err := json.Marshal(map[string]any{
@@ -238,117 +352,3 @@ const (
    client_key = "web.NhFyz4KsZ54"
    secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
 )
-
-func get_client(link *url.URL, body []byte) (string, error) {
-   encoding := base64.RawURLEncoding
-   // 1. base64 raw URL decode secret key
-   decoded_key, err := encoding.DecodeString(secret_key)
-   if err != nil {
-      return "", err
-   }
-   // Prepare timestamp as string immediately
-   timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-   body_checksum := sha256.Sum256(body)
-   encoded_body_hash := encoding.EncodeToString(body_checksum[:])
-   // 2. hmac.New(sha256.New, secret key)
-   hash := hmac.New(sha256.New, decoded_key)
-   // 3, 4, 5. Write components to the hasher
-   // link is now a string, so we pass it directly
-   io.WriteString(hash, link.String())
-   io.WriteString(hash, encoded_body_hash)
-   io.WriteString(hash, timestamp)
-   // 6. base64 raw URL encode the hmac sum
-   signature := encoding.EncodeToString(hash.Sum(nil))
-   // Construct final result string using strings.Builder
-   var data strings.Builder
-   data.WriteString("Client key=")
-   data.WriteString(client_key)
-   data.WriteString(",time=")
-   data.WriteString(timestamp)
-   data.WriteString(",sig=")
-   data.WriteString(signature)
-   return data.String(), nil
-}
-
-func FetchTracking(link string) (string, error) {
-   resp, err := http.Get(link)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return "", errors.New(resp.Status)
-   }
-   var data strings.Builder
-   _, err = io.Copy(&data, resp.Body)
-   if err != nil {
-      return "", err
-   }
-   const start_key = `data-algolia-convert-tracking="`
-   _, after, found := strings.Cut(data.String(), start_key)
-   if !found {
-      return "", fmt.Errorf("attribute key %q not found", start_key)
-   }
-   before, _, found := strings.Cut(after, `"`)
-   if !found {
-      return "", errors.New("could not find closing quote for the attribute")
-   }
-   return before, nil
-}
-
-type Episode struct {
-   Desc   string
-   Id     string
-   Params struct {
-      SeriesEpisode int
-   }
-   Title string
-}
-
-func (e *Episode) String() string {
-   var data strings.Builder
-   data.WriteString("episode = ")
-   data.WriteString(strconv.Itoa(e.Params.SeriesEpisode))
-   data.WriteString("\ntitle = ")
-   data.WriteString(e.Title)
-   data.WriteString("\ndesc = ")
-   data.WriteString(e.Desc)
-   data.WriteString("\ntracking = ")
-   data.WriteString(e.Id)
-   return data.String()
-}
-
-type Login struct {
-   Label    string
-   Message  string
-   SsoToken string // this last one day
-}
-
-func (l *Login) Error() string {
-   var data strings.Builder
-   data.WriteString("label = ")
-   data.WriteString(l.Label)
-   data.WriteString("\nmessage = ")
-   data.WriteString(l.Message)
-   return data.String()
-}
-
-type Player struct {
-   Drm struct {
-      LicenseUrl string
-   }
-   Message   string
-   Subtitles []struct {
-      Url string
-   }
-   Url string // MPD
-}
-
-func (p *Player) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(p.Drm.LicenseUrl, "", bytes.NewReader(data))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}

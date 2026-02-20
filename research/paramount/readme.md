@@ -32,8 +32,6 @@ https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
 https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
----------------------------------------------------------------------------------
-
 ## us video, dash proxy, cookie
 
 ## ie video, no paramount proxy
