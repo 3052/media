@@ -25,6 +25,16 @@ func (v *VideoResource) Dash() (*Dash, error) {
    return &result, nil
 }
 
+type VideoResource struct {
+   LicenseServer *struct {
+      Url string
+   } `json:"license_server"`
+   Manifest struct {
+      Url string // MPD
+   }
+   Type string
+}
+
 type Dash struct {
    Body []byte
    Url  *url.URL
@@ -60,16 +70,6 @@ func (c *Content) Fetch(id int) error {
       return errors.New("no video resources found")
    }
    return nil
-}
-
-type VideoResource struct {
-   LicenseServer *struct {
-      Url string
-   } `json:"license_server"`
-   Manifest struct {
-      Url string // MPD
-   }
-   Type string
 }
 
 type Content struct {

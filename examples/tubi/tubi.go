@@ -11,6 +11,25 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_tubi() error {
+   var content tubi.Content
+   err := content.Fetch(c.tubi)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.VideoResource = &content.VideoResources[0]
+   cache.Dash, err = cache.VideoResource.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".mp4"
@@ -46,11 +65,9 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   // 1
    if c.tubi >= 1 {
       return c.do_tubi()
    }
-   // 2
    if c.dash != "" {
       return c.do_dash()
    }
@@ -58,25 +75,6 @@ func (c *command) run() error {
       {"t"},
       {"d", "c", "p"},
    })
-}
-
-func (c *command) do_tubi() error {
-   var content tubi.Content
-   err := content.Fetch(c.tubi)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.Dash, err = cache.VideoResource.Dash()
-   if err != nil {
-      return err
-   }
-   cache.VideoResource = &content.VideoResources[0]
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
 type command struct {
