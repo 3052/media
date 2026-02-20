@@ -17,6 +17,23 @@ import (
    "strings"
 )
 
+var AppSecrets = []struct {
+   Version   string
+   ComCbsApp string
+   ComCbsCa  string
+}{
+   {
+      Version:   "16.4.1",
+      ComCbsApp: "7cd07f93a6e44cf7",
+      ComCbsCa:  "68b4475a49bed95a",
+   },
+   {
+      Version:   "16.0.0",
+      ComCbsApp: "9fc14cb03691c342",
+      ComCbsCa:  "6c68178445de8138",
+   },
+}
+
 // Content holds extracted data from a Paramount+ URL.
 type Content struct {
    ID          string
@@ -331,20 +348,4 @@ func Widevine(at, contentId string) (*SessionToken, error) {
       return nil, err
    }
    return &result, nil
-}
-
-var AppSecrets = []struct {
-   ComCbsApp string
-   ComCbsCa  string
-   Version   string
-}{
-   {
-      ComCbsApp: "9fc14cb03691c342",
-      ComCbsCa:  "6c68178445de8138",
-      Version:   "16.0.0",
-   },
-   {
-      ComCbsCa:  "4a81a3c936f63cd5",
-      Version:   "15.5.0",
-   },
 }

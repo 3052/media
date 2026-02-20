@@ -11,6 +11,13 @@ import (
    "path/filepath"
 )
 
+func (c *command) app_secret() string {
+   if c.intl {
+      return paramount.AppSecrets[0].ComCbsCa
+   }
+   return paramount.AppSecrets[0].ComCbsApp
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -74,13 +81,6 @@ func (c *command) do_username_password() error {
       return err
    }
    return maya.Write(c.name, &cache)
-}
-
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.ComCbsCa.AppSecret
-   }
-   return paramount.ComCbsApp.AppSecret
 }
 
 type user_cache struct {

@@ -217,6 +217,11 @@ func (c *Client) Playback(id int) ([]DataSource, http.Header, error) {
    return result.Data.PlaybackJsonData.Sources, resp.Header, nil
 }
 
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func GetDash(sources []DataSource) (*DataSource, error) {
    for _, source := range sources {
       if source.Type == "application/dash+xml" {
@@ -225,8 +230,6 @@ func GetDash(sources []DataSource) (*DataSource, error) {
    }
    return nil, errors.New("dash source not found")
 }
-
-///
 
 func (d *DataSource) Widevine(bcJwt string, data []byte) ([]byte, error) {
    req, err := http.NewRequest(
@@ -359,9 +362,4 @@ func (n *Node) ExtractSeasons() ([]*Metadata, error) {
    }
    // If all loops complete without returning, the target was not found.
    return nil, errors.New("could not find the seasons list within the manifest")
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
 }
