@@ -11,6 +11,48 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   at, err := paramount.GetAt(c.app_secret())
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   username string
+   password string
+   // 1, 2
+   intl bool
+   // 2
+   paramount string
+   proxy     string
+   // 3
+   dash   string
+   cookie bool
+   job    maya.PlayReadyJob
+}
 func (c *command) app_secret() string {
    if c.intl {
       return paramount.AppSecrets[0].ComCbsCa
@@ -114,47 +156,4 @@ func (c *command) do_paramount() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func (c *command) do_dash() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   username string
-   password string
-   // 1, 2
-   intl bool
-   // 2
-   paramount string
-   proxy     string
-   // 3
-   dash   string
-   cookie bool
-   job    maya.PlayReadyJob
 }

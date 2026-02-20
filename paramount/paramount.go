@@ -17,6 +17,82 @@ import (
    "strings"
 )
 
+// WARNING IF YOU RUN THIS TOO MANY TIMES YOU WILL GET AN IP BAN. HOWEVER THE BAN
+// IS ONLY FOR THE ANDROID CLIENT NOT WEB CLIENT
+func Login(at, username, password string) (*http.Cookie, error) {
+   data := url.Values{
+      "j_username": {username},
+      "j_password": {password},
+   }.Encode()
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.paramountplus.com",
+      Path:     "/apps-api/v2.0/androidphone/auth/login.json",
+      RawQuery: url.Values{"at": {at}}.Encode(),
+   }
+   req.Header = http.Header{}
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   // randomly fails if this is missing
+   req.Header.Set("user-agent", "!")
+   req.Body = io.NopCloser(strings.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   _, err = io.Copy(io.Discard, resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "CBS_COM" {
+         return cookie, nil
+      }
+   }
+   return nil, http.ErrNoCookie
+}
+
+func FetchItem(at, cId string) (*Item, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.paramountplus.com",
+      Path:     join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
+      RawQuery: url.Values{"at": {at}}.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK { // error 403 406
+      if len(data) >= 1 {
+         return nil, errors.New(string(data))
+      }
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.ItemList) == 0 { // error 200
+      return nil, errors.New(string(data))
+   }
+   return &result.ItemList[0], nil
+}
 // 1080p SL2000
 // 1440p SL2000 + cookie
 func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
@@ -88,6 +164,7 @@ func Widevine(at, contentId string) (*SessionToken, error) {
    }
    return &result, nil
 }
+
 var AppSecrets = []struct {
    Version   string
    ComCbsApp string
@@ -273,78 +350,4 @@ type Dash struct {
 type Item struct {
    CmsAccountId string
    ContentId    string
-}
-
-// WARNING IF YOU RUN THIS TOO MANY TIMES YOU WILL GET AN IP BAN. HOWEVER THE BAN
-// IS ONLY FOR THE ANDROID CLIENT NOT WEB CLIENT
-func Login(at, username, password string) (*http.Cookie, error) {
-   data := url.Values{
-      "j_username": {username},
-      "j_password": {password},
-   }.Encode()
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.paramountplus.com",
-      Path:     "/apps-api/v2.0/androidphone/auth/login.json",
-      RawQuery: url.Values{"at": {at}}.Encode(),
-   }
-   req.Header = http.Header{}
-   req.Header.Set("content-type", "application/x-www-form-urlencoded")
-   // randomly fails if this is missing
-   req.Header.Set("user-agent", "!")
-   req.Body = io.NopCloser(strings.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   _, err = io.Copy(io.Discard, resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "CBS_COM" {
-         return cookie, nil
-      }
-   }
-   return nil, http.ErrNoCookie
-}
-
-func FetchItem(at, cId string) (*Item, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.paramountplus.com",
-      Path:     join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
-      RawQuery: url.Values{"at": {at}}.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK { // error 403 406
-      if len(data) >= 1 {
-         return nil, errors.New(string(data))
-      }
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.ItemList) == 0 { // error 200
-      return nil, errors.New(string(data))
-   }
-   return &result.ItemList[0], nil
 }

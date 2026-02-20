@@ -11,6 +11,32 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   ContentId string
+   Cookie    *http.Cookie
+   Dash      *paramount.Dash
+}
+
 func main() {
    err := new(command).run()
    if err != nil {
@@ -65,26 +91,8 @@ func (c *command) run() error {
    })
 }
 
-type command struct {
-   name string
-   // 1
-   username string
-   password string
-   // 2
-   paramount string
-   // 2, 3
-   proxy string
-   // 3
-   dash string
-   cookie bool
-   job  maya.PlayReadyJob
-}
-
-///
-
 func (c *command) do_username_password() error {
-   
-   at, err := paramount.GetAt(c.app_secret())
+   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
    if err != nil {
       return err
    }
@@ -96,21 +104,19 @@ func (c *command) do_username_password() error {
    return maya.Write(c.name, &cache)
 }
 
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
-   if err != nil {
-      return err
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, nil)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+type command struct {
+   name string
+   // 1
+   username string
+   password string
+   // 2
+   paramount string
+   // 2, 3
+   proxy string
+   // 3
+   dash   string
+   cookie bool
+   job    maya.PlayReadyJob
 }
 
 func (c *command) do_paramount() error {
@@ -133,9 +139,4 @@ func (c *command) do_paramount() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-type user_cache struct {
-   ContentId string
-   Dash      *paramount.Dash
 }
