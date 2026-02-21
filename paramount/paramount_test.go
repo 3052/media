@@ -2,13 +2,24 @@ package paramount
 
 import "testing"
 
-var resolved = []string{
-   "https://paramountplus.com/gb/movies/video/3DcGhIoTusoQFB_YLGCtLvefraLxuZMJ",
-   "https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ",
-   "https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q",
-   "https://paramountplus.com/shows/video/esJvFlqdrcS_kFHnpxSuYp449E7tTexD",
+var videos = []struct {
+   resolution string
+   url        string
+}{
+   {
+      resolution: "2160p",
+      url:        "https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q",
+   },
+   {
+      resolution: "2160p",
+      url:        "https://paramountplus.com/shows/video/esJvFlqdrcS_kFHnpxSuYp449E7tTexD",
+   },
+   {
+      resolution: "2160p",
+      url:        "https://paramountplus.com/gb/movies/video/yh8qG9949D8fvJa0dFmY1C_SilOYt2hS",
+   },
 }
 
-func TestResolve(t *testing.T) {
-   t.Log(resolved)
+func Test(t *testing.T) {
+   t.Log(videos)
 }

@@ -17,6 +17,78 @@ import (
    "strings"
 )
 
+// 1080p SL2000
+// 1440p SL2000 + cookie
+func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{}
+   req.URL.Scheme = "https"
+   req.URL.Host = "www.paramountplus.com"
+   req.URL.RawQuery = url.Values{
+      "at":        {at},
+      "contentId": {contentId},
+   }.Encode()
+   if cookie != nil {
+      req.AddCookie(cookie)
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/session-token.json"
+   } else {
+      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json"
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result SessionToken
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Errors != "" {
+      return nil, errors.New(result.Errors)
+   }
+   return &result, nil
+}
+
+type SessionToken struct {
+   Errors string
+   LsSession string `json:"ls_session"`
+   Url       string
+}
+
+func FetchAppSecret() (string, error) {
+   resp, err := http.Head("https://www.paramountplus.com")
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   switch resp.Header.Get("x-real-server") {
+   case "us_www_web_prod_vip1":
+      return AppSecrets[0].Us, nil
+   case "international_www_web_prod_vip1":
+      return AppSecrets[0].International, nil
+   }
+   return "", errors.New("unexpected or missing server header value")
+}
+
+var AppSecrets = []struct {
+   Version       string
+   Us            string
+   International string
+}{
+   {
+      Version:       "16.4.1",
+      Us:            "7cd07f93a6e44cf7",
+      International: "68b4475a49bed95a",
+   },
+   {
+      Version:       "16.0.0",
+      Us:            "9fc14cb03691c342",
+      International: "6c68178445de8138",
+   },
+}
+
 type Dash struct {
    Body []byte
    Url  *url.URL
@@ -102,45 +174,6 @@ func FetchItem(at, cId string) (*Item, error) {
       return nil, errors.New(string(data))
    }
    return &result.ItemList[0], nil
-}
-
-// 1080p SL2000
-// 1440p SL2000 + cookie
-func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{}
-   req.URL.Scheme = "https"
-   req.URL.Host = "www.paramountplus.com"
-   req.URL.RawQuery = url.Values{
-      "at":        {at},
-      "contentId": {contentId},
-   }.Encode()
-   if cookie != nil {
-      req.AddCookie(cookie)
-      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/session-token.json"
-   } else {
-      req.URL.Path = "/apps-api/v3.1/xboxone/irdeto-control/anonymous-session-token.json"
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var data strings.Builder
-      err = resp.Write(&data)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(data.String())
-   }
-   defer resp.Body.Close()
-   var result SessionToken
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result, nil
 }
 
 // 576p L3
@@ -259,11 +292,6 @@ func pkcs7_pad(data []byte, blockSize int) []byte {
       data = append(data, padByte)
    }
    return data
-}
-
-type SessionToken struct {
-   LsSession string `json:"ls_session"`
-   Url       string
 }
 
 func (i *Item) Dash() (*Dash, error) {
