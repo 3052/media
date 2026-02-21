@@ -76,7 +76,8 @@ us:
 sources\com\cbs\app\config\UsaMobileAppConfigProvider.java
 ~~~
 
-https://apkmirror.com/apk/cbs-interactive-inc/paramount
+- https://apkmirror.com/apk/cbs-interactive-inc/paramount
+- https://play.google.com/store/apps/details?id=com.cbs.app
 
 international:
 
@@ -84,4 +85,5 @@ international:
 sources/com/cbs/app/config/DefaultAppSecretProvider.java
 ~~~
 
-https://apkmirror.com/apk/viacomcbs-streaming/paramount-android-tv
+- https://apkmirror.com/apk/viacomcbs-streaming/paramount-android-tv
+- https://play.google.com/store/apps/details?id=com.cbs.ca

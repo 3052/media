@@ -42,12 +42,15 @@ func Login(at, username, password string) (*http.Cookie, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   _, err = io.Copy(io.Discard, resp.Body)
+   var result struct {
+      Message string
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
    }
    for _, cookie := range resp.Cookies() {
       if cookie.Name == "CBS_COM" {

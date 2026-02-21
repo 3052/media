@@ -43,6 +43,22 @@ query axisContent($id: ID!) {
 }
 `
 
+// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
+func GetPath(rawLink string) (string, error) {
+   link, err := url.Parse(rawLink)
+   if err != nil {
+      return "", err
+   }
+   if link.Scheme == "" {
+      return "", errors.New("invalid URL: scheme is missing")
+   }
+   return link.Path, nil
+}
+
+func join(items ...string) string {
+   return strings.Join(items, "")
+}
+
 func Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       "https://license.9c9media.ca/widevine", "application/x-protobuf",
@@ -260,22 +276,4 @@ func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
       return nil, errors.New(result.Errors[0].Message)
    }
    return &result.Data.AxisContent, nil
-}
-
-///
-
-// https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func GetPath(rawLink string) (string, error) {
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return "", err
-   }
-   if link.Scheme == "" {
-      return "", errors.New("invalid URL: scheme is missing")
-   }
-   return link.Path, nil
-}
-
-func join(items ...string) string {
-   return strings.Join(items, "")
 }

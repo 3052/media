@@ -11,6 +11,23 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_username_password() error {
+   app_secret, err := paramount.FetchAppSecret()
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(app_secret)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Cookie, err = paramount.Login(at, c.username, c.password)
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, &cache)
+}
+
 func (c *command) do_paramount() error {
    app_secret, err := paramount.FetchAppSecret()
    if err != nil {
@@ -136,17 +153,4 @@ func (c *command) do_dash() error {
    }
    c.job.Send = token.Send
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func (c *command) do_username_password() error {
-   at, err := paramount.GetAt(paramount.AppSecrets[0].Us)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.Cookie, err = paramount.Login(at, c.username, c.password)
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, &cache)
 }

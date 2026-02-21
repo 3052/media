@@ -11,6 +11,17 @@ import (
    "strings"
 )
 
+type Account struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // Account
+         }
+      }
+   }
+}
+
 func (a *Account) Stream(mediaId string) (*Stream, error) {
    playback_id, err := json.Marshal(map[string]string{
       "mediaId": mediaId,
@@ -94,16 +105,60 @@ type AccountWithoutActiveProfile struct {
    }
 }
 
-type Account struct {
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // Account
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (s Season) String() string {
+   var (
+      data strings.Builder
+      line bool
+   )
+   for _, item := range s.Items {
+      for _, action := range item.Actions {
+         if line {
+            data.WriteByte('\n')
+         } else {
+            line = true
          }
+         data.WriteString("title = ")
+         data.WriteString(action.InternalTitle)
+      }
+   }
+   return data.String()
+}
+
+type Season struct {
+   Items []struct {
+      Actions []struct {
+         InternalTitle string
       }
    }
 }
+
+func (s *Stream) Hls() (*Hls, error) {
+   resp, err := http.Get(s.Sources[0].Complete.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Hls{data, resp.Request.URL}, nil
+}
+
+type Stream struct {
+   Sources []struct {
+      Complete struct {
+         Url string
+      }
+   }
+}
+
+///
 
 func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
    data, err := json.Marshal(map[string]any{
@@ -481,58 +536,5 @@ type Device struct {
       AccessToken     string
       RefreshToken    string
       AccessTokenType string // Device
-   }
-}
-
-func (s Season) String() string {
-   var (
-      data strings.Builder
-      line bool
-   )
-   for _, item := range s.Items {
-      for _, action := range item.Actions {
-         if line {
-            data.WriteByte('\n')
-         } else {
-            line = true
-         }
-         data.WriteString("title = ")
-         data.WriteString(action.InternalTitle)
-      }
-   }
-   return data.String()
-}
-
-type Season struct {
-   Items []struct {
-      Actions []struct {
-         InternalTitle string
-      }
-   }
-}
-
-type Hls struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (s *Stream) Hls() (*Hls, error) {
-   resp, err := http.Get(s.Sources[0].Complete.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Hls{data, resp.Request.URL}, nil
-}
-
-type Stream struct {
-   Sources []struct {
-      Complete struct {
-         Url string
-      }
    }
 }
