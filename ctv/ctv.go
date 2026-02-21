@@ -11,6 +11,38 @@ import (
    "strings"
 )
 
+const query_resolve_path = `
+query resolvePath($path: String!) {
+   resolvedPath(path: $path) {
+      lastSegment {
+         content {
+            ... on AxisObject {
+               id
+               ... on AxisMedia {
+                  firstPlayableContent {
+                     id
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+`
+
+const query_axis_content = `
+query axisContent($id: ID!) {
+   axisContent(id: $id) {
+      axisId
+      axisPlaybackLanguages {
+         ... on AxisPlayback {
+            destinationCode
+         }
+      }
+   }
+}
+`
+
 func Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       "https://license.9c9media.ca/widevine", "application/x-protobuf",
@@ -24,6 +56,79 @@ func Widevine(data []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
+}
+
+type AxisContent struct {
+   AxisId                int
+   AxisPlaybackLanguages []struct {
+      DestinationCode string
+   }
+}
+
+func (a *AxisContent) Playback() (*Playback, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "capi.9c9media.com",
+      RawQuery: "$include=[ContentPackages]",
+      Path: join(
+         "/destinations/",
+         a.AxisPlaybackLanguages[0].DestinationCode,
+         "/platforms/desktop/contents/",
+         strconv.Itoa(a.AxisId),
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Playback{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "capi.9c9media.com",
+      RawQuery: "action=reference",
+      Path: join(
+         "/destinations/",
+         a.AxisPlaybackLanguages[0].DestinationCode,
+         "/platforms/desktop/playback/contents/",
+         strconv.Itoa(a.AxisId),
+         "/contentPackages/",
+         strconv.Itoa(play.ContentPackages[0].Id),
+         "/manifest.mpd",
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Message string
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(result.Message)
+   }
+   return data, nil
 }
 
 type Dash struct {
@@ -46,6 +151,12 @@ func (m Manifest) Dash() (*Dash, error) {
    }
    result.Url = resp.Request.URL
    return &result, nil
+}
+
+type Playback struct {
+   ContentPackages []struct {
+      Id int
+   }
 }
 
 func Resolve(path string) (*ResolvedPath, error) {
@@ -153,38 +264,6 @@ func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
 
 ///
 
-const query_resolve_path = `
-query resolvePath($path: String!) {
-   resolvedPath(path: $path) {
-      lastSegment {
-         content {
-            ... on AxisObject {
-               id
-               ... on AxisMedia {
-                  firstPlayableContent {
-                     id
-                  }
-               }
-            }
-         }
-      }
-   }
-}
-`
-
-const query_axis_content = `
-query axisContent($id: ID!) {
-   axisContent(id: $id) {
-      axisId
-      axisPlaybackLanguages {
-         ... on AxisPlayback {
-            destinationCode
-         }
-      }
-   }
-}
-`
-
 // https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
 func GetPath(rawLink string) (string, error) {
    link, err := url.Parse(rawLink)
@@ -199,83 +278,4 @@ func GetPath(rawLink string) (string, error) {
 
 func join(items ...string) string {
    return strings.Join(items, "")
-}
-
-type AxisContent struct {
-   AxisId                int
-   AxisPlaybackLanguages []struct {
-      DestinationCode string
-   }
-}
-
-func (a *AxisContent) Playback() (*Playback, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "capi.9c9media.com",
-      RawQuery: "$include=[ContentPackages]",
-      Path: join(
-         "/destinations/",
-         a.AxisPlaybackLanguages[0].DestinationCode,
-         "/platforms/desktop/contents/",
-         strconv.Itoa(a.AxisId),
-      ),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Playback{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
-func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "capi.9c9media.com",
-      RawQuery: "action=reference",
-      Path: join(
-         "/destinations/",
-         a.AxisPlaybackLanguages[0].DestinationCode,
-         "/platforms/desktop/playback/contents/",
-         strconv.Itoa(a.AxisId),
-         "/contentPackages/",
-         strconv.Itoa(play.ContentPackages[0].Id),
-         "/manifest.mpd",
-      ),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Message string
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(result.Message)
-   }
-   return data, nil
-}
-
-type Playback struct {
-   ContentPackages []struct {
-      Id int
-   }
 }
