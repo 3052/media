@@ -10,16 +10,6 @@ import (
    "strings"
 )
 
-func (s *Stream) Dash() (*MediaLink, error) {
-   for i := range s.Links {
-      if s.Links[i].MimeType == "application/dash+xml" {
-         return &s.Links[i], nil
-      }
-   }
-   // Create and return the error directly.
-   return nil, errors.New("DASH link not found")
-}
-
 func (m *MediaLink) Dash() (*Dash, error) {
    resp, err := http.Get(m.Url)
    if err != nil {
@@ -34,6 +24,18 @@ func (m *MediaLink) Dash() (*Dash, error) {
    result.Url = resp.Request.URL
    return &result, nil
 }
+
+func (s *Stream) Dash() (*MediaLink, error) {
+   for i := range s.Links {
+      if s.Links[i].MimeType == "application/dash+xml" {
+         return &s.Links[i], nil
+      }
+   }
+   // Create and return the error directly.
+   return nil, errors.New("DASH link not found")
+}
+
+///
 
 type Dash struct {
    Body []byte

@@ -16,6 +16,14 @@ import (
    "time"
 )
 
+const device_serial = "!!!!"
+
+// Global variables for authentication
+const (
+   client_key = "web.NhFyz4KsZ54"
+   secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
 func get_client(link *url.URL, body []byte) (string, error) {
    encoding := base64.RawURLEncoding
    // 1. base64 raw URL decode secret key
@@ -77,6 +85,11 @@ func join(items ...string) string {
    return strings.Join(items, "")
 }
 
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 type Episode struct {
    Desc   string
    Id     string
@@ -123,6 +136,21 @@ type Player struct {
       Url string
    }
    Url string // MPD
+}
+
+func (p *Player) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
 }
 
 func (p *Player) Widevine(data []byte) ([]byte, error) {
@@ -240,8 +268,6 @@ func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
    return result.Assets, nil
 }
 
-///
-
 func (t *Ticket) Login(username, password string) (*Login, error) {
    data, err := json.Marshal(map[string]any{
       "ticket": t.Ticket,
@@ -324,31 +350,3 @@ type Ticket struct {
    Message string
    Ticket  string
 }
-
-func (p *Player) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-const device_serial = "!!!!"
-
-// Global variables for authentication
-const (
-   client_key = "web.NhFyz4KsZ54"
-   secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)

@@ -109,6 +109,7 @@ func (c *command) do_paramount() error {
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
+
 func (c *command) do_dash() error {
    at, err := paramount.GetAt(c.app_secret())
    if err != nil {

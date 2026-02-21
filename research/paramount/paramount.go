@@ -11,32 +11,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   var at string
-   if c.cookie {
-      at, err = paramount.GetAt(paramount.AppSecrets[0].Us)
-      if err != nil {
-         return err
-      }
-   } else {
-      at, err = paramount.GetAt(paramount.AppSecrets[0].Us)
-      if err != nil {
-         return err
-      }
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
 func (c *command) do_paramount() error {
    app_secret, err := paramount.FetchAppSecret()
    if err != nil {
@@ -50,7 +24,10 @@ func (c *command) do_paramount() error {
    if err != nil {
       return err
    }
-   var cache user_cache
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      cache = &user_cache{}
+   }
    cache.Dash, err = item.Dash()
    if err != nil {
       return err
@@ -61,19 +38,6 @@ func (c *command) do_paramount() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func (c *command) do_username_password() error {
-   at, err := paramount.GetAt(paramount.AppSecrets[0].Us)
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.Cookie, err = paramount.Login(at, c.username, c.password)
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, &cache)
 }
 
 type command struct {
@@ -149,4 +113,40 @@ func (c *command) run() error {
       {"p", "x"},
       {"d", "c", "x", "C", "E"},
    })
+}
+func (c *command) do_dash() error {
+   app_secret, err := paramount.FetchAppSecret()
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(app_secret)
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func (c *command) do_username_password() error {
+   at, err := paramount.GetAt(paramount.AppSecrets[0].Us)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Cookie, err = paramount.Login(at, c.username, c.password)
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, &cache)
 }

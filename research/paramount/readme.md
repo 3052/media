@@ -1,60 +1,67 @@
 # paramount
 
-## us video, no paramount proxy
+## US video, no paramount proxy
 
 https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
 pass
 
-## us video, paramount proxy
+## US video, paramount proxy
 
 https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
-1. VPN CA
+1. VPN GB
 2. pass
 
-## us video, no dash proxy, no cookie
+## US video, no dash proxy, no cookie
 
 https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
 1. no cookie so 1080p
 2. pass
 
-## us video, dash proxy, no cookie
+## US video, dash proxy, no cookie
 
 https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
-1. VPN CA
+1. VPN GB
 2. pass
 
-## us account, no sign in proxy
+## US account, no sign in proxy
 
 pass
 
-## us account, sign in proxy
+## US account, sign in proxy
 
 pass
 
-## gb video, no paramount proxy
+## international video, no paramount proxy
 
 https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
 
 pass
 
-## gb video, paramount proxy
+## international video, paramount proxy
 
 https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
 
 pass
 
-## gb video, no dash proxy, cookie
+## US video, no dash proxy, US cookie
 
-https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
+https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 
-## gb video, dash proxy, cookie
-## gb video, no dash proxy, no cookie
-## gb video, dash proxy, no cookie
-## us video, no dash proxy, cookie
-## us video, dash proxy, cookie
-## ca account, no sign in proxy
-## ca account, sign in proxy
+pass
+
+## US video, dash proxy, US cookie
+
+https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
+
+pass
+
+## international account, no sign in proxy
+## international account, sign in proxy
+## international video, dash proxy, international cookie
+## international video, dash proxy, no cookie
+## international video, no dash proxy, international cookie
+## international video, no dash proxy, no cookie
