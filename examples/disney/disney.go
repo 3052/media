@@ -12,20 +12,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return "", false
-      }
-      return "", true
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -49,6 +35,13 @@ func (c *command) run() error {
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return "", false
+      }
+      return c.proxy, true
+   })
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
@@ -142,20 +135,11 @@ func (c *command) do_media_id() error {
    return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
 }
 
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   season string
-   // 4
-   media_id string
-   // 5
-   hls string
-   job maya.PlayReadyJob
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 func (c *command) do_hls() error {
@@ -170,4 +154,21 @@ func (c *command) do_hls() error {
 type user_cache struct {
    Account *disney.Account
    Hls     *disney.Hls
+}
+
+type command struct {
+   name string
+   // 1
+   email    string
+   password string
+   proxy    string
+   // 2
+   address string
+   // 3
+   season string
+   // 4
+   media_id string
+   // 5
+   hls string
+   job maya.PlayReadyJob
 }

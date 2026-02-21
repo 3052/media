@@ -1,6 +1,69 @@
 # Paramount+
 
-## paypal.com
+## paypal.com US
+
+1. about:config
+2. general.useragent.override
+3. string
+4. add
+5. Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+6. paramountplus.com
+7. get started
+8. paramount+ premium
+   - continue
+9. full name
+10. email
+   - mail.tm
+11. password
+12. zip code
+13. birthdate
+14. gender
+15. agree & continue
+16. paypal
+17. continue to paypal
+18. agree and continue
+19. buy now
+20. paypal.com/myaccount/autopay
+21. paramount
+22. stop paying with paypal
+23. stop paying with paypal (again)
+24. stop paying with paypal (again again)
+
+## privacy.com GB
+
+1. about:config
+2. general.useragent.override
+3. string
+4. add
+5. Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+6. paramountplus.com
+7. sign up
+8. continue
+9. full name
+10. email
+   - mail.tm
+11. password
+12. by pressing agree & continue, you confirm you have read and agree to the
+   terms of use
+13. agree & continue
+14. continue
+   - 7 days are free
+15. premium
+   - select plan
+16. monthly
+   - continue
+17. address
+18. city
+19. postal code
+20. credit card number
+21. MM
+22. YYYY
+23. CVV
+24. buy now
+
+invalid postal code
+
+## paypal.com US
 
 1. about:config
 2. general.useragent.override
@@ -27,7 +90,7 @@
 21. paramount
 22. stop paying with paypal
 
-## privacy.com
+## privacy.com US
 
 1. about:config
 2. general.useragent.override
