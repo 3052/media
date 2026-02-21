@@ -57,12 +57,15 @@ pass
 
 pass
 
-## international video, no dash proxy, international cookie
+## international video, no dash proxy, no cookie
 
 <https://paramountplus.com/gb/movies/video/yh8qG9949D8fvJa0dFmY1C_SilOYt2hS>
 
-## international video, dash proxy, international cookie
+1. no cookie so 1080p
+2. pass
+
 ## international video, dash proxy, no cookie
-## international video, no dash proxy, no cookie
 ## international account, no sign in proxy
 ## international account, sign in proxy
+## international video, no dash proxy, international cookie
+## international video, dash proxy, international cookie

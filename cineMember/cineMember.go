@@ -10,43 +10,6 @@ import (
    "strings"
 )
 
-func (m *MediaLink) Dash() (*Dash, error) {
-   resp, err := http.Get(m.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-func (s *Stream) Dash() (*MediaLink, error) {
-   for i := range s.Links {
-      if s.Links[i].MimeType == "application/dash+xml" {
-         return &s.Links[i], nil
-      }
-   }
-   // Create and return the error directly.
-   return nil, errors.New("DASH link not found")
-}
-
-///
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type MediaLink struct {
-   MimeType string
-   Url      string
-}
-
 // extracts the numeric ID and converts it to an integer
 func FetchId(link string) (int, error) {
    resp, err := http.Get(link)
@@ -71,6 +34,31 @@ func FetchId(link string) (int, error) {
    }
    // 3. Convert string to integer
    return strconv.Atoi(idStr)
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type MediaLink struct {
+   MimeType string
+   Url      string
+}
+
+func (m *MediaLink) Dash() (*Dash, error) {
+   resp, err := http.Get(m.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
 }
 
 // Fetch performs the HEAD request to cinemember.nl and populates the Session
@@ -157,4 +145,14 @@ type Stream struct {
    Error    string
    Links    []MediaLink
    NoAccess bool
+}
+
+func (s *Stream) Dash() (*MediaLink, error) {
+   for i := range s.Links {
+      if s.Links[i].MimeType == "application/dash+xml" {
+         return &s.Links[i], nil
+      }
+   }
+   // Create and return the error directly.
+   return nil, errors.New("DASH link not found")
 }

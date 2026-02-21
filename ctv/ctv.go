@@ -26,6 +26,13 @@ func Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type Manifest []byte
+
 func (m Manifest) Dash() (*Dash, error) {
    resp, err := http.Get(strings.Replace(string(m), "/best/", "/ultimate/", 1))
    if err != nil {
@@ -41,10 +48,110 @@ func (m Manifest) Dash() (*Dash, error) {
    return &result, nil
 }
 
-type Dash struct {
-   Body []byte
-   Url  *url.URL
+func Resolve(path string) (*ResolvedPath, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": query_resolve_path,
+      "variables": map[string]string{
+         "path": path,
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // you need this for the first request, then can omit
+   req.Header.Set("graphql-client-platform", "entpay_web")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   var result struct {
+      Data struct {
+         ResolvedPath *ResolvedPath
+      }
+   }
+   err = json.Unmarshal(data, &result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Data.ResolvedPath == nil {
+      return nil, errors.New(string(data))
+   }
+   return result.Data.ResolvedPath, nil
 }
+
+type ResolvedPath struct {
+   LastSegment struct {
+      Content struct {
+         FirstPlayableContent *struct {
+            Id string
+         }
+         Id string
+      }
+   }
+}
+
+func (r *ResolvedPath) get_id() string {
+   if fpc := r.LastSegment.Content.FirstPlayableContent; fpc != nil {
+      return fpc.Id
+   }
+   return r.LastSegment.Content.Id
+}
+
+func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": query_axis_content,
+      "variables": map[string]string{
+         "id": r.get_id(),
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   // you need this for the first request, then can omit
+   req.Header.Set("graphql-client-platform", "entpay_web")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         AxisContent AxisContent
+      }
+      Errors []struct {
+         Message string
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, errors.New(result.Errors[0].Message)
+   }
+   return &result.Data.AxisContent, nil
+}
+
+///
 
 const query_resolve_path = `
 query resolvePath($path: String!) {
@@ -167,113 +274,8 @@ func (a *AxisContent) Manifest(play *Playback) (Manifest, error) {
    return data, nil
 }
 
-type Manifest []byte
-
 type Playback struct {
    ContentPackages []struct {
       Id int
    }
-}
-
-func Resolve(path string) (*ResolvedPath, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": query_resolve_path,
-      "variables": map[string]string{
-         "path": path,
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // you need this for the first request, then can omit
-   req.Header.Set("graphql-client-platform", "entpay_web")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   var result struct {
-      Data struct {
-         ResolvedPath *ResolvedPath
-      }
-   }
-   err = json.Unmarshal(data, &result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Data.ResolvedPath == nil {
-      return nil, errors.New(string(data))
-   }
-   return result.Data.ResolvedPath, nil
-}
-
-type ResolvedPath struct {
-   LastSegment struct {
-      Content struct {
-         FirstPlayableContent *struct {
-            Id string
-         }
-         Id string
-      }
-   }
-}
-
-func (r *ResolvedPath) get_id() string {
-   if fpc := r.LastSegment.Content.FirstPlayableContent; fpc != nil {
-      return fpc.Id
-   }
-   return r.LastSegment.Content.Id
-}
-
-func (r *ResolvedPath) AxisContent() (*AxisContent, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": query_axis_content,
-      "variables": map[string]string{
-         "id": r.get_id(),
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://www.ctv.ca/space-graphql/apq/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   // you need this for the first request, then can omit
-   req.Header.Set("graphql-client-platform", "entpay_web")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         AxisContent AxisContent
-      }
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, errors.New(result.Errors[0].Message)
-   }
-   return &result.Data.AxisContent, nil
 }

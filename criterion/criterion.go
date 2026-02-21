@@ -10,13 +10,41 @@ import (
    "strings"
 )
 
-func (m MediaFiles) Dash() (*MediaFile, error) {
-   for _, file := range m {
-      if file.Method == "dash" {
-         return &file, nil
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+
+func join(items ...string) string {
+   return strings.Join(items, "")
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type MediaFile struct {
+   DrmAuthorizationToken string `json:"drm_authorization_token"`
+   Links                 struct {
+      Source struct {
+         Href string // MPD
       }
+   } `json:"_links"`
+   Method string
+}
+
+func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
    }
-   return nil, errors.New("DASH media file not found")
+   req.URL.RawQuery = "token=" + m.DrmAuthorizationToken
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
 }
 
 func (m *MediaFile) Dash() (*Dash, error) {
@@ -34,9 +62,15 @@ func (m *MediaFile) Dash() (*Dash, error) {
    return &result, nil
 }
 
-type Dash struct {
-   Body []byte
-   Url  *url.URL
+type MediaFiles []MediaFile
+
+func (m MediaFiles) Dash() (*MediaFile, error) {
+   for _, file := range m {
+      if file.Method == "dash" {
+         return &file, nil
+      }
+   }
+   return nil, errors.New("DASH media file not found")
 }
 
 func (t *Token) GetError() error {
@@ -141,40 +175,6 @@ func (t *Token) Item(slug string) (*VideoItem, error) {
    }
    return &result.Embedded.Items[0], nil
 }
-
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
-
-func join(items ...string) string {
-   return strings.Join(items, "")
-}
-
-type MediaFile struct {
-   DrmAuthorizationToken string `json:"drm_authorization_token"`
-   Links                 struct {
-      Source struct {
-         Href string // MPD
-      }
-   } `json:"_links"`
-   Method string
-}
-
-func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://drm.vhx.com/v2/widevine", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.URL.RawQuery = "token=" + m.DrmAuthorizationToken
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type MediaFiles []MediaFile
 
 type VideoItem struct {
    Links struct {

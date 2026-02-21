@@ -52,7 +52,7 @@ func PlayReady(at, contentId string, cookie *http.Cookie) (*SessionToken, error)
 }
 
 type SessionToken struct {
-   Errors string
+   Errors    string
    LsSession string `json:"ls_session"`
    Url       string
 }
