@@ -35,14 +35,26 @@ pass
 
 pass
 
-## ie video, no paramount proxy
+## gb video, no paramount proxy
 
-## ie video, paramount proxy
-## ie video, dash proxy, cookie
-## ie video, dash proxy, no cookie
-## ie video, no dash proxy, cookie
-## ie video, no dash proxy, no cookie
+https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
+
+pass
+
+## gb video, paramount proxy
+
+https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
+
+pass
+
+## gb video, no dash proxy, cookie
+
+https://paramountplus.com/gb/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
+
+## gb video, dash proxy, cookie
+## gb video, no dash proxy, no cookie
+## gb video, dash proxy, no cookie
+## us video, no dash proxy, cookie
+## us video, dash proxy, cookie
 ## ca account, no sign in proxy
 ## ca account, sign in proxy
-## us video, dash proxy, cookie
-## us video, no dash proxy, cookie

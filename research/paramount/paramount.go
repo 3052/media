@@ -11,8 +11,34 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   var at string
+   if c.cookie {
+      at, err = paramount.GetAt(paramount.AppSecrets[0].Us)
+      if err != nil {
+         return err
+      }
+   } else {
+      at, err = paramount.GetAt(paramount.AppSecrets[0].Us)
+      if err != nil {
+         return err
+      }
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
 func (c *command) do_paramount() error {
-   app_secret, err := paramount.GetAppSecret()
+   app_secret, err := paramount.FetchAppSecret()
    if err != nil {
       return err
    }
@@ -38,7 +64,7 @@ func (c *command) do_paramount() error {
 }
 
 func (c *command) do_username_password() error {
-   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
+   at, err := paramount.GetAt(paramount.AppSecrets[0].Us)
    if err != nil {
       return err
    }
@@ -76,26 +102,6 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
 func (c *command) run() error {

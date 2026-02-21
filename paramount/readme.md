@@ -145,7 +145,7 @@ SecretKeySpec secretKeySpec = new SecretKeySpec(b("302a6a0d70a7e9b967f91d39fef3e
 
 ## how to get app secret?
 
-com.cbs.app:
+us:
 
 ~~~
 sources\com\cbs\app\config\UsaMobileAppConfigProvider.java
@@ -153,7 +153,7 @@ sources\com\cbs\app\config\UsaMobileAppConfigProvider.java
 
 https://apkmirror.com/apk/cbs-interactive-inc/paramount
 
-com.cbs.ca:
+international:
 
 ~~~
 sources/com/cbs/app/config/DefaultAppSecretProvider.java

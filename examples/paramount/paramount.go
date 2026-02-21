@@ -154,7 +154,7 @@ type command struct {
 
 func (c *command) app_secret() string {
    if c.intl {
-      return paramount.AppSecrets[0].ComCbsCa
+      return paramount.AppSecrets[0].International
    }
-   return paramount.AppSecrets[0].ComCbsApp
+   return paramount.AppSecrets[0].Us
 }

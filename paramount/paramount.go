@@ -17,67 +17,6 @@ import (
    "strings"
 )
 
-func (i *Item) Dash() (*Dash, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "link.theplatform.com",
-      Path: join(
-         "/s/", i.CmsAccountId,
-         "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
-         "/", i.ContentId,
-      ),
-      RawQuery: "formats=MPEG-DASH",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var value struct {
-         Description string
-      }
-      err = json.Unmarshal(data, &value)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(value.Description)
-   }
-   return &Dash{Body: data, Url: resp.Request.URL}, nil
-}
-
-func GetAppSecret() (string, error) {
-   const (
-      targetURL  = "https://www.paramountplus.com"
-      headerName = "x-real-server"
-      usServer   = "us_www_web_prod_vip1"
-      intlServer = "international_www_web_prod_vip1"
-   )
-   // 1. Perform a HEAD request.
-   resp, err := http.Head(targetURL)
-   if err != nil {
-      return "", err
-   }
-   defer resp.Body.Close()
-   // 2. Get the x-real-server response header.
-   serverHeader := resp.Header.Get(headerName)
-   // 3. Check the header value and return the corresponding string.
-   switch serverHeader {
-   case usServer:
-      return AppSecrets[0].ComCbsApp, nil
-   case intlServer:
-      return AppSecrets[0].ComCbsCa, nil
-   }
-   // 4. Else, return an empty string and a static error.
-   return "", errors.New("unexpected or missing server header value")
-}
-
 type Dash struct {
    Body []byte
    Url  *url.URL
@@ -236,22 +175,6 @@ func Widevine(at, contentId string) (*SessionToken, error) {
    }
    return &result, nil
 }
-var AppSecrets = []struct {
-   Version   string
-   ComCbsApp string
-   ComCbsCa  string
-}{
-   {
-      Version:   "16.4.1",
-      ComCbsApp: "7cd07f93a6e44cf7",
-      ComCbsCa:  "68b4475a49bed95a",
-   },
-   {
-      Version:   "16.0.0",
-      ComCbsApp: "9fc14cb03691c342",
-      ComCbsCa:  "6c68178445de8138",
-   },
-}
 
 func (s *SessionToken) Send(data []byte) ([]byte, error) {
    req, err := http.NewRequest("POST", s.Url, bytes.NewReader(data))
@@ -341,4 +264,39 @@ func pkcs7_pad(data []byte, blockSize int) []byte {
 type SessionToken struct {
    LsSession string `json:"ls_session"`
    Url       string
+}
+
+func (i *Item) Dash() (*Dash, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "link.theplatform.com",
+      Path: join(
+         "/s/", i.CmsAccountId,
+         "/media/guid/", strconv.Itoa(cms_account(i.CmsAccountId)),
+         "/", i.ContentId,
+      ),
+      RawQuery: "formats=MPEG-DASH",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         Description string
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.Description)
+   }
+   return &Dash{Body: data, Url: resp.Request.URL}, nil
 }
