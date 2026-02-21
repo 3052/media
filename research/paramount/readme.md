@@ -75,6 +75,9 @@ pass
 
 pass
 
+## international account, sign in proxy
+
+pass
+
 ## international video, no dash proxy, international cookie
 ## international video, dash proxy, international cookie
-## international account, sign in proxy

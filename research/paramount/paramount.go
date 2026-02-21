@@ -11,6 +11,76 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/paramount/userCache.xml"
+   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
+   // 1
+   flag.StringVar(&c.username, "U", "", "username")
+   flag.StringVar(&c.password, "P", "", "password")
+   // 1, 2, 3
+   flag.StringVar(&c.proxy, "x", "", "proxy")
+   // 2
+   flag.StringVar(&c.paramount, "p", "", "paramount ID")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.BoolVar(&c.cookie, "c", false, "cookie")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return "", false
+      }
+      return c.proxy, true
+   })
+   if c.username != "" {
+      if c.password != "" {
+         return c.do_username_password()
+      }
+   }
+   if c.paramount != "" {
+      return c.do_paramount()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"U", "P", "x"},
+      {"p", "x"},
+      {"d", "x", "c", "C", "E"},
+   })
+}
+
+func (c *command) do_dash() error {
+   app_secret, err := paramount.FetchAppSecret()
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(app_secret)
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
 func (c *command) do_username_password() error {
    app_secret, err := paramount.FetchAppSecret()
    if err != nil {
@@ -83,74 +153,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/paramount/userCache.xml"
-   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
-   // 1
-   flag.StringVar(&c.username, "U", "", "username")
-   flag.StringVar(&c.password, "P", "", "password")
-   // 2
-   flag.StringVar(&c.paramount, "p", "", "paramount ID")
-   // 2, 3
-   flag.StringVar(&c.proxy, "x", "", "proxy")
-   // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.BoolVar(&c.cookie, "c", false, "cookie")
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return "", false
-      }
-      return c.proxy, true
-   })
-   if c.username != "" {
-      if c.password != "" {
-         return c.do_username_password()
-      }
-   }
-   if c.paramount != "" {
-      return c.do_paramount()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"U", "P"},
-      {"p", "x"},
-      {"d", "c", "x", "C", "E"},
-   })
-}
-func (c *command) do_dash() error {
-   app_secret, err := paramount.FetchAppSecret()
-   if err != nil {
-      return err
-   }
-   at, err := paramount.GetAt(app_secret)
-   if err != nil {
-      return err
-   }
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
