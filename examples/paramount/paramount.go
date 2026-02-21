@@ -11,55 +11,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   username string
-   password string
-   // 1, 2
-   intl bool
-   // 2
-   paramount string
-   proxy     string
-   // 3
-   dash   string
-   cookie bool
-   job    maya.PlayReadyJob
-}
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.AppSecrets[0].ComCbsCa
-   }
-   return paramount.AppSecrets[0].ComCbsApp
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -70,13 +21,14 @@ func (c *command) run() error {
    c.job.CertificateChain = cache + "/SL2000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    // 1
-   flag.StringVar(&c.username, "username", "", "username")
-   flag.StringVar(&c.password, "password", "", "password")
+   flag.StringVar(&c.username, "U", "", "username")
+   flag.StringVar(&c.password, "P", "", "password")
    // 1, 2
    flag.BoolVar(&c.intl, "i", false, "intl")
    // 2
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
-   flag.StringVar(&c.proxy, "P", "", "proxy")
+   // 2, 3
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
@@ -107,8 +59,8 @@ func (c *command) run() error {
    }
    return maya.Usage([][]string{
       {"U", "P", "i"},
-      {"p", "i"},
-      {"d", "c", "C", "E"},
+      {"p", "x", "i"},
+      {"d", "x", "c", "C", "E"},
    })
 }
 
@@ -156,4 +108,53 @@ func (c *command) do_paramount() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+func (c *command) do_dash() error {
+   at, err := paramount.GetAt(c.app_secret())
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   username string
+   password string
+   // 1, 2
+   intl bool
+   // 2
+   paramount string
+   proxy     string
+   // 3
+   dash   string
+   cookie bool
+   job    maya.PlayReadyJob
+}
+
+func (c *command) app_secret() string {
+   if c.intl {
+      return paramount.AppSecrets[0].ComCbsCa
+   }
+   return paramount.AppSecrets[0].ComCbsApp
 }

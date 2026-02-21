@@ -11,39 +11,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      cache.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
-   if err != nil {
-      return err
-   }
-   c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   ContentId string
-   Cookie    *http.Cookie
-   Dash      *paramount.Dash
-}
-
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -54,12 +21,12 @@ func (c *command) run() error {
    c.job.CertificateChain = cache + "/SL2000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    // 1
-   flag.StringVar(&c.username, "username", "", "username")
-   flag.StringVar(&c.password, "password", "", "password")
+   flag.StringVar(&c.username, "U", "", "username")
+   flag.StringVar(&c.password, "P", "", "password")
    // 2
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
    // 2, 3
-   flag.StringVar(&c.proxy, "P", "", "proxy")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
@@ -85,9 +52,9 @@ func (c *command) run() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
-      {"username", "password"},
-      {"p", "P"},
-      {"d", "c", "P", "C", "E"},
+      {"U", "P"},
+      {"p", "x"},
+      {"d", "c", "x", "C", "E"},
    })
 }
 
@@ -139,4 +106,36 @@ func (c *command) do_paramount() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      cache.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   if err != nil {
+      return err
+   }
+   c.job.Send = token.Send
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   ContentId string
+   Cookie    *http.Cookie
+   Dash      *paramount.Dash
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

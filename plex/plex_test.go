@@ -8,7 +8,7 @@ var watch_tests = []struct {
 }{
    {
       drm: true,
-      url: "https://watch.plex.tv/watch/movie/ghost-in-the-shell",
+      url: "https://watch.plex.tv/movie/ghost-in-the-shell",
    },
    {
       url: "https://watch.plex.tv/movie/limitless",

@@ -21,15 +21,15 @@ func (c *command) run() error {
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
    c.name = cache + "/hulu/userCache.xml"
    // 1
-   flag.StringVar(&c.email, "email", "", "email")
-   flag.StringVar(&c.password, "password", "", "password")
+   flag.StringVar(&c.email, "E", "", "email")
+   flag.StringVar(&c.password, "P", "", "password")
    // 2
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.proxy, "p", "", "proxy")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.StringVar(&c.job.CertificateChain, "c", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "e", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
    maya.SetProxy(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
@@ -50,9 +50,9 @@ func (c *command) run() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
-      {"e", "p"},
-      {"a"},
-      {"d", "t", "C", "E"},
+      {"E", "P"},
+      {"a", "x"},
+      {"d", "c", "e"},
    })
 }
 
