@@ -28,26 +28,24 @@ https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
 1. VPN CA
 2. pass
 
-## us video, no dash proxy, cookie
+## us account, no sign in proxy
 
-https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
+pass
 
-## us video, dash proxy, cookie
+## us account, sign in proxy
+
+pass
 
 ## ie video, no paramount proxy
 
 https://paramountplus.com/ie/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
 
-## ie video, dash proxy, cookie
-
-## ie video, dash proxy, no cookie
-
-## ie video, no dash proxy, cookie
-
-## ie video, no dash proxy, no cookie
-
 ## ie video, paramount proxy
-
-
-
-
+## ie video, dash proxy, cookie
+## ie video, dash proxy, no cookie
+## ie video, no dash proxy, cookie
+## ie video, no dash proxy, no cookie
+## ca account, no sign in proxy
+## ca account, sign in proxy
+## us video, dash proxy, cookie
+## us video, no dash proxy, cookie
