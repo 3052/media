@@ -19,8 +19,8 @@ func (s *Session) Fetch() error {
    req.Method = "HEAD"
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "www.cinemember.nl",
-      Path: "/nl",
+      Host:   "www.cinemember.nl",
+      Path:   "/nl",
    }
    req.Header = http.Header{}
    // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
@@ -111,6 +111,7 @@ func (s *Stream) Dash() (*MediaLink, error) {
    // Create and return the error directly.
    return nil, errors.New("DASH link not found")
 }
+
 // extracts the numeric ID and converts it to an integer
 func FetchId(link string) (int, error) {
    resp, err := http.Get(link)

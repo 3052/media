@@ -24,6 +24,7 @@ func (c *command) run() error {
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
@@ -60,7 +61,7 @@ func (c *command) run() error {
       return c.do_hls()
    }
    return maya.Usage([][]string{
-      {"e", "p"},
+      {"e", "p", "x"},
       {"a"},
       {"s"},
       {"m"},
