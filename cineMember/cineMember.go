@@ -10,67 +10,22 @@ import (
    "strings"
 )
 
-// extracts the numeric ID and converts it to an integer
-func FetchId(link string) (int, error) {
-   resp, err := http.Get(link)
-   if err != nil {
-      return 0, err
-   }
-   defer resp.Body.Close()
-   var data strings.Builder
-   _, err = io.Copy(&data, resp.Body)
-   if err != nil {
-      return 0, err
-   }
-   // 1. Cut text after "app.play('"
-   _, after, found := strings.Cut(data.String(), "app.play('")
-   if !found {
-      return 0, errors.New("start marker not found")
-   }
-   // 2. Cut text at the next single quote to isolate the ID string
-   idStr, _, found := strings.Cut(after, "'")
-   if !found {
-      return 0, errors.New("closing quote not found")
-   }
-   // 3. Convert string to integer
-   return strconv.Atoi(idStr)
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type MediaLink struct {
-   MimeType string
-   Url      string
-}
-
-func (m *MediaLink) Dash() (*Dash, error) {
-   resp, err := http.Get(m.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
 // Fetch performs the HEAD request to cinemember.nl and populates the Session
 // with the PHPSESSID cookie.
 func (s *Session) Fetch() error {
-   const targetURL = "https://www.cinemember.nl/nl"
    // We ignore the error here because the method and URL are hardcoded and
    // known to be valid.
-   req, _ := http.NewRequest("HEAD", targetURL, nil)
+   var req http.Request
+   req.Method = "HEAD"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.cinemember.nl",
+      Path: "/nl",
+   }
+   req.Header = http.Header{}
    // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
    req.Header.Set("User-Agent", "Windows")
-   resp, err := http.DefaultClient.Do(req)
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return err
    }
@@ -155,4 +110,54 @@ func (s *Stream) Dash() (*MediaLink, error) {
    }
    // Create and return the error directly.
    return nil, errors.New("DASH link not found")
+}
+// extracts the numeric ID and converts it to an integer
+func FetchId(link string) (int, error) {
+   resp, err := http.Get(link)
+   if err != nil {
+      return 0, err
+   }
+   defer resp.Body.Close()
+   var data strings.Builder
+   _, err = io.Copy(&data, resp.Body)
+   if err != nil {
+      return 0, err
+   }
+   // 1. Cut text after "app.play('"
+   _, after, found := strings.Cut(data.String(), "app.play('")
+   if !found {
+      return 0, errors.New("start marker not found")
+   }
+   // 2. Cut text at the next single quote to isolate the ID string
+   idStr, _, found := strings.Cut(after, "'")
+   if !found {
+      return 0, errors.New("closing quote not found")
+   }
+   // 3. Convert string to integer
+   return strconv.Atoi(idStr)
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type MediaLink struct {
+   MimeType string
+   Url      string
+}
+
+func (m *MediaLink) Dash() (*Dash, error) {
+   resp, err := http.Get(m.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
 }
