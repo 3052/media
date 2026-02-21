@@ -35,13 +35,47 @@ func (i *Item) Dash() (*Dash, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
+   data, err := io.ReadAll(resp.Body)
    if err != nil {
       return nil, err
    }
-   result.Url = resp.Request.URL
-   return &result, nil
+   if resp.StatusCode != http.StatusOK {
+      var value struct {
+         Description string
+      }
+      err = json.Unmarshal(data, &value)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(value.Description)
+   }
+   return &Dash{Body: data, Url: resp.Request.URL}, nil
+}
+
+func GetAppSecret() (string, error) {
+   const (
+      targetURL  = "https://www.paramountplus.com"
+      headerName = "x-real-server"
+      usServer   = "us_www_web_prod_vip1"
+      intlServer = "international_www_web_prod_vip1"
+   )
+   // 1. Perform a HEAD request.
+   resp, err := http.Head(targetURL)
+   if err != nil {
+      return "", err
+   }
+   defer resp.Body.Close()
+   // 2. Get the x-real-server response header.
+   serverHeader := resp.Header.Get(headerName)
+   // 3. Check the header value and return the corresponding string.
+   switch serverHeader {
+   case usServer:
+      return AppSecrets[0].ComCbsApp, nil
+   case intlServer:
+      return AppSecrets[0].ComCbsCa, nil
+   }
+   // 4. Else, return an empty string and a static error.
+   return "", errors.New("unexpected or missing server header value")
 }
 
 type Dash struct {

@@ -1,6 +1,5 @@
 # paramount
 
-
 ## us video, no paramount proxy
 
 https://paramountplus.com/movies/video/wjQ4RChi6BHHu4MVTncppVuCwu44uq2Q
@@ -37,8 +36,6 @@ pass
 pass
 
 ## ie video, no paramount proxy
-
-https://paramountplus.com/ie/movies/video/Y8sKvb2bIoeX4XZbsfjadF4GhNPwcjTQ
 
 ## ie video, paramount proxy
 ## ie video, dash proxy, cookie
