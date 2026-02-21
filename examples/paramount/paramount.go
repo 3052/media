@@ -11,6 +11,34 @@ import (
    "path/filepath"
 )
 
+type command struct {
+   name string
+   // 1
+   username string
+   password string
+   // 1, 2, 3
+   proxy string
+   // 2
+   paramount string
+   // 3
+   dash   string
+   cookie bool
+   job    maya.PlayReadyJob
+}
+
+type user_cache struct {
+   ContentId string
+   Cookie    *http.Cookie
+   Dash      *paramount.Dash
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -23,12 +51,10 @@ func (c *command) run() error {
    // 1
    flag.StringVar(&c.username, "U", "", "username")
    flag.StringVar(&c.password, "P", "", "password")
-   // 1, 2
-   flag.BoolVar(&c.intl, "i", false, "intl")
+   // 1, 2, 3
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
-   // 2, 3
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
@@ -39,10 +65,6 @@ func (c *command) run() error {
       switch path.Ext(req.URL.Path) {
       case ".m4s", ".mp4":
          return "", false
-      }
-      switch path.Base(req.URL.Path) {
-      case "anonymous-session-token.json", "getlicense", "rightsmanager.asmx":
-         return "", true
       }
       return c.proxy, true
    })
@@ -58,60 +80,18 @@ func (c *command) run() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
-      {"U", "P", "i"},
-      {"p", "x", "i"},
+      {"U", "P", "x"},
+      {"p", "x"},
       {"d", "x", "c", "C", "E"},
    })
 }
 
-func (c *command) do_username_password() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.Cookie, err = paramount.Login(at, c.username, c.password)
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, &cache)
-}
-
-type user_cache struct {
-   Dash      *paramount.Dash
-   Cookie    *http.Cookie
-   ContentId string
-   Intl      bool
-}
-
-func (c *command) do_paramount() error {
-   at, err := paramount.GetAt(c.app_secret())
-   if err != nil {
-      return err
-   }
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      cache = &user_cache{}
-   }
-   item, err := paramount.FetchItem(at, c.paramount)
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = item.Dash()
-   if err != nil {
-      return err
-   }
-   cache.ContentId = c.paramount
-   cache.Intl = c.intl
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
 func (c *command) do_dash() error {
-   at, err := paramount.GetAt(c.app_secret())
+   app_secret, err := paramount.FetchAppSecret()
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(app_secret)
    if err != nil {
       return err
    }
@@ -130,32 +110,48 @@ func (c *command) do_dash() error {
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
-func main() {
-   err := new(command).run()
+func (c *command) do_username_password() error {
+   app_secret, err := paramount.FetchAppSecret()
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   at, err := paramount.GetAt(app_secret)
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.Cookie, err = paramount.Login(at, c.username, c.password)
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, &cache)
 }
 
-type command struct {
-   name string
-   // 1
-   username string
-   password string
-   // 1, 2
-   intl bool
-   // 2
-   paramount string
-   proxy     string
-   // 3
-   dash   string
-   cookie bool
-   job    maya.PlayReadyJob
-}
-
-func (c *command) app_secret() string {
-   if c.intl {
-      return paramount.AppSecrets[0].International
+func (c *command) do_paramount() error {
+   app_secret, err := paramount.FetchAppSecret()
+   if err != nil {
+      return err
    }
-   return paramount.AppSecrets[0].Us
+   at, err := paramount.GetAt(app_secret)
+   if err != nil {
+      return err
+   }
+   item, err := paramount.FetchItem(at, c.paramount)
+   if err != nil {
+      return err
+   }
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      cache = &user_cache{}
+   }
+   cache.Dash, err = item.Dash()
+   if err != nil {
+      return err
+   }
+   cache.ContentId = c.paramount
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
