@@ -11,12 +11,12 @@ import (
    "path/filepath"
 )
 
-// us video, no paramount proxy
-// us video, paramount proxy
-// ie video, no paramount proxy
-// ie video, paramount proxy
 func (c *command) do_paramount() error {
-   at, err := paramount.GetAt(paramount.AppSecrets[0].ComCbsApp)
+   app_secret, err := paramount.GetAppSecret()
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(app_secret)
    if err != nil {
       return err
    }
