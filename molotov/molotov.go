@@ -11,50 +11,6 @@ import (
    "strings"
 )
 
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (a *Asset) Dash() (*Dash, error) {
-   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-// authorization server issues a new refresh token, in which case the
-// client MUST discard the old refresh token and replace it with the new
-// refresh token
-func (l *Login) Refresh() error {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("x-molotov-agent", customer_area)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "fapi.molotov.tv",
-      Path:   "/v3/auth/refresh/" + l.Auth.RefreshToken,
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
-}
-
-func join(items ...string) string {
-   return strings.Join(items, "")
-}
-
 func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -243,4 +199,47 @@ func (m *MediaId) Parse(link string) error {
       return errors.New("channel ID is not a valid integer")
    }
    return nil
+}
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (a *Asset) Dash() (*Dash, error) {
+   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+// authorization server issues a new refresh token, in which case the
+// client MUST discard the old refresh token and replace it with the new
+// refresh token
+func (l *Login) Refresh() error {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("x-molotov-agent", customer_area)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "fapi.molotov.tv",
+      Path:   "/v3/auth/refresh/" + l.Auth.RefreshToken,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(l)
+}
+
+func join(items ...string) string {
+   return strings.Join(items, "")
 }

@@ -10,60 +10,17 @@ import (
    "strings"
 )
 
-// https://watch.plex.tv/embed/movie/memento-2000
-// https://watch.plex.tv/movie/memento-2000
-// https://watch.plex.tv/watch/movie/memento-2000
-func GetPath(rawUrl string) (string, error) {
-   // Find the starting position of the "/movie/" marker.
-   startIndex := strings.Index(rawUrl, "/movie/")
-   if startIndex == -1 {
-      return "", errors.New("no /movie/ segment found in URL")
-   }
-   // The slug must not be empty. Check if the string ends right after "/movie/".
-   if len(rawUrl) == startIndex+len("/movie/") {
-      return "", errors.New("movie slug is empty")
-   }
-   // Return the slice from the start of the marker to the end of the string.
-   return rawUrl[startIndex:], nil
-}
-
-type ItemMetadata struct {
-   Media []struct {
-      Part     []MediaPart
-      Protocol string
-   }
-   RatingKey string
-}
-
-type MediaPart struct {
-   Key     string
-   License string
-}
-
-func (i *ItemMetadata) Dash() (*MediaPart, error) {
-   for _, media := range i.Media {
-      if media.Protocol == "dash" {
-         // Success: Return the part and a nil error.
-         // This will panic if media.Part is empty, matching the
-         // behavior of your original function.
-         return &media.Part[0], nil
-      }
-   }
-   // Failure: No "dash" protocol was found.
-   return nil, errors.New("DASH media part not found")
-}
-
 func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
    var req http.Request
-   req.Header = http.Header{}
-   if forwardedFor != "" {
-      req.Header.Set("X-Forwarded-For", forwardedFor)
-   }
    req.URL = &url.URL{
       Scheme:   "https",
       Host:     "vod.provider.plex.tv",
       Path:     part.Key, // /library/parts/6730016e43b96c02321d7860-dash.mpd
-      RawQuery: "x-plex-token=" + u.AuthToken,
+      RawQuery: url.Values{"x-plex-token": {u.AuthToken}}.Encode(),
+   }
+   req.Header = http.Header{}
+   if forwardedFor != "" {
+      req.Header.Set("X-Forwarded-For", forwardedFor)
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
@@ -194,4 +151,46 @@ func (u User) Media(item *ItemMetadata, forwardedFor string) (*ItemMetadata, err
 type Dash struct {
    Body []byte
    Url  *url.URL
+}
+// https://watch.plex.tv/embed/movie/memento-2000
+// https://watch.plex.tv/movie/memento-2000
+// https://watch.plex.tv/watch/movie/memento-2000
+func GetPath(rawUrl string) (string, error) {
+   // Find the starting position of the "/movie/" marker.
+   startIndex := strings.Index(rawUrl, "/movie/")
+   if startIndex == -1 {
+      return "", errors.New("no /movie/ segment found in URL")
+   }
+   // The slug must not be empty. Check if the string ends right after "/movie/".
+   if len(rawUrl) == startIndex+len("/movie/") {
+      return "", errors.New("movie slug is empty")
+   }
+   // Return the slice from the start of the marker to the end of the string.
+   return rawUrl[startIndex:], nil
+}
+
+type ItemMetadata struct {
+   Media []struct {
+      Part     []MediaPart
+      Protocol string
+   }
+   RatingKey string
+}
+
+type MediaPart struct {
+   Key     string
+   License string
+}
+
+func (i *ItemMetadata) Dash() (*MediaPart, error) {
+   for _, media := range i.Media {
+      if media.Protocol == "dash" {
+         // Success: Return the part and a nil error.
+         // This will panic if media.Part is empty, matching the
+         // behavior of your original function.
+         return &media.Part[0], nil
+      }
+   }
+   // Failure: No "dash" protocol was found.
+   return nil, errors.New("DASH media part not found")
 }
