@@ -12,6 +12,25 @@ import (
    "path/filepath"
 )
 
+type command struct {
+   name string
+   // 1
+   initiate bool
+   market   string
+   // 2
+   login bool
+   // 3
+   address string
+   season  int
+   // 3, 4
+   proxy string
+   // 4
+   edit string
+   // 5
+   dash string
+   job  maya.PlayReadyJob
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -31,6 +50,7 @@ func (c *command) run() error {
    // 3
    flag.StringVar(&c.address, "a", "", "address")
    flag.IntVar(&c.season, "s", 0, "season")
+   // 3, 4
    flag.StringVar(&c.proxy, "x", "", "proxy")
    // 4
    flag.StringVar(&c.edit, "e", "", "edit ID")
@@ -65,7 +85,7 @@ func (c *command) run() error {
       {"i", "m"},
       {"l"},
       {"a", "s", "x"},
-      {"e"},
+      {"e", "x"},
       {"d", "t", "C", "E"},
    })
 }
@@ -170,22 +190,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-type command struct {
-   name string
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   proxy string
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
 }
