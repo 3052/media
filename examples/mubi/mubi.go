@@ -12,16 +12,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".dash"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -37,12 +27,20 @@ func (c *command) run() error {
    flag.BoolVar(&c.session, "s", false, "session")
    // 3
    flag.StringVar(&c.address, "a", "", "address")
+   // 3, 4
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if path.Ext(req.URL.Path) == ".dash" {
+         return "", false
+      }
+      return c.proxy, true
+   })
    if c.code {
       return c.do_code()
    }
@@ -58,9 +56,39 @@ func (c *command) run() error {
    return maya.Usage([][]string{
       {"c"},
       {"s"},
-      {"a"},
-      {"d", "t", "C", "P"},
+      {"a", "x"},
+      {"d", "x", "t", "C", "P"},
    })
+}
+
+type command struct {
+   name string
+   // 1
+   code bool
+   // 2
+   session bool
+   // 3
+   address string
+   // 3, 4
+   proxy string
+   // 4
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.Session.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+type user_cache struct {
+   Dash     *mubi.Dash
+   LinkCode *mubi.LinkCode
+   Session  *mubi.Session
 }
 
 func (c *command) do_code() error {
@@ -117,30 +145,9 @@ func (c *command) do_address() error {
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
-type command struct {
-   name string
-   // 1
-   code bool
-   // 2
-   session bool
-   // 3
-   address string
-   // 4
-   dash string
-   job  maya.WidevineJob
-}
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+func main() {
+   err := new(command).run()
    if err != nil {
-      return err
+      log.Fatal(err)
    }
-   c.job.Send = cache.Session.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   Dash     *mubi.Dash
-   LinkCode *mubi.LinkCode
-   Session  *mubi.Session
 }
