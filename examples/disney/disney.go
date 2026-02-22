@@ -33,6 +33,7 @@ func (c *command) run() error {
    flag.StringVar(&c.media_id, "m", "", "media ID")
    // 5
    flag.StringVar(&c.hls, "h", "", "HLS ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -65,7 +66,7 @@ func (c *command) run() error {
       {"a"},
       {"s"},
       {"m"},
-      {"h", "C", "E"},
+      {"h", "t", "C", "E"},
    })
 }
 

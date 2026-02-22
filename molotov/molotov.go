@@ -18,7 +18,6 @@ func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
    req.URL = &url.URL{
       Scheme:   "https",
       Host:     "fapi.molotov.tv",
-      RawQuery: "access_token=" + l.Auth.AccessToken,
       Path: join(
          "/v2/channels/",
          strconv.Itoa(media.Channel),
@@ -26,6 +25,7 @@ func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
          strconv.Itoa(media.Program),
          "/view",
       ),
+      RawQuery: url.Values{"access_token": {l.Auth.AccessToken}}.Encode(),
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
