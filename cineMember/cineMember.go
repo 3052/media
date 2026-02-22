@@ -10,74 +10,18 @@ import (
    "strings"
 )
 
-// Fetch performs the HEAD request to cinemember.nl and populates the Session
-// with the PHPSESSID cookie.
-func (s *Session) Fetch() error {
-   // We ignore the error here because the method and URL are hardcoded and
-   // known to be valid.
-   var req http.Request
-   req.Method = "HEAD"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "www.cinemember.nl",
-      Path:   "/nl",
-   }
-   req.Header = http.Header{}
-   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
-   req.Header.Set("User-Agent", "Windows")
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "PHPSESSID" {
-         s.Cookie = cookie
-         return nil
-      }
-   }
-   return errors.New("PHPSESSID cookie not found in response")
-}
-
-func (s Session) Login(email, password string) error {
-   data := url.Values{
-      "emaillogin": {email},
-      "password":   {password},
-   }.Encode()
-   req, err := http.NewRequest(
-      "POST", "https://www.cinemember.nl/elements/overlays/account/login.php",
-      strings.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.AddCookie(s.Cookie)
-   req.Header.Set("content-type", "application/x-www-form-urlencoded")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   _, err = io.Copy(io.Discard, resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-// Session holds the cookie data.
-type Session struct {
-   Cookie *http.Cookie
-}
-
 // must run Session.Login first
 func (s Session) Stream(id int) (*Stream, error) {
-   var link strings.Builder
-   link.WriteString("https://www.cinemember.nl/elements/films/stream.php?id=")
-   link.WriteString(strconv.Itoa(id))
-   req, _ := http.NewRequest("", link.String(), nil)
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host: "www.cinemember.nl",
+      Path: "/elements/films/stream.php",
+      RawQuery: "id=" + strconv.Itoa(id),
+   }
+   req.Header = http.Header{}
    req.AddCookie(s.Cookie)
-   resp, err := http.DefaultClient.Do(req)
+   resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
@@ -161,4 +105,63 @@ func (m *MediaLink) Dash() (*Dash, error) {
    }
    result.Url = resp.Request.URL
    return &result, nil
+}
+// Fetch performs the HEAD request to cinemember.nl and populates the Session
+// with the PHPSESSID cookie.
+func (s *Session) Fetch() error {
+   // We ignore the error here because the method and URL are hardcoded and
+   // known to be valid.
+   var req http.Request
+   req.Method = "HEAD"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "www.cinemember.nl",
+      Path:   "/nl",
+   }
+   req.Header = http.Header{}
+   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
+   req.Header.Set("User-Agent", "Windows")
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "PHPSESSID" {
+         s.Cookie = cookie
+         return nil
+      }
+   }
+   return errors.New("PHPSESSID cookie not found in response")
+}
+
+func (s Session) Login(email, password string) error {
+   data := url.Values{
+      "emaillogin": {email},
+      "password":   {password},
+   }.Encode()
+   req, err := http.NewRequest(
+      "POST", "https://www.cinemember.nl/elements/overlays/account/login.php",
+      strings.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.AddCookie(s.Cookie)
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   _, err = io.Copy(io.Discard, resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+// Session holds the cookie data.
+type Session struct {
+   Cookie *http.Cookie
 }
