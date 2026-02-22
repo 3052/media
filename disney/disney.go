@@ -11,6 +11,121 @@ import (
    "strings"
 )
 
+func (a *Account) Stream(mediaId string) (*Stream, error) {
+   playback_id, err := json.Marshal(map[string]string{
+      "mediaId": mediaId,
+   })
+   if err != nil {
+      return nil, err
+   }
+   data, err := json.Marshal(map[string]any{
+      "playback": map[string]any{
+         "attributes": map[string]any{
+            "assetInsertionStrategy": "SGAI",
+            "codecs": map[string]any{
+               "supportsMultiCodecMaster": true, // 4K
+               "video": []string{
+                  "h.264",
+                  "h.265",
+               },
+            },
+         },
+      },
+      "playbackId": playback_id,
+   })
+   if err != nil {
+      return nil, err
+   }
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "disney.playback.edge.bamgrid.com",
+      // Path: "/v7/playback/ctr-high",
+      // Path: "/v7/playback/tv-drm-ctr-h265-atmos",
+      Path: "/v7/playback/ctr-regular",
+   }
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("x-application-version", "")
+   req.Header.Set("x-bamsdk-client-id", "")
+   req.Header.Set("x-bamsdk-platform", "")
+   req.Header.Set("x-bamsdk-version", "")
+   req.Header.Set("x-dss-feature-filtering", "true")
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Errors []Error
+      Stream Stream
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Stream, nil
+}
+
+func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": a.Data.Login.Account.Profiles[0].Id,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Account{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
+type AccountWithoutActiveProfile struct {
+   Data struct {
+      Login struct {
+         Account struct {
+            Profiles []struct {
+               Id string
+            }
+         }
+      }
+   }
+   Errors     []Error
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // AccountWithoutActiveProfile
+         }
+      }
+   }
+}
 // SL2000 720p
 // SL3000 1080p
 func (a *Account) PlayReady(data []byte) ([]byte, error) {
@@ -419,122 +534,6 @@ type Account struct {
          Token struct {
             AccessToken     string
             AccessTokenType string // Account
-         }
-      }
-   }
-}
-
-func (a *Account) Stream(mediaId string) (*Stream, error) {
-   playback_id, err := json.Marshal(map[string]string{
-      "mediaId": mediaId,
-   })
-   if err != nil {
-      return nil, err
-   }
-   data, err := json.Marshal(map[string]any{
-      "playback": map[string]any{
-         "attributes": map[string]any{
-            "assetInsertionStrategy": "SGAI",
-            "codecs": map[string]any{
-               "supportsMultiCodecMaster": true, // 4K
-               "video": []string{
-                  "h.264",
-                  "h.265",
-               },
-            },
-         },
-      },
-      "playbackId": playback_id,
-   })
-   if err != nil {
-      return nil, err
-   }
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.playback.edge.bamgrid.com",
-      // Path: "/v7/playback/ctr-high",
-      // Path: "/v7/playback/tv-drm-ctr-h265-atmos",
-      Path: "/v7/playback/ctr-regular",
-   }
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("x-application-version", "")
-   req.Header.Set("x-bamsdk-client-id", "")
-   req.Header.Set("x-bamsdk-platform", "")
-   req.Header.Set("x-bamsdk-version", "")
-   req.Header.Set("x-dss-feature-filtering", "true")
-   req.Body = io.NopCloser(bytes.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Errors []Error
-      Stream Stream
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result.Stream, nil
-}
-
-func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_switch_profile,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "profileId": a.Data.Login.Account.Profiles[0].Id,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Account{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
-type AccountWithoutActiveProfile struct {
-   Data struct {
-      Login struct {
-         Account struct {
-            Profiles []struct {
-               Id string
-            }
-         }
-      }
-   }
-   Errors     []Error
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // AccountWithoutActiveProfile
          }
       }
    }
