@@ -12,64 +12,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/disney/userCache.xml"
-   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   // 1
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
-   // 2
-   flag.StringVar(&c.address, "a", "", "address")
-   // 3
-   flag.StringVar(&c.season, "s", "", "season")
-   // 4
-   flag.StringVar(&c.media_id, "m", "", "media ID")
-   // 5
-   flag.StringVar(&c.hls, "h", "", "HLS ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return "", false
-      }
-      return c.proxy, true
-   })
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.season != "" {
-      return c.do_season()
-   }
-   if c.media_id != "" {
-      return c.do_media_id()
-   }
-   if c.hls != "" {
-      return c.do_hls()
-   }
-   return maya.Usage([][]string{
-      {"e", "p", "x"},
-      {"a"},
-      {"s"},
-      {"m"},
-      {"h", "t", "C", "E"},
-   })
-}
-
 func (c *command) do_email_password() error {
    device, err := disney.RegisterDevice()
    if err != nil {
@@ -144,15 +86,6 @@ func main() {
    }
 }
 
-func (c *command) do_hls() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Account.PlayReady
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
-}
-
 type user_cache struct {
    Account *disney.Account
    Hls     *disney.Hls
@@ -171,6 +104,73 @@ type command struct {
    // 4
    media_id string
    // 5
-   hls string
+   hls int
    job maya.PlayReadyJob
+}
+
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/disney/userCache.xml"
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.season, "s", "", "season")
+   // 4
+   flag.StringVar(&c.media_id, "m", "", "media ID")
+   // 5
+   flag.IntVar(&c.hls, "h", -1, "HLS ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return "", false
+      }
+      return c.proxy, true
+   })
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.season != "" {
+      return c.do_season()
+   }
+   if c.media_id != "" {
+      return c.do_media_id()
+   }
+   if c.hls >= 0 {
+      return c.do_hls()
+   }
+   return maya.Usage([][]string{
+      {"e", "p", "x"},
+      {"a"},
+      {"s"},
+      {"m"},
+      {"h", "t", "C", "E"},
+   })
+}
+
+func (c *command) do_hls() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.Account.PlayReady
+   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
 }

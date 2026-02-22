@@ -11,6 +11,42 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.name = cache + "/tubi/userCache.xml"
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   // 1
+   flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
+   // 2
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "T", 2, "threads")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return "", false
+      }
+      return c.proxy, true
+   })
+   if c.tubi >= 1 {
+      return c.do_tubi()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"t", "x"},
+      {"d", "T", "c", "p"},
+   })
+}
+
 func (c *command) do_tubi() error {
    var content tubi.Content
    err := content.Fetch(c.tubi)
@@ -30,16 +66,6 @@ func (c *command) do_tubi() error {
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -49,44 +75,24 @@ func (c *command) do_dash() error {
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func main() {
+   err := new(command).run()
    if err != nil {
-      return err
+      log.Fatal(err)
    }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/tubi/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   // 1
-   flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
-   // 2
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.tubi >= 1 {
-      return c.do_tubi()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"t"},
-      {"d", "c", "p"},
-   })
+}
+
+type user_cache struct {
+   Dash          *tubi.Dash
+   VideoResource *tubi.VideoResource
 }
 
 type command struct {
    name string
    // 1
    tubi int
+   proxy string
    // 2
    dash string
    job  maya.WidevineJob
-}
-
-type user_cache struct {
-   Dash          *tubi.Dash
-   VideoResource *tubi.VideoResource
 }

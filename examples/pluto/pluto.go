@@ -12,21 +12,6 @@ import (
    "path/filepath"
 )
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4s"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash   *pluto.Dash
-   Series *pluto.Series
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -38,15 +23,23 @@ func (c *command) run() error {
    c.job.PrivateKey = cache + "/L3/private_key.pem"
    // 1
    flag.StringVar(&c.movie, "m", "", "movie URL")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.show, "s", "", "show URL")
    // 3
    flag.StringVar(&c.episode, "e", "", "episode ID")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if path.Ext(req.URL.Path) == ".m4s" {
+         return "", false
+      }
+      return c.proxy, true
+   })
    if c.movie != "" {
       return c.do_movie()
    }
@@ -60,24 +53,11 @@ func (c *command) run() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
-      {"m"},
+      {"m", "x"},
       {"s"},
       {"e"},
       {"d", "c", "p"},
    })
-}
-
-type command struct {
-   name string
-   // 1
-   movie string
-   // 2
-   show string
-   // 3
-   episode string
-   // 4
-   dash string
-   job  maya.WidevineJob
 }
 
 func (c *command) do_episode() error {
@@ -137,4 +117,30 @@ func (c *command) do_show() error {
    }
    fmt.Println(&series.Vod[0])
    return maya.Write(c.name, &user_cache{Series: &series})
+}
+
+type user_cache struct {
+   Dash   *pluto.Dash
+   Series *pluto.Series
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   name string
+   // 1
+   movie string
+   proxy string
+   // 2
+   show string
+   // 3
+   episode string
+   // 4
+   dash string
+   job  maya.WidevineJob
 }
