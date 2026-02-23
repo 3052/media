@@ -11,34 +11,6 @@ import (
    "path/filepath"
 )
 
-type command struct {
-   name string
-   // 1
-   username string
-   password string
-   // 1, 2, 3
-   proxy string
-   // 2
-   paramount string
-   // 3
-   dash   string
-   cookie bool
-   job    maya.PlayReadyJob
-}
-
-type user_cache struct {
-   ContentId string
-   Cookie    *http.Cookie
-   Dash      *paramount.Dash
-}
-
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -58,6 +30,7 @@ func (c *command) run() error {
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -82,7 +55,7 @@ func (c *command) run() error {
    return maya.Usage([][]string{
       {"U", "P", "x"},
       {"p", "x"},
-      {"d", "x", "c", "C", "E"},
+      {"d", "x", "c", "t", "C", "E"},
    })
 }
 
@@ -154,4 +127,31 @@ func (c *command) do_paramount() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+type command struct {
+   name string
+   // 1
+   username string
+   password string
+   // 1, 2, 3
+   proxy string
+   // 2
+   paramount string
+   // 3
+   dash   string
+   cookie bool
+   job    maya.PlayReadyJob
+}
+
+type user_cache struct {
+   ContentId string
+   Cookie    *http.Cookie
+   Dash      *paramount.Dash
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

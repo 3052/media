@@ -22,11 +22,12 @@ func (c *command) run() error {
    c.name = cache + "/ctv/dash.xml"
    // 1
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.proxy, "p", "", "proxy")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
    maya.SetProxy(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
@@ -42,8 +43,8 @@ func (c *command) run() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
-      {"a", "p"},
-      {"d", "C", "P"},
+      {"a", "x"},
+      {"d", "t", "c", "p"},
    })
 }
 

@@ -5,31 +5,11 @@ import (
    "41.neocities.org/media/hboMax"
    "flag"
    "fmt"
-   "log"
    "net/http"
    "os"
    "path"
    "path/filepath"
 )
-
-type command struct {
-   name string
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   // 3, 4
-   proxy string
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
-}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -50,7 +30,6 @@ func (c *command) run() error {
    // 3
    flag.StringVar(&c.address, "a", "", "address")
    flag.IntVar(&c.season, "s", 0, "season")
-   // 3, 4
    flag.StringVar(&c.proxy, "x", "", "proxy")
    // 4
    flag.StringVar(&c.edit, "e", "", "edit ID")
@@ -85,46 +64,9 @@ func (c *command) run() error {
       {"i", "m"},
       {"l"},
       {"a", "s", "x"},
-      {"e", "x"},
+      {"e"},
       {"d", "t", "C", "E"},
    })
-}
-
-type user_cache struct {
-   Login    *hboMax.Login
-   Dash     *hboMax.Dash
-   Playback *hboMax.Playback
-   St       *hboMax.St
-}
-
-func (c *command) do_initiate() error {
-   var st hboMax.St
-   err := st.Fetch()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, &user_cache{St: &st})
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate(c.market)
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return nil
-}
-
-func (c *command) do_login() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   cache.Login, err = cache.St.Login()
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, cache)
 }
 
 func (c *command) do_address() error {
@@ -156,6 +98,13 @@ func (c *command) do_address() error {
    return nil
 }
 
+type user_cache struct {
+   Login    *hboMax.Login
+   Dash     *hboMax.Dash
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
 func (c *command) do_edit() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -174,20 +123,4 @@ func (c *command) do_edit() error {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Playback.PlayReady
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
