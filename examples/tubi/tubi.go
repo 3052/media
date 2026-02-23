@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/tubi"
+   "41.neocities.org/rosso/tubi"
    "flag"
    "log"
    "net/http"
@@ -90,7 +90,7 @@ type user_cache struct {
 type command struct {
    name string
    // 1
-   tubi int
+   tubi  int
    proxy string
    // 2
    dash string

@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/paramount"
+   "41.neocities.org/rosso/paramount"
    "flag"
    "log"
    "net/http"
@@ -128,6 +128,7 @@ func (c *command) do_paramount() error {
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
+
 type command struct {
    name string
    // 1

@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/pluto"
+   "41.neocities.org/rosso/pluto"
    "flag"
    "fmt"
    "log"

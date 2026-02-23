@@ -1,4 +1,4 @@
-module 41.neocities.org/media
+module 41.neocities.org/rosso
 
 go 1.24.0
 

@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/criterion"
+   "41.neocities.org/rosso/criterion"
    "flag"
    "log"
    "net/http"
@@ -69,6 +69,7 @@ type command struct {
    dash string
    job  maya.WidevineJob
 }
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".mp4"

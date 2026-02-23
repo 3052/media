@@ -11,18 +11,18 @@ import (
    "strings"
 )
 
-func (l *Login) ProgramView(media *MediaId) (*ProgramView, error) {
+func (l *Login) ProgramView(rosso *MediaId) (*ProgramView, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("x-molotov-agent", customer_area)
    req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "fapi.molotov.tv",
+      Scheme: "https",
+      Host:   "fapi.molotov.tv",
       Path: join(
          "/v2/channels/",
-         strconv.Itoa(media.Channel),
+         strconv.Itoa(rosso.Channel),
          "/programs/",
-         strconv.Itoa(media.Program),
+         strconv.Itoa(rosso.Program),
          "/view",
       ),
       RawQuery: url.Values{"access_token": {l.Auth.AccessToken}}.Encode(),
@@ -200,6 +200,7 @@ func (m *MediaId) Parse(link string) error {
    }
    return nil
 }
+
 type Dash struct {
    Body []byte
    Url  *url.URL

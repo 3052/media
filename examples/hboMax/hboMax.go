@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/hboMax"
+   "41.neocities.org/rosso/hboMax"
    "flag"
    "fmt"
    "log"
@@ -12,22 +12,11 @@ import (
    "path/filepath"
 )
 
-type command struct {
-   name string
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   proxy   string
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 func (c *command) run() error {
@@ -54,6 +43,7 @@ func (c *command) run() error {
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 5
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -85,22 +75,6 @@ func (c *command) run() error {
    })
 }
 
-func (c *command) do_proxy() error {
-   if c.edit != "" {
-      cache, err := maya.Read[user_cache](c.name)
-      if err != nil {
-         return err
-      }
-      c.proxy = cache.Proxy
-   }
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return "", false
-      }
-      return c.proxy, true
-   })
-   return nil
-}
 func (c *command) do_address() error {
    var show hboMax.ShowKey
    err := show.Parse(c.address)
@@ -137,7 +111,6 @@ func (c *command) do_address() error {
    }
    return nil
 }
-
 func (c *command) do_edit() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -158,14 +131,6 @@ func (c *command) do_edit() error {
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
-type user_cache struct {
-   Login    *hboMax.Login
-   Dash     *hboMax.Dash
-   Playback *hboMax.Playback
-   St       *hboMax.St
-   Proxy    string
-}
-
 func (c *command) do_initiate() error {
    var st hboMax.St
    err := st.Fetch()
@@ -184,6 +149,14 @@ func (c *command) do_initiate() error {
    return nil
 }
 
+type user_cache struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   Proxy    string
+   St       *hboMax.St
+}
+
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -191,13 +164,6 @@ func (c *command) do_dash() error {
    }
    c.job.Send = cache.Playback.PlayReady
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *command) do_login() error {
@@ -210,4 +176,40 @@ func (c *command) do_login() error {
       return err
    }
    return maya.Write(c.name, cache)
+}
+
+type command struct {
+   name string
+   // 1
+   initiate bool
+   market   string
+   // 2
+   login bool
+   // 3
+   proxy string
+   // 4
+   address string
+   season  int
+   // 5
+   edit string
+   // 6
+   dash string
+   job  maya.PlayReadyJob
+}
+
+func (c *command) do_proxy() error {
+   if c.edit != "" {
+      cache, err := maya.Read[user_cache](c.name)
+      if err != nil {
+         return err
+      }
+      c.proxy = cache.Proxy
+   }
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return "", false
+      }
+      return c.proxy, true
+   })
+   return nil
 }

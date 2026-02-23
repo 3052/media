@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/draken"
+   "41.neocities.org/rosso/draken"
    "flag"
    "log"
    "net/http"

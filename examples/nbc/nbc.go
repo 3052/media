@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/nbc"
+   "41.neocities.org/rosso/nbc"
    "flag"
    "log"
    "net/http"

@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/mubi"
+   "41.neocities.org/rosso/mubi"
    "flag"
    "fmt"
    "log"

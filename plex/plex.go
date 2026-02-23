@@ -152,6 +152,7 @@ type Dash struct {
    Body []byte
    Url  *url.URL
 }
+
 // https://watch.plex.tv/embed/movie/memento-2000
 // https://watch.plex.tv/movie/memento-2000
 // https://watch.plex.tv/watch/movie/memento-2000
@@ -183,12 +184,12 @@ type MediaPart struct {
 }
 
 func (i *ItemMetadata) Dash() (*MediaPart, error) {
-   for _, media := range i.Media {
-      if media.Protocol == "dash" {
+   for _, rosso := range i.Media {
+      if rosso.Protocol == "dash" {
          // Success: Return the part and a nil error.
          // This will panic if media.Part is empty, matching the
          // behavior of your original function.
-         return &media.Part[0], nil
+         return &rosso.Part[0], nil
       }
    }
    // Failure: No "dash" protocol was found.

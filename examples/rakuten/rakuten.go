@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/rakuten"
+   "41.neocities.org/rosso/rakuten"
    "flag"
    "fmt"
    "log"
@@ -149,26 +149,26 @@ func (c *command) run() error {
 }
 
 func (c *command) do_address() error {
-   var media rakuten.Media
-   err := media.ParseURL(c.address)
+   var rosso rakuten.Media
+   err := rosso.ParseURL(c.address)
    if err != nil {
       return err
    }
-   switch media.Type {
+   switch rosso.Type {
    case rakuten.MovieType:
-      item, err := media.RequestMovie()
+      item, err := rosso.RequestMovie()
       if err != nil {
          return err
       }
       fmt.Println(item)
    case rakuten.TvShowType:
-      item, err := media.RequestTvShow()
+      item, err := rosso.RequestTvShow()
       if err != nil {
          return err
       }
       fmt.Println(item)
    }
-   return maya.Write(c.name, &user_cache{Media: &media})
+   return maya.Write(c.name, &user_cache{Media: &rosso})
 }
 
 func (c *command) do_season() error {

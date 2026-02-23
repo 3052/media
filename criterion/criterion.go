@@ -14,9 +14,9 @@ func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    var req http.Request
    req.Method = "POST"
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "drm.vhx.com",
-      Path: "/v2/widevine",
+      Scheme:   "https",
+      Host:     "drm.vhx.com",
+      Path:     "/v2/widevine",
       RawQuery: url.Values{"token": {m.DrmAuthorizationToken}}.Encode(),
    }
    req.Header = http.Header{}
@@ -165,6 +165,7 @@ type VideoItem struct {
       }
    } `json:"_links"`
 }
+
 const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
 func join(items ...string) string {

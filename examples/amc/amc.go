@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/amc"
+   "41.neocities.org/rosso/amc"
    "flag"
    "fmt"
    "log"

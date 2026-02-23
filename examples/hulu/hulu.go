@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/hulu"
+   "41.neocities.org/rosso/hulu"
    "flag"
    "log"
    "net/http"

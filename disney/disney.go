@@ -126,6 +126,7 @@ type AccountWithoutActiveProfile struct {
       }
    }
 }
+
 // SL2000 720p
 // SL3000 1080p
 func (a *Account) PlayReady(data []byte) ([]byte, error) {
@@ -506,6 +507,7 @@ type Page struct {
       }
    }
 }
+
 // https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
 // https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
 // https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d

@@ -14,9 +14,9 @@ import (
 func (s Session) Stream(id int) (*Stream, error) {
    var req http.Request
    req.URL = &url.URL{
-      Scheme: "https",
-      Host: "www.cinemember.nl",
-      Path: "/elements/films/stream.php",
+      Scheme:   "https",
+      Host:     "www.cinemember.nl",
+      Path:     "/elements/films/stream.php",
       RawQuery: "id=" + strconv.Itoa(id),
    }
    req.Header = http.Header{}
@@ -106,6 +106,7 @@ func (m *MediaLink) Dash() (*Dash, error) {
    result.Url = resp.Request.URL
    return &result, nil
 }
+
 // Fetch performs the HEAD request to cinemember.nl and populates the Session
 // with the PHPSESSID cookie.
 func (s *Session) Fetch() error {

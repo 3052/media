@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/molotov"
+   "41.neocities.org/rosso/molotov"
    "flag"
    "log"
    "net/http"
@@ -76,12 +76,12 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   var media molotov.MediaId
-   err = media.Parse(c.address)
+   var rosso molotov.MediaId
+   err = rosso.Parse(c.address)
    if err != nil {
       return err
    }
-   view, err := cache.Login.ProgramView(&media)
+   view, err := cache.Login.ProgramView(&rosso)
    if err != nil {
       return err
    }

@@ -2,7 +2,7 @@ package main
 
 import (
    "41.neocities.org/maya"
-   "41.neocities.org/media/rtbf"
+   "41.neocities.org/rosso/rtbf"
    "flag"
    "log"
    "net/http"
@@ -87,7 +87,7 @@ type command struct {
    password string
    // 2
    address string
-   proxy string
+   proxy   string
    // 3
    dash string
    job  maya.WidevineJob
