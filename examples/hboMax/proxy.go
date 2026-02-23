@@ -11,6 +11,24 @@ import (
    "path/filepath"
 )
 
+type command struct {
+   name string
+   // 1
+   initiate bool
+   market   string
+   // 2
+   login bool
+   // 3
+   address string
+   season  int
+   proxy   string
+   // 4
+   edit string
+   // 5
+   dash string
+   job  maya.PlayReadyJob
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -81,22 +99,4 @@ func (c *command) do_proxy() error {
       return c.proxy, true
    })
    return nil
-}
-
-type command struct {
-   name string
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   proxy   string
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
 }
