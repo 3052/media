@@ -11,24 +11,6 @@ import (
    "path/filepath"
 )
 
-type command struct {
-   name string
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   proxy string
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -56,12 +38,10 @@ func (c *command) run() error {
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return "", false
-      }
-      return c.proxy, true
-   })
+   err = c.do_proxy()
+   if err != nil {
+      return err
+   }
    if c.initiate {
       return c.do_initiate()
    }
@@ -84,4 +64,39 @@ func (c *command) run() error {
       {"e"},
       {"d", "C", "E"},
    })
+}
+
+func (c *command) do_proxy() error {
+   if c.edit != "" {
+      cache, err := maya.Read[user_cache](c.name)
+      if err != nil {
+         return err
+      }
+      c.proxy = cache.Proxy
+   }
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return "", false
+      }
+      return c.proxy, true
+   })
+   return nil
+}
+
+type command struct {
+   name string
+   // 1
+   initiate bool
+   market   string
+   // 2
+   login bool
+   // 3
+   address string
+   season  int
+   proxy   string
+   // 4
+   edit string
+   // 5
+   dash string
+   job  maya.PlayReadyJob
 }
