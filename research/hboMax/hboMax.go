@@ -12,62 +12,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/rosso/hboMax.xml"
-   // 1
-   flag.BoolVar(&c.initiate, "i", false, "device initiate")
-   flag.StringVar(
-      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
-   )
-   // 2
-   flag.BoolVar(&c.login, "l", false, "device login")
-   // 3
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.IntVar(&c.season, "s", 0, "season")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
-   // 4
-   flag.StringVar(&c.edit, "e", "", "edit ID")
-   // 5
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   err = c.do_proxy()
-   if err != nil {
-      return err
-   }
-   if c.initiate {
-      return c.do_initiate()
-   }
-   if c.login {
-      return c.do_login()
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.edit != "" {
-      return c.do_edit()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"i", "m"},
-      {"l"},
-      {"a", "s", "x"},
-      {"e"},
-      {"d", "C", "E"},
-   })
-}
-
 func (c *command) do_address() error {
    var show hboMax.ShowKey
    err := show.Parse(c.address)
@@ -75,14 +19,6 @@ func (c *command) do_address() error {
       return err
    }
    cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   // Save the proxy state.
-   // If -x was used, it saves the value.
-   // If -x was not used, it saves an empty string.
-   cache.Proxy = c.proxy
-   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
@@ -104,6 +40,42 @@ func (c *command) do_address() error {
    }
    return nil
 }
+
+func (c *command) do_login() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   cache.Login, err = cache.St.Login()
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, cache)
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   St       *hboMax.St
+}
+
+func (c *command) do_dash() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.Playback.PlayReady
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
 func (c *command) do_edit() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -142,35 +114,6 @@ func (c *command) do_initiate() error {
    return nil
 }
 
-type user_cache struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   Proxy    string
-   St       *hboMax.St
-}
-
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Playback.PlayReady
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func (c *command) do_login() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   cache.Login, err = cache.St.Login()
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, cache)
-}
-
 type command struct {
    name string
    // 1
@@ -179,36 +122,71 @@ type command struct {
    // 2
    login bool
    // 3
-   proxy string
-   // 4
    address string
    season  int
-   // 5
+   // 3, 4
+   proxy string
+   // 4
    edit string
-   // 6
+   // 5
    dash string
    job  maya.PlayReadyJob
 }
 
-func (c *command) do_proxy() error {
-   if c.edit != "" {
-      cache, err := maya.Read[user_cache](c.name)
-      if err != nil {
-         return err
-      }
-      c.proxy = cache.Proxy
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
    }
+   cache = filepath.ToSlash(cache)
+   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
+   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
+   c.name = cache + "/rosso/hboMax.xml"
+   // 1
+   flag.BoolVar(&c.initiate, "i", false, "device initiate")
+   flag.StringVar(
+      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
+   )
+   // 2
+   flag.BoolVar(&c.login, "l", false, "device login")
+   // 3
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.IntVar(&c.season, "s", 0, "season")
+   // 3, 4
+   flag.StringVar(&c.proxy, "x", "", "proxy")
+   // 4
+   flag.StringVar(&c.edit, "e", "", "edit ID")
+   // 5
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.Parse()
    maya.SetProxy(func(req *http.Request) (string, bool) {
       if path.Ext(req.URL.Path) == ".mp4" {
          return "", false
       }
       return c.proxy, true
    })
-   return nil
-}
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
+   if c.initiate {
+      return c.do_initiate()
    }
+   if c.login {
+      return c.do_login()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.edit != "" {
+      return c.do_edit()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"i", "m"},
+      {"l"},
+      {"a", "s", "x"},
+      {"e", "x"},
+      {"d", "C", "E"},
+   })
 }
