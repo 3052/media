@@ -20,7 +20,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/mubi/userCache.xml"
+   c.name = cache + "/rosso/mubi.xml"
    // 1
    flag.BoolVar(&c.code, "c", false, "link code")
    // 2

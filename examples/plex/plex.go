@@ -11,31 +11,15 @@ import (
    "path/filepath"
 )
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4s"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash      *plex.Dash
-   MediaPart *plex.MediaPart
-   User      *plex.User
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/plex/userCache.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rosso/plex.xml"
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
@@ -111,4 +95,19 @@ func (c *command) do_dash() error {
       return cache.User.Widevine(cache.MediaPart, data)
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type user_cache struct {
+   Dash      *plex.Dash
+   MediaPart *plex.MediaPart
+   User      *plex.User
 }

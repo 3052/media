@@ -17,9 +17,9 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/paramount/userCache.xml"
    c.job.CertificateChain = cache + "/SL2000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
+   c.name = cache + "/rosso/paramount.xml"
    // 1
    flag.StringVar(&c.username, "U", "", "username")
    flag.StringVar(&c.password, "P", "", "password")
