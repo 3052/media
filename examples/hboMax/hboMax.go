@@ -10,7 +10,27 @@ import (
    "os"
    "path"
    "path/filepath"
+   "strings"
 )
+
+func (c *command) do_proxy() error {
+   if c.edit != "" {
+      cache, err := maya.Read[user_cache](c.name)
+      if err != nil {
+         return err
+      }
+      c.proxy = cache.Proxy
+   }
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if !strings.HasPrefix(c.proxy, "http://localhost:") {
+         if path.Ext(req.URL.Path) == ".mp4" {
+            return "", false
+         }
+      }
+      return c.proxy, true
+   })
+   return nil
+}
 
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
@@ -190,22 +210,6 @@ type command struct {
    job  maya.PlayReadyJob
 }
 
-func (c *command) do_proxy() error {
-   if c.edit != "" {
-      cache, err := maya.Read[user_cache](c.name)
-      if err != nil {
-         return err
-      }
-      c.proxy = cache.Proxy
-   }
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return "", false
-      }
-      return c.proxy, true
-   })
-   return nil
-}
 func main() {
    err := new(command).run()
    if err != nil {
