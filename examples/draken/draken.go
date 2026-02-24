@@ -11,25 +11,15 @@ import (
    "path/filepath"
 )
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4s"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/draken/userCache.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rosso/draken.xml"
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -123,4 +113,13 @@ type user_cache struct {
    Dash     *draken.Dash
    Login    *draken.Login
    Playback *draken.Playback
+}
+func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

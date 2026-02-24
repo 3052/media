@@ -17,9 +17,9 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/criterion/userCache.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rosso/criterion.xml"
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")

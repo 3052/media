@@ -19,7 +19,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/ctv/dash.xml"
+   c.name = cache + "/rosso/ctv.xml"
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.proxy, "x", "", "proxy")

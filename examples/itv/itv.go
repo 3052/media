@@ -12,73 +12,15 @@ import (
    "path/filepath"
 )
 
-func main() {
-   // ALL REQUEST ARE GEO BLOCKED
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".dash"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) do_address() error {
-   titles, err := itv.Titles(itv.LegacyId(c.address))
-   if err != nil {
-      return err
-   }
-   for i, title := range titles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&title)
-   }
-   return nil
-}
-func (c *command) do_playlist() error {
-   var title itv.Title
-   title.LatestAvailableVersion.PlaylistUrl = c.playlist
-   playlist, err := title.Playlist()
-   if err != nil {
-      return err
-   }
-   var cache user_cache
-   cache.MediaFile, err = playlist.FullHd()
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = cache.MediaFile.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   playlist string
-   // 3
-   dash string
-   job  maya.WidevineJob
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/itv/userCache.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rosso/itv.xml"
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    // 2
@@ -115,4 +57,62 @@ func (c *command) do_dash() error {
 type user_cache struct {
    Dash      *itv.Dash
    MediaFile *itv.MediaFile
+}
+func main() {
+   // ALL REQUEST ARE GEO BLOCKED
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".dash"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *command) do_address() error {
+   titles, err := itv.Titles(itv.LegacyId(c.address))
+   if err != nil {
+      return err
+   }
+   for i, title := range titles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&title)
+   }
+   return nil
+}
+
+func (c *command) do_playlist() error {
+   var title itv.Title
+   title.LatestAvailableVersion.PlaylistUrl = c.playlist
+   playlist, err := title.Playlist()
+   if err != nil {
+      return err
+   }
+   var cache user_cache
+   cache.MediaFile, err = playlist.FullHd()
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.MediaFile.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   playlist string
+   // 3
+   dash string
+   job  maya.WidevineJob
 }

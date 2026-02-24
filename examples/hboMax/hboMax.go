@@ -12,22 +12,15 @@ import (
    "path/filepath"
 )
 
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/hboMax/userCache.xml"
    c.job.CertificateChain = cache + "/SL3000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
+   c.name = cache + "/rosso/hboMax.xml"
    // 1
    flag.BoolVar(&c.initiate, "i", false, "device initiate")
    flag.StringVar(
@@ -212,4 +205,10 @@ func (c *command) do_proxy() error {
       return c.proxy, true
    })
    return nil
+}
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

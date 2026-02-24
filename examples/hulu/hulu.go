@@ -19,7 +19,7 @@ func (c *command) run() error {
    cache = filepath.ToSlash(cache)
    c.job.CertificateChain = cache + "/SL2000/CertificateChain"
    c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
-   c.name = cache + "/hulu/userCache.xml"
+   c.name = cache + "/rosso/hulu.xml"
    // 1
    flag.StringVar(&c.email, "E", "", "email")
    flag.StringVar(&c.password, "P", "", "password")
