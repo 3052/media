@@ -12,6 +12,87 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rosso/rakuten.xml"
+   // 1
+   flag.StringVar(&c.address, "a", "", "address")
+   // 2
+   flag.StringVar(&c.season, "s", "", "season ID")
+   // 3
+   flag.StringVar(&c.episode, "e", "", "episode ID")
+   flag.StringVar(&c.language, "A", "", "audio language")
+   // 4
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.season != "" {
+      return c.do_season()
+   }
+   if c.language != "" {
+      return c.do_language()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"a"},
+      {"s"},
+      {"e", "A"},
+      {"d", "c", "p"},
+   })
+}
+
+func (c *command) do_address() error {
+   var rosso rakuten.Media
+   err := rosso.ParseURL(c.address)
+   if err != nil {
+      return err
+   }
+   switch rosso.Type {
+   case rakuten.MovieType:
+      item, err := rosso.RequestMovie()
+      if err != nil {
+         return err
+      }
+      fmt.Println(item)
+   case rakuten.TvShowType:
+      item, err := rosso.RequestTvShow()
+      if err != nil {
+         return err
+      }
+      fmt.Println(item)
+   }
+   return maya.Write(c.name, &user_cache{Media: &rosso})
+}
+
+func (c *command) do_season() error {
+   cache, err := maya.Read[user_cache](c.name)
+   if err != nil {
+      return err
+   }
+   season, err := cache.Media.RequestSeason(c.season)
+   if err != nil {
+      return err
+   }
+   for i, item := range season.Episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&item)
+   }
+   return nil
+}
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       // everything needs proxy
@@ -105,86 +186,4 @@ func (c *command) do_dash() error {
    }
    c.job.Send = stream.Widevine
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/rakuten/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   // 1
-   flag.StringVar(&c.address, "a", "", "address")
-   // 2
-   flag.StringVar(&c.season, "s", "", "season ID")
-   // 3
-   flag.StringVar(&c.episode, "e", "", "episode ID")
-   flag.StringVar(&c.language, "A", "", "audio language")
-   // 4
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.season != "" {
-      return c.do_season()
-   }
-   if c.language != "" {
-      return c.do_language()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"a"},
-      {"s"},
-      {"e", "A"},
-      {"d", "c", "p"},
-   })
-}
-
-func (c *command) do_address() error {
-   var rosso rakuten.Media
-   err := rosso.ParseURL(c.address)
-   if err != nil {
-      return err
-   }
-   switch rosso.Type {
-   case rakuten.MovieType:
-      item, err := rosso.RequestMovie()
-      if err != nil {
-         return err
-      }
-      fmt.Println(item)
-   case rakuten.TvShowType:
-      item, err := rosso.RequestTvShow()
-      if err != nil {
-         return err
-      }
-      fmt.Println(item)
-   }
-   return maya.Write(c.name, &user_cache{Media: &rosso})
-}
-
-func (c *command) do_season() error {
-   cache, err := maya.Read[user_cache](c.name)
-   if err != nil {
-      return err
-   }
-   season, err := cache.Media.RequestSeason(c.season)
-   if err != nil {
-      return err
-   }
-   for i, item := range season.Episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&item)
-   }
-   return nil
 }

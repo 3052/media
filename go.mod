@@ -2,7 +2,7 @@ module 41.neocities.org/rosso
 
 go 1.24.0
 
-require 41.neocities.org/maya v1.24.0
+require 41.neocities.org/maya v1.24.2
 
 require (
 	41.neocities.org/drm v1.7.9 // indirect

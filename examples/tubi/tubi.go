@@ -17,9 +17,9 @@ func (c *command) run() error {
       return err
    }
    cache = filepath.ToSlash(cache)
-   c.name = cache + "/tubi/userCache.xml"
    c.job.ClientId = cache + "/L3/client_id.bin"
    c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rosso/tubi.xml"
    // 1
    flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
    flag.StringVar(&c.proxy, "x", "", "proxy")

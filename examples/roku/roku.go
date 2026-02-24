@@ -12,6 +12,47 @@ import (
    "path/filepath"
 )
 
+func (c *command) run() error {
+   cache, err := os.UserCacheDir()
+   if err != nil {
+      return err
+   }
+   cache = filepath.ToSlash(cache)
+   c.job.ClientId = cache + "/L3/client_id.bin"
+   c.job.PrivateKey = cache + "/L3/private_key.pem"
+   c.name = cache + "/rosso/roku.xml"
+   // 1
+   flag.BoolVar(&c.connection, "c", false, "connection")
+   // 2
+   flag.BoolVar(&c.set_user, "s", false, "set user")
+   // 3
+   flag.StringVar(&c.roku, "r", "", "Roku ID")
+   flag.BoolVar(&c.get_user, "g", false, "get user")
+   // 4
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.connection {
+      return c.do_connection()
+   }
+   if c.set_user {
+      return c.do_set_user()
+   }
+   if c.roku != "" {
+      return c.do_roku()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"c"},
+      {"s"},
+      {"r", "g"},
+      {"d", "C", "P"},
+   })
+}
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".mp4"
@@ -108,46 +149,4 @@ type command struct {
    // 4
    dash string
    job  maya.WidevineJob
-}
-
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.name = cache + "/roku/userCache.xml"
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   // 1
-   flag.BoolVar(&c.connection, "c", false, "connection")
-   // 2
-   flag.BoolVar(&c.set_user, "s", false, "set user")
-   // 3
-   flag.StringVar(&c.roku, "r", "", "Roku ID")
-   flag.BoolVar(&c.get_user, "g", false, "get user")
-   // 4
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.connection {
-      return c.do_connection()
-   }
-   if c.set_user {
-      return c.do_set_user()
-   }
-   if c.roku != "" {
-      return c.do_roku()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"c"},
-      {"s"},
-      {"r", "g"},
-      {"d", "C", "P"},
-   })
 }
