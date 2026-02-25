@@ -66,6 +66,7 @@ func (p *program) run() error {
       {"d", "C", "E"},
    })
 }
+
 func main() {
    err := new(program).run()
    if err != nil {
