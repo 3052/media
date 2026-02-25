@@ -3,23 +3,20 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/rosso/hboMax"
-   "flag"
    "fmt"
-   "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
-func main() {
-   err := new(program).run()
-   if err != nil {
-      log.Fatal(err)
-   }
+func (p *program) run_proxy() error {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return "", false
+      }
+      return p.proxy, true
+   })
+   return nil
 }
-
-///
 
 func (p *program) run_address() error {
    var show hboMax.ShowKey
@@ -114,81 +111,4 @@ func (p *program) run_initiate() error {
    }
    fmt.Println(initiate)
    return nil
-}
-
-type program struct {
-   cache_file string
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   // 3, 4
-   proxy string
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
-}
-
-func (p *program) run() error {
-   cache_dir, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache_dir = filepath.ToSlash(cache_dir)
-   p.cache_file = cache_dir + "/rosso/hboMax.xml"
-   p.job.CertificateChain = cache_dir + "/SL3000/CertificateChain"
-   p.job.EncryptSignKey = cache_dir + "/SL3000/EncryptSignKey"
-   // 1
-   flag.BoolVar(&p.initiate, "i", false, "device initiate")
-   flag.StringVar(
-      &p.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
-   )
-   // 2
-   flag.BoolVar(&p.login, "l", false, "device login")
-   // 3
-   flag.StringVar(&p.address, "a", "", "address")
-   flag.IntVar(&p.season, "s", 0, "season")
-   // 3, 4
-   flag.StringVar(&p.proxy, "x", "", "proxy")
-   // 4
-   flag.StringVar(&p.edit, "e", "", "edit ID")
-   // 5
-   flag.StringVar(&p.dash, "d", "", "DASH ID")
-   flag.StringVar(&p.job.CertificateChain, "C", p.job.CertificateChain, "certificate chain")
-   flag.StringVar(&p.job.EncryptSignKey, "E", p.job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return "", false
-      }
-      return p.proxy, true
-   })
-   if p.initiate {
-      return p.run_initiate()
-   }
-   if p.login {
-      return p.run_login()
-   }
-   if p.address != "" {
-      return p.run_address()
-   }
-   if p.edit != "" {
-      return p.run_edit()
-   }
-   if p.dash != "" {
-      return p.run_dash()
-   }
-   return maya.Usage([][]string{
-      {"i", "m"},
-      {"l"},
-      {"a", "s", "x"},
-      {"e", "x"},
-      {"d", "C", "E"},
-   })
 }
