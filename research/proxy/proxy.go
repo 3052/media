@@ -4,109 +4,89 @@ import (
    "encoding/json"
    "flag"
    "fmt"
-   "io"
    "log"
    "net/http"
    "net/url"
    "os"
 )
 
+// handleSetProxy reads config, updates it (if doWrite is true), and sets http.DefaultClient
+func handleSetProxy(proxyURL string, doWrite bool) error {
+   // 1. Declare map
+   config := make(map[string]string)
+   // 2. Read cache.json into map
+   if fileData, err := os.ReadFile(cacheFileName); err == nil {
+      if err := json.Unmarshal(fileData, &config); err != nil {
+         return fmt.Errorf("failed to parse cache JSON: %w", err)
+      }
+   }
+   // 3. Update map and write to file ONLY if the write flag is true
+   if doWrite {
+      // Just assign the value. If it's empty, the key becomes empty.
+      config["proxy"] = proxyURL
+      // Save to file
+      jsonData, err := json.MarshalIndent(config, "", "  ")
+      if err != nil {
+         return fmt.Errorf("failed to marshal config: %w", err)
+      }
+      if err := os.WriteFile(cacheFileName, jsonData, 0644); err != nil {
+         return fmt.Errorf("failed to write cache file: %w", err)
+      }
+   }
+   // 4. Configure http.DefaultClient based on the map state
+   if val := config["proxy"]; val != "" {
+      parsedURL, err := url.Parse(val)
+      if err != nil {
+         return fmt.Errorf("invalid proxy URL stored in cache: %w", err)
+      }
+      http.DefaultClient.Transport = &http.Transport{
+         Proxy: http.ProxyURL(parsedURL),
+      }
+   }
+   return nil
+}
+
+// handleAction executes the request using http.DefaultClient
+func handleAction() error {
+   targetURL := "http://example.com"
+
+   // Perform the HEAD request
+   resp, err := http.Head(targetURL)
+   if err != nil {
+      return fmt.Errorf("http request failed: %w", err)
+   }
+   defer resp.Body.Close()
+
+   fmt.Printf("Response Status: %s\n", resp.Status)
+
+   return nil
+}
+
 const cacheFileName = "cache.json"
 
 func main() {
    // Define flags
-   // flag -x: accept proxy URL
-   proxyFlag := flag.String("x", "", "Set the proxy URL (e.g., http://localhost:8080)")
-   // flag -a: action flag
+   proxyFlag := flag.String("x", "", "Set the proxy URL")
+   writeFlag := flag.Bool("w", false, "Write/Update the configuration")
    actionFlag := flag.Bool("a", false, "Execute request to example.com")
 
    flag.Parse()
 
-   // ## no flags: print usage
+   // 0. Check if any flags were provided
    if flag.NFlag() == 0 {
       flag.Usage()
       return
    }
 
-   // ## flag -x
-   // Note: flag.NFlag() > 0, checks if x was explicitly set and has a value
-   if *proxyFlag != "" {
-      // 1. accept proxy URL (handled by *proxyFlag)
-      // 2. declare map
-      config := make(map[string]string)
-
-      // 3. if `cache.json` exist read it into map
-      if _, err := os.Stat(cacheFileName); err == nil {
-         fileData, err := os.ReadFile(cacheFileName)
-         if err != nil {
-            log.Fatalf("Failed to read cache file: %v", err)
-         }
-         if err := json.Unmarshal(fileData, &config); err != nil {
-            log.Fatalf("Failed to parse cache JSON: %v", err)
-         }
-      }
-
-      // 4. update map with proxy URL
-      config["proxy"] = *proxyFlag
-      fmt.Printf("Updating proxy configuration to: %s\n", *proxyFlag)
-
-      // 5. write to `cache.json`
-      jsonData, err := json.MarshalIndent(config, "", "  ")
-      if err != nil {
-         log.Fatalf("Failed to marshal JSON: %v", err)
-      }
-      if err := os.WriteFile(cacheFileName, jsonData, 0644); err != nil {
-         log.Fatalf("Failed to write to cache file: %v", err)
-      }
-      fmt.Println("Configuration saved.")
-      return
+   // 1. Always configure the environment
+   if err := handleSetProxy(*proxyFlag, *writeFlag); err != nil {
+      log.Fatalf("Error configuring proxy: %v", err)
    }
 
-   // ## flag -a
+   // 2. If -a is set, perform the action
    if *actionFlag {
-      // 1. declare map
-      config := make(map[string]string)
-
-      // 2. if `cache.json` exist read it into map
-      if _, err := os.Stat(cacheFileName); err == nil {
-         fileData, err := os.ReadFile(cacheFileName)
-         if err == nil {
-            // We ignore unmarshal errors here to ensure map stays empty/valid if file is corrupt
-            _ = json.Unmarshal(fileData, &config)
-         }
+      if err := handleAction(); err != nil {
+         log.Fatalf("Error executing action: %v", err)
       }
-
-      // Prepare HTTP client
-      client := &http.Client{}
-      targetURL := "http://example.com"
-
-      // 3. if map has proxy then request with proxy
-      if proxyURL, ok := config["proxy"]; ok && proxyURL != "" {
-         parsedProxy, err := url.Parse(proxyURL)
-         if err != nil {
-            log.Fatalf("Invalid proxy URL in cache: %v", err)
-         }
-
-         fmt.Printf("Using Proxy: %s\n", proxyURL)
-         client.Transport = &http.Transport{
-            Proxy: http.ProxyURL(parsedProxy),
-         }
-      } else {
-         // 4. else request without proxy
-         fmt.Println("No proxy found, connecting directly...")
-      }
-
-      // Perform the request
-      resp, err := client.Get(targetURL)
-      if err != nil {
-         log.Fatalf("Request failed: %v", err)
-      }
-      defer resp.Body.Close()
-
-      fmt.Printf("Response Status: %s\n", resp.Status)
-      
-      // Optional: Print a bit of the body to prove it worked
-      body, _ := io.ReadAll(resp.Body)
-      fmt.Printf("Body length: %d bytes\n", len(body))
    }
 }
