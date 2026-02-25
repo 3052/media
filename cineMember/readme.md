@@ -2,11 +2,11 @@
 
 1. https://cinemember.nl (https required)
 2. netherlands VPN
-3. try for two weeks
+3. try for 7 days
 4. first name
 5. last name
 6. e-mail
-   - mailsac.com
+   - mail.tm
 7. password
    - password is at least 8 characters long and contains 1 letter, 1 digit and 1
    special character

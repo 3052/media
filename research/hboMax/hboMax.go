@@ -12,19 +12,28 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_address() error {
+func main() {
+   err := new(program).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+///
+
+func (p *program) run_address() error {
    var show hboMax.ShowKey
-   err := show.Parse(c.address)
+   err := show.Parse(p.address)
    if err != nil {
       return err
    }
-   cache, err := maya.Read[user_cache](c.name)
+   cache, err := maya.Read[cache_data](p.cache_file)
    if err != nil {
       return err
    }
    var videos *hboMax.Videos
-   if c.season >= 1 {
-      videos, err = cache.Login.Season(&show, c.season)
+   if p.season >= 1 {
+      videos, err = cache.Login.Season(&show, p.season)
    } else {
       videos, err = cache.Login.Movie(&show)
    }
@@ -41,8 +50,8 @@ func (c *command) do_address() error {
    return nil
 }
 
-func (c *command) do_login() error {
-   cache, err := maya.Read[user_cache](c.name)
+func (p *program) run_login() error {
+   cache, err := maya.Read[cache_data](p.cache_file)
    if err != nil {
       return err
    }
@@ -50,38 +59,31 @@ func (c *command) do_login() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, cache)
+   return maya.Write(p.cache_file, cache)
 }
 
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
+type cache_data struct {
    Dash     *hboMax.Dash
    Login    *hboMax.Login
    Playback *hboMax.Playback
    St       *hboMax.St
 }
 
-func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+func (p *program) run_dash() error {
+   cache, err := maya.Read[cache_data](p.cache_file)
    if err != nil {
       return err
    }
-   c.job.Send = cache.Playback.PlayReady
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+   p.job.Send = cache.Playback.PlayReady
+   return p.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, p.dash)
 }
 
-func (c *command) do_edit() error {
-   cache, err := maya.Read[user_cache](c.name)
+func (p *program) run_edit() error {
+   cache, err := maya.Read[cache_data](p.cache_file)
    if err != nil {
       return err
    }
-   cache.Playback, err = cache.Login.PlayReady(c.edit)
+   cache.Playback, err = cache.Login.PlayReady(p.edit)
    if err != nil {
       return err
    }
@@ -89,24 +91,24 @@ func (c *command) do_edit() error {
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   err = maya.Write(p.cache_file, cache)
    if err != nil {
       return err
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
-func (c *command) do_initiate() error {
+func (p *program) run_initiate() error {
    var st hboMax.St
    err := st.Fetch()
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, &user_cache{St: &st})
+   err = maya.Write(p.cache_file, &cache_data{St: &st})
    if err != nil {
       return err
    }
-   initiate, err := st.Initiate(c.market)
+   initiate, err := st.Initiate(p.market)
    if err != nil {
       return err
    }
@@ -114,8 +116,8 @@ func (c *command) do_initiate() error {
    return nil
 }
 
-type command struct {
-   name string
+type program struct {
+   cache_file string
    // 1
    initiate bool
    market   string
@@ -133,54 +135,54 @@ type command struct {
    job  maya.PlayReadyJob
 }
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func (p *program) run() error {
+   cache_dir, err := os.UserCacheDir()
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/rosso/hboMax.xml"
+   cache_dir = filepath.ToSlash(cache_dir)
+   p.cache_file = cache_dir + "/rosso/hboMax.xml"
+   p.job.CertificateChain = cache_dir + "/SL3000/CertificateChain"
+   p.job.EncryptSignKey = cache_dir + "/SL3000/EncryptSignKey"
    // 1
-   flag.BoolVar(&c.initiate, "i", false, "device initiate")
+   flag.BoolVar(&p.initiate, "i", false, "device initiate")
    flag.StringVar(
-      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
+      &p.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
    )
    // 2
-   flag.BoolVar(&c.login, "l", false, "device login")
+   flag.BoolVar(&p.login, "l", false, "device login")
    // 3
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.IntVar(&c.season, "s", 0, "season")
+   flag.StringVar(&p.address, "a", "", "address")
+   flag.IntVar(&p.season, "s", 0, "season")
    // 3, 4
-   flag.StringVar(&c.proxy, "x", "", "proxy")
+   flag.StringVar(&p.proxy, "x", "", "proxy")
    // 4
-   flag.StringVar(&c.edit, "e", "", "edit ID")
+   flag.StringVar(&p.edit, "e", "", "edit ID")
    // 5
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.StringVar(&p.dash, "d", "", "DASH ID")
+   flag.StringVar(&p.job.CertificateChain, "C", p.job.CertificateChain, "certificate chain")
+   flag.StringVar(&p.job.EncryptSignKey, "E", p.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
    maya.SetProxy(func(req *http.Request) (string, bool) {
       if path.Ext(req.URL.Path) == ".mp4" {
          return "", false
       }
-      return c.proxy, true
+      return p.proxy, true
    })
-   if c.initiate {
-      return c.do_initiate()
+   if p.initiate {
+      return p.run_initiate()
    }
-   if c.login {
-      return c.do_login()
+   if p.login {
+      return p.run_login()
    }
-   if c.address != "" {
-      return c.do_address()
+   if p.address != "" {
+      return p.run_address()
    }
-   if c.edit != "" {
-      return c.do_edit()
+   if p.edit != "" {
+      return p.run_edit()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if p.dash != "" {
+      return p.run_dash()
    }
    return maya.Usage([][]string{
       {"i", "m"},
