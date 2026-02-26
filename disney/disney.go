@@ -2,13 +2,13 @@
 package disney
 
 import (
-   "bytes"
-   "encoding/json"
-   "errors"
-   "io"
-   "net/http"
-   "net/url"
-   "strings"
+	"bytes"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 )
 
 func (a *Account) Stream(mediaId string) (*Stream, error) {
@@ -381,15 +381,25 @@ mutation switchProfile($input: SwitchProfileInput!) {
 }
 `
 
-func (a *Account) Season(id string) (*Season, error) {
+func (a *Account) Season(id string, limit string) (*Season, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.URL = &url.URL{
+
+   u := &url.URL{
       Scheme: "https",
       Host:   "disney.api.edge.bamgrid.com",
       Path:   "/explore/v1.12/season/" + id,
    }
+
+   if (len(limit) != 0) {
+      q := u.Query()
+      q.Set("limit", limit)
+      u.RawQuery = q.Encode()
+   }
+
+   req.URL = u
+
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
