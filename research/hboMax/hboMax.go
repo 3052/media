@@ -46,8 +46,6 @@ type cache_data struct {
    St       *hboMax.St
 }
 
-///
-
 func (p *program) run_proxy() error {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       if path.Ext(req.URL.Path) == ".mp4" {

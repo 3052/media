@@ -67,7 +67,8 @@ func (c *command) do_tubi() error {
 }
 
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

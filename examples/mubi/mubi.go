@@ -77,7 +77,8 @@ type command struct {
 }
 
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -102,7 +103,8 @@ func (c *command) do_code() error {
 }
 
 func (c *command) do_session() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -114,7 +116,8 @@ func (c *command) do_session() error {
 }
 
 func (c *command) do_address() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

@@ -68,7 +68,8 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err = maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -113,9 +114,10 @@ func (c *command) do_paramount() error {
    if err != nil {
       return err
    }
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err = maya.Read(c.name, &cache)
    if err != nil {
-      cache = &user_cache{}
+      log.Print(err)
    }
    cache.Dash, err = item.Dash()
    if err != nil {

@@ -77,7 +77,8 @@ func (c *command) do_address() error {
 }
 
 func (c *command) do_season() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -93,6 +94,7 @@ func (c *command) do_season() error {
    }
    return nil
 }
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       // everything needs proxy
@@ -130,7 +132,8 @@ type user_cache struct {
 }
 
 func (c *command) do_language() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -160,8 +163,10 @@ func (c *command) do_language() error {
    }
    return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
+
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

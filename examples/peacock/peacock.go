@@ -48,6 +48,7 @@ func (c *command) run() error {
       {"d", "t", "C", "P"},
    })
 }
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".m4s"
@@ -59,7 +60,8 @@ func main() {
 }
 
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -68,7 +70,8 @@ func (c *command) do_dash() error {
 }
 
 func (c *command) do_address() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

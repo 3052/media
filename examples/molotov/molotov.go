@@ -58,7 +58,8 @@ func (c *command) do_email_password() error {
 }
 
 func (c *command) do_address() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -103,7 +104,8 @@ type command struct {
 }
 
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -116,6 +118,7 @@ type user_cache struct {
    Dash  *molotov.Dash
    Login *molotov.Login
 }
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".m4s"

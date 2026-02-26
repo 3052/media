@@ -71,6 +71,7 @@ type command struct {
    dash string
    job  maya.WidevineJob
 }
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".mp4"
@@ -82,7 +83,8 @@ func main() {
 }
 
 func (c *command) do_dash() error {
-   dash, err := maya.Read[nbc.Dash](c.name)
+   var dash nbc.Dash
+   err := maya.Read(c.name, &dash)
    if err != nil {
       return err
    }
