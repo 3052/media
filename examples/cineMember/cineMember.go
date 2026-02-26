@@ -124,7 +124,7 @@ type command struct {
    password string
    // 2
    address string
-   proxy string
+   proxy   string
    // 3
    dash string
    job  maya.Job

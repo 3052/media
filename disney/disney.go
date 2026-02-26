@@ -11,6 +11,89 @@ import (
    "strings"
 )
 
+// SL2000 720p
+// SL3000 1080p
+func (a *Account) PlayReady(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+// L3 720p
+func (a *Account) Widevine(data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST",
+      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Errors []Error
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, &result.Errors[0]
+   }
+   return data, nil
+}
+
+func (a *Account) Season(id string) (*Season, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "disney.api.edge.bamgrid.com",
+      Path:     "/explore/v1.12/season/" + id,
+      RawQuery: "limit=99",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         Season Season
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Data.Season, nil
+}
+
 func (a *Account) Stream(mediaId string) (*Stream, error) {
    playback_id, err := json.Marshal(map[string]string{
       "mediaId": mediaId,
@@ -127,61 +210,7 @@ type AccountWithoutActiveProfile struct {
    }
 }
 
-// SL2000 720p
-// SL3000 1080p
-func (a *Account) PlayReady(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-// L3 720p
-func (a *Account) Widevine(data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST",
-      "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Errors []Error
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, &result.Errors[0]
-   }
-   return data, nil
-}
+///
 
 func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, error) {
    data, err := json.Marshal(map[string]any{
@@ -380,32 +409,6 @@ mutation switchProfile($input: SwitchProfileInput!) {
    }
 }
 `
-
-func (a *Account) Season(id string) (*Season, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "disney.api.edge.bamgrid.com",
-      Path:   "/explore/v1.12/season/" + id,
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         Season Season
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Data.Season, nil
-}
 
 func (a *Account) Page(entity string) (*Page, error) {
    var req http.Request

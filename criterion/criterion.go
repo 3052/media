@@ -10,6 +10,27 @@ import (
    "strings"
 )
 
+const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
+
+func join(items ...string) string {
+   return strings.Join(items, "")
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type MediaFile struct {
+   DrmAuthorizationToken string `json:"drm_authorization_token"`
+   Links                 struct {
+      Source struct {
+         Href string // MPD
+      }
+   } `json:"_links"`
+   Method string
+}
+
 func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    var req http.Request
    req.Method = "POST"
@@ -164,25 +185,4 @@ type VideoItem struct {
          Href string // https://api.vhx.tv/videos/3460957/files
       }
    } `json:"_links"`
-}
-
-const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
-
-func join(items ...string) string {
-   return strings.Join(items, "")
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type MediaFile struct {
-   DrmAuthorizationToken string `json:"drm_authorization_token"`
-   Links                 struct {
-      Source struct {
-         Href string // MPD
-      }
-   } `json:"_links"`
-   Method string
 }

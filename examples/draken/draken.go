@@ -116,6 +116,7 @@ type user_cache struct {
    Login    *draken.Login
    Playback *draken.Playback
 }
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".m4s"

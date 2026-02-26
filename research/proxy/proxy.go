@@ -59,6 +59,7 @@ func handleAction() error {
 
    return nil
 }
+
 const cacheFileName = "cache.json"
 
 func main() {

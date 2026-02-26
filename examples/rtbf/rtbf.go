@@ -50,6 +50,7 @@ func (c *command) run() error {
       {"d", "C", "P"},
    })
 }
+
 type user_cache struct {
    Account     *rtbf.Account
    Dash        *rtbf.Dash
