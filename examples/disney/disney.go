@@ -28,7 +28,7 @@ func (c *command) run() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.season, "s", "", "season")
+   flag.StringVar(&c.season, "s", "", "season ID")
    // 4
    flag.StringVar(&c.media_id, "m", "", "media ID")
    // 5
