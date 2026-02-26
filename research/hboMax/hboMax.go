@@ -12,6 +12,52 @@ import (
    "path/filepath"
 )
 
+func main() {
+   err := new(program).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type program struct {
+   cache_file string
+   // 1
+   proxy *string
+   // 2
+   initiate bool
+   market   string
+   // 3
+   login bool
+   // 4
+   address string
+   season  int
+   // 5
+   edit string
+   // 6
+   dash string
+   job  maya.PlayReadyJob
+}
+
+type cache_data struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   Proxy    string
+   St       *hboMax.St
+}
+
+///
+
+func (p *program) run_proxy() error {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      if path.Ext(req.URL.Path) == ".mp4" {
+         return "", false
+      }
+      return *p.proxy, true
+   })
+   return nil
+}
+
 func (p *program) run() error {
    cache_dir, err := os.UserCacheDir()
    if err != nil {
@@ -22,7 +68,10 @@ func (p *program) run() error {
    p.job.CertificateChain = cache_dir + "/SL3000/CertificateChain"
    p.job.EncryptSignKey = cache_dir + "/SL3000/EncryptSignKey"
    // 1
-   flag.StringVar(&p.proxy, "x", "", "proxy")
+   flag.Func("x", "proxy", func(data string) error {
+      p.proxy = &data
+      return nil
+   })
    // 2
    flag.BoolVar(&p.initiate, "i", false, "device initiate")
    flag.StringVar(
@@ -69,41 +118,6 @@ func (p *program) run() error {
    })
 }
 
-func main() {
-   err := new(program).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type program struct {
-   cache_file string
-   // 1
-   proxy string
-   // 2
-   initiate bool
-   market   string
-   // 3
-   login bool
-   // 4
-   address string
-   season  int
-   // 5
-   edit string
-   // 6
-   dash string
-   job  maya.PlayReadyJob
-}
-func (p *program) run_proxy() error {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return "", false
-      }
-      return p.proxy, true
-   })
-   return nil
-}
-
 func (p *program) run_address() error {
    var show hboMax.ShowKey
    err := show.Parse(p.address)
@@ -143,13 +157,6 @@ func (p *program) run_login() error {
       return err
    }
    return maya.Write(p.cache_file, cache)
-}
-
-type cache_data struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   St       *hboMax.St
 }
 
 func (p *program) run_dash() error {

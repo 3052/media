@@ -27,6 +27,7 @@ func (c *command) run() error {
    flag.StringVar(&c.playlist, "p", "", "playlist URL")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -45,6 +46,7 @@ func (c *command) run() error {
       {"d", "C", "P"},
    })
 }
+
 func (c *command) do_dash() error {
    cache, err := maya.Read[user_cache](c.name)
    if err != nil {
@@ -58,6 +60,7 @@ type user_cache struct {
    Dash      *itv.Dash
    MediaFile *itv.MediaFile
 }
+
 func main() {
    // ALL REQUEST ARE GEO BLOCKED
    maya.SetProxy(func(req *http.Request) (string, bool) {
