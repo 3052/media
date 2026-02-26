@@ -81,7 +81,8 @@ func (c *command) do_email_password() error {
 }
 
 func (c *command) do_refresh() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -93,7 +94,8 @@ func (c *command) do_refresh() error {
 }
 
 func (c *command) do_series() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -115,7 +117,8 @@ func (c *command) do_series() error {
 }
 
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -133,7 +136,8 @@ type user_cache struct {
 }
 
 func (c *command) do_season() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -182,7 +186,8 @@ type command struct {
 }
 
 func (c *command) do_episode() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

@@ -77,7 +77,8 @@ func (c *command) do_email_password() error {
 }
 
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -86,8 +87,10 @@ func (c *command) do_dash() error {
    }
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
+
 func (c *command) do_kanopy() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

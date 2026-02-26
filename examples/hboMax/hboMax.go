@@ -15,7 +15,8 @@ import (
 
 func (c *command) do_proxy() error {
    if c.edit != "" {
-      cache, err := maya.Read[user_cache](c.name)
+      var cache user_cache
+      err := maya.Read(c.name, &cache)
       if err != nil {
          return err
       }
@@ -94,7 +95,8 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err = maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -124,8 +126,10 @@ func (c *command) do_address() error {
    }
    return nil
 }
+
 func (c *command) do_edit() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -171,7 +175,8 @@ type user_cache struct {
 }
 
 func (c *command) do_dash() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -180,7 +185,8 @@ func (c *command) do_dash() error {
 }
 
 func (c *command) do_login() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

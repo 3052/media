@@ -10,52 +10,6 @@ import (
    "strings"
 )
 
-// must run Session.Login first
-func (s Session) Stream(id int) (*Stream, error) {
-   var req http.Request
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.cinemember.nl",
-      Path:     "/elements/films/stream.php",
-      RawQuery: "id=" + strconv.Itoa(id),
-   }
-   req.Header = http.Header{}
-   req.AddCookie(s.Cookie)
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Stream
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != "" {
-      return nil, errors.New(result.Error)
-   }
-   if result.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &result, nil
-}
-
-type Stream struct {
-   Error    string
-   Links    []MediaLink
-   NoAccess bool
-}
-
-func (s *Stream) Dash() (*MediaLink, error) {
-   for i := range s.Links {
-      if s.Links[i].MimeType == "application/dash+xml" {
-         return &s.Links[i], nil
-      }
-   }
-   // Create and return the error directly.
-   return nil, errors.New("DASH link not found")
-}
-
 // extracts the numeric ID and converts it to an integer
 func FetchId(link string) (int, error) {
    resp, err := http.Get(link)
@@ -80,31 +34,6 @@ func FetchId(link string) (int, error) {
    }
    // 3. Convert string to integer
    return strconv.Atoi(idStr)
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type MediaLink struct {
-   MimeType string
-   Url      string
-}
-
-func (m *MediaLink) Dash() (*Dash, error) {
-   resp, err := http.Get(m.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 // Fetch performs the HEAD request to cinemember.nl and populates the Session
@@ -165,4 +94,77 @@ func (s Session) Login(email, password string) error {
 // Session holds the cookie data.
 type Session struct {
    Cookie *http.Cookie
+}
+
+// must run Session.Login first
+func (s Session) Stream(id int) (*Stream, error) {
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.cinemember.nl",
+      Path:     "/elements/films/stream.php",
+      RawQuery: "id=" + strconv.Itoa(id),
+   }
+   req.Header = http.Header{}
+   req.AddCookie(s.Cookie)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
+}
+
+type Stream struct {
+   Error    string
+   Links    []MediaLink
+   NoAccess bool
+}
+
+func (s *Stream) Dash() (*MediaLink, error) {
+   for i := range s.Links {
+      if s.Links[i].MimeType == "application/dash+xml" {
+         return &s.Links[i], nil
+      }
+   }
+   // Create and return the error directly.
+   return nil, errors.New("DASH link not found")
+}
+
+///
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type MediaLink struct {
+   MimeType string
+   Url      string
+}
+
+func (m *MediaLink) Dash() (*Dash, error) {
+   resp, err := http.Get(m.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
 }

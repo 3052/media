@@ -71,13 +71,15 @@ func (c *command) run() error {
 }
 
 func (c *command) do_hls() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
    c.job.Send = cache.Account.PlayReady
    return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
 }
+
 func (c *command) do_email_password() error {
    device, err := disney.RegisterDevice()
    if err != nil {
@@ -96,7 +98,8 @@ func (c *command) do_email_password() error {
 }
 
 func (c *command) do_address() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -113,7 +116,8 @@ func (c *command) do_address() error {
 }
 
 func (c *command) do_season() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }
@@ -126,7 +130,8 @@ func (c *command) do_season() error {
 }
 
 func (c *command) do_media_id() error {
-   cache, err := maya.Read[user_cache](c.name)
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
    if err != nil {
       return err
    }

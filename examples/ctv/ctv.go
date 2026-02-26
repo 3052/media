@@ -81,13 +81,15 @@ func (c *command) do_address() error {
 }
 
 func (c *command) do_dash() error {
-   dash, err := maya.Read[ctv.Dash](c.name)
+   var dash ctv.Dash
+   err := maya.Read(c.name, &dash)
    if err != nil {
       return err
    }
    c.job.Send = ctv.Widevine
    return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
+
 func main() {
    err := new(command).run()
    if err != nil {
