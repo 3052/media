@@ -1,8 +1,6 @@
 package main
 
 import (
-   "41.neocities.org/maya"
-   "41.neocities.org/rosso/disney"
    "flag"
    "fmt"
    "log"
@@ -10,6 +8,9 @@ import (
    "os"
    "path"
    "path/filepath"
+
+   "41.neocities.org/maya"
+   "41.neocities.org/rosso/disney"
 )
 
 func (c *command) run() error {
@@ -25,6 +26,8 @@ func (c *command) run() error {
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
    flag.StringVar(&c.proxy, "x", "", "proxy")
+   flag.IntVar(&c.profileIndex, "i", 0, "profile index")
+   flag.StringVar(&c.entryPin, "c", "", "profile pin code")
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
@@ -90,7 +93,7 @@ func (c *command) do_email_password() error {
       return err
    }
    var cache user_cache
-   cache.Account, err = account_without.SwitchProfile()
+   cache.Account, err = account_without.SwitchProfile(c.profileIndex, c.entryPin)
    if err != nil {
       return err
    }
@@ -165,9 +168,11 @@ type user_cache struct {
 type command struct {
    name string
    // 1
-   email    string
-   password string
-   proxy    string
+   email        string
+   password     string
+   proxy        string
+   profileIndex int
+   entryPin     string
    // 2
    address string
    // 3

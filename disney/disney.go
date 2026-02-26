@@ -73,12 +73,13 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
    return &result.Stream, nil
 }
 
-func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
+func (a *AccountWithoutActiveProfile) SwitchProfile(profileIndex int, entryPin string) (*Account, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_switch_profile,
       "variables": map[string]any{
          "input": map[string]string{
-            "profileId": a.Data.Login.Account.Profiles[0].Id,
+            "profileId": a.Data.Login.Account.Profiles[profileIndex].Id,
+            "entryPin":  entryPin,
          },
       },
    })
