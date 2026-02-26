@@ -11,6 +11,16 @@ import (
    "path/filepath"
 )
 
+func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".mp4"
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -39,6 +49,15 @@ func (c *command) run() error {
    })
 }
 
+type command struct {
+   name string
+   // 1
+   address string
+   // 2
+   dash string
+   job  maya.WidevineJob
+}
+
 func (c *command) do_address() error {
    name, err := nbc.GetName(c.address)
    if err != nil {
@@ -61,25 +80,6 @@ func (c *command) do_address() error {
       return err
    }
    return maya.ListDash(dash.Body, dash.Url)
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   dash string
-   job  maya.WidevineJob
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *command) do_dash() error {
