@@ -5,7 +5,77 @@ import (
    "bytes"
    "encoding/json"
    "net/http"
+   "strings"
 )
+
+func (p *Profile) String() string {
+   var data strings.Builder
+   data.WriteString("name = ")
+   data.WriteString(p.Name)
+   data.WriteString("\nid = ")
+   data.WriteString(p.Id)
+   return data.String()
+}
+
+type Profile struct {
+   Name string
+   Id   string
+}
+
+type AccountWithoutActiveProfile struct {
+   Data struct {
+      Login struct {
+         Account struct {
+            Profiles []struct {
+               Id   string
+               Name string
+            }
+         }
+      }
+   }
+   Errors     []Error
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // AccountWithoutActiveProfile
+         }
+      }
+   }
+}
+
+func (a *AccountWithoutActiveProfile) SwitchProfile(profileId string) (*Account, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": profileId,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Account{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
 
 const mutation_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
@@ -54,61 +124,6 @@ type Account struct {
          Token struct {
             AccessToken     string
             AccessTokenType string // Account
-         }
-      }
-   }
-}
-
-func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_switch_profile,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "profileId": a.Data.Login.Account.Profiles[0].Id,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Account{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
-type AccountWithoutActiveProfile struct {
-   Data struct {
-      Login struct {
-         Account struct {
-            Profiles []struct {
-               Id   string
-               Name string
-            }
-         }
-      }
-   }
-   Errors     []Error
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // AccountWithoutActiveProfile
          }
       }
    }

@@ -48,6 +48,7 @@ type command struct {
    // 3
    roku     string
    get_user bool
+   proxy string
    // 4
    dash string
    job  maya.WidevineJob
@@ -79,12 +80,15 @@ func (c *command) run() error {
    // 3
    flag.StringVar(&c.roku, "r", "", "Roku ID")
    flag.BoolVar(&c.get_user, "g", false, "get user")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return c.proxy, path.Ext(req.URL.Path) != ".mp4"
+   })
    if c.connection {
       return c.do_connection()
    }
@@ -104,10 +108,8 @@ func (c *command) run() error {
       {"d", "C", "P"},
    })
 }
+
 func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -136,7 +138,7 @@ func (c *command) do_connection() error {
       return err
    }
    fmt.Println(cache.LinkCode)
-   return maya.Write(c.name, &cache)
+   return maya.Write(c.name, cache)
 }
 
 func (c *command) do_set_user() error {

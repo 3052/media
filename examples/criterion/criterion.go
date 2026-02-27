@@ -55,7 +55,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, &user_cache{Token: &token})
+   return maya.Write(c.name, user_cache{Token: &token})
 }
 
 type command struct {

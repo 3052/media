@@ -154,7 +154,7 @@ func (c *command) do_initiate() error {
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, &user_cache{St: &st})
+   err = maya.Write(c.name, user_cache{St: &st})
    if err != nil {
       return err
    }

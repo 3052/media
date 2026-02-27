@@ -108,7 +108,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, &cache)
+   return maya.Write(c.name, cache)
 }
 
 type user_cache struct {

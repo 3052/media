@@ -125,7 +125,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, &user_cache{Session: &session})
+   return maya.Write(c.name, user_cache{Session: &session})
 }
 
 func main() {

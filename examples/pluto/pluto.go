@@ -104,7 +104,7 @@ func (c *command) do_movie() error {
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, &user_cache{Dash: &dash})
+   err = maya.Write(c.name, user_cache{Dash: &dash})
    if err != nil {
       return err
    }
@@ -118,7 +118,7 @@ func (c *command) do_show() error {
       return err
    }
    fmt.Println(&series.Vod[0])
-   return maya.Write(c.name, &user_cache{Series: &series})
+   return maya.Write(c.name, user_cache{Series: &series})
 }
 
 type user_cache struct {

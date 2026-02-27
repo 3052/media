@@ -99,7 +99,7 @@ func (c *command) do_code() error {
       return err
    }
    fmt.Println(&code)
-   return maya.Write(c.name, &user_cache{LinkCode: &code})
+   return maya.Write(c.name, user_cache{LinkCode: &code})
 }
 
 func (c *command) do_session() error {

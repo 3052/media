@@ -73,7 +73,7 @@ func (c *command) do_address() error {
       }
       fmt.Println(item)
    }
-   return maya.Write(c.name, &user_cache{Media: &rosso})
+   return maya.Write(c.name, user_cache{Media: &rosso})
 }
 
 func (c *command) do_season() error {

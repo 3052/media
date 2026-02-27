@@ -98,7 +98,7 @@ func (c *command) do_username_password() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, &cache)
+   return maya.Write(c.name, cache)
 }
 
 func (c *command) do_paramount() error {
