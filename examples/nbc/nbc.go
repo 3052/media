@@ -6,10 +6,18 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
+
+func (c *command) do_dash() error {
+   var dash nbc.Dash
+   err := c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   c.job.Send = nbc.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
 
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
@@ -21,15 +29,20 @@ func main() {
    }
 }
 
+type command struct {
+   cache maya.Cache
+   // 1
+   address string
+   // 2
+   dash string
+   job  maya.WidevineJob
+}
+
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/nbc.xml"
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("nbc")
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    // 2
@@ -49,15 +62,6 @@ func (c *command) run() error {
    })
 }
 
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   dash string
-   job  maya.WidevineJob
-}
-
 func (c *command) do_address() error {
    name, err := nbc.GetName(c.address)
    if err != nil {
@@ -75,19 +79,9 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, dash)
+   err = c.cache.Set("Dash", dash)
    if err != nil {
       return err
    }
    return maya.ListDash(dash.Body, dash.Url)
-}
-
-func (c *command) do_dash() error {
-   var dash nbc.Dash
-   err := maya.Read(c.name, &dash)
-   if err != nil {
-      return err
-   }
-   c.job.Send = nbc.Widevine
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }

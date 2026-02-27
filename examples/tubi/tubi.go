@@ -6,26 +6,51 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func (c *command) do_dash() error {
+   var dash tubi.Dash
+   err := c.cache.Get("Dash", &dash)
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/tubi.xml"
+   var video tubi.VideoResource
+   err = c.cache.Get("VideoResource", &video)
+   if err != nil {
+      return err
+   }
+   c.job.Send = video.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   cache maya.Cache
+   // 1
+   tubi  int
+   proxy string
+   // 2
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *command) run() error {
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("tubi")
    // 1
    flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
    flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "T", 2, "threads")
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -43,7 +68,7 @@ func (c *command) run() error {
    }
    return maya.Usage([][]string{
       {"t", "x"},
-      {"d", "T", "c", "p"},
+      {"d", "c", "p"},
    })
 }
 
@@ -53,47 +78,18 @@ func (c *command) do_tubi() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   cache.VideoResource = &content.VideoResources[0]
-   cache.Dash, err = cache.VideoResource.Dash()
+   video := content.VideoResources[0]
+   err = c.cache.Set("VideoResource", video)
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   dash, err := video.Dash()
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   err = c.cache.Set("Dash", dash)
    if err != nil {
       return err
    }
-   c.job.Send = cache.VideoResource.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Dash          *tubi.Dash
-   VideoResource *tubi.VideoResource
-}
-
-type command struct {
-   name string
-   // 1
-   tubi  int
-   proxy string
-   // 2
-   dash string
-   job  maya.WidevineJob
+   return maya.ListDash(dash.Body, dash.Url)
 }

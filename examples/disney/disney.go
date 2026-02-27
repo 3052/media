@@ -11,16 +11,10 @@ import (
 )
 
 func (c *command) run() error {
-   err := c.cache.Init("SL3000")
-   if err != nil {
-      return err
-   }
+   c.cache.Init("SL3000")
    c.job.CertificateChain = c.cache.Join("CertificateChain")
    c.job.EncryptSignKey = c.cache.Join("EncryptSignKey")
-   err = c.cache.Init("disney")
-   if err != nil {
-      return err
-   }
+   c.cache.Init("disney")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")

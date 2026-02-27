@@ -12,15 +12,40 @@ import (
    "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      // everything needs proxy
+      switch path.Ext(req.URL.Path) {
+      case ".isma", ".ismv":
+         return "", false
+      }
+      return "", true
+   })
+   err := new(command).run()
    if err != nil {
-      return err
+      log.Fatal(err)
    }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/rakuten.xml"
+}
+
+type command struct {
+   cache maya.Cache
+   // 1
+   address string
+   // 2
+   season string
+   // 3
+   episode  string
+   language string
+   // 4
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *command) run() error {
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("rakuten")
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    // 2
@@ -53,6 +78,8 @@ func (c *command) run() error {
    })
 }
 
+///
+
 func (c *command) do_address() error {
    var rosso rakuten.Media
    err := rosso.ParseURL(c.address)
@@ -74,61 +101,6 @@ func (c *command) do_address() error {
       fmt.Println(item)
    }
    return maya.Write(c.name, user_cache{Media: &rosso})
-}
-
-func (c *command) do_season() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   season, err := cache.Media.RequestSeason(c.season)
-   if err != nil {
-      return err
-   }
-   for i, item := range season.Episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&item)
-   }
-   return nil
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      // everything needs proxy
-      switch path.Ext(req.URL.Path) {
-      case ".isma", ".ismv":
-         return "", false
-      }
-      return "", true
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   address string
-   // 2
-   season string
-   // 3
-   episode  string
-   language string
-   // 4
-   dash string
-   job  maya.WidevineJob
-}
-
-type user_cache struct {
-   Dash     *rakuten.Dash
-   Episode  string
-   Language string
-   Media    *rakuten.Media
 }
 
 func (c *command) do_language() error {
@@ -191,4 +163,23 @@ func (c *command) do_dash() error {
    }
    c.job.Send = stream.Widevine
    return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
+func (c *command) do_season() error {
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
+   if err != nil {
+      return err
+   }
+   season, err := cache.Media.RequestSeason(c.season)
+   if err != nil {
+      return err
+   }
+   for i, item := range season.Episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&item)
+   }
+   return nil
 }
