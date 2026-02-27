@@ -100,6 +100,7 @@ type user_cache struct {
    MediaPart *plex.MediaPart
    User      *plex.User
 }
+
 func (c *command) do_dash() error {
    var cache user_cache
    err := maya.Read(c.name, &cache)

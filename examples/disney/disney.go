@@ -7,93 +7,20 @@ import (
    "fmt"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
-func (c *command) do_address() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   err = cache.Account.RefreshToken()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   entity, err := disney.GetEntity(c.address)
-   if err != nil {
-      return err
-   }
-   page, err := cache.Account.Page(entity)
-   if err != nil {
-      return err
-   }
-   fmt.Println(page)
-   return nil
-}
-
-func (c *command) do_profile_id() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   cache.Account, err = cache.AccountWithoutActiveProfile.SwitchProfile(
-      c.profile_id,
-   )
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, cache)
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return "", false
-      }
-      return "", true
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   profile_id string
-   // 3
-   address string
-   // 4
-   season_id string
-   // 5
-   media_id string
-   // 6
-   hls int
-   job maya.PlayReadyJob
-}
-
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+   err := c.cache.Init("SL3000")
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/rosso/disney.xml"
+   c.job.CertificateChain = c.cache.Join("CertificateChain")
+   c.job.EncryptSignKey = c.cache.Join("EncryptSignKey")
+   err = c.cache.Init("disney")
+   if err != nil {
+      return err
+   }
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -107,6 +34,7 @@ func (c *command) run() error {
    flag.StringVar(&c.media_id, "m", "", "media ID")
    // 6
    flag.IntVar(&c.hls, "h", -1, "HLS ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -140,10 +68,36 @@ func (c *command) run() error {
    })
 }
 
-type user_cache struct {
-   Account *disney.Account
-   AccountWithoutActiveProfile *disney.AccountWithoutActiveProfile
-   Hls     *disney.Hls
+func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return "", false
+      }
+      return "", true
+   })
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   cache maya.Cache
+   // 1
+   email    string
+   password string
+   // 2
+   profile_id string
+   // 3
+   address string
+   // 4
+   season_id string
+   // 5
+   media_id string
+   // 6
+   hls int
+   job maya.PlayReadyJob
 }
 
 func (c *command) do_email_password() error {
@@ -151,61 +105,103 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   cache.AccountWithoutActiveProfile, err = device.Login(c.email, c.password)
+   account_without, err := device.Login(c.email, c.password)
    if err != nil {
       return err
    }
-   for i, profile := range cache.AccountWithoutActiveProfile.Data.Login.Account.Profiles {
+   for i, profile := range account_without.Data.Login.Account.Profiles {
       if i >= 1 {
          fmt.Println()
       }
       fmt.Println(&profile)
    }
-   return maya.Write(c.name, cache)
+   return c.cache.Set("AccountWithoutActiveProfile", account_without)
 }
 
-func (c *command) do_hls() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+func (c *command) do_profile_id() error {
+   var account_without disney.AccountWithoutActiveProfile
+   err := c.cache.Get("AccountWithoutActiveProfile", &account_without)
    if err != nil {
       return err
    }
-   c.job.Send = cache.Account.PlayReady
-   return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
+   account, err := account_without.SwitchProfile(c.profile_id)
+   if err != nil {
+      return err
+   }
+   return c.cache.Set("Account", account)
+}
+
+func (c *command) do_address() error {
+   var account disney.Account
+   err := c.cache.Get("Account", &account)
+   if err != nil {
+      return err
+   }
+   err = account.RefreshToken()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Account", account)
+   if err != nil {
+      return err
+   }
+   entity, err := disney.GetEntity(c.address)
+   if err != nil {
+      return err
+   }
+   page, err := account.Page(entity)
+   if err != nil {
+      return err
+   }
+   fmt.Println(page)
+   return nil
 }
 
 func (c *command) do_season_id() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var account disney.Account
+   err := c.cache.Get("Account", &account)
    if err != nil {
       return err
    }
-   season, err := cache.Account.Season(c.season_id)
+   season, err := account.Season(c.season_id)
    if err != nil {
       return err
    }
    fmt.Println(season)
    return nil
 }
+func (c *command) do_hls() error {
+   var account disney.Account
+   err := c.cache.Get("Account", &account)
+   if err != nil {
+      return err
+   }
+   var hls disney.Hls
+   err = c.cache.Get("Hls", &hls)
+   if err != nil {
+      return err
+   }
+   c.job.Send = account.PlayReady
+   return c.job.DownloadHls(hls.Body, hls.Url, c.hls)
+}
 
 func (c *command) do_media_id() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var account disney.Account
+   err := c.cache.Get("Account", &account)
    if err != nil {
       return err
    }
-   stream, err := cache.Account.Stream(c.media_id)
+   stream, err := account.Stream(c.media_id)
    if err != nil {
       return err
    }
-   cache.Hls, err = stream.Hls()
+   hls, err := stream.Hls()
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   err = c.cache.Set("Hls", hls)
    if err != nil {
       return err
    }
-   return maya.ListHls(cache.Hls.Body, cache.Hls.Url)
+   return maya.ListHls(hls.Body, hls.Url)
 }

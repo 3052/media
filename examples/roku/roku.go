@@ -48,7 +48,7 @@ type command struct {
    // 3
    roku     string
    get_user bool
-   proxy string
+   proxy    string
    // 4
    dash string
    job  maya.WidevineJob

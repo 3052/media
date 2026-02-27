@@ -11,7 +11,7 @@ var content_tests = []struct {
    location []string
 }{
    {
-      url: "https://hbomax.com/at/en/movies/austin-powers-international-man-of-mystery/a979fb8b-f713-4de3-a625-d16ad4d37448",
+      url:      "https://hbomax.com/at/en/movies/austin-powers-international-man-of-mystery/a979fb8b-f713-4de3-a625-d16ad4d37448",
       location: []string{"austria"},
    },
    {
