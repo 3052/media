@@ -12,6 +12,47 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_address() error {
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
+   if err != nil {
+      return err
+   }
+   err = cache.Account.RefreshToken()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   entity, err := disney.GetEntity(c.address)
+   if err != nil {
+      return err
+   }
+   page, err := cache.Account.Page(entity)
+   if err != nil {
+      return err
+   }
+   fmt.Println(page)
+   return nil
+}
+
+func (c *command) do_profile_id() error {
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
+   if err != nil {
+      return err
+   }
+   cache.Account, err = cache.AccountWithoutActiveProfile.SwitchProfile(
+      c.profile_id,
+   )
+   if err != nil {
+      return err
+   }
+   return maya.Write(c.name, cache)
+}
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       switch path.Ext(req.URL.Path) {
@@ -43,6 +84,7 @@ type command struct {
    hls int
    job maya.PlayReadyJob
 }
+
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -123,21 +165,6 @@ func (c *command) do_email_password() error {
    return maya.Write(c.name, cache)
 }
 
-func (c *command) do_profile_id() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   cache.Account, err = cache.AccountWithoutActiveProfile.SwitchProfile(
-      c.profile_id,
-   )
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, cache)
-}
-
 func (c *command) do_hls() error {
    var cache user_cache
    err := maya.Read(c.name, &cache)
@@ -146,24 +173,6 @@ func (c *command) do_hls() error {
    }
    c.job.Send = cache.Account.PlayReady
    return c.job.DownloadHls(cache.Hls.Body, cache.Hls.Url, c.hls)
-}
-
-func (c *command) do_address() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   entity, err := disney.GetEntity(c.address)
-   if err != nil {
-      return err
-   }
-   page, err := cache.Account.Page(entity)
-   if err != nil {
-      return err
-   }
-   fmt.Println(page)
-   return nil
 }
 
 func (c *command) do_season_id() error {

@@ -11,6 +11,32 @@ import (
    "strings"
 )
 
+const mutation_switch_profile = `
+mutation switchProfile($input: SwitchProfileInput!) {
+   switchProfile(switchProfile: $input) {
+      account {
+         activeProfile {
+            name
+         }
+      }
+   }
+}
+`
+
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
+const mutation_refresh_token = `
+mutation refreshToken($input: RefreshTokenInput!) {
+   refreshToken(refreshToken: $input) {
+      activeSession {
+         sessionId
+      }
+   }
+}
+`
+
 // access token expires in 14400 seconds AKA 240 minutes AKA 4 hours. so using it
 // properly we would:
 // 1. refresh token
@@ -61,26 +87,96 @@ type Account struct {
    }
 }
 
-// ZGlzbmV5JmJyb3dzZXImMS4wLjA
-// disney&browser&1.0.0
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
-
-const mutation_refresh_token = `
-mutation refreshToken($input: RefreshTokenInput!) {
-   refreshToken(refreshToken: $input) {
-      activeSession {
-         sessionId
-      }
-   }
-}
-`
-
 type Device struct {
    Token struct {
       AccessToken     string
       AccessTokenType string // Device
    }
 }
+
+func (p *Page) String() string {
+   var data strings.Builder
+   if len(p.Containers[0].Seasons) >= 1 {
+      var line bool
+      for _, seasonItem := range p.Containers[0].Seasons {
+         if line {
+            data.WriteString("\n\n")
+         } else {
+            line = true
+         }
+         data.WriteString("name = ")
+         data.WriteString(seasonItem.Visuals.Name)
+         data.WriteString("\nid = ")
+         data.WriteString(seasonItem.Id)
+      }
+   } else {
+      data.WriteString(p.Actions[0].InternalTitle)
+   }
+   return data.String()
+}
+
+type Page struct {
+   Actions []struct {
+      InternalTitle string // movie
+   }
+   Containers []struct {
+      Seasons []struct { // series
+         Visuals struct {
+            Name string
+         }
+         Id string
+      }
+   }
+}
+
+func (s Season) String() string {
+   var (
+      data strings.Builder
+      line bool
+   )
+   for _, item := range s.Items {
+      for _, action := range item.Actions {
+         if line {
+            data.WriteByte('\n')
+         } else {
+            line = true
+         }
+         data.WriteString(action.InternalTitle)
+      }
+   }
+   return data.String()
+}
+
+type Season struct {
+   Items []struct {
+      Actions []struct {
+         InternalTitle string
+      }
+   }
+}
+
+func (s *Stream) Hls() (*Hls, error) {
+   resp, err := http.Get(s.Sources[0].Complete.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Hls{data, resp.Request.URL}, nil
+}
+
+type Stream struct {
+   Sources []struct {
+      Complete struct {
+         Url string
+      }
+   }
+}
+
+///
 
 type AccountWithoutActiveProfile struct {
    Data struct {
@@ -504,96 +600,3 @@ type Hls struct {
    Body []byte
    Url  *url.URL
 }
-
-func (p *Page) String() string {
-   var data strings.Builder
-   if len(p.Containers[0].Seasons) >= 1 {
-      var line bool
-      for _, seasonItem := range p.Containers[0].Seasons {
-         if line {
-            data.WriteString("\n\n")
-         } else {
-            line = true
-         }
-         data.WriteString("name = ")
-         data.WriteString(seasonItem.Visuals.Name)
-         data.WriteString("\nid = ")
-         data.WriteString(seasonItem.Id)
-      }
-   } else {
-      data.WriteString(p.Actions[0].InternalTitle)
-   }
-   return data.String()
-}
-
-type Page struct {
-   Actions []struct {
-      InternalTitle string // movie
-   }
-   Containers []struct {
-      Seasons []struct { // series
-         Visuals struct {
-            Name string
-         }
-         Id string
-      }
-   }
-}
-
-func (s Season) String() string {
-   var (
-      data strings.Builder
-      line bool
-   )
-   for _, item := range s.Items {
-      for _, action := range item.Actions {
-         if line {
-            data.WriteByte('\n')
-         } else {
-            line = true
-         }
-         data.WriteString(action.InternalTitle)
-      }
-   }
-   return data.String()
-}
-
-type Season struct {
-   Items []struct {
-      Actions []struct {
-         InternalTitle string
-      }
-   }
-}
-
-func (s *Stream) Hls() (*Hls, error) {
-   resp, err := http.Get(s.Sources[0].Complete.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Hls{data, resp.Request.URL}, nil
-}
-
-type Stream struct {
-   Sources []struct {
-      Complete struct {
-         Url string
-      }
-   }
-}
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-   switchProfile(switchProfile: $input) {
-      account {
-         activeProfile {
-            name
-         }
-      }
-   }
-}
-`
