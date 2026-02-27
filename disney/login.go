@@ -8,6 +8,36 @@ import (
    "strings"
 )
 
+// access token expires in 14400 seconds AKA 240 minutes AKA 4 hours. so using it
+// properly we would:
+// 1. refresh token
+// 2. get movie
+// 3. get movie
+// 4. refresh token
+// 5. get movie
+// 6. get movie
+// based on the duration that is idiotic and its simpler to just refresh every
+// time
+
+type Account struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // Account
+         }
+      }
+   }
+}
+
+type Device struct {
+   Token struct {
+      AccessToken     string
+      RefreshToken    string
+      AccessTokenType string // Device
+   }
+}
+
 type AccountWithoutActiveProfile struct {
    Data struct {
       Login struct {
@@ -66,14 +96,6 @@ func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, er
    return &result, nil
 }
 
-type Device struct {
-   Token struct {
-      AccessToken     string
-      RefreshToken    string
-      AccessTokenType string // Device
-   }
-}
-
 func RegisterDevice() (*Device, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_register_device,
@@ -125,8 +147,6 @@ type Profile struct {
    Name string
    Id   string
 }
-
-///
 
 func (p *Profile) String() string {
    var data strings.Builder
@@ -210,14 +230,3 @@ mutation login($input: LoginInput!) {
    }
 }
 `
-
-type Account struct {
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // Account
-         }
-      }
-   }
-}

@@ -8,28 +8,45 @@ import (
    "strings"
 )
 
-// https://hbomax.com/movies/one-battle-after-another/bebe611d-8178-481a-a4f2-de743b5b135a
-// https://hbomax.com/at/en/movies/austin-powers-international-man-of-mystery/a979fb8b-f713-4de3-a625-d16ad4d37448
-// https://hbomax.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
+type ShowKey struct {
+   Type string
+   Id   string
+}
+
+/*
+https://hbomax.com/at/en/movies/austin-powers-international-man-of-mystery/a979fb8b-f713-4de3-a625-d16ad4d37448
+https://hbomax.com/movies/one-battle-after-another/bebe611d-8178-481a-a4f2-de743b5b135a
+https://hbomax.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
+https://play.hbomax.com/show/31cb4b84-951a-4daf-8925-746fcdcddcb8
+*/
 func (s *ShowKey) Parse(rawLink string) error {
    link, err := url.Parse(rawLink)
    if err != nil {
       return err
    }
    segments := strings.Split(strings.TrimPrefix(link.Path, "/"), "/")
-   n := len(segments)
-   // We expect structure: .../[type]/[slug]/[id]
-   if n < 3 {
+   count := len(segments)
+   if count < 2 {
       return errors.New("invalid URL format: not enough path segments")
    }
-   s.Id = segments[n-1]
-   s.Type = segments[n-3]
-   switch s.Type {
-   case "movies", "shows":
-      return nil
-   default:
-      return errors.New("unrecognized content type")
+   s.Id = segments[count-1]
+   // 1. Check for standard catalog types (plural) at position -3
+   // URL: .../movies/slug/id
+   if count >= 3 {
+      segmentType := segments[count-3]
+      if segmentType == "movies" || segmentType == "shows" {
+         s.Type = segmentType
+         return nil
+      }
    }
+   // 2. Check for player types (singular) at position -2
+   // URL: .../show/id
+   segmentType := segments[count-2]
+   if segmentType == "show" {
+      s.Type = segmentType
+      return nil
+   }
+   return errors.New("unrecognized content type")
 }
 
 func (l Login) Movie(show *ShowKey) (*Videos, error) {
@@ -61,9 +78,4 @@ func (l Login) Movie(show *ShowKey) (*Videos, error) {
       return nil, &result.Errors[0]
    }
    return &result, nil
-}
-
-type ShowKey struct {
-   Type string
-   Id   string
 }
