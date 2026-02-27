@@ -40,6 +40,4 @@ Go packages for streaming API authentication, metadata, and DRM playback
       <dd>10308</dd>
    <dt>Discord invite</dt>
       <dd>https://discord.com/invite/rMFzDRQhSx</dd>
-   <dt>PayPal</dt>
-      <dd>https://paypal.com/donate?hosted_button_id=59UKABTT2F8LS</dd>
 </dl>
