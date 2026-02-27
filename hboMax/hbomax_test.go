@@ -11,22 +11,12 @@ var content_tests = []struct {
    location []string
 }{
    {
-      url:      "https://hbomax.com/movies/one-battle-after-another/bebe611d-8178-481a-a4f2-de743b5b135a",
-      location: []string{"united states"},
+      url: "https://hbomax.com/at/en/movies/austin-powers-international-man-of-mystery/a979fb8b-f713-4de3-a625-d16ad4d37448",
+      location: []string{"austria"},
    },
    {
-      url: "https://hbomax.com/movies/despicable-me-4/3b1e1236-d69f-49f8-88df-2f57ab3c3ac7",
-      location: []string{
-         "chile",
-         "colombia",
-         "indonesia",
-         "malaysia",
-         "mexico",
-         "peru",
-         "philippines",
-         "singapore",
-         "thailand",
-      },
+      url:      "https://hbomax.com/movies/one-battle-after-another/bebe611d-8178-481a-a4f2-de743b5b135a",
+      location: []string{"united states"},
    },
    {
       url: "https://hbomax.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505",

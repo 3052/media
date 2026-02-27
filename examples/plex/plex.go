@@ -11,18 +11,6 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -48,7 +36,7 @@ func (c *command) run() error {
    }
    return maya.Usage([][]string{
       {"a", "x"},
-      {"d", "t", "c", "p"},
+      {"d", "c", "p"},
    })
 }
 
@@ -111,4 +99,15 @@ type user_cache struct {
    Dash      *plex.Dash
    MediaPart *plex.MediaPart
    User      *plex.User
+}
+func (c *command) do_dash() error {
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }

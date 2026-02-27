@@ -107,35 +107,6 @@ func (l *Login) PlayReady(editId string) (*Playback, error) {
    return l.playback(editId, "playready")
 }
 
-func (l Login) Movie(show *ShowKey) (*Videos, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   api_host,
-      Path:   join("/cms/routes/", show.Type, "/", show.Id),
-      RawQuery: url.Values{
-         "include":          {"default"},
-         "page[items.size]": {"1"},
-      }.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Videos
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
-}
-
 func (l Login) Season(show *ShowKey, number int) (*Videos, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -176,34 +147,6 @@ func (p *Playback) PlayReady(data []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-func (s *ShowKey) Parse(rawUrl string) error {
-   parsed, err := url.Parse(rawUrl)
-   if err != nil {
-      return err
-   }
-   segments := strings.Split(strings.TrimPrefix(parsed.Path, "/"), "/")
-   if len(segments) < 2 {
-      return errors.New("invalid URL format: not enough path segments")
-   }
-   // Directly assign the struct fields from the path segments.
-   s.Id = segments[len(segments)-1]
-   s.Type = strings.TrimSuffix(segments[0], "s")
-   // Use the switch statement for validation of the assigned ContentType.
-   switch s.Type {
-   case "sport", "movie", "show":
-      // The content type is valid, so we can successfully return.
-      return nil
-   default:
-      // The content type is not one we recognize.
-      return errors.New("unrecognized content type")
-   }
-}
-
-type ShowKey struct {
-   Type string
-   Id   string
 }
 
 // you must
