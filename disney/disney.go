@@ -115,6 +115,7 @@ func (a *Account) Season(id string) (*Season, error) {
    }
    return &result.Data.Season, nil
 }
+
 func (a *Account) Page(entity string) (*Page, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -252,6 +253,11 @@ type Error struct {
    Message string
 }
 
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
 func (p *Page) String() string {
    var data strings.Builder
    if len(p.Containers[0].Seasons) >= 1 {
@@ -285,11 +291,6 @@ type Page struct {
          Id string
       }
    }
-}
-
-type Hls struct {
-   Body []byte
-   Url  *url.URL
 }
 
 func (s Season) String() string {
