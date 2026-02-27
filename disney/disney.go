@@ -11,21 +11,73 @@ import (
    "strings"
 )
 
+// access token expires in 14400 seconds AKA 240 minutes AKA 4 hours. so using it
+// properly we would:
+// 1. refresh token
+// 2. get movie
+// 3. get movie
+// 4. refresh token
+// 5. get movie
+// 6. get movie
+// based on the duration that is idiotic and its simpler to just refresh every
+// time
+func (a *Account) RefreshToken() error {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_refresh_token,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "refreshToken": a.Extensions.Sdk.Token.RefreshToken,
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer " + client_api_key)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(a)
+}
+
 type Account struct {
    Extensions struct {
       Sdk struct {
          Token struct {
             AccessToken     string
             AccessTokenType string // Account
+            RefreshToken string
          }
       }
    }
 }
 
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
+const mutation_refresh_token = `
+mutation refreshToken($input: RefreshTokenInput!) {
+   refreshToken(refreshToken: $input) {
+      activeSession {
+         sessionId
+      }
+   }
+}
+`
+
 type Device struct {
    Token struct {
       AccessToken     string
-      RefreshToken    string
       AccessTokenType string // Device
    }
 }
@@ -187,20 +239,7 @@ mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {
       token {
          accessToken
-         refreshToken
          accessTokenType
-      }
-   }
-}
-`
-
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-   switchProfile(switchProfile: $input) {
-      account {
-         activeProfile {
-            name
-         }
       }
    }
 }
@@ -547,3 +586,14 @@ type Stream struct {
       }
    }
 }
+const mutation_switch_profile = `
+mutation switchProfile($input: SwitchProfileInput!) {
+   switchProfile(switchProfile: $input) {
+      account {
+         activeProfile {
+            name
+         }
+      }
+   }
+}
+`
