@@ -3,8 +3,8 @@
 > Listen, um, I don’t really know what’s going on here, but I’m leaving. I
 > don’t know where exactly, but I’m gonna start over. Come with me.
 >
-> Paint it Black (2016)<br>
-> [Frankie Rose](//youtube.com/watch?v=12kWorQYKhI) (2012)
+> - [Frankie Rose](//youtube.com/watch?v=12kWorQYKhI) (2012)
+> - [Paint it Black](//justwatch.com/us/movie/paint-it-black) (2016)
 
 Go packages for streaming API authentication, metadata, and DRM playback
 
