@@ -74,113 +74,6 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
    return &result.Stream, nil
 }
 
-const mutation_login = `
-mutation login($input: LoginInput!) {
-   login(login: $input) {
-      account {
-         profiles {
-            id
-            name
-         }
-      }
-   }
-}
-`
-
-func (d *Device) Login(email, password string) (*AccountWithoutActiveProfile, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_login,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "email":    email,
-            "password": password,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set(
-      "authorization", "Bearer "+d.Token.AccessToken,
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result AccountWithoutActiveProfile
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
-}
-
-type Device struct {
-   Token struct {
-      AccessToken     string
-      RefreshToken    string
-      AccessTokenType string // Device
-   }
-}
-
-func RegisterDevice() (*Device, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_register_device,
-      "variables": map[string]any{
-         "input": map[string]any{
-            "deviceProfile":      "!",
-            "deviceFamily":       "!",
-            "applicationRuntime": "!",
-            "attributes": map[string]string{
-               "operatingSystem":        "",
-               "operatingSystemVersion": "",
-            },
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+client_api_key)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         RegisterDevice Device
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result.Data.RegisterDevice, nil
-}
-
 func (e *Error) Error() string {
    var data strings.Builder
    if e.Code != "" {
@@ -255,60 +148,6 @@ type Page struct {
    }
 }
 
-func (a *AccountWithoutActiveProfile) SwitchProfile() (*Account, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_switch_profile,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "profileId": a.Data.Login.Account.Profiles[0].Id,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Account{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-type AccountWithoutActiveProfile struct {
-   Data struct {
-      Login struct {
-         Account struct {
-            Profiles []struct {
-               Id   string
-               Name string
-            }
-         }
-      }
-   }
-   Errors     []Error
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // AccountWithoutActiveProfile
-         }
-      }
-   }
-}
-
 type Hls struct {
    Body []byte
    Url  *url.URL
@@ -360,34 +199,6 @@ type Stream struct {
       }
    }
 }
-
-const mutation_register_device = `
-mutation registerDevice($input: RegisterDeviceInput!) {
-   registerDevice(registerDevice: $input) {
-      token {
-         accessToken
-         refreshToken
-         accessTokenType
-      }
-   }
-}
-`
-
-// ZGlzbmV5JmJyb3dzZXImMS4wLjA
-// disney&browser&1.0.0
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
-
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-   switchProfile(switchProfile: $input) {
-      account {
-         activeProfile {
-            name
-         }
-      }
-   }
-}
-`
 
 func (a *Account) Page(entity string) (*Page, error) {
    var req http.Request
@@ -444,17 +255,6 @@ func GetEntity(link string) (string, error) {
    }
    // The 'id' variable now holds the rest of the string after the marker.
    return id, nil
-}
-
-type Account struct {
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // Account
-         }
-      }
-   }
 }
 
 // SL2000 720p
