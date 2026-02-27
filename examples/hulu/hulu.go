@@ -28,6 +28,7 @@ func (c *command) run() error {
    flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "c", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "e", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
