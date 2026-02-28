@@ -12,35 +12,15 @@ import (
    "path/filepath"
 )
 
-func (c *command) do_roku() error {
-   var cache user_cache
-   if c.get_user {
-      err := maya.Read(c.name, &cache)
-      if err != nil {
-         return err
-      }
-   }
-   connection, err := roku.NewConnection(cache.User)
+func main() {
+   err := new(command).run()
    if err != nil {
-      return err
+      log.Fatal(err)
    }
-   cache.Playback, err = connection.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = cache.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    connection bool
    // 2
@@ -54,25 +34,11 @@ type command struct {
    job  maya.WidevineJob
 }
 
-func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Playback.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/roku.xml"
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("roku")
    // 1
    flag.BoolVar(&c.connection, "c", false, "connection")
    // 2
@@ -109,20 +75,7 @@ func (c *command) run() error {
    })
 }
 
-func main() {
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type user_cache struct {
-   Connection *roku.Connection
-   LinkCode   *roku.LinkCode
-   Dash       *roku.Dash
-   Playback   *roku.Playback
-   User       *roku.User
-}
+///
 
 func (c *command) do_connection() error {
    var (
@@ -153,3 +106,41 @@ func (c *command) do_set_user() error {
    }
    return maya.Write(c.name, cache)
 }
+
+func (c *command) do_roku() error {
+   var cache user_cache
+   if c.get_user {
+      err := maya.Read(c.name, &cache)
+      if err != nil {
+         return err
+      }
+   }
+   connection, err := roku.NewConnection(cache.User)
+   if err != nil {
+      return err
+   }
+   cache.Playback, err = connection.Playback(c.roku)
+   if err != nil {
+      return err
+   }
+   cache.Dash, err = cache.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = maya.Write(c.name, cache)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+}
+
+func (c *command) do_dash() error {
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
+   if err != nil {
+      return err
+   }
+   c.job.Send = cache.Playback.Widevine
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+

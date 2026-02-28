@@ -7,20 +7,45 @@ import (
    "fmt"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func (c *command) do_dash() error {
+   var dash pluto.Dash
+   err := c.cache.Get("Dash", &dash)
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/pluto.xml"
+   c.job.Send = pluto.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
+
+func main() {
+   err := new(command).run()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type command struct {
+   cache maya.Cache
+   // 1
+   movie string
+   proxy string
+   // 2
+   show string
+   // 3
+   episode string
+   // 4
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *command) run() error {
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("pluto")
    // 1
    flag.StringVar(&c.movie, "m", "", "movie URL")
    flag.StringVar(&c.proxy, "x", "", "proxy")
@@ -30,7 +55,6 @@ func (c *command) run() error {
    flag.StringVar(&c.episode, "e", "", "episode ID")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -60,39 +84,6 @@ func (c *command) run() error {
    })
 }
 
-func (c *command) do_episode() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   link, err := cache.Series.GetEpisodeURL(c.episode)
-   if err != nil {
-      return err
-   }
-   var dash pluto.Dash
-   err = dash.Fetch(link)
-   if err != nil {
-      return err
-   }
-   cache.Dash = &dash
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
-}
-
-func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   c.job.Send = pluto.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
 func (c *command) do_movie() error {
    var series pluto.Series
    err := series.Fetch(path.Base(c.movie))
@@ -104,7 +95,7 @@ func (c *command) do_movie() error {
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, user_cache{Dash: &dash})
+   err = c.cache.Set("Dash", dash)
    if err != nil {
       return err
    }
@@ -118,31 +109,27 @@ func (c *command) do_show() error {
       return err
    }
    fmt.Println(&series.Vod[0])
-   return maya.Write(c.name, user_cache{Series: &series})
+   return c.cache.Set("Series", series)
 }
 
-type user_cache struct {
-   Dash   *pluto.Dash
-   Series *pluto.Series
-}
-
-func main() {
-   err := new(command).run()
+func (c *command) do_episode() error {
+   var series pluto.Series
+   err := c.cache.Get("Series", &series)
    if err != nil {
-      log.Fatal(err)
+      return err
    }
-}
-
-type command struct {
-   name string
-   // 1
-   movie string
-   proxy string
-   // 2
-   show string
-   // 3
-   episode string
-   // 4
-   dash string
-   job  maya.WidevineJob
+   link, err := series.GetEpisodeURL(c.episode)
+   if err != nil {
+      return err
+   }
+   var dash pluto.Dash
+   err = dash.Fetch(link)
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
