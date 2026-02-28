@@ -6,20 +6,67 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func (c *command) do_address() error {
+   var cookie http.Cookie
+   err := c.cache.Get("Cookie", &cookie)
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/peacock.xml"
+   var token peacock.Token
+   err = token.Fetch(&cookie)
+   if err != nil {
+      return err
+   }
+   playout, err := token.Playout(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Playout", playout)
+   if err != nil {
+      return err
+   }
+   endpoint, err := playout.Fastly()
+   if err != nil {
+      return err
+   }
+   dash, err := endpoint.Dash()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
+}
+
+func (c *command) do_email_password() error {
+   cookie, err := peacock.FetchIdSession(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return c.cache.Set("Cookie", cookie)
+}
+
+type command struct {
+   cache maya.Cache
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+func (c *command) run() error {
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("peacock")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -27,7 +74,6 @@ func (c *command) run() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -45,7 +91,7 @@ func (c *command) run() error {
    return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
-      {"d", "t", "C", "P"},
+      {"d", "C", "P"},
    })
 }
 
@@ -60,71 +106,16 @@ func main() {
 }
 
 func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var dash peacock.Dash
+   err := c.cache.Get("Dash", &dash)
    if err != nil {
       return err
    }
-   c.job.Send = cache.Playout.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-func (c *command) do_address() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var playout peacock.Playout
+   err = c.cache.Get("Playout", &playout)
    if err != nil {
       return err
    }
-   var token peacock.Token
-   err = token.Fetch(cache.Cookie)
-   if err != nil {
-      return err
-   }
-   cache.Playout, err = token.Playout(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   endpoint, err := cache.Playout.Fastly()
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = endpoint.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func (c *command) do_email_password() error {
-   var (
-      cache user_cache
-      err   error
-   )
-   cache.Cookie, err = peacock.FetchIdSession(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, cache)
-}
-
-type user_cache struct {
-   Cookie  *http.Cookie
-   Dash    *peacock.Dash
-   Playout *peacock.Playout
-}
-
-type command struct {
-   name string
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.WidevineJob
+   c.job.Send = playout.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
