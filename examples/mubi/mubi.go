@@ -7,20 +7,14 @@ import (
    "fmt"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/mubi.xml"
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("mubi")
    // 1
    flag.BoolVar(&c.code, "c", false, "link code")
    // 2
@@ -31,7 +25,6 @@ func (c *command) run() error {
    flag.StringVar(&c.proxy, "x", "", "proxy")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -57,12 +50,12 @@ func (c *command) run() error {
       {"c"},
       {"s"},
       {"a", "x"},
-      {"d", "x", "t", "C", "P"},
+      {"d", "x", "C", "P"},
    })
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    code bool
    // 2
@@ -77,50 +70,44 @@ type command struct {
 }
 
 func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var dash mubi.Dash
+   err := c.cache.Get("Dash", &dash)
    if err != nil {
       return err
    }
-   c.job.Send = cache.Session.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   Dash     *mubi.Dash
-   LinkCode *mubi.LinkCode
-   Session  *mubi.Session
+   var session mubi.Session
+   err = c.cache.Get("Session", &session)
+   if err != nil {
+      return err
+   }
+   c.job.Send = session.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func (c *command) do_code() error {
-   var code mubi.LinkCode
-   err := code.Fetch()
+   var link_code mubi.LinkCode
+   err := link_code.Fetch()
    if err != nil {
       return err
    }
-   fmt.Println(&code)
-   return maya.Write(c.name, user_cache{LinkCode: &code})
+   fmt.Println(&link_code)
+   return c.cache.Set("LinkCode", link_code)
 }
 
 func (c *command) do_session() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var link_code mubi.LinkCode
+   err := c.cache.Get("LinkCode", &link_code)
    if err != nil {
       return err
    }
-   cache.Session, err = cache.LinkCode.Session()
+   session, err := link_code.Session()
    if err != nil {
       return err
    }
-   return maya.Write(c.name, cache)
+   return c.cache.Set("Session", session)
 }
 
 func (c *command) do_address() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
    slug, err := mubi.FilmSlug(c.address)
    if err != nil {
       return err
@@ -129,23 +116,28 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   err = cache.Session.Viewing(film_id)
+   var session mubi.Session
+   err = c.cache.Get("Session", &session)
    if err != nil {
       return err
    }
-   secure, err := cache.Session.SecureUrl(film_id)
+   err = session.Viewing(film_id)
    if err != nil {
       return err
    }
-   cache.Dash, err = secure.Dash()
+   secure, err := session.SecureUrl(film_id)
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   dash, err := secure.Dash()
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
 func main() {

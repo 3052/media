@@ -6,20 +6,29 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
-func (c *command) run() error {
-   cache, err := os.UserCacheDir()
+func (c *command) do_dash() error {
+   var asset molotov.Asset
+   err := c.cache.Get("Asset", &asset)
    if err != nil {
       return err
    }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/molotov.xml"
+   var dash molotov.Dash
+   err = c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   c.job.Send = asset.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
+
+func (c *command) run() error {
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("molotov")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -54,45 +63,53 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, user_cache{Login: &login})
+   return c.cache.Set("Login", login)
 }
 
 func (c *command) do_address() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var login molotov.Login
+   err := c.cache.Get("Login", &login)
    if err != nil {
       return err
    }
-   err = cache.Login.Refresh()
+   err = login.Refresh()
    if err != nil {
       return err
    }
-   var rosso molotov.MediaId
-   err = rosso.Parse(c.address)
+   err = c.cache.Set("Login", login)
    if err != nil {
       return err
    }
-   view, err := cache.Login.ProgramView(&rosso)
+   var media molotov.MediaId
+   err = media.Parse(c.address)
    if err != nil {
       return err
    }
-   cache.Asset, err = cache.Login.Asset(view)
+   view, err := login.ProgramView(&media)
    if err != nil {
       return err
    }
-   cache.Dash, err = cache.Asset.Dash()
+   asset, err := login.Asset(view)
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   err = c.cache.Set("Asset", asset)
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+   dash, err := asset.Dash()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    email    string
    password string
@@ -101,22 +118,6 @@ type command struct {
    // 3
    dash string
    job  maya.WidevineJob
-}
-
-func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Asset.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
-type user_cache struct {
-   Asset *molotov.Asset
-   Dash  *molotov.Dash
-   Login *molotov.Login
 }
 
 func main() {

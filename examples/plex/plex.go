@@ -11,6 +11,18 @@ import (
    "path/filepath"
 )
 
+func (c *command) do_dash() error {
+   var cache user_cache
+   err := maya.Read(c.name, &cache)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return cache.User.Widevine(cache.MediaPart, data)
+   }
+   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+}
+
 func (c *command) run() error {
    c.cache.Init("L3")
    c.job.ClientId = c.cache.Join("client_id.bin")
@@ -37,7 +49,7 @@ func (c *command) run() error {
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    address         string
    x_forwarded_for string
@@ -64,21 +76,27 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   cache.MediaPart, err = metadata.Dash()
+   media_part, err := metadata.Dash()
    if err != nil {
       return err
    }
-   cache.Dash, err = user.Dash(cache.MediaPart, c.x_forwarded_for)
+   err = c.cache.Set("MediaPart", media_part)
    if err != nil {
       return err
    }
-   cache.User = &user
-   err = maya.Write(c.name, cache)
+   dash, err := user.Dash(media_part, c.x_forwarded_for)
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("User", user)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
 func main() {
@@ -89,22 +107,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-type user_cache struct {
-   Dash      *plex.Dash
-   MediaPart *plex.MediaPart
-   User      *plex.User
-}
-
-func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
-   }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
 }
