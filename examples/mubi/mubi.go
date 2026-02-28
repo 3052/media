@@ -21,19 +21,11 @@ func (c *command) run() error {
    flag.BoolVar(&c.session, "s", false, "session")
    // 3
    flag.StringVar(&c.address, "a", "", "address")
-   // 3, 4
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".dash" {
-         return "", false
-      }
-      return c.proxy, true
-   })
    if c.code {
       return c.do_code()
    }
@@ -62,8 +54,6 @@ type command struct {
    session bool
    // 3
    address string
-   // 3, 4
-   proxy string
    // 4
    dash string
    job  maya.WidevineJob
@@ -141,6 +131,9 @@ func (c *command) do_address() error {
 }
 
 func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".dash"
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)

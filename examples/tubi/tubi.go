@@ -25,6 +25,9 @@ func (c *command) do_dash() error {
 }
 
 func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".mp4"
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -35,7 +38,6 @@ type command struct {
    cache maya.Cache
    // 1
    tubi  int
-   proxy string
    // 2
    dash string
    job  maya.WidevineJob
@@ -48,18 +50,11 @@ func (c *command) run() error {
    c.cache.Init("tubi")
    // 1
    flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".mp4" {
-         return "", false
-      }
-      return c.proxy, true
-   })
    if c.tubi >= 1 {
       return c.do_tubi()
    }

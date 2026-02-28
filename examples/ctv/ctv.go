@@ -6,26 +6,19 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/ctv.xml"
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("ctv")
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
@@ -44,7 +37,7 @@ func (c *command) run() error {
    }
    return maya.Usage([][]string{
       {"a", "x"},
-      {"d", "t", "c", "p"},
+      {"d", "c", "p"},
    })
 }
 
@@ -73,21 +66,11 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, dash)
+   err = c.cache.Set("Dash", dash)
    if err != nil {
       return err
    }
    return maya.ListDash(dash.Body, dash.Url)
-}
-
-func (c *command) do_dash() error {
-   var dash ctv.Dash
-   err := maya.Read(c.name, &dash)
-   if err != nil {
-      return err
-   }
-   c.job.Send = ctv.Widevine
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func main() {
@@ -97,8 +80,18 @@ func main() {
    }
 }
 
+func (c *command) do_dash() error {
+   c.job.Send = ctv.Widevine
+   var dash ctv.Dash
+   err := c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
+
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    address string
    proxy   string

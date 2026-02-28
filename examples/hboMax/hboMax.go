@@ -7,21 +7,14 @@ import (
    "fmt"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
-   "strings"
 )
 
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL3000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL3000/EncryptSignKey"
-   c.name = cache + "/rosso/hboMax.xml"
+   c.cache.Init("SL3000")
+   c.job.CertificateChain = c.cache.Join("CertificateChain")
+   c.job.EncryptSignKey = c.cache.Join("EncryptSignKey")
+   c.cache.Init("hboMax")
    // 1
    flag.BoolVar(&c.initiate, "i", false, "device initiate")
    flag.StringVar(
@@ -36,7 +29,6 @@ func (c *command) run() error {
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 5
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -58,7 +50,7 @@ func (c *command) run() error {
    return maya.Usage([][]string{
       {"i", "m"},
       {"l"},
-      {"a", "s", "x"},
+      {"a", "s"},
       {"e"},
       {"d", "C", "E"},
    })
@@ -70,16 +62,16 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   err = maya.Read(c.name, &cache)
+   var login hboMax.Login
+   err = c.cache.Get("Login", &login)
    if err != nil {
       return err
    }
    var videos *hboMax.Videos
    if c.season >= 1 {
-      videos, err = cache.Login.Season(&show, c.season)
+      videos, err = login.Season(&show, c.season)
    } else {
-      videos, err = cache.Login.Movie(&show)
+      videos, err = login.Movie(&show)
    }
    if err != nil {
       return err
@@ -95,24 +87,28 @@ func (c *command) do_address() error {
 }
 
 func (c *command) do_edit() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var login hboMax.Login
+   err := c.cache.Get("Login", &login)
    if err != nil {
       return err
    }
-   cache.Playback, err = cache.Login.PlayReady(c.edit)
+   playback, err := login.PlayReady(c.edit)
    if err != nil {
       return err
    }
-   cache.Dash, err = cache.Playback.Dash()
+   err = c.cache.Set("Playback", playback)
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   dash, err := playback.Dash()
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
 func (c *command) do_initiate() error {
@@ -121,7 +117,7 @@ func (c *command) do_initiate() error {
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, user_cache{St: &st})
+   err = c.cache.Set("St", st)
    if err != nil {
       return err
    }
@@ -133,38 +129,36 @@ func (c *command) do_initiate() error {
    return nil
 }
 
-type user_cache struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   St       *hboMax.St
-}
-
 func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var playback hboMax.Playback
+   err := c.cache.Get("Playback", &playback)
    if err != nil {
       return err
    }
-   c.job.Send = cache.Playback.PlayReady
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+   c.job.Send = playback.PlayReady
+   var dash hboMax.Dash
+   err = c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func (c *command) do_login() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var st hboMax.St
+   err := c.cache.Get("St", &st)
    if err != nil {
       return err
    }
-   cache.Login, err = cache.St.Login()
+   login, err := st.Login()
    if err != nil {
       return err
    }
-   return maya.Write(c.name, cache)
+   return c.cache.Set("Login", login)
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    initiate bool
    market   string

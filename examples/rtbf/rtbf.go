@@ -18,15 +18,11 @@ func (c *command) run() error {
    flag.StringVar(&c.password, "p", "", "password")
    // 2
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-   maya.SetProxy(func(*http.Request) (string, bool) {
-      return c.proxy, true
-   })
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
@@ -115,6 +111,9 @@ func (c *command) do_dash() error {
 }
 
 func main() {
+   maya.SetProxy(func(*http.Request) (string, bool) {
+      return "", true
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -128,7 +127,6 @@ type command struct {
    password string
    // 2
    address string
-   proxy   string
    // 3
    dash string
    job  maya.WidevineJob

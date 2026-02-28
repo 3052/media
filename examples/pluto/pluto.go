@@ -21,6 +21,9 @@ func (c *command) do_dash() error {
 }
 
 func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4s"
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -31,7 +34,6 @@ type command struct {
    cache maya.Cache
    // 1
    movie string
-   proxy string
    // 2
    show string
    // 3
@@ -48,7 +50,6 @@ func (c *command) run() error {
    c.cache.Init("pluto")
    // 1
    flag.StringVar(&c.movie, "m", "", "movie URL")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.show, "s", "", "show URL")
    // 3
@@ -58,12 +59,6 @@ func (c *command) run() error {
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if path.Ext(req.URL.Path) == ".m4s" {
-         return "", false
-      }
-      return c.proxy, true
-   })
    if c.movie != "" {
       return c.do_movie()
    }
