@@ -17,8 +17,6 @@ func (c *command) run() error {
    // 1
    flag.StringVar(&c.username, "U", "", "username")
    flag.StringVar(&c.password, "P", "", "password")
-   // 1, 2, 3
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
    // 3
@@ -27,13 +25,6 @@ func (c *command) run() error {
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return "", false
-      }
-      return c.proxy, true
-   })
    if c.username != "" {
       if c.password != "" {
          return c.do_username_password()
@@ -46,9 +37,9 @@ func (c *command) run() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
-      {"U", "P", "x"},
-      {"p", "x"},
-      {"d", "x", "c", "C", "E"},
+      {"U", "P"},
+      {"p"},
+      {"d", "c", "C", "E"},
    })
 }
 
@@ -136,8 +127,6 @@ type command struct {
    // 1
    username string
    password string
-   // 1, 2, 3
-   proxy string
    // 2
    paramount string
    // 3
@@ -147,6 +136,13 @@ type command struct {
 }
 
 func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".m4s", ".mp4":
+         return "", false
+      }
+      return "", true
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)

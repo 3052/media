@@ -19,19 +19,11 @@ func (c *command) run() error {
    flag.StringVar(&c.password, "P", "", "password")
    // 2
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.CertificateChain, "c", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "e", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return c.proxy, false
-      }
-      return c.proxy, true
-   })
    if c.email != "" {
       if c.password != "" {
          return c.do_email_password()
@@ -57,7 +49,6 @@ type command struct {
    password string
    // 2
    address string
-   proxy   string
    // 3
    dash string
    job  maya.PlayReadyJob
@@ -129,6 +120,13 @@ func (c *command) do_email_password() error {
 }
 
 func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".mp4", ".mp4a":
+         return "", false
+      }
+      return "", true
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)

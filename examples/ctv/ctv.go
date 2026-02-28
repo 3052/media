@@ -16,19 +16,11 @@ func (c *command) run() error {
    c.cache.Init("ctv")
    // 1
    flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
    flag.Parse()
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".m4a", ".m4v":
-         return "", false
-      }
-      return c.proxy, true
-   })
    if c.address != "" {
       return c.do_address()
    }
@@ -74,6 +66,13 @@ func (c *command) do_address() error {
 }
 
 func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      switch path.Ext(req.URL.Path) {
+      case ".m4a", ".m4v":
+         return "", false
+      }
+      return "", true
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)
@@ -94,7 +93,6 @@ type command struct {
    cache maya.Cache
    // 1
    address string
-   proxy   string
    // 2
    dash string
    job  maya.WidevineJob
