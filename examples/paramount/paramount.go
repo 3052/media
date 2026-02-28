@@ -6,20 +6,14 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
-   c.name = cache + "/rosso/paramount.xml"
+   c.cache.Init("SL2000")
+   c.job.CertificateChain = c.cache.Join("CertificateChain")
+   c.job.EncryptSignKey = c.cache.Join("EncryptSignKey")
+   c.cache.Init("paramount")
    // 1
    flag.StringVar(&c.username, "U", "", "username")
    flag.StringVar(&c.password, "P", "", "password")
@@ -30,7 +24,6 @@ func (c *command) run() error {
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -55,7 +48,7 @@ func (c *command) run() error {
    return maya.Usage([][]string{
       {"U", "P", "x"},
       {"p", "x"},
-      {"d", "x", "c", "t", "C", "E"},
+      {"d", "x", "c", "C", "E"},
    })
 }
 
@@ -68,20 +61,30 @@ func (c *command) do_dash() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   err = maya.Read(c.name, &cache)
+   var content_id string
+   err = c.cache.Get("ContentId", content_id)
    if err != nil {
       return err
    }
-   if !c.cookie {
-      cache.Cookie = nil
+   var cookie *http.Cookie
+   if c.cookie {
+      cookie = &http.Cookie{}
+      err = c.cache.Get("Cookie", cookie)
+      if err != nil {
+         return err
+      }
    }
-   token, err := paramount.PlayReady(at, cache.ContentId, cache.Cookie)
+   token, err := paramount.PlayReady(at, content_id, cookie)
    if err != nil {
       return err
    }
    c.job.Send = token.Send
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+   var dash paramount.Dash
+   err = c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func (c *command) do_username_password() error {
@@ -93,12 +96,11 @@ func (c *command) do_username_password() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   cache.Cookie, err = paramount.Login(at, c.username, c.password)
+   cookie, err := paramount.Login(at, c.username, c.password)
    if err != nil {
       return err
    }
-   return maya.Write(c.name, cache)
+   return c.cache.Set("Cookie", cookie)
 }
 
 func (c *command) do_paramount() error {
@@ -114,25 +116,23 @@ func (c *command) do_paramount() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   err = maya.Read(c.name, &cache)
-   if err != nil {
-      log.Print(err)
-   }
-   cache.Dash, err = item.Dash()
+   dash, err := item.Dash()
    if err != nil {
       return err
    }
-   cache.ContentId = c.paramount
-   err = maya.Write(c.name, cache)
+   err = c.cache.Set("Dash", dash)
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+   err = c.cache.Set("ContentId", c.paramount)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    username string
    password string
@@ -144,12 +144,6 @@ type command struct {
    dash   string
    cookie bool
    job    maya.PlayReadyJob
-}
-
-type user_cache struct {
-   ContentId string
-   Cookie    *http.Cookie
-   Dash      *paramount.Dash
 }
 
 func main() {

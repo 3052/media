@@ -6,20 +6,14 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.CertificateChain = cache + "/SL2000/CertificateChain"
-   c.job.EncryptSignKey = cache + "/SL2000/EncryptSignKey"
-   c.name = cache + "/rosso/hulu.xml"
+   c.cache.Init("SL2000")
+   c.job.CertificateChain = c.cache.Join("CertificateChain")
+   c.job.EncryptSignKey = c.cache.Join("EncryptSignKey")
+   c.cache.Init("hulu")
    // 1
    flag.StringVar(&c.email, "E", "", "email")
    flag.StringVar(&c.password, "P", "", "password")
@@ -28,7 +22,6 @@ func (c *command) run() error {
    flag.StringVar(&c.proxy, "x", "", "proxy")
    // 3
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&c.job.Threads, "t", 2, "threads")
    flag.StringVar(&c.job.CertificateChain, "c", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "e", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -58,7 +51,7 @@ func (c *command) run() error {
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    email    string
    password string
@@ -71,22 +64,31 @@ type command struct {
 }
 
 func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var playlist hulu.Playlist
+   err := c.cache.Get("Playlist", &playlist)
    if err != nil {
       return err
    }
-   c.job.Send = cache.Playlist.PlayReady
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+   c.job.Send = playlist.PlayReady
+   var dash hulu.Dash
+   err = c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func (c *command) do_address() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var session hulu.Session
+   err := c.cache.Get("Session", &session)
    if err != nil {
       return err
    }
-   err = cache.Session.TokenRefresh()
+   err = session.TokenRefresh()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Session", session)
    if err != nil {
       return err
    }
@@ -94,29 +96,27 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   deep_link, err := cache.Session.DeepLink(id)
+   deep_link, err := session.DeepLink(id)
    if err != nil {
       return err
    }
-   cache.Playlist, err = cache.Session.Playlist(deep_link)
+   playlist, err := session.Playlist(deep_link)
    if err != nil {
       return err
    }
-   cache.Dash, err = cache.Playlist.Dash()
+   err = c.cache.Set("Playlist", playlist)
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   dash, err := playlist.Dash()
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-type user_cache struct {
-   Dash     *hulu.Dash
-   Playlist *hulu.Playlist
-   Session  *hulu.Session
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
 func (c *command) do_email_password() error {
@@ -125,7 +125,7 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, user_cache{Session: &session})
+   return c.cache.Set("Session", session)
 }
 
 func main() {

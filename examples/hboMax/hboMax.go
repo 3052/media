@@ -13,26 +13,6 @@ import (
    "strings"
 )
 
-func (c *command) do_proxy() error {
-   if c.edit != "" {
-      var cache user_cache
-      err := maya.Read(c.name, &cache)
-      if err != nil {
-         return err
-      }
-      c.proxy = cache.Proxy
-   }
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      if !strings.HasPrefix(c.proxy, "http://localhost:") {
-         if path.Ext(req.URL.Path) == ".mp4" {
-            return "", false
-         }
-      }
-      return c.proxy, true
-   })
-   return nil
-}
-
 func (c *command) run() error {
    cache, err := os.UserCacheDir()
    if err != nil {
@@ -52,7 +32,6 @@ func (c *command) run() error {
    // 3
    flag.StringVar(&c.address, "a", "", "address")
    flag.IntVar(&c.season, "s", 0, "season")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 4
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 5
@@ -61,10 +40,6 @@ func (c *command) run() error {
    flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
    flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   err = c.do_proxy()
-   if err != nil {
-      return err
-   }
    if c.initiate {
       return c.do_initiate()
    }
@@ -97,14 +72,6 @@ func (c *command) do_address() error {
    }
    var cache user_cache
    err = maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   // Save the proxy state.
-   // If -x was used, it saves the value.
-   // If -x was not used, it saves an empty string.
-   cache.Proxy = c.proxy
-   err = maya.Write(c.name, cache)
    if err != nil {
       return err
    }
@@ -170,7 +137,6 @@ type user_cache struct {
    Dash     *hboMax.Dash
    Login    *hboMax.Login
    Playback *hboMax.Playback
-   Proxy    string
    St       *hboMax.St
 }
 
@@ -205,18 +171,19 @@ type command struct {
    // 2
    login bool
    // 3
-   proxy string
-   // 4
    address string
    season  int
-   // 5
+   // 4
    edit string
-   // 6
+   // 5
    dash string
    job  maya.PlayReadyJob
 }
 
 func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".mp4"
+   })
    err := new(command).run()
    if err != nil {
       log.Fatal(err)

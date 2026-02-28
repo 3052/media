@@ -6,21 +6,29 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
 
 func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var dash plex.Dash
+   err := c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   var media_part plex.MediaPart
+   err = c.cache.Get("MediaPart", &media_part)
+   if err != nil {
+      return err
+   }
+   var user plex.User
+   err = c.cache.Get("User", &user)
    if err != nil {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
-      return cache.User.Widevine(cache.MediaPart, data)
+      return user.Widevine(&media_part, data)
    }
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func (c *command) run() error {
