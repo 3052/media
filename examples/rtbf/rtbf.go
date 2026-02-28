@@ -6,19 +6,13 @@ import (
    "flag"
    "log"
    "net/http"
-   "os"
-   "path/filepath"
 )
 
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/rtbf.xml"
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("rtbf")
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -51,12 +45,6 @@ func (c *command) run() error {
    })
 }
 
-type user_cache struct {
-   Account     *rtbf.Account
-   Dash        *rtbf.Dash
-   Entitlement *rtbf.Entitlement
-}
-
 func (c *command) do_address() error {
    path, err := rtbf.GetPath(c.address)
    if err != nil {
@@ -66,12 +54,12 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   var cache user_cache
-   err = maya.Read(c.name, &cache)
+   var account rtbf.Account
+   err = c.cache.Get("Account", &account)
    if err != nil {
       return err
    }
-   identity, err := cache.Account.Identity()
+   identity, err := account.Identity()
    if err != nil {
       return err
    }
@@ -79,23 +67,27 @@ func (c *command) do_address() error {
    if err != nil {
       return err
    }
-   cache.Entitlement, err = session.Entitlement(asset_id)
+   entitlement, err := session.Entitlement(asset_id)
    if err != nil {
       return err
    }
-   format, err := cache.Entitlement.Dash()
+   err = c.cache.Set("Entitlement", entitlement)
    if err != nil {
       return err
    }
-   cache.Dash, err = format.Dash()
+   format, err := entitlement.Dash()
    if err != nil {
       return err
    }
-   err = maya.Write(c.name, cache)
+   dash, err := format.Dash()
    if err != nil {
       return err
    }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
 }
 
 func (c *command) do_email_password() error {
@@ -104,17 +96,22 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return maya.Write(c.name, user_cache{Account: &account})
+   return c.cache.Set("Account", account)
 }
 
 func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
+   var dash rtbf.Dash
+   err := c.cache.Get("Dash", &dash)
    if err != nil {
       return err
    }
-   c.job.Send = cache.Entitlement.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
+   var entitlement rtbf.Entitlement
+   err = c.cache.Get("Entitlement", &entitlement)
+   if err != nil {
+      return err
+   }
+   c.job.Send = entitlement.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
 
 func main() {
@@ -125,7 +122,7 @@ func main() {
 }
 
 type command struct {
-   name string
+   cache maya.Cache
    // 1
    email    string
    password string

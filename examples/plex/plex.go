@@ -12,14 +12,10 @@ import (
 )
 
 func (c *command) run() error {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      return err
-   }
-   cache = filepath.ToSlash(cache)
-   c.job.ClientId = cache + "/L3/client_id.bin"
-   c.job.PrivateKey = cache + "/L3/private_key.pem"
-   c.name = cache + "/rosso/plex.xml"
+   c.cache.Init("L3")
+   c.job.ClientId = c.cache.Join("client_id.bin")
+   c.job.PrivateKey = c.cache.Join("private_key.pem")
+   c.cache.Init("plex")
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")

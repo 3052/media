@@ -7,10 +7,72 @@ import (
    "fmt"
    "log"
    "net/http"
-   "os"
    "path"
-   "path/filepath"
 )
+
+func (c *command) do_set_user() error {
+   var connection roku.Connection
+   err := c.cache.Get("Connection", &connection)
+   if err != nil {
+      return err
+   }
+   var link_code roku.LinkCode
+   err = c.cache.Get("LinkCode", &link_code)
+   if err != nil {
+      return err
+   }
+   user, err := connection.User(&link_code)
+   if err != nil {
+      return err
+   }
+   return c.cache.Set("User", user)
+}
+
+func (c *command) do_roku() error {
+   var user *roku.User
+   if c.get_user {
+      user = &roku.User{}
+      err := c.cache.Get("User", user)
+      if err != nil {
+         return err
+      }
+   }
+   connection, err := roku.NewConnection(user)
+   if err != nil {
+      return err
+   }
+   playback, err := connection.Playback(c.roku)
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Playback", playback)
+   if err != nil {
+      return err
+   }
+   dash, err := playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set("Dash", dash)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(dash.Body, dash.Url)
+}
+func (c *command) do_dash() error {
+   var dash roku.Dash
+   err := c.cache.Get("Dash", &dash)
+   if err != nil {
+      return err
+   }
+   var playback roku.Playback
+   err = c.cache.Get("Playback", &playback)
+   if err != nil {
+      return err
+   }
+   c.job.Send = playback.Widevine
+   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
 
 func main() {
    err := new(command).run()
@@ -74,73 +136,19 @@ func (c *command) run() error {
       {"d", "C", "P"},
    })
 }
-
-///
-
 func (c *command) do_connection() error {
-   var (
-      cache user_cache
-      err   error
-   )
-   cache.Connection, err = roku.NewConnection(nil)
+   connection, err := roku.NewConnection(nil)
    if err != nil {
       return err
    }
-   cache.LinkCode, err = cache.Connection.LinkCode()
+   err = c.cache.Set("Connection", connection)
    if err != nil {
       return err
    }
-   fmt.Println(cache.LinkCode)
-   return maya.Write(c.name, cache)
+   link_code, err := connection.LinkCode()
+   if err != nil {
+      return err
+   }
+   fmt.Println(link_code)
+   return c.cache.Set("LinkCode", link_code)
 }
-
-func (c *command) do_set_user() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   cache.User, err = cache.Connection.User(cache.LinkCode)
-   if err != nil {
-      return err
-   }
-   return maya.Write(c.name, cache)
-}
-
-func (c *command) do_roku() error {
-   var cache user_cache
-   if c.get_user {
-      err := maya.Read(c.name, &cache)
-      if err != nil {
-         return err
-      }
-   }
-   connection, err := roku.NewConnection(cache.User)
-   if err != nil {
-      return err
-   }
-   cache.Playback, err = connection.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   cache.Dash, err = cache.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = maya.Write(c.name, cache)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(cache.Dash.Body, cache.Dash.Url)
-}
-
-func (c *command) do_dash() error {
-   var cache user_cache
-   err := maya.Read(c.name, &cache)
-   if err != nil {
-      return err
-   }
-   c.job.Send = cache.Playback.Widevine
-   return c.job.DownloadDash(cache.Dash.Body, cache.Dash.Url, c.dash)
-}
-
