@@ -11,28 +11,56 @@ import (
 
 type saved_state struct {
    Asset *molotov.Asset
+   Dash  *molotov.Dash
+   Login *molotov.Login
 }
 
-func (c *command) do_dash() error {
-   var asset molotov.Asset
-   err := c.cache.Get("Asset", &asset)
+func (c *client) do_address() error {
+   var media molotov.MediaId
+   err := media.Parse(c.address)
    if err != nil {
       return err
    }
-   var dash molotov.Dash
-   err = c.cache.Get("Dash", &dash)
+   var state saved_state
+   err = c.cache.Update(&state, func() error {
+      err := state.Login.Refresh()
+      if err != nil {
+         return err
+      }
+      view, err := state.Login.ProgramView(&media)
+      if err != nil {
+         return err
+      }
+      state.Asset, err = state.Login.Asset(view)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Asset.Dash()
+      return err
+   })
    if err != nil {
       return err
    }
-   c.job.Send = asset.Widevine
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
-func (c *command) run() error {
-   c.cache.Init("L3")
-   c.job.ClientId = c.cache.Join("client_id.bin")
-   c.job.PrivateKey = c.cache.Join("private_key.pem")
-   c.cache.Init("molotov")
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.Asset.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
+func (c *client) do() error {
+   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := c.cache.Init("rosso/molotov.xml")
+   if err != nil {
+      return err
+   }
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -61,58 +89,16 @@ func (c *command) run() error {
    })
 }
 
-func (c *command) do_email_password() error {
+func (c *client) do_email_password() error {
    var login molotov.Login
    err := login.Fetch(c.email, c.password)
    if err != nil {
       return err
    }
-   return c.cache.Set("Login", login)
+   return c.cache.Set(saved_state{Login: &login})
 }
 
-func (c *command) do_address() error {
-   var login molotov.Login
-   err := c.cache.Get("Login", &login)
-   if err != nil {
-      return err
-   }
-   err = login.Refresh()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Login", login)
-   if err != nil {
-      return err
-   }
-   var media molotov.MediaId
-   err = media.Parse(c.address)
-   if err != nil {
-      return err
-   }
-   view, err := login.ProgramView(&media)
-   if err != nil {
-      return err
-   }
-   asset, err := login.Asset(view)
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Asset", asset)
-   if err != nil {
-      return err
-   }
-   dash, err := asset.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Dash", dash)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
-}
-
-type command struct {
+type client struct {
    cache maya.Cache
    // 1
    email    string
@@ -128,7 +114,7 @@ func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".m4s"
    })
-   err := new(command).run()
+   err := new(client).do()
    if err != nil {
       log.Fatal(err)
    }
