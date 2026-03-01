@@ -11,6 +11,57 @@ import (
    "path"
 )
 
+func (c *client) do_tracking() error {
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      var err error
+      state.Player, err = state.Session.Player(c.tracking)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Player.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func (c *client) do_refresh() error {
+   var state saved_state
+   return c.cache.Update(&state, func() error {
+      return state.Session.Fetch(state.Session.SsoToken)
+   })
+}
+
+func get(address string) error {
+   resp, err := http.Get(address)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   file, err := os.Create(path.Base(address))
+   if err != nil {
+      return err
+   }
+   defer file.Close()
+   _, err = file.ReadFrom(resp.Body)
+   if err != nil {
+      return err
+   }
+   return nil
+}
+
+func (c *client) do_address() error {
+   tracking, err := canal.FetchTracking(c.address)
+   if err != nil {
+      return err
+   }
+   fmt.Println("tracking =", tracking)
+   return nil
+}
+
 func (c *client) do_email_password() error {
    var ticket canal.Ticket
    err := ticket.Fetch()
@@ -27,13 +78,6 @@ func (c *client) do_email_password() error {
       return err
    }
    return c.cache.Set(saved_state{Session: &session})
-}
-
-func (c *client) do_refresh() error {
-   var state saved_state
-   return c.cache.Update(&state, false, func() error {
-      return state.Session.Fetch(state.Session.SsoToken)
-   })
 }
 
 type client struct {
@@ -55,9 +99,15 @@ type client struct {
    job  maya.WidevineJob
 }
 
+type saved_state struct {
+   Dash    *canal.Dash
+   Player  *canal.Player
+   Session *canal.Session
+}
+
 func (c *client) do_subtitles() error {
    var state saved_state
-   err := c.cache.Get(&state, false)
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
@@ -70,15 +120,9 @@ func (c *client) do_subtitles() error {
    return nil
 }
 
-type saved_state struct {
-   Dash    *canal.Dash
-   Player  *canal.Player
-   Session *canal.Session
-}
-
 func (c *client) do_tracking_season() error {
    var state saved_state
-   err := c.cache.Get(&state, false)
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
@@ -93,23 +137,6 @@ func (c *client) do_tracking_season() error {
       fmt.Println(&episode)
    }
    return nil
-}
-
-func (c *client) do_tracking() error {
-   var state saved_state
-   err := c.cache.Update(&state, false, func() error {
-      var err error
-      state.Player, err = state.Session.Player(c.tracking)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.Player.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
 func (c *client) do() error {
@@ -169,6 +196,16 @@ func (c *client) do() error {
    })
 }
 
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.Player.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".dash"
@@ -177,41 +214,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Get(&state, false)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Player.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func get(address string) error {
-   resp, err := http.Get(address)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   file, err := os.Create(path.Base(address))
-   if err != nil {
-      return err
-   }
-   defer file.Close()
-   _, err = file.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
-}
-
-func (c *client) do_address() error {
-   tracking, err := canal.FetchTracking(c.address)
-   if err != nil {
-      return err
-   }
-   fmt.Println("tracking =", tracking)
-   return nil
 }

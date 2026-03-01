@@ -11,8 +11,8 @@ import (
 )
 
 func (c *client) do() error {
-   c.job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
-   c.job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
+   c.job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
+   c.job.EncryptSignKey, _ = maya.ResolveCache("SL2000/EncryptSignKey")
    err := c.cache.Init("rosso/hboMax.xml")
    if err != nil {
       return err
@@ -55,6 +55,7 @@ func (c *client) do() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
+      {"x"},
       {"i", "m"},
       {"l"},
       {"a", "s"},
@@ -70,7 +71,7 @@ func (c *client) do_address() error {
       return err
    }
    var state saved_state
-   err = c.cache.Get(&state, false)
+   err = c.cache.Get(&state)
    if err != nil {
       return err
    }
@@ -91,22 +92,6 @@ func (c *client) do_address() error {
       fmt.Println(video)
    }
    return nil
-}
-func (c *client) do_edit() error {
-   var state saved_state
-   err := c.cache.Update(&state, false, func() error {
-      var err error
-      state.Playback, err = state.Login.PlayReady(c.edit)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.Playback.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
 func (c *client) do_initiate() error {
@@ -151,7 +136,7 @@ func main() {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state, false)
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
@@ -159,18 +144,34 @@ func (c *client) do_dash() error {
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
 
+func (c *client) do_login() error {
+   var state saved_state
+   return c.cache.Update(&state, func() error {
+      var err error
+      state.Login, err = state.St.Login()
+      return err
+   })
+}
+func (c *client) do_edit() error {
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      var err error
+      state.Playback, err = state.Login.PlayReady(c.edit)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Playback.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
 type saved_state struct {
    Dash     *hboMax.Dash
    Login    *hboMax.Login
    Playback *hboMax.Playback
    St       *hboMax.St
-}
-
-func (c *client) do_login() error {
-   var state saved_state
-   return c.cache.Update(&state, false, func() error {
-      var err error
-      state.Login, err = state.St.Login()
-      return err
-   })
 }

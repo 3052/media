@@ -12,6 +12,27 @@ import (
    "strings"
 )
 
+// 1080p SL2000
+// 1440p SL3000
+func (p *Playback) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (l *Login) PlayReady(editId string) (*Playback, error) {
+   return l.playback(editId, "playready")
+}
+
 type Login struct {
    Data struct {
       Attributes struct {
@@ -108,6 +129,7 @@ func (v *Video) String() string {
    data.WriteString(v.Relationships.Edit.Data.Id)
    return data.String()
 }
+
 func (p *Playback) Dash() (*Dash, error) {
    resp, err := http.Get(
       strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
@@ -252,9 +274,6 @@ func join(data ...string) string {
    return strings.Join(data, "")
 }
 
-func (l *Login) PlayReady(editId string) (*Playback, error) {
-   return l.playback(editId, "playready")
-}
 
 func (l Login) Season(show *ShowItem, number int) (*Videos, error) {
    var req http.Request
@@ -281,21 +300,6 @@ func (l Login) Season(show *ShowItem, number int) (*Videos, error) {
       return nil, err
    }
    return result, nil
-}
-
-func (p *Playback) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
 }
 
 // validVideoTypes acts as a set to hold the video types we want to keep.
