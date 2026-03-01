@@ -10,44 +10,65 @@ import (
    "path"
 )
 
-func (c *command) do_episode() error {
-   var client amc.Client
-   err := c.cache.Get("Client", &client)
-   if err != nil {
-      return err
-   }
-   sources, header, err := client.Playback(c.episode)
-   if err != nil {
-      return err
-   }
-   data_source, err := amc.GetDash(sources)
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("DataSource", data_source)
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("BcJwt", amc.BcJwt(header))
-   if err != nil {
-      return err
-   }
-   dash, err := data_source.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Dash", dash)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
+type saved_state struct {
+   BcJwt      string
+   Client     *amc.Client
+   Dash       *amc.Dash
+   DataSource *amc.DataSource
 }
 
-func (c *command) run() error {
-   c.cache.Init("L3")
-   c.job.ClientId = c.cache.Join("client_id.bin")
-   c.job.PrivateKey = c.cache.Join("private_key.pem")
-   c.cache.Init("amc")
+func (c *client) do_episode() error {
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      sources, header, err := state.Client.Playback(c.episode)
+      if err != nil {
+         return err
+      }
+      state.DataSource, err = amc.GetDash(sources)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.DataSource.Dash()
+      if err != nil {
+         return err
+      }
+      state.BcJwt = amc.BcJwt(header)
+      return nil
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return state.DataSource.Widevine(state.BcJwt, data)
+   }
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
+func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".m4f"
+   })
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do() error {
+   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := c.cache.Init("rosso/amc.xml")
+   if err != nil {
+      return err
+   }
    // 1
    flag.StringVar(&c.email, "E", "", "email")
    flag.StringVar(&c.password, "P", "", "password")
@@ -94,7 +115,7 @@ func (c *command) run() error {
    })
 }
 
-func (c *command) do_email_password() error {
+func (c *client) do_email_password() error {
    var client amc.Client
    err := client.Unauth()
    if err != nil {
@@ -104,29 +125,23 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set("Client", client)
+   return c.cache.Set(saved_state{Client: &client})
 }
 
-func (c *command) do_refresh() error {
-   var client amc.Client
-   err := c.cache.Get("Client", &client)
-   if err != nil {
-      return err
-   }
-   err = client.Refresh()
-   if err != nil {
-      return err
-   }
-   return c.cache.Set("Client", client)
+func (c *client) do_refresh() error {
+   var state saved_state
+   return c.cache.Update(&state, func() error {
+      return state.Client.Refresh()
+   })
 }
 
-func (c *command) do_series() error {
-   var client amc.Client
-   err := c.cache.Get("Client", &client)
+func (c *client) do_series() error {
+   var state saved_state
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
-   series, err := client.SeriesDetail(c.series)
+   series, err := state.Client.SeriesDetail(c.series)
    if err != nil {
       return err
    }
@@ -143,35 +158,13 @@ func (c *command) do_series() error {
    return nil
 }
 
-func (c *command) do_dash() error {
-   var source amc.DataSource
-   err := c.cache.Get("DataSource", &source)
+func (c *client) do_season() error {
+   var state saved_state
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
-   var bc_jwt string
-   err = c.cache.Get("BcJwt", &bc_jwt)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return source.Widevine(bc_jwt, data)
-   }
-   var dash amc.Dash
-   err = c.cache.Get("Dash", &dash)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
-}
-
-func (c *command) do_season() error {
-   var client amc.Client
-   err := c.cache.Get("Client", &client)
-   if err != nil {
-      return err
-   }
-   season, err := client.SeasonEpisodes(c.season)
+   season, err := state.Client.SeasonEpisodes(c.season)
    if err != nil {
       return err
    }
@@ -188,17 +181,7 @@ func (c *command) do_season() error {
    return nil
 }
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4f"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type command struct {
+type client struct {
    cache maya.Cache
    // 1
    email    string
