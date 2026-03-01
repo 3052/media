@@ -274,7 +274,6 @@ func join(data ...string) string {
    return strings.Join(data, "")
 }
 
-
 func (l Login) Season(show *ShowItem, number int) (*Videos, error) {
    var req http.Request
    req.Header = http.Header{}

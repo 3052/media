@@ -29,7 +29,7 @@ func (c *client) do_tubi() error {
 }
 
 type saved_state struct {
-   Dash *tubi.Dash
+   Dash          *tubi.Dash
    VideoResource *tubi.VideoResource
 }
 
@@ -56,7 +56,7 @@ func main() {
 type client struct {
    cache maya.Cache
    // 1
-   tubi  int
+   tubi int
    // 2
    dash string
    job  maya.WidevineJob

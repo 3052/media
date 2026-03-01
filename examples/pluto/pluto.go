@@ -75,8 +75,9 @@ func (c *client) do_show() error {
    fmt.Println(&series.Vod[0])
    return c.cache.Set(saved_state{Series: &series})
 }
+
 type saved_state struct {
-   Dash *pluto.Dash
+   Dash   *pluto.Dash
    Series *pluto.Series
 }
 

@@ -72,9 +72,9 @@ func (c *client) do_dash() error {
 }
 
 type saved_state struct {
-   Dash *mubi.Dash
+   Dash     *mubi.Dash
    LinkCode *mubi.LinkCode
-   Session *mubi.Session
+   Session  *mubi.Session
 }
 
 func (c *client) do_code() error {

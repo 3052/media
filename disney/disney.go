@@ -11,6 +11,23 @@ import (
    "strings"
 )
 
+type Account struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // Account
+            RefreshToken    string
+         }
+      }
+   }
+}
+
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
 type InactiveAccount struct {
    Data struct {
       Login struct {
@@ -30,17 +47,7 @@ type InactiveAccount struct {
    }
 }
 
-type Account struct {
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // Account
-            RefreshToken    string
-         }
-      }
-   }
-}
+///
 
 const mutation_switch_profile = `
 mutation switchProfile($input: SwitchProfileInput!) {
@@ -592,9 +599,4 @@ type Error struct {
       Code string
    }
    Message string
-}
-
-type Hls struct {
-   Body []byte
-   Url  *url.URL
 }

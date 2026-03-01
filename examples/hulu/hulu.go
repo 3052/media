@@ -67,10 +67,11 @@ func (c *client) do_dash() error {
 }
 
 type saved_state struct {
-   Dash *hulu.Dash
+   Dash     *hulu.Dash
    Playlist *hulu.Playlist
-   Session *hulu.Session
+   Session  *hulu.Session
 }
+
 func (c *client) do_address() error {
    id, err := hulu.Id(c.address)
    if err != nil {

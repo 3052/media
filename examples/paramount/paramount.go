@@ -72,8 +72,8 @@ func (c *client) do_dash() error {
 
 type saved_state struct {
    ContentId string
-   Cookie *http.Cookie
-   Dash *paramount.Dash
+   Cookie    *http.Cookie
+   Dash      *paramount.Dash
 }
 
 func (c *client) do_username_password() error {

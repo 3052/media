@@ -11,8 +11,8 @@ import (
 )
 
 func (c *client) do() error {
-   c.job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
-   c.job.EncryptSignKey, _ = maya.ResolveCache("SL2000/EncryptSignKey")
+   c.job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
+   c.job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
    err := c.cache.Init("rosso/hboMax.xml")
    if err != nil {
       return err

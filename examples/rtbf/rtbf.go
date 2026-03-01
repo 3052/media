@@ -95,8 +95,8 @@ func (c *client) do_address() error {
 }
 
 type saved_state struct {
-   Account *rtbf.Account
-   Dash *rtbf.Dash
+   Account     *rtbf.Account
+   Dash        *rtbf.Dash
    Entitlement *rtbf.Entitlement
 }
 

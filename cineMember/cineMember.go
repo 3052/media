@@ -10,50 +10,53 @@ import (
    "strings"
 )
 
-// must run login first
-func FetchStream(session *http.Cookie, id int) (*Stream, error) {
+func FetchSession() (*http.Cookie, error) {
+   // We ignore the error here because the method and URL are hardcoded and
+   // known to be valid.
    var req http.Request
+   req.Method = "HEAD"
    req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.cinemember.nl",
-      Path:     "/elements/films/stream.php",
-      RawQuery: "id=" + strconv.Itoa(id),
+      Scheme: "https",
+      Host:   "www.cinemember.nl",
+      Path:   "/nl",
    }
    req.Header = http.Header{}
-   req.AddCookie(session)
+   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
+   req.Header.Set("User-Agent", "Windows")
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   var result Stream
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Error != "" {
-      return nil, errors.New(result.Error)
-   }
-   if result.NoAccess {
-      return nil, errors.New("no access")
-   }
-   return &result, nil
-}
-
-type Stream struct {
-   Error    string
-   Links    []MediaLink
-   NoAccess bool
-}
-
-func (s *Stream) Dash() (*MediaLink, error) {
-   for i := range s.Links {
-      if s.Links[i].MimeType == "application/dash+xml" {
-         return &s.Links[i], nil
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "PHPSESSID" {
+         return cookie, nil
       }
    }
-   // Create and return the error directly.
-   return nil, errors.New("DASH link not found")
+   return nil, errors.New("PHPSESSID cookie not found in response")
+}
+
+func FetchLogin(session *http.Cookie, email, password string) error {
+   data := url.Values{
+      "emaillogin": {email},
+      "password":   {password},
+   }.Encode()
+   req, err := http.NewRequest(
+      "POST", "https://www.cinemember.nl/elements/overlays/account/login.php",
+      strings.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.AddCookie(session)
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   _, err = io.Copy(io.Discard, resp.Body)
+   return err
 }
 
 // extracts the numeric ID and converts it to an integer
@@ -106,50 +109,49 @@ func (m *MediaLink) Dash() (*Dash, error) {
    result.Url = resp.Request.URL
    return &result, nil
 }
-func FetchSession() (*http.Cookie, error) {
-   // We ignore the error here because the method and URL are hardcoded and
-   // known to be valid.
+
+// must run login first
+func FetchStream(session *http.Cookie, id int) (*Stream, error) {
    var req http.Request
-   req.Method = "HEAD"
    req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "www.cinemember.nl",
-      Path:   "/nl",
+      Scheme:   "https",
+      Host:     "www.cinemember.nl",
+      Path:     "/elements/films/stream.php",
+      RawQuery: "id=" + strconv.Itoa(id),
    }
    req.Header = http.Header{}
-   // THIS IS NEEDED OTHERWISE SUBTITLES ARE MISSING, GOD IS DEAD
-   req.Header.Set("User-Agent", "Windows")
+   req.AddCookie(session)
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "PHPSESSID" {
-         return cookie, nil
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
+}
+
+type Stream struct {
+   Error    string
+   Links    []MediaLink
+   NoAccess bool
+}
+
+func (s *Stream) Dash() (*MediaLink, error) {
+   for i := range s.Links {
+      if s.Links[i].MimeType == "application/dash+xml" {
+         return &s.Links[i], nil
       }
    }
-   return nil, errors.New("PHPSESSID cookie not found in response")
-}
-func FetchLogin(session *http.Cookie, email, password string) error {
-   data := url.Values{
-      "emaillogin": {email},
-      "password":   {password},
-   }.Encode()
-   req, err := http.NewRequest(
-      "POST", "https://www.cinemember.nl/elements/overlays/account/login.php",
-      strings.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.AddCookie(session)
-   req.Header.Set("content-type", "application/x-www-form-urlencoded")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   _, err = io.Copy(io.Discard, resp.Body)
-   return err
+   // Create and return the error directly.
+   return nil, errors.New("DASH link not found")
 }
