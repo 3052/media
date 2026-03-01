@@ -9,11 +9,47 @@ import (
    "path"
 )
 
-func (c *command) run() error {
-   c.cache.Init("L3")
-   c.job.ClientId = c.cache.Join("client_id.bin")
-   c.job.PrivateKey = c.cache.Join("private_key.pem")
-   c.cache.Init("criterion")
+type saved_state struct {
+   Dash      *criterion.Dash
+   MediaFile *criterion.MediaFile
+   Token     *criterion.Token
+}
+
+func (c *client) do_address() error {
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      err := state.Token.Refresh()
+      if err != nil {
+         return err
+      }
+      item, err := state.Token.Item(path.Base(c.address))
+      if err != nil {
+         return err
+      }
+      files, err := state.Token.Files(item)
+      if err != nil {
+         return err
+      }
+      state.MediaFile, err = files.Dash()
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.MediaFile.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func (c *client) do() error {
+   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := c.cache.Init("rosso/criterion.xml")
+   if err != nil {
+      return err
+   }
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -42,16 +78,7 @@ func (c *command) run() error {
    })
 }
 
-func (c *command) do_email_password() error {
-   var token criterion.Token
-   err := token.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return c.cache.Set("Token", token)
-}
-
-type command struct {
+type client struct {
    cache maya.Cache
    // 1
    email    string
@@ -67,63 +94,27 @@ func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".mp4"
    })
-   err := new(command).run()
+   err := new(client).do()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (c *command) do_dash() error {
-   var media criterion.MediaFile
-   err := c.cache.Get("MediaFile", &media)
-   if err != nil {
-      return err
-   }
-   c.job.Send = media.Widevine
-   var dash criterion.Dash
-   err = c.cache.Get("Dash", &dash)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
-}
-func (c *command) do_address() error {
+func (c *client) do_email_password() error {
    var token criterion.Token
-   err := c.cache.Get("Token", &token)
+   err := token.Fetch(c.email, c.password)
    if err != nil {
       return err
    }
-   err = token.Refresh()
+   return c.cache.Set(saved_state{Token: &token})
+}
+
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
-   err = c.cache.Set("Token", token)
-   if err != nil {
-      return err
-   }
-   item, err := token.Item(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   files, err := token.Files(item)
-   if err != nil {
-      return err
-   }
-   media_file, err := files.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("MediaFile", media_file)
-   if err != nil {
-      return err
-   }
-   dash, err := media_file.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Dash", dash)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
+   c.job.Send = state.MediaFile.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }

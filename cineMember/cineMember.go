@@ -106,7 +106,6 @@ func (m *MediaLink) Dash() (*Dash, error) {
    result.Url = resp.Request.URL
    return &result, nil
 }
-
 func FetchSession() (*http.Cookie, error) {
    // We ignore the error here because the method and URL are hardcoded and
    // known to be valid.
@@ -132,7 +131,6 @@ func FetchSession() (*http.Cookie, error) {
    }
    return nil, errors.New("PHPSESSID cookie not found in response")
 }
-
 func FetchLogin(session *http.Cookie, email, password string) error {
    data := url.Values{
       "emaillogin": {email},
