@@ -10,6 +10,73 @@ import (
    "path"
 )
 
+func (c *client) do_edit() error {
+   var state saved_state
+   err := c.cache.Update(&state, false, func() error {
+      var err error
+      state.Playback, err = state.Login.PlayReady(c.edit)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Playback.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func (c *client) do_initiate() error {
+   var st hboMax.St
+   err := st.Fetch()
+   if err != nil {
+      return err
+   }
+   initiate, err := st.Initiate(c.market)
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return c.cache.Set(saved_state{St: &st})
+}
+
+type client struct {
+   cache maya.Cache
+   // 1
+   initiate bool
+   market   string
+   // 2
+   login bool
+   // 3
+   address string
+   season  int
+   // 4
+   edit string
+   // 5
+   dash string
+   job  maya.PlayReadyJob
+}
+
+func main() {
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".mp4"
+   })
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state, false)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.Playback.PlayReady
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
 type saved_state struct {
    Dash     *hboMax.Dash
    Login    *hboMax.Login
@@ -19,15 +86,11 @@ type saved_state struct {
 
 func (c *client) do_login() error {
    var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
+   return c.cache.Update(&state, false, func() error {
+      var err error
+      state.Login, err = state.St.Login()
       return err
-   }
-   state.Login, err = state.St.Login()
-   if err != nil {
-      return err
-   }
-   return c.cache.Set(state)
+   })
 }
 
 func (c *client) do() error {
@@ -79,13 +142,13 @@ func (c *client) do() error {
 }
 
 func (c *client) do_address() error {
-   var show hboMax.ShowKey
+   var show hboMax.ShowItem
    err := show.Parse(c.address)
    if err != nil {
       return err
    }
    var state saved_state
-   err = c.cache.Get(&state)
+   err = c.cache.Get(&state, false)
    if err != nil {
       return err
    }
@@ -106,76 +169,4 @@ func (c *client) do_address() error {
       fmt.Println(video)
    }
    return nil
-}
-
-func (c *client) do_edit() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   state.Playback, err = state.Login.PlayReady(c.edit)
-   if err != nil {
-      return err
-   }
-   state.Dash, err = state.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set(state)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
-func (c *client) do_initiate() error {
-   var st hboMax.St
-   err := st.Fetch()
-   if err != nil {
-      return err
-   }
-   initiate, err := st.Initiate(c.market)
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return c.cache.Set(saved_state{St: &st})
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Playback.PlayReady
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
