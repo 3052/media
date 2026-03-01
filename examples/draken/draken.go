@@ -9,42 +9,34 @@ import (
    "path"
 )
 
-func (c *command) do_dash() error {
-   var login draken.Login
-   err := c.cache.Get("Login", &login)
-   if err != nil {
-      return err
-   }
-   var playback draken.Playback
-   err = c.cache.Get("Playback", &playback)
+func (c *client) do_dash() error {
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
    c.job.Send = func(data []byte) ([]byte, error) {
-      return login.Widevine(&playback, data)
+      return state.Login.Widevine(state.Playback, data)
    }
-   var dash draken.Dash
-   err = c.cache.Get("Dash", &dash)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
 
 func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".m4s"
    })
-   err := new(command).run()
+   err := new(client).do()
    if err != nil {
       log.Fatal(err)
    }
 }
-func (c *command) run() error {
-   c.cache.Init("L3")
-   c.job.ClientId = c.cache.Join("client_id.bin")
-   c.job.PrivateKey = c.cache.Join("private_key.pem")
-   c.cache.Init("draken")
+
+func (c *client) do() error {
+   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := c.cache.Init("rosso/draken.xml")
+   if err != nil {
+      return err
+   }
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -73,7 +65,13 @@ func (c *command) run() error {
    })
 }
 
-func (c *command) do_email_password() error {
+var state struct {
+   Dash *draken.Dash
+   Login *draken.Login
+   Playback *draken.Playback
+}
+
+func (c *client) do_email_password() error {
    var login draken.Login
    err := login.Fetch(c.email, c.password)
    if err != nil {
@@ -82,7 +80,7 @@ func (c *command) do_email_password() error {
    return c.cache.Set("Login", login)
 }
 
-func (c *command) do_address() error {
+func (c *client) do_address() error {
    movie, err := draken.FetchMovie(path.Base(c.address))
    if err != nil {
       return err
@@ -115,7 +113,7 @@ func (c *command) do_address() error {
    return maya.ListDash(dash.Body, dash.Url)
 }
 
-type command struct {
+type client struct {
    cache maya.Cache
    // 1
    email    string

@@ -11,36 +11,53 @@ import (
    "path"
 )
 
-func (c *command) do_tracking() error {
-   var session canal.Session
-   err := c.cache.Get("Session", &session)
+func (c *client) do_tracking_season() error {
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
-   player, err := session.Player(c.tracking)
+   episodes, err := state.Session.Episodes(c.tracking, c.season)
    if err != nil {
       return err
    }
-   err = c.cache.Set("Player", player)
-   if err != nil {
-      return err
+   for i, episode := range episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&episode)
    }
-   dash, err := player.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Dash", dash)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
+   return nil
 }
 
-func (c *command) run() error {
-   c.cache.Init("L3")
-   c.job.ClientId = c.cache.Join("client_id.bin")
-   c.job.PrivateKey = c.cache.Join("private_key.pem")
-   c.cache.Init("canal")
+var state struct {
+   Dash *canal.Dash
+   Player *canal.Player
+   Session *canal.Session
+}
+
+func (c *client) do_tracking() error {
+   err := c.cache.Update(&state, func() error {
+      var err error
+      state.Player, err = state.Session.Player(c.tracking)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Player.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func (c *client) do() error {
+   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := c.cache.Init("rosso/canal.xml")
+   if err != nil {
+      return err
+   }
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -95,25 +112,19 @@ func main() {
    maya.SetProxy(func(req *http.Request) (string, bool) {
       return "", path.Ext(req.URL.Path) != ".dash"
    })
-   err := new(command).run()
+   err := new(client).do()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (c *command) do_dash() error {
-   var player canal.Player
-   err := c.cache.Get("Player", &player)
+func (c *client) do_dash() error {
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
-   c.job.Send = player.Widevine
-   var dash canal.Dash
-   err = c.cache.Get("Dash", &dash)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
+   c.job.Send = state.Player.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
 
 func get(address string) error {
@@ -134,7 +145,16 @@ func get(address string) error {
    return nil
 }
 
-func (c *command) do_email_password() error {
+func (c *client) do_address() error {
+   tracking, err := canal.FetchTracking(c.address)
+   if err != nil {
+      return err
+   }
+   fmt.Println("tracking =", tracking)
+   return nil
+}
+
+func (c *client) do_email_password() error {
    var ticket canal.Ticket
    err := ticket.Fetch()
    if err != nil {
@@ -149,51 +169,16 @@ func (c *command) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set("Session", session)
+   return c.cache.Set(state)
 }
 
-func (c *command) do_address() error {
-   tracking, err := canal.FetchTracking(c.address)
-   if err != nil {
-      return err
-   }
-   fmt.Println("tracking =", tracking)
-   return nil
+func (c *client) do_refresh() error {
+   return c.cache.Update(&state, func() error {
+      return state.Session.Fetch(state.Session.SsoToken)
+   })
 }
 
-func (c *command) do_refresh() error {
-   var session canal.Session
-   err := c.cache.Get("Session", &session)
-   if err != nil {
-      return err
-   }
-   err = session.Fetch(session.SsoToken)
-   if err != nil {
-      return err
-   }
-   return c.cache.Set("Session", session)
-}
-
-func (c *command) do_tracking_season() error {
-   var session canal.Session
-   err := c.cache.Get("Session", &session)
-   if err != nil {
-      return err
-   }
-   episodes, err := session.Episodes(c.tracking, c.season)
-   if err != nil {
-      return err
-   }
-   for i, episode := range episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&episode)
-   }
-   return nil
-}
-
-type command struct {
+type client struct {
    cache maya.Cache
    // 1
    email    string
@@ -212,13 +197,12 @@ type command struct {
    job  maya.WidevineJob
 }
 
-func (c *command) do_subtitles() error {
-   var player canal.Player
-   err := c.cache.Get("Player", &player)
+func (c *client) do_subtitles() error {
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
-   for _, subtitles := range player.Subtitles {
+   for _, subtitles := range state.Player.Subtitles {
       err = get(subtitles.Url)
       if err != nil {
          return err

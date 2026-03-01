@@ -10,19 +10,14 @@ import (
    "path"
 )
 
-func (c *client) do_media_id() error {
-   err := c.cache.Update(&state, func() error {
-      stream, err := state.Account.Stream(c.media_id)
-      if err != nil {
-         return err
-      }
-      state.Hls, err = stream.Hls()
-      return err
-   })
+func (c *client) do_hls() error {
+   var state saved_state
+   err := c.cache.Get(&state, false)
    if err != nil {
       return err
    }
-   return maya.ListHls(state.Hls.Body, state.Hls.Url)
+   c.job.Send = state.Account.PlayReady
+   return c.job.DownloadHls(state.Hls.Body, state.Hls.Url, c.hls)
 }
 
 func (c *client) do() error {
@@ -92,50 +87,33 @@ func main() {
    }
 }
 
-type client struct {
-   cache maya.Cache
-   // 1
-   email    string
-   password string
-   // 2
-   profile_id string
-   // 3
-   address string
-   // 4
-   season_id string
-   // 5
-   media_id string
-   // 6
-   hls int
-   job maya.PlayReadyJob
-}
-
-var state struct {
-   Account         *disney.Account
-   InactiveAccount *disney.InactiveAccount
-   Hls             *disney.Hls
-}
-
 func (c *client) do_email_password() error {
    device, err := disney.RegisterDevice()
    if err != nil {
       return err
    }
-   state.InactiveAccount, err = device.Login(c.email, c.password)
+   inactive_account, err := device.Login(c.email, c.password)
    if err != nil {
       return err
    }
-   for i, profile := range state.InactiveAccount.Data.Login.Account.Profiles {
+   for i, profile := range inactive_account.Data.Login.Account.Profiles {
       if i >= 1 {
          fmt.Println()
       }
       fmt.Println(&profile)
    }
-   return c.cache.Set(state)
+   return c.cache.Set(saved_state{InactiveAccount: inactive_account})
+}
+
+type saved_state struct {
+   Account         *disney.Account
+   Hls             *disney.Hls
+   InactiveAccount *disney.InactiveAccount
 }
 
 func (c *client) do_profile_id() error {
-   return c.cache.Update(&state, func() error {
+   var state saved_state
+   return c.cache.Update(&state, false, func() error {
       var err error
       state.Account, err = state.InactiveAccount.SwitchProfile(c.profile_id)
       return err
@@ -143,7 +121,8 @@ func (c *client) do_profile_id() error {
 }
 
 func (c *client) do_address() error {
-   err := c.cache.Update(&state, func() error {
+   var state saved_state
+   err := c.cache.Update(&state, false, func() error {
       return state.Account.RefreshToken()
    })
    if err != nil {
@@ -162,7 +141,8 @@ func (c *client) do_address() error {
 }
 
 func (c *client) do_season_id() error {
-   err := c.cache.Get(&state)
+   var state saved_state
+   err := c.cache.Get(&state, false)
    if err != nil {
       return err
    }
@@ -174,11 +154,36 @@ func (c *client) do_season_id() error {
    return nil
 }
 
-func (c *client) do_hls() error {
-   err := c.cache.Get(&state)
+type client struct {
+   cache maya.Cache
+   // 1
+   email    string
+   password string
+   // 2
+   profile_id string
+   // 3
+   address string
+   // 4
+   season_id string
+   // 5
+   media_id string
+   // 6
+   hls int
+   job maya.PlayReadyJob
+}
+
+func (c *client) do_media_id() error {
+   var state saved_state
+   err := c.cache.Update(&state, false, func() error {
+      stream, err := state.Account.Stream(c.media_id)
+      if err != nil {
+         return err
+      }
+      state.Hls, err = stream.Hls()
+      return err
+   })
    if err != nil {
       return err
    }
-   c.job.Send = state.Account.PlayReady
-   return c.job.DownloadHls(state.Hls.Body, state.Hls.Url, c.hls)
+   return maya.ListHls(state.Hls.Body, state.Hls.Url)
 }
