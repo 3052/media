@@ -11,8 +11,74 @@ import (
    "path"
 )
 
+func (c *client) do_email_password() error {
+   var ticket canal.Ticket
+   err := ticket.Fetch()
+   if err != nil {
+      return err
+   }
+   login, err := ticket.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   var session canal.Session
+   err = session.Fetch(login.SsoToken)
+   if err != nil {
+      return err
+   }
+   return c.cache.Set(saved_state{Session: &session})
+}
+
+func (c *client) do_refresh() error {
+   var state saved_state
+   return c.cache.Update(&state, false, func() error {
+      return state.Session.Fetch(state.Session.SsoToken)
+   })
+}
+
+type client struct {
+   cache maya.Cache
+   // 1
+   email    string
+   password string
+   // 2
+   refresh bool
+   // 3
+   address string
+   // 4
+   tracking string
+   season   int
+   // 5
+   subtitles bool
+   // 6
+   dash string
+   job  maya.WidevineJob
+}
+
+func (c *client) do_subtitles() error {
+   var state saved_state
+   err := c.cache.Get(&state, false)
+   if err != nil {
+      return err
+   }
+   for _, subtitles := range state.Player.Subtitles {
+      err = get(subtitles.Url)
+      if err != nil {
+         return err
+      }
+   }
+   return nil
+}
+
+type saved_state struct {
+   Dash    *canal.Dash
+   Player  *canal.Player
+   Session *canal.Session
+}
+
 func (c *client) do_tracking_season() error {
-   err := c.cache.Get(&state)
+   var state saved_state
+   err := c.cache.Get(&state, false)
    if err != nil {
       return err
    }
@@ -29,14 +95,9 @@ func (c *client) do_tracking_season() error {
    return nil
 }
 
-var state struct {
-   Dash *canal.Dash
-   Player *canal.Player
-   Session *canal.Session
-}
-
 func (c *client) do_tracking() error {
-   err := c.cache.Update(&state, func() error {
+   var state saved_state
+   err := c.cache.Update(&state, false, func() error {
       var err error
       state.Player, err = state.Session.Player(c.tracking)
       if err != nil {
@@ -119,7 +180,8 @@ func main() {
 }
 
 func (c *client) do_dash() error {
-   err := c.cache.Get(&state)
+   var state saved_state
+   err := c.cache.Get(&state, false)
    if err != nil {
       return err
    }
@@ -151,62 +213,5 @@ func (c *client) do_address() error {
       return err
    }
    fmt.Println("tracking =", tracking)
-   return nil
-}
-
-func (c *client) do_email_password() error {
-   var ticket canal.Ticket
-   err := ticket.Fetch()
-   if err != nil {
-      return err
-   }
-   login, err := ticket.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   var session canal.Session
-   err = session.Fetch(login.SsoToken)
-   if err != nil {
-      return err
-   }
-   return c.cache.Set(state)
-}
-
-func (c *client) do_refresh() error {
-   return c.cache.Update(&state, func() error {
-      return state.Session.Fetch(state.Session.SsoToken)
-   })
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   email    string
-   password string
-   // 2
-   refresh bool
-   // 3
-   address string
-   // 4
-   tracking string
-   season   int
-   // 5
-   subtitles bool
-   // 6
-   dash string
-   job  maya.WidevineJob
-}
-
-func (c *client) do_subtitles() error {
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   for _, subtitles := range state.Player.Subtitles {
-      err = get(subtitles.Url)
-      if err != nil {
-         return err
-      }
-   }
    return nil
 }
