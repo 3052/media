@@ -12,7 +12,7 @@ import (
 
 func (c *client) do_hls() error {
    var state saved_state
-   err := c.cache.Get(&state, false)
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
@@ -113,7 +113,7 @@ type saved_state struct {
 
 func (c *client) do_profile_id() error {
    var state saved_state
-   return c.cache.Update(&state, false, func() error {
+   return c.cache.Update(&state, func() error {
       var err error
       state.Account, err = state.InactiveAccount.SwitchProfile(c.profile_id)
       return err
@@ -122,7 +122,7 @@ func (c *client) do_profile_id() error {
 
 func (c *client) do_address() error {
    var state saved_state
-   err := c.cache.Update(&state, false, func() error {
+   err := c.cache.Update(&state, func() error {
       return state.Account.RefreshToken()
    })
    if err != nil {
@@ -142,7 +142,7 @@ func (c *client) do_address() error {
 
 func (c *client) do_season_id() error {
    var state saved_state
-   err := c.cache.Get(&state, false)
+   err := c.cache.Get(&state)
    if err != nil {
       return err
    }
@@ -174,7 +174,7 @@ type client struct {
 
 func (c *client) do_media_id() error {
    var state saved_state
-   err := c.cache.Update(&state, false, func() error {
+   err := c.cache.Update(&state, func() error {
       stream, err := state.Account.Stream(c.media_id)
       if err != nil {
          return err

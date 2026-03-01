@@ -9,7 +9,49 @@ import (
    "path"
 )
 
+func (c *client) do_address() error {
+   movie, err := draken.FetchMovie(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   var state saved_state
+   err = c.cache.Update(&state, func() error {
+      entitlement, err := state.Login.Entitlement(movie)
+      if err != nil {
+         return err
+      }
+      state.Playback, err = state.Login.Playback(movie, entitlement)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Playback.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+type client struct {
+   cache maya.Cache
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+type saved_state struct {
+   Dash     *draken.Dash
+   Login    *draken.Login
+   Playback *draken.Playback
+}
+
 func (c *client) do_dash() error {
+   var state saved_state
    err := c.cache.Get(&state)
    if err != nil {
       return err
@@ -65,62 +107,11 @@ func (c *client) do() error {
    })
 }
 
-var state struct {
-   Dash *draken.Dash
-   Login *draken.Login
-   Playback *draken.Playback
-}
-
 func (c *client) do_email_password() error {
    var login draken.Login
    err := login.Fetch(c.email, c.password)
    if err != nil {
       return err
    }
-   return c.cache.Set("Login", login)
-}
-
-func (c *client) do_address() error {
-   movie, err := draken.FetchMovie(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   var login draken.Login
-   err = c.cache.Get("Login", &login)
-   if err != nil {
-      return err
-   }
-   entitlement, err := login.Entitlement(movie)
-   if err != nil {
-      return err
-   }
-   playback, err := login.Playback(movie, entitlement)
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Playback", playback)
-   if err != nil {
-      return err
-   }
-   dash, err := playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Dash", dash)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.WidevineJob
+   return c.cache.Set(saved_state{Login: &login})
 }

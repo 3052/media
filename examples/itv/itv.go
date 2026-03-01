@@ -10,33 +10,69 @@ import (
    "path"
 )
 
-func (c *command) do_playlist() error {
+type saved_state struct {
+   Dash      *itv.Dash
+   MediaFile *itv.MediaFile
+}
+
+func (c *client) do_playlist() error {
    var title itv.Title
    title.LatestAvailableVersion.PlaylistUrl = c.playlist
    playlist, err := title.Playlist()
    if err != nil {
       return err
    }
-   media_file, err := playlist.FullHd()
+   var state saved_state
+   err = c.cache.Update(&state, func() error {
+      state.MediaFile, err = playlist.FullHd()
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.MediaFile.Dash()
+      return err
+   })
    if err != nil {
       return err
    }
-   err = c.cache.Set("MediaFile", media_file)
-   if err != nil {
-      return err
-   }
-   dash, err := media_file.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set("Dash", dash)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
-type command struct {
+func main() {
+   // ALL REQUEST ARE GEO BLOCKED
+   maya.SetProxy(func(req *http.Request) (string, bool) {
+      return "", path.Ext(req.URL.Path) != ".dash"
+   })
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do_address() error {
+   titles, err := itv.Titles(itv.LegacyId(c.address))
+   if err != nil {
+      return err
+   }
+   for i, title := range titles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&title)
+   }
+   return nil
+}
+
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.MediaFile.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
+type client struct {
    cache maya.Cache
    // 1
    address string
@@ -47,11 +83,13 @@ type command struct {
    job  maya.WidevineJob
 }
 
-func (c *command) run() error {
-   c.cache.Init("L3")
-   c.job.ClientId = c.cache.Join("client_id.bin")
-   c.job.PrivateKey = c.cache.Join("private_key.pem")
-   c.cache.Init("itv")
+func (c *client) do() error {
+   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := c.cache.Init("rosso/itv.xml")
+   if err != nil {
+      return err
+   }
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    // 2
@@ -75,44 +113,4 @@ func (c *command) run() error {
       {"p"},
       {"d", "C", "P"},
    })
-}
-
-func main() {
-   // ALL REQUEST ARE GEO BLOCKED
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".dash"
-   })
-   err := new(command).run()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *command) do_address() error {
-   titles, err := itv.Titles(itv.LegacyId(c.address))
-   if err != nil {
-      return err
-   }
-   for i, title := range titles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&title)
-   }
-   return nil
-}
-
-func (c *command) do_dash() error {
-   var media itv.MediaFile
-   err := c.cache.Get("MediaFile", &media)
-   if err != nil {
-      return err
-   }
-   c.job.Send = media.Widevine
-   var dash itv.Dash
-   err = c.cache.Get("Dash", &dash)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
 }
