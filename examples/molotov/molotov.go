@@ -5,9 +5,16 @@ import (
    "41.neocities.org/rosso/molotov"
    "flag"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 type saved_state struct {
    Asset *molotov.Asset
@@ -110,12 +117,3 @@ type client struct {
    job  maya.WidevineJob
 }
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4s"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}

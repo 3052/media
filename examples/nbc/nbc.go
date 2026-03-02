@@ -5,9 +5,16 @@ import (
    "41.neocities.org/rosso/nbc"
    "flag"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
@@ -58,16 +65,6 @@ func (c *client) do_address() error {
       return err
    }
    return maya.ListDash(dash.Body, dash.Url)
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *client) do_dash() error {

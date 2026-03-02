@@ -5,9 +5,16 @@ import (
    "41.neocities.org/rosso/tubi"
    "flag"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do_tubi() error {
    var content tubi.Content
@@ -41,16 +48,6 @@ func (c *client) do_dash() error {
    }
    c.job.Send = state.VideoResource.Widevine
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 type client struct {

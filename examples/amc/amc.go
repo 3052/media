@@ -6,9 +6,16 @@ import (
    "flag"
    "fmt"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4f")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 type saved_state struct {
    BcJwt      string
@@ -50,16 +57,6 @@ func (c *client) do_dash() error {
       return state.DataSource.Widevine(state.BcJwt, data)
    }
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4f"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *client) do() error {

@@ -6,8 +6,16 @@ import (
    "flag"
    "log"
    "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s,*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do() error {
    c.job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
@@ -131,16 +139,3 @@ type client struct {
    job    maya.PlayReadyJob
 }
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".m4s", ".mp4":
-         return "", false
-      }
-      return "", true
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
