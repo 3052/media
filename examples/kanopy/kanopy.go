@@ -6,9 +6,16 @@ import (
    "flag"
    "fmt"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
@@ -124,13 +131,3 @@ func (c *client) do_dash() error {
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4s"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}

@@ -5,9 +5,17 @@ import (
    "41.neocities.org/rosso/criterion"
    "flag"
    "log"
-   "net/http"
    "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 type saved_state struct {
    Dash      *criterion.Dash
@@ -88,16 +96,6 @@ type client struct {
    // 3
    dash string
    job  maya.WidevineJob
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *client) do_email_password() error {

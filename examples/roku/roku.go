@@ -8,37 +8,20 @@ import (
    "log"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 type client struct {
    cache maya.Cache
    // 1
-   connection bool
+   proxy string
    // 2
-   set_user bool
+   connection bool
    // 3
+   set_user bool
+   // 4
    roku     string
    get_user bool
-   // 4
+   // 5
    dash string
    job  maya.WidevineJob
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Playback.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
 
 func (c *client) do() error {
@@ -49,17 +32,23 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.BoolVar(&c.connection, "c", false, "connection")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
-   flag.BoolVar(&c.set_user, "s", false, "set user")
+   flag.BoolVar(&c.connection, "c", false, "connection")
    // 3
+   flag.BoolVar(&c.set_user, "s", false, "set user")
+   // 4
    flag.StringVar(&c.roku, "r", "", "Roku ID")
    flag.BoolVar(&c.get_user, "g", false, "get user")
-   // 4
+   // 5
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
+   err = maya.SetProxy(c.proxy, "*.mp4")
+   if err != nil {
+      return err
+   }
    if c.connection {
       return c.do_connection()
    }
@@ -79,6 +68,7 @@ func (c *client) do() error {
       {"d", "C", "P"},
    })
 }
+
 func (c *client) do_connection() error {
    connection, err := roku.NewConnection(nil)
    if err != nil {
@@ -113,34 +103,45 @@ func (c *client) do_set_user() error {
    }
    return c.cache.Set(state)
 }
-
 func (c *client) do_roku() error {
+   c.cache.Optional = true
    var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
+   err := c.cache.Update(&state, func() error {
+      var user *roku.User
+      if c.get_user {
+         user = state.User
+      }
+      connection, err := roku.NewConnection(user)
+      if err != nil {
+         return err
+      }
+      state.Playback, err = connection.Playback(c.roku)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Playback.Dash()
       return err
-   }
-   var connection *roku.Connection
-   if c.get_user {
-      connection, err = roku.NewConnection(state.User)
-   } else {
-      connection, err = roku.NewConnection(nil)
-   }
-   if err != nil {
-      return err
-   }
-   state.Playback, err = connection.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   state.Dash, err = state.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set(state)
+   })
    if err != nil {
       return err
    }
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.Playback.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}

@@ -6,9 +6,17 @@ import (
    "flag"
    "fmt"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   // ALL REQUEST ARE GEO BLOCKED
+   maya.SetProxy("", "*.dash")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 type saved_state struct {
    Dash      *itv.Dash
@@ -35,17 +43,6 @@ func (c *client) do_playlist() error {
       return err
    }
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
-func main() {
-   // ALL REQUEST ARE GEO BLOCKED
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".dash"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *client) do_address() error {

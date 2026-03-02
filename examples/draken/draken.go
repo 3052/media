@@ -5,9 +5,17 @@ import (
    "41.neocities.org/rosso/draken"
    "flag"
    "log"
-   "net/http"
    "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do_address() error {
    movie, err := draken.FetchMovie(path.Base(c.address))
@@ -44,6 +52,7 @@ type client struct {
    dash string
    job  maya.WidevineJob
 }
+
 type saved_state struct {
    Dash     *draken.Dash
    Login    *draken.Login
@@ -60,16 +69,6 @@ func (c *client) do_dash() error {
       return state.Login.Widevine(state.Playback, data)
    }
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4s"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *client) do() error {

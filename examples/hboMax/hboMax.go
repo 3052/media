@@ -7,14 +7,11 @@ import (
    "fmt"
    "log"
    "net/http"
-   "path"
 )
 
 func main() {
    log.SetFlags(log.Ltime)
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
+   maya.SetProxy("", "*.mp4")
    err := new(client).do()
    if err != nil {
       log.Fatal(err)

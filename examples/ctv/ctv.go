@@ -5,9 +5,16 @@ import (
    "41.neocities.org/rosso/ctv"
    "flag"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4a,*.m4v")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
@@ -85,16 +92,3 @@ type client struct {
    job  maya.WidevineJob
 }
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".m4a", ".m4v":
-         return "", false
-      }
-      return "", true
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
