@@ -157,6 +157,7 @@ func (l *Login) Membership() (*Membership, error) {
    }
    return &result.List[0], nil
 }
+
 type Plays struct {
    Captions []struct {
       Files []struct {

@@ -17,7 +17,7 @@ func TestAlias(t *testing.T) {
       t.Fatal(err)
    }
    var state struct {
-      Login Login 
+      Login Login
    }
    err = xml.Unmarshal(data, &state)
    if err != nil {

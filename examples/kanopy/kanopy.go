@@ -71,6 +71,7 @@ type client struct {
    dash string
    job  maya.WidevineJob
 }
+
 func (c *client) do_address() error {
    video := &kanopy.Video{}
    err := video.Parse(c.address)

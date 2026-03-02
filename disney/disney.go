@@ -11,6 +11,30 @@ import (
    "strings"
 )
 
+const mutation_register_device = `
+mutation registerDevice($input: RegisterDeviceInput!) {
+   registerDevice(registerDevice: $input) {
+      token {
+         accessToken
+         accessTokenType
+      }
+   }
+}
+`
+
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+            name
+         }
+      }
+   }
+}
+`
+
 const mutation_switch_profile = `
 mutation switchProfile($input: SwitchProfileInput!) {
    switchProfile(switchProfile: $input) {
@@ -36,6 +60,28 @@ mutation refreshToken($input: RefreshTokenInput!) {
    }
 }
 `
+
+// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+func GetEntity(link string) (string, error) {
+   // First, explicitly fail if the URL is a "play" link.
+   if strings.Contains(link, "/play/") {
+      return "", errors.New("URL is a 'play' link and not a 'browse' link")
+   }
+   // The unique marker for the ID we want is "/browse/entity-".
+   const marker = "/browse/entity-"
+   // strings.Cut splits the string at the first instance of the marker.
+   // It returns the part before, the part after, and a boolean indicating if the marker was found.
+   // We don't need the 'before' part, so we discard it with the blank identifier _.
+   _, id, found := strings.Cut(link, marker)
+   // If the marker was not found, or if the resulting ID string is empty, return an error.
+   if !found || id == "" {
+      return "", errors.New("failed to find a valid ID in the URL")
+   }
+   // The 'id' variable now holds the rest of the string after the marker.
+   return id, nil
+}
 
 // SL2000 720p
 // SL3000 1080p
@@ -319,6 +365,39 @@ type Hls struct {
    Url  *url.URL
 }
 
+func (i *InactiveAccount) SwitchProfile(profileId string) (*Account, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": profileId,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+i.Extensions.Sdk.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Account{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 type InactiveAccount struct {
    Data struct {
       Login struct {
@@ -373,8 +452,6 @@ type Page struct {
    }
 }
 
-///
-
 func (s Season) String() string {
    var (
       data strings.Builder
@@ -421,6 +498,8 @@ type Stream struct {
       }
    }
 }
+
+///
 
 func (d *Device) Login(email, password string) (*InactiveAccount, error) {
    data, err := json.Marshal(map[string]any{
@@ -520,83 +599,4 @@ func (p *Profile) String() string {
    data.WriteString("\nid = ")
    data.WriteString(p.Id)
    return data.String()
-}
-
-func (i *InactiveAccount) SwitchProfile(profileId string) (*Account, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_switch_profile,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "profileId": profileId,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+i.Extensions.Sdk.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Account{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
-const mutation_register_device = `
-mutation registerDevice($input: RegisterDeviceInput!) {
-   registerDevice(registerDevice: $input) {
-      token {
-         accessToken
-         accessTokenType
-      }
-   }
-}
-`
-
-const mutation_login = `
-mutation login($input: LoginInput!) {
-   login(login: $input) {
-      account {
-         profiles {
-            id
-            name
-         }
-      }
-   }
-}
-`
-
-// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-func GetEntity(link string) (string, error) {
-   // First, explicitly fail if the URL is a "play" link.
-   if strings.Contains(link, "/play/") {
-      return "", errors.New("URL is a 'play' link and not a 'browse' link")
-   }
-   // The unique marker for the ID we want is "/browse/entity-".
-   const marker = "/browse/entity-"
-   // strings.Cut splits the string at the first instance of the marker.
-   // It returns the part before, the part after, and a boolean indicating if the marker was found.
-   // We don't need the 'before' part, so we discard it with the blank identifier _.
-   _, id, found := strings.Cut(link, marker)
-   // If the marker was not found, or if the resulting ID string is empty, return an error.
-   if !found || id == "" {
-      return "", errors.New("failed to find a valid ID in the URL")
-   }
-   // The 'id' variable now holds the rest of the string after the marker.
-   return id, nil
 }

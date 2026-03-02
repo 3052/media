@@ -11,12 +11,14 @@ import (
 )
 
 type Video struct {
-   Alias string
+   Alias   string
    VideoId int
 }
 
-// https://kanopy.com/video/genius-party
 // https://kanopy.com/video/6440418
+// https://kanopy.com/video/genius-party
+// https://kanopy.com/en/video/genius-party
+// https://kanopy.com/en/product/genius-party
 func (v *Video) Parse(inputUrl string) error {
    parsedUrl, err := url.Parse(inputUrl)
    if err != nil {
@@ -25,7 +27,15 @@ func (v *Video) Parse(inputUrl string) error {
    if !strings.Contains(parsedUrl.Host, "kanopy.com") {
       return errors.New("invalid domain")
    }
-   if !strings.HasPrefix(parsedUrl.Path, "/video/") {
+   // Get the directory of the path (removes the final identifier).
+   // e.g., "/en/product/genius-party" -> "/en/product"
+   dir := path.Dir(parsedUrl.Path)
+   // Update: Check if the directory ends with "/video" OR "/product".
+   // This supports:
+   // - /video/{id}
+   // - /en/video/{id}
+   // - /en/product/{id}
+   if !strings.HasSuffix(dir, "/video") && !strings.HasSuffix(dir, "/product") {
       return errors.New("invalid path structure")
    }
    identifier := path.Base(parsedUrl.Path)
@@ -38,18 +48,18 @@ func (v *Video) Parse(inputUrl string) error {
    return nil
 }
 
-const x_version  = "!/!/!/!"
+const x_version = "!/!/!/!"
 
 func (l *Login) Video(alias string) (*Video, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
-      Host: "www.kanopy.com",
-      Path: "/kapi/videos/alias/" + alias,
+      Host:   "www.kanopy.com",
+      Path:   "/kapi/videos/alias/" + alias,
    }
    req.Header.Set("x-version", x_version)
-   req.Header.Set("authorization", "Bearer " + l.Jwt)
+   req.Header.Set("authorization", "Bearer "+l.Jwt)
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
