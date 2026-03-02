@@ -7,37 +7,28 @@ import (
    "net/url"
 )
 
-type St struct {
-   Cookie *http.Cookie
-}
-
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
-func (s St) Login() (*Login, error) {
+func (l *Login) Fetch(st *http.Cookie) error {
    var req http.Request
-   req.Header = http.Header{}
-   req.AddCookie(s.Cookie)
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
       Host:   api_host, // Refactored
       Path:   "/authentication/linkDevice/login",
    }
+   req.Header = http.Header{}
+   req.AddCookie(st)
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   result := &Login{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
+   return json.NewDecoder(resp.Body).Decode(l)
 }
 
-func (s *St) Fetch() error {
+func FetchSt() (*http.Cookie, error) {
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("x-device-info", device_info)
@@ -50,29 +41,27 @@ func (s *St) Fetch() error {
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
    for _, cookie := range resp.Cookies() {
       if cookie.Name == "st" {
-         s.Cookie = cookie
-         return nil
+         return cookie, nil
       }
    }
-   return http.ErrNoCookie
+   return nil, http.ErrNoCookie
 }
-
-func (s St) Initiate(market string) (*Initiate, error) {
+func FetchInitiate(st *http.Cookie, market string) (*Initiate, error) {
    var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("x-device-info", device_info)
-   req.AddCookie(s.Cookie)
    req.Method = "POST"
    req.URL = &url.URL{
       Scheme: "https",
       Host:   join("default.beam-", market, ".prd.api.discomax.com"),
       Path:   "/authentication/linkDevice/initiate",
    }
+   req.Header = http.Header{}
+   req.Header.Set("x-device-info", device_info)
+   req.AddCookie(st)
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err

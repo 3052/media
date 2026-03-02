@@ -314,6 +314,92 @@ type Account struct {
    }
 }
 
+func (d *Device) Login(email, password string) (*InactiveAccount, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_login,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email":    email,
+            "password": password,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set(
+      "authorization", "Bearer "+d.Token.AccessToken,
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result InactiveAccount
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result, nil
+}
+
+func RegisterDevice() (*Device, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_register_device,
+      "variables": map[string]any{
+         "input": map[string]any{
+            "deviceProfile":      "!",
+            "deviceFamily":       "!",
+            "applicationRuntime": "!",
+            "attributes": map[string]string{
+               "operatingSystem":        "",
+               "operatingSystemVersion": "",
+            },
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer "+client_api_key)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         RegisterDevice Device
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data.RegisterDevice, nil
+}
+
 type Device struct {
    Token struct {
       AccessToken     string
@@ -500,92 +586,6 @@ type Stream struct {
 }
 
 ///
-
-func (d *Device) Login(email, password string) (*InactiveAccount, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_login,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "email":    email,
-            "password": password,
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set(
-      "authorization", "Bearer "+d.Token.AccessToken,
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result InactiveAccount
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
-}
-
-func RegisterDevice() (*Device, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_register_device,
-      "variables": map[string]any{
-         "input": map[string]any{
-            "deviceProfile":      "!",
-            "deviceFamily":       "!",
-            "applicationRuntime": "!",
-            "attributes": map[string]string{
-               "operatingSystem":        "",
-               "operatingSystemVersion": "",
-            },
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer "+client_api_key)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         RegisterDevice Device
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result.Data.RegisterDevice, nil
-}
 
 type Profile struct {
    Name string
