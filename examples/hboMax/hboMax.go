@@ -10,6 +10,78 @@ import (
    "path"
 )
 
+func (c *client) do_address() error {
+   show, err := hboMax.ParseUrl(c.address)
+   if err != nil {
+      return err
+   }
+   var state saved_state
+   err = c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   var videos *hboMax.Videos
+   if c.season >= 1 {
+      videos, err = state.Login.Season(show, c.season)
+   } else {
+      videos, err = state.Login.Movie(show)
+   }
+   if err != nil {
+      return err
+   }
+   videos.FilterAndSort()
+   for i, video := range videos.Included {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(video)
+   }
+   return nil
+}
+
+type client struct {
+   cache maya.Cache
+   // 1
+   initiate bool
+   market   string
+   // 2
+   login bool
+   // 3
+   address string
+   season  int
+   // 4
+   edit string
+   // 5
+   dash string
+   job  maya.PlayReadyJob
+}
+
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.Playback.PlayReady
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+func (c *client) do_edit() error {
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      var err error
+      state.Playback, err = state.Login.PlayReady(c.edit)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Playback.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
 func (c *client) do() error {
    c.job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
    c.job.EncryptSignKey, _ = maya.ResolveCache("SL2000/EncryptSignKey")
@@ -95,80 +167,4 @@ func (c *client) do_login() error {
       state.Login, err = hboMax.FetchLogin(state.St)
       return err
    })
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   initiate bool
-   market   string
-   // 2
-   login bool
-   // 3
-   address string
-   season  int
-   // 4
-   edit string
-   // 5
-   dash string
-   job  maya.PlayReadyJob
-}
-
-///
-
-func (c *client) do_address() error {
-   var show hboMax.ShowItem
-   err := show.Parse(c.address)
-   if err != nil {
-      return err
-   }
-   var state saved_state
-   err = c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   var videos *hboMax.Videos
-   if c.season >= 1 {
-      videos, err = state.Login.Season(&show, c.season)
-   } else {
-      videos, err = state.Login.Movie(&show)
-   }
-   if err != nil {
-      return err
-   }
-   videos.FilterAndSort()
-   for i, video := range videos.Included {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(video)
-   }
-   return nil
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Playback.PlayReady
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func (c *client) do_edit() error {
-   var state saved_state
-   err := c.cache.Update(&state, func() error {
-      var err error
-      state.Playback, err = state.Login.PlayReady(c.edit)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.Playback.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }

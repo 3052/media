@@ -538,6 +538,20 @@ type Page struct {
    }
 }
 
+type Profile struct {
+   Name string
+   Id   string
+}
+
+func (p *Profile) String() string {
+   var data strings.Builder
+   data.WriteString("name = ")
+   data.WriteString(p.Name)
+   data.WriteString("\nid = ")
+   data.WriteString(p.Id)
+   return data.String()
+}
+
 func (s Season) String() string {
    var (
       data strings.Builder
@@ -583,20 +597,4 @@ type Stream struct {
          Url string
       }
    }
-}
-
-///
-
-type Profile struct {
-   Name string
-   Id   string
-}
-
-func (p *Profile) String() string {
-   var data strings.Builder
-   data.WriteString("name = ")
-   data.WriteString(p.Name)
-   data.WriteString("\nid = ")
-   data.WriteString(p.Id)
-   return data.String()
 }
