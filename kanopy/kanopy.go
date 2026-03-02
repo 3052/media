@@ -10,15 +10,20 @@ import (
    "strconv"
 )
 
+type Plays struct {
+   Captions []struct {
+      Files []struct {
+         Url string
+      }
+   }
+   ErrorMsgLong string `json:"error_msg_long"`
+   Manifests    []PlayManifest
+}
+
 type PlayManifest struct {
    DrmLicenseId string
    ManifestType string
    Url          string
-}
-
-type Plays struct {
-   ErrorMsgLong string `json:"error_msg_long"`
-   Manifests    []PlayManifest
 }
 
 func (p *Plays) Dash() (*PlayManifest, error) {

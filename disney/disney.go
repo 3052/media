@@ -11,44 +11,6 @@ import (
    "strings"
 )
 
-type Account struct {
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // Account
-            RefreshToken    string
-         }
-      }
-   }
-}
-
-type Hls struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type InactiveAccount struct {
-   Data struct {
-      Login struct {
-         Account struct {
-            Profiles []Profile
-         }
-      }
-   }
-   Errors     []Error
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // AccountWithoutActiveProfile
-         }
-      }
-   }
-}
-
-///
-
 const mutation_switch_profile = `
 mutation switchProfile($input: SwitchProfileInput!) {
    switchProfile(switchProfile: $input) {
@@ -113,10 +75,85 @@ func (a *Account) RefreshToken() error {
    return json.NewDecoder(resp.Body).Decode(a)
 }
 
+type Account struct {
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // Account
+            RefreshToken    string
+         }
+      }
+   }
+}
+
 type Device struct {
    Token struct {
       AccessToken     string
       AccessTokenType string // Device
+   }
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   if e.Code != "" {
+      data.WriteString("code = ")
+      data.WriteString(e.Code)
+   }
+   if e.Description != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("description = ")
+      data.WriteString(e.Description)
+   }
+   if e.Extensions != nil {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("extensions = ")
+      data.WriteString(e.Extensions.Code)
+   }
+   if e.Message != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("message = ")
+      data.WriteString(e.Message)
+   }
+   return data.String()
+}
+
+type Error struct {
+   Code        string
+   Description string
+   Extensions  *struct {
+      Code string
+   }
+   Message string
+}
+
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type InactiveAccount struct {
+   Data struct {
+      Login struct {
+         Account struct {
+            Profiles []Profile
+         }
+      }
+   }
+   Errors     []Error
+   Extensions struct {
+      Sdk struct {
+         Token struct {
+            AccessToken     string
+            AccessTokenType string // AccountWithoutActiveProfile
+         }
+      }
    }
 }
 
@@ -154,6 +191,8 @@ type Page struct {
       }
    }
 }
+
+///
 
 func (s Season) String() string {
    var (
@@ -560,43 +599,4 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
       return nil, &result.Errors[0]
    }
    return &result.Stream, nil
-}
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   if e.Code != "" {
-      data.WriteString("code = ")
-      data.WriteString(e.Code)
-   }
-   if e.Description != "" {
-      if data.Len() >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("description = ")
-      data.WriteString(e.Description)
-   }
-   if e.Extensions != nil {
-      if data.Len() >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("extensions = ")
-      data.WriteString(e.Extensions.Code)
-   }
-   if e.Message != "" {
-      if data.Len() >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("message = ")
-      data.WriteString(e.Message)
-   }
-   return data.String()
-}
-
-type Error struct {
-   Code        string
-   Description string
-   Extensions  *struct {
-      Code string
-   }
-   Message string
 }

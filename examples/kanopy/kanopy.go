@@ -4,45 +4,74 @@ import (
    "41.neocities.org/maya"
    "41.neocities.org/rosso/kanopy"
    "flag"
+   "fmt"
    "log"
    "net/http"
    "path"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *client) do_kanopy() error {
    var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
+   err := c.cache.Update(&state, func() error {
+      member, err := state.Login.Membership()
+      if err != nil {
+         return err
+      }
+      plays, err := state.Login.Plays(member, c.kanopy)
+      if err != nil {
+         return err
+      }
+      for _, caption := range plays.Captions {
+         for _, file := range caption.Files {
+            fmt.Println(file.Url)
+         }
+      }
+      state.PlayManifest, err = plays.Dash()
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.PlayManifest.Dash()
       return err
-   }
-   member, err := state.Login.Membership()
-   if err != nil {
-      return err
-   }
-   plays, err := state.Login.Plays(member, c.kanopy)
-   if err != nil {
-      return err
-   }
-   state.PlayManifest, err = plays.Dash()
-   if err != nil {
-      return err
-   }
-   state.Dash, err = state.PlayManifest.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set(&state)
+   })
    if err != nil {
       return err
    }
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
-func main() {
-   err := new(client).do()
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return state.Login.Widevine(state.PlayManifest, data)
+   }
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
+func (c *client) do_email_password() error {
+   var login kanopy.Login
+   err := login.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return c.cache.Set(saved_state{Login: &login})
+}
+
+type saved_state struct {
+   Dash         *kanopy.Dash
+   Login        *kanopy.Login
+   PlayManifest *kanopy.PlayManifest
 }
 
 type client struct {
@@ -93,35 +122,9 @@ func (c *client) do() error {
       return c.do_dash()
    }
    return maya.Usage([][]string{
+      {"x"},
       {"e", "p"},
       {"k"},
       {"d", "C", "P"},
    })
-}
-
-func (c *client) do_email_password() error {
-   var login kanopy.Login
-   err := login.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return c.cache.Set(saved_state{Login: &login})
-}
-
-type saved_state struct {
-   Dash         *kanopy.Dash
-   Login        *kanopy.Login
-   PlayManifest *kanopy.PlayManifest
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return state.Login.Widevine(state.PlayManifest, data)
-   }
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
