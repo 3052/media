@@ -68,6 +68,13 @@ func main() {
    }
 }
 
+type saved_state struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   St       *http.Cookie
+}
+
 func (c *client) do_initiate() error {
    st, err := hboMax.FetchSt()
    if err != nil {
@@ -81,23 +88,12 @@ func (c *client) do_initiate() error {
    return c.cache.Set(saved_state{St: st})
 }
 
-type saved_state struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   St *http.Cookie
-}
-
 func (c *client) do_login() error {
    var state saved_state
    return c.cache.Update(&state, func() error {
-      var login hboMax.Login
-      err := login.Fetch(state.St)
-      if err != nil {
-         return err
-      }
-      state.Login = &login
-      return nil
+      var err error
+      state.Login, err = hboMax.FetchLogin(state.St)
+      return err
    })
 }
 
@@ -118,32 +114,7 @@ type client struct {
    job  maya.PlayReadyJob
 }
 
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Playback.PlayReady
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func (c *client) do_edit() error {
-   var state saved_state
-   err := c.cache.Update(&state, func() error {
-      var err error
-      state.Playback, err = state.Login.PlayReady(c.edit)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.Playback.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
+///
 
 func (c *client) do_address() error {
    var show hboMax.ShowItem
@@ -175,3 +146,29 @@ func (c *client) do_address() error {
    return nil
 }
 
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.Playback.PlayReady
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
+func (c *client) do_edit() error {
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      var err error
+      state.Playback, err = state.Login.PlayReady(c.edit)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Playback.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
