@@ -10,37 +10,6 @@ import (
    "strconv"
 )
 
-// good for 10 years
-type Login struct {
-   Jwt    string
-   UserId int
-}
-
-type Plays struct {
-   Captions []struct {
-      Files []struct {
-         Url string
-      }
-   }
-   ErrorMsgLong string `json:"error_msg_long"`
-   Manifests    []PlayManifest
-}
-
-type PlayManifest struct {
-   DrmLicenseId string
-   ManifestType string
-   Url          string
-}
-
-func (p *Plays) Dash() (*PlayManifest, error) {
-   for _, manifest := range p.Manifests {
-      if manifest.ManifestType == "dash" {
-         return &manifest, nil
-      }
-   }
-   return nil, errors.New("dash manifest not found")
-}
-
 func (l *Login) Plays(member *Membership, videoId int) (*Plays, error) {
    data, err := json.Marshal(map[string]int{
       "domainId": member.DomainId,
@@ -187,4 +156,28 @@ func (l *Login) Membership() (*Membership, error) {
       return nil, err
    }
    return &result.List[0], nil
+}
+type Plays struct {
+   Captions []struct {
+      Files []struct {
+         Url string
+      }
+   }
+   ErrorMsgLong string `json:"error_msg_long"`
+   Manifests    []PlayManifest
+}
+
+type PlayManifest struct {
+   DrmLicenseId string
+   ManifestType string
+   Url          string
+}
+
+func (p *Plays) Dash() (*PlayManifest, error) {
+   for _, manifest := range p.Manifests {
+      if manifest.ManifestType == "dash" {
+         return &manifest, nil
+      }
+   }
+   return nil, errors.New("dash manifest not found")
 }

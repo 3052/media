@@ -10,7 +10,37 @@ import (
    "strings"
 )
 
-func (l *Login) video_alias(alias string) (*video_alias, error) {
+type Video struct {
+   Alias string
+   VideoId int
+}
+
+// https://kanopy.com/video/genius-party
+// https://kanopy.com/video/6440418
+func (v *Video) Parse(inputUrl string) error {
+   parsedUrl, err := url.Parse(inputUrl)
+   if err != nil {
+      return err
+   }
+   if !strings.Contains(parsedUrl.Host, "kanopy.com") {
+      return errors.New("invalid domain")
+   }
+   if !strings.HasPrefix(parsedUrl.Path, "/video/") {
+      return errors.New("invalid path structure")
+   }
+   identifier := path.Base(parsedUrl.Path)
+   numericId, err := strconv.Atoi(identifier)
+   if err != nil {
+      v.Alias = identifier
+   } else {
+      v.VideoId = numericId
+   }
+   return nil
+}
+
+const x_version  = "!/!/!/!"
+
+func (l *Login) Video(alias string) (*Video, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
@@ -25,46 +55,18 @@ func (l *Login) video_alias(alias string) (*video_alias, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   result := &video_alias{}
-   err = json.NewDecoder(resp.Body).Decode(result)
+   var result struct {
+      Video Video
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   return result, nil
+   return &result.Video, nil
 }
 
-type video_alias struct {
-   Video struct {
-      VideoId int
-   }
-}
-
-const x_version  = "!/!/!/!"
-
-type Video struct {
-   Alias   string
-   VideoID int
-}
-
-// https://kanopy.com/video/genius-party
-// https://kanopy.com/video/6440418
-func (v *Video) Parse(inputURL string) error {
-   parsedURL, err := url.Parse(inputURL)
-   if err != nil {
-      return err
-   }
-   if !strings.Contains(parsedURL.Host, "kanopy.com") {
-      return errors.New("invalid domain")
-   }
-   if !strings.HasPrefix(parsedURL.Path, "/video/") {
-      return errors.New("invalid path structure")
-   }
-   identifier := path.Base(parsedURL.Path)
-   numericID, err := strconv.Atoi(identifier)
-   if err != nil {
-      v.Alias = identifier
-   } else {
-      v.VideoID = numericID
-   }
-   return nil
+// good for 10 years
+type Login struct {
+   Jwt    string
+   UserId int
 }

@@ -10,22 +10,86 @@ import (
    "path"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
+func (c *client) do() error {
+   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := c.cache.Init("rosso/kanopy.xml")
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   // 1
+   flag.StringVar(&c.email, "e", "", "email")
+   flag.StringVar(&c.password, "p", "", "password")
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
+   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.Parse()
+   if c.email != "" {
+      if c.password != "" {
+         return c.do_email_password()
+      }
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"e", "p"},
+      {"a"},
+      {"d", "C", "P"},
+   })
 }
 
-func (c *client) do_kanopy() error {
+type saved_state struct {
+   Dash         *kanopy.Dash
+   Login        *kanopy.Login
+   PlayManifest *kanopy.PlayManifest
+}
+
+func (c *client) do_email_password() error {
+   var login kanopy.Login
+   err := login.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return c.cache.Set(saved_state{Login: &login})
+}
+
+type client struct {
+   cache maya.Cache
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
+func (c *client) do_address() error {
+   video := &kanopy.Video{}
+   err := video.Parse(c.address)
+   if err != nil {
+      return err
+   }
    var state saved_state
-   err := c.cache.Update(&state, func() error {
+   err = c.cache.Update(&state, func() error {
+      if video.VideoId == 0 {
+         video, err = state.Login.Video(video.Alias)
+         if err != nil {
+            return err
+         }
+      }
       member, err := state.Login.Membership()
       if err != nil {
          return err
       }
-      plays, err := state.Login.Plays(member, c.kanopy)
+      plays, err := state.Login.Plays(member, video.VideoId)
       if err != nil {
          return err
       }
@@ -59,72 +123,13 @@ func (c *client) do_dash() error {
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
 
-func (c *client) do_email_password() error {
-   var login kanopy.Login
-   err := login.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return c.cache.Set(saved_state{Login: &login})
-}
-
-type saved_state struct {
-   Dash         *kanopy.Dash
-   Login        *kanopy.Login
-   PlayManifest *kanopy.PlayManifest
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   proxy string
-   // 2
-   email    string
-   password string
-   // 3
-   kanopy int
-   // 4
-   dash string
-   job  maya.WidevineJob
-}
-
-func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/kanopy.xml")
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.StringVar(&c.proxy, "x", "", "proxy")
-   // 2
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   // 3
-   flag.IntVar(&c.kanopy, "k", 0, "Kanopy ID")
-   // 4
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
-   flag.Parse()
+func main() {
+   log.SetFlags(log.Ltime)
    maya.SetProxy(func(req *http.Request) (string, bool) {
-      return c.proxy, path.Ext(req.URL.Path) != ".m4s"
+      return "", path.Ext(req.URL.Path) != ".m4s"
    })
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
    }
-   if c.kanopy >= 1 {
-      return c.do_kanopy()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"x"},
-      {"e", "p"},
-      {"k"},
-      {"d", "C", "P"},
-   })
 }

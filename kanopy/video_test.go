@@ -24,9 +24,9 @@ func TestAlias(t *testing.T) {
       t.Fatal(err)
    }
    // https://kanopy.com/video/genius-party
-   alias, err := state.Login.video_alias("genius-party")
+   result, err := state.Login.Video("genius-party")
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Printf("%+v\n", alias)
+   fmt.Printf("%+v\n", result)
 }
