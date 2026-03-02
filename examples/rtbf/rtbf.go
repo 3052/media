@@ -5,8 +5,28 @@ import (
    "41.neocities.org/rosso/rtbf"
    "flag"
    "log"
-   "net/http"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type client struct {
+   cache maya.Cache
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash string
+   job  maya.WidevineJob
+}
 
 func (c *client) do_dash() error {
    var state saved_state
@@ -107,26 +127,4 @@ func (c *client) do_email_password() error {
       return err
    }
    return c.cache.Set(saved_state{Account: &account})
-}
-
-func main() {
-   maya.SetProxy(func(*http.Request) (string, bool) {
-      return "", true
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.WidevineJob
 }

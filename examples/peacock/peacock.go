@@ -9,6 +9,15 @@ import (
    "path"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *client) do_dash() error {
    var state saved_state
    err := c.cache.Get(&state)
@@ -108,14 +117,4 @@ func (c *client) do() error {
       {"a"},
       {"d", "C", "P"},
    })
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".m4s"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

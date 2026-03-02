@@ -6,9 +6,16 @@ import (
    "flag"
    "fmt"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.dash")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
@@ -99,6 +106,7 @@ func (c *client) do_session() error {
    }
    return c.cache.Set(state)
 }
+
 func (c *client) do_address() error {
    slug, err := mubi.FilmSlug(c.address)
    if err != nil {
@@ -130,14 +138,4 @@ func (c *client) do_address() error {
       return err
    }
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".dash"
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
