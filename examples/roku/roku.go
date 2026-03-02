@@ -8,6 +8,50 @@ import (
    "log"
 )
 
+func (c *client) do_roku() error {
+   if !c.get_user {
+      c.cache.Optional = true
+   }
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      var user *roku.User
+      if c.get_user {
+         user = state.User
+      }
+      connection, err := roku.NewConnection(user)
+      if err != nil {
+         return err
+      }
+      state.Playback, err = connection.Playback(c.roku)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.Playback.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.Playback.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
 type client struct {
    cache maya.Cache
    // 1
@@ -102,46 +146,4 @@ func (c *client) do_set_user() error {
       return err
    }
    return c.cache.Set(state)
-}
-func (c *client) do_roku() error {
-   c.cache.Optional = true
-   var state saved_state
-   err := c.cache.Update(&state, func() error {
-      var user *roku.User
-      if c.get_user {
-         user = state.User
-      }
-      connection, err := roku.NewConnection(user)
-      if err != nil {
-         return err
-      }
-      state.Playback, err = connection.Playback(c.roku)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.Playback.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Playback.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }

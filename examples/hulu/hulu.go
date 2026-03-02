@@ -5,9 +5,16 @@ import (
    "41.neocities.org/rosso/hulu"
    "flag"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do() error {
    c.job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
@@ -109,16 +116,3 @@ func (c *client) do_email_password() error {
    return c.cache.Set(saved_state{Session: &session})
 }
 
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return "", false
-      }
-      return "", true
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}

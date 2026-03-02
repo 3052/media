@@ -28,6 +28,45 @@ func setPlaybackHeaders(req *http.Request) {
    req.Header.Set("magine-play-protocol", "dashs")
 }
 
+type Entitlement struct {
+   Token string
+   Error *Error
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("message = ")
+   data.WriteString(e.Message)
+   data.WriteString("\nuser message = ")
+   data.WriteString(e.UserMessage)
+   return data.String()
+}
+
+type Error struct {
+   Message     string
+   UserMessage string `json:"user_message"`
+}
+
+func (l *Login) Widevine(play *Playback, data []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   setBaseHeaders(req, l.Token)
+   setPlaybackHeaders(req)
+   req.Header.Set("magine-play-session", play.Headers.MaginePlaySession)
+   req.Header.Set("magine-play-entitlementId", play.Headers.MaginePlayEntitlementId)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
 func (l *Login) Playback(movie *MovieItem, title *Entitlement) (*Playback, error) {
    var req http.Request
    req.Method = "POST"
@@ -154,26 +193,15 @@ func FetchMovie(customId string) (*MovieItem, error) {
    return result.Data.Viewer.ViewableCustomId, nil
 }
 
+type Playback struct {
+   Headers struct {
+      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
+      MaginePlaySession       string `json:"Magine-Play-Session"`
+   }
+   Playlist string // MPD
+}
+
 ///
-
-type Entitlement struct {
-   Token string
-   Error *Error
-}
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("message = ")
-   data.WriteString(e.Message)
-   data.WriteString("\nuser message = ")
-   data.WriteString(e.UserMessage)
-   return data.String()
-}
-
-type Error struct {
-   Message     string
-   UserMessage string `json:"user_message"`
-}
 
 type Login struct {
    Message string
@@ -218,32 +246,4 @@ type MovieItem struct {
    DefaultPlayable struct {
       Id string
    }
-}
-
-func (l *Login) Widevine(play *Playback, data []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", "https://client-api.magine.com/api/playback/v1/widevine/license",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   setBaseHeaders(req, l.Token)
-   setPlaybackHeaders(req)
-   req.Header.Set("magine-play-session", play.Headers.MaginePlaySession)
-   req.Header.Set("magine-play-entitlementId", play.Headers.MaginePlayEntitlementId)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
-}
-
-type Playback struct {
-   Headers struct {
-      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
-      MaginePlaySession       string `json:"Magine-Play-Session"`
-   }
-   Playlist string // MPD
 }
