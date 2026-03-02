@@ -65,6 +65,7 @@ func (c *client) do_dash() error {
    c.job.Send = state.Playback.PlayReady
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
+
 func (c *client) do_edit() error {
    var state saved_state
    err := c.cache.Update(&state, func() error {
