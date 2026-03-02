@@ -10,6 +10,12 @@ import (
    "strconv"
 )
 
+// good for 10 years
+type Login struct {
+   Jwt    string
+   UserId int
+}
+
 type Plays struct {
    Captions []struct {
       Files []struct {
@@ -70,19 +76,10 @@ func (l *Login) Plays(member *Membership, videoId int) (*Plays, error) {
    return &result, nil
 }
 
-const (
-   user_agent = "!"
-   x_version  = "!/!/!/!"
-)
+const user_agent = "!"
 
 type Membership struct {
    DomainId int
-}
-
-// good for 10 years
-type Login struct {
-   Jwt    string
-   UserId int
 }
 
 func (l *Login) Fetch(email, password string) error {

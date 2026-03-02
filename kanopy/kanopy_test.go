@@ -16,6 +16,6 @@ var tests = []struct {
    },
 }
 
-func Test(t *testing.T) {
+func TestLog(t *testing.T) {
    t.Log(tests)
 }
