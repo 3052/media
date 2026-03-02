@@ -6,9 +6,16 @@ import (
    "flag"
    "fmt"
    "log"
-   "net/http"
-   "path"
 )
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 func (c *client) do_hls() error {
    var state saved_state
@@ -71,20 +78,6 @@ func (c *client) do() error {
       {"m"},
       {"h", "C", "E"},
    })
-}
-
-func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      switch path.Ext(req.URL.Path) {
-      case ".mp4", ".mp4a":
-         return "", false
-      }
-      return "", true
-   })
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *client) do_email_password() error {

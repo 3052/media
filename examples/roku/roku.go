@@ -6,79 +6,11 @@ import (
    "flag"
    "fmt"
    "log"
-   "net/http"
-   "path"
 )
 
-func (c *client) do_connection() error {
-   connection, err := roku.NewConnection(nil)
-   if err != nil {
-      return err
-   }
-   state := saved_state{Connection: connection}
-   state.LinkCode, err = state.Connection.LinkCode()
-   if err != nil {
-      return err
-   }
-   fmt.Println(state.LinkCode)
-   return c.cache.Set(state)
-}
-
-type saved_state struct {
-   Dash       *roku.Dash
-   Connection *roku.Connection
-   LinkCode   *roku.LinkCode
-   Playback   *roku.Playback
-   User       *roku.User
-}
-
-func (c *client) do_set_user() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   state.User, err = state.Connection.User(state.LinkCode)
-   if err != nil {
-      return err
-   }
-   return c.cache.Set(state)
-}
-
-func (c *client) do_roku() error {
-   var state saved_state
-   err := c.cache.Get(&state)
-   if err != nil {
-      return err
-   }
-   var connection *roku.Connection
-   if c.get_user {
-      connection, err = roku.NewConnection(state.User)
-   } else {
-      connection, err = roku.NewConnection(nil)
-   }
-   if err != nil {
-      return err
-   }
-   state.Playback, err = connection.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   state.Dash, err = state.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Set(state)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
 func main() {
-   maya.SetProxy(func(req *http.Request) (string, bool) {
-      return "", path.Ext(req.URL.Path) != ".mp4"
-   })
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
    err := new(client).do()
    if err != nil {
       log.Fatal(err)
@@ -147,3 +79,68 @@ func (c *client) do() error {
       {"d", "C", "P"},
    })
 }
+func (c *client) do_connection() error {
+   connection, err := roku.NewConnection(nil)
+   if err != nil {
+      return err
+   }
+   state := saved_state{Connection: connection}
+   state.LinkCode, err = state.Connection.LinkCode()
+   if err != nil {
+      return err
+   }
+   fmt.Println(state.LinkCode)
+   return c.cache.Set(state)
+}
+
+type saved_state struct {
+   Dash       *roku.Dash
+   Connection *roku.Connection
+   LinkCode   *roku.LinkCode
+   Playback   *roku.Playback
+   User       *roku.User
+}
+
+func (c *client) do_set_user() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   state.User, err = state.Connection.User(state.LinkCode)
+   if err != nil {
+      return err
+   }
+   return c.cache.Set(state)
+}
+
+func (c *client) do_roku() error {
+   var state saved_state
+   err := c.cache.Get(&state)
+   if err != nil {
+      return err
+   }
+   var connection *roku.Connection
+   if c.get_user {
+      connection, err = roku.NewConnection(state.User)
+   } else {
+      connection, err = roku.NewConnection(nil)
+   }
+   if err != nil {
+      return err
+   }
+   state.Playback, err = connection.Playback(c.roku)
+   if err != nil {
+      return err
+   }
+   state.Dash, err = state.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set(state)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+

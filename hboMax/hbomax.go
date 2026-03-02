@@ -12,6 +12,26 @@ import (
    "strings"
 )
 
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   if e.Detail != "" {
+      data.WriteString("\ndetail = ")
+      data.WriteString(e.Detail)
+   } else {
+      data.WriteString("\nmessage = ")
+      data.WriteString(e.Message)
+   }
+   return data.String()
+}
+
+type Error struct {
+   Code    string
+   Detail  string // show was filtered by validator
+   Message string // Token is missing or not valid
+}
+
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
@@ -123,18 +143,6 @@ type Login struct {
          Token string
       }
    }
-}
-
-func (e *Error) Error() string {
-   if e.Detail != "" {
-      return e.Detail
-   }
-   return e.Message
-}
-
-type Error struct {
-   Detail  string // show was filtered by validator
-   Message string // Token is missing or not valid
 }
 
 type Scheme struct {
