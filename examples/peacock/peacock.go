@@ -20,7 +20,7 @@ func main() {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -36,7 +36,7 @@ type saved_state struct {
 
 func (c *client) do_address() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -57,7 +57,7 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   err = c.cache.Set(state)
+   err = c.cache.Write(state)
    if err != nil {
       return err
    }
@@ -69,7 +69,7 @@ func (c *client) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(saved_state{Cookie: cookie})
+   return c.cache.Write(saved_state{Cookie: cookie})
 }
 
 type client struct {
@@ -87,7 +87,7 @@ type client struct {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/peacock.xml")
+   err := c.cache.Setup("rosso/peacock.xml")
    if err != nil {
       return err
    }

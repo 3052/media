@@ -19,7 +19,7 @@ func main() {
 func (c *client) do() error {
    c.job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
    c.job.EncryptSignKey, _ = maya.ResolveCache("SL2000/EncryptSignKey")
-   err := c.cache.Init("rosso/hulu.xml")
+   err := c.cache.Setup("rosso/hulu.xml")
    if err != nil {
       return err
    }
@@ -65,7 +65,7 @@ type client struct {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -113,6 +113,5 @@ func (c *client) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(saved_state{Session: &session})
+   return c.cache.Write(saved_state{Session: &session})
 }
-

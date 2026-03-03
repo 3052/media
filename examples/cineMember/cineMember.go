@@ -19,7 +19,7 @@ func main() {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -27,7 +27,7 @@ func (c *client) do_dash() error {
 }
 
 func (c *client) do() error {
-   err := c.cache.Init("rosso/cineMember.xml")
+   err := c.cache.Setup("rosso/cineMember.xml")
    if err != nil {
       return err
    }
@@ -78,7 +78,7 @@ func (c *client) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(saved_state{Cookie: cookie})
+   return c.cache.Write(saved_state{Cookie: cookie})
 }
 
 type saved_state struct {

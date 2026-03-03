@@ -20,7 +20,7 @@ func main() {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/mubi.xml")
+   err := c.cache.Setup("rosso/mubi.xml")
    if err != nil {
       return err
    }
@@ -70,7 +70,7 @@ type client struct {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -91,12 +91,12 @@ func (c *client) do_code() error {
       return err
    }
    fmt.Println(&link_code)
-   return c.cache.Set(saved_state{LinkCode: &link_code})
+   return c.cache.Write(saved_state{LinkCode: &link_code})
 }
 
 func (c *client) do_session() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -104,7 +104,7 @@ func (c *client) do_session() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(state)
+   return c.cache.Write(state)
 }
 
 func (c *client) do_address() error {
@@ -117,7 +117,7 @@ func (c *client) do_address() error {
       return err
    }
    var state saved_state
-   err = c.cache.Get(&state)
+   err = c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -133,7 +133,7 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   err = c.cache.Set(state)
+   err = c.cache.Write(state)
    if err != nil {
       return err
    }

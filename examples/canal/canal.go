@@ -86,7 +86,7 @@ func (c *client) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(saved_state{Session: &session})
+   return c.cache.Write(saved_state{Session: &session})
 }
 
 type client struct {
@@ -116,7 +116,7 @@ type saved_state struct {
 
 func (c *client) do_subtitles() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -131,7 +131,7 @@ func (c *client) do_subtitles() error {
 
 func (c *client) do_tracking_season() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -151,7 +151,7 @@ func (c *client) do_tracking_season() error {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/canal.xml")
+   err := c.cache.Setup("rosso/canal.xml")
    if err != nil {
       return err
    }
@@ -207,11 +207,10 @@ func (c *client) do() error {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
    c.job.Send = state.Player.Widevine
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
-

@@ -11,10 +11,10 @@ import (
 func (c *client) do_roku() error {
    var (
       state saved_state
-      user *roku.User
+      user  *roku.User
    )
    if c.get_user {
-      err := c.cache.Get(&state)
+      err := c.cache.Read(&state)
       if err != nil {
          return err
       }
@@ -32,7 +32,7 @@ func (c *client) do_roku() error {
    if err != nil {
       return err
    }
-   err = c.cache.Set(state)
+   err = c.cache.Write(state)
    if err != nil {
       return err
    }
@@ -50,7 +50,7 @@ func main() {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -75,7 +75,7 @@ type client struct {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/roku.xml")
+   err := c.cache.Setup("rosso/roku.xml")
    if err != nil {
       return err
    }
@@ -122,7 +122,7 @@ func (c *client) do_connection() error {
       return err
    }
    fmt.Println(state.LinkCode)
-   return c.cache.Set(state)
+   return c.cache.Write(state)
 }
 
 type saved_state struct {
@@ -135,7 +135,7 @@ type saved_state struct {
 
 func (c *client) do_set_user() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -143,5 +143,5 @@ func (c *client) do_set_user() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(state)
+   return c.cache.Write(state)
 }

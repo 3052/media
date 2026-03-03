@@ -19,7 +19,7 @@ func main() {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/ctv.xml")
+   err := c.cache.Setup("rosso/ctv.xml")
    if err != nil {
       return err
    }
@@ -67,7 +67,7 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   err = c.cache.Set(dash)
+   err = c.cache.Write(dash)
    if err != nil {
       return err
    }
@@ -76,7 +76,7 @@ func (c *client) do_address() error {
 func (c *client) do_dash() error {
    c.job.Send = ctv.Widevine
    var dash ctv.Dash
-   err := c.cache.Get(&dash)
+   err := c.cache.Read(&dash)
    if err != nil {
       return err
    }
@@ -91,4 +91,3 @@ type client struct {
    dash string
    job  maya.WidevineJob
 }
-

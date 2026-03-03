@@ -19,7 +19,7 @@ func main() {
 
 func (c *client) do_hls() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -30,7 +30,7 @@ func (c *client) do_hls() error {
 func (c *client) do() error {
    c.job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
    c.job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
-   err := c.cache.Init("rosso/disney.xml")
+   err := c.cache.Setup("rosso/disney.xml")
    if err != nil {
       return err
    }
@@ -95,7 +95,7 @@ func (c *client) do_email_password() error {
       }
       fmt.Println(&profile)
    }
-   return c.cache.Set(saved_state{InactiveAccount: inactive_account})
+   return c.cache.Write(saved_state{InactiveAccount: inactive_account})
 }
 
 type saved_state struct {
@@ -135,7 +135,7 @@ func (c *client) do_address() error {
 
 func (c *client) do_season_id() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }

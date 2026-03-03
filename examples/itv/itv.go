@@ -61,7 +61,7 @@ func (c *client) do_address() error {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -83,7 +83,7 @@ type client struct {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/itv.xml")
+   err := c.cache.Setup("rosso/itv.xml")
    if err != nil {
       return err
    }

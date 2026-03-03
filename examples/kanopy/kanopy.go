@@ -20,7 +20,7 @@ func main() {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/kanopy.xml")
+   err := c.cache.Setup("rosso/kanopy.xml")
    if err != nil {
       return err
    }
@@ -64,7 +64,7 @@ func (c *client) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(saved_state{Login: &login})
+   return c.cache.Write(saved_state{Login: &login})
 }
 
 type client struct {
@@ -121,7 +121,7 @@ func (c *client) do_address() error {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -130,4 +130,3 @@ func (c *client) do_dash() error {
    }
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
-

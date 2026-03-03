@@ -19,7 +19,7 @@ func main() {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/nbc.xml")
+   err := c.cache.Setup("rosso/nbc.xml")
    if err != nil {
       return err
    }
@@ -60,7 +60,7 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   err = c.cache.Set(dash)
+   err = c.cache.Write(dash)
    if err != nil {
       return err
    }
@@ -69,7 +69,7 @@ func (c *client) do_address() error {
 
 func (c *client) do_dash() error {
    var dash nbc.Dash
-   err := c.cache.Get(&dash)
+   err := c.cache.Read(&dash)
    if err != nil {
       return err
    }

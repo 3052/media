@@ -10,15 +10,15 @@ import (
 )
 
 func (c *client) do_proxy() error {
-   c.cache.Optional = true
+   c.cache.AllowMissing = true
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
    if c.proxy != nil {
       state.Proxy = *c.proxy
-      err = c.cache.Set(state)
+      err = c.cache.Write(state)
       if err != nil {
          return err
       }
@@ -29,7 +29,7 @@ func (c *client) do_proxy() error {
 func (c *client) do() error {
    c.job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
    c.job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
-   err := c.cache.Init("rosso/hboMax.xml")
+   err := c.cache.Setup("rosso/hboMax.xml")
    if err != nil {
       return err
    }
@@ -125,7 +125,7 @@ type saved_state struct {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -160,7 +160,7 @@ func (c *client) do_initiate() error {
       return err
    }
    fmt.Println(initiate)
-   return c.cache.Set(saved_state{St: st})
+   return c.cache.Write(saved_state{St: st})
 }
 
 func (c *client) do_login() error {
@@ -178,7 +178,7 @@ func (c *client) do_address() error {
       return err
    }
    var state saved_state
-   err = c.cache.Get(&state)
+   err = c.cache.Read(&state)
    if err != nil {
       return err
    }

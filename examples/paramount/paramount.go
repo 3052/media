@@ -20,7 +20,7 @@ func main() {
 func (c *client) do() error {
    c.job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
    c.job.EncryptSignKey, _ = maya.ResolveCache("SL2000/EncryptSignKey")
-   err := c.cache.Init("rosso/paramount.xml")
+   err := c.cache.Setup("rosso/paramount.xml")
    if err != nil {
       return err
    }
@@ -63,7 +63,7 @@ func (c *client) do_dash() error {
       return err
    }
    var state saved_state
-   err = c.cache.Get(&state)
+   err = c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -97,7 +97,7 @@ func (c *client) do_username_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Set(saved_state{Cookie: cookie})
+   return c.cache.Write(saved_state{Cookie: cookie})
 }
 
 func (c *client) do_paramount() error {
@@ -119,7 +119,7 @@ func (c *client) do_paramount() error {
       return err
    }
    state.ContentId = c.paramount
-   err = c.cache.Set(state)
+   err = c.cache.Write(state)
    if err != nil {
       return err
    }
@@ -138,4 +138,3 @@ type client struct {
    cookie bool
    job    maya.PlayReadyJob
 }
-

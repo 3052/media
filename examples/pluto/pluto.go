@@ -34,7 +34,7 @@ type client struct {
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Init("rosso/pluto.xml")
+   err := c.cache.Setup("rosso/pluto.xml")
    if err != nil {
       return err
    }
@@ -80,7 +80,7 @@ func (c *client) do_movie() error {
    if err != nil {
       return err
    }
-   err = c.cache.Set(saved_state{Dash: &dash})
+   err = c.cache.Write(saved_state{Dash: &dash})
    if err != nil {
       return err
    }
@@ -94,7 +94,7 @@ func (c *client) do_show() error {
       return err
    }
    fmt.Println(&series.Vod[0])
-   return c.cache.Set(saved_state{Series: &series})
+   return c.cache.Write(saved_state{Series: &series})
 }
 
 type saved_state struct {
@@ -104,7 +104,7 @@ type saved_state struct {
 
 func (c *client) do_episode() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
@@ -118,7 +118,7 @@ func (c *client) do_episode() error {
       return err
    }
    state.Dash = &dash
-   err = c.cache.Set(state)
+   err = c.cache.Write(state)
    if err != nil {
       return err
    }
@@ -127,7 +127,7 @@ func (c *client) do_episode() error {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Get(&state)
+   err := c.cache.Read(&state)
    if err != nil {
       return err
    }
