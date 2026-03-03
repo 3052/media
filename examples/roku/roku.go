@@ -9,26 +9,30 @@ import (
 )
 
 func (c *client) do_roku() error {
-   if !c.get_user {
-      c.cache.Optional = true
+   var (
+      state saved_state
+      user *roku.User
+   )
+   if c.get_user {
+      err := c.cache.Get(&state)
+      if err != nil {
+         return err
+      }
+      user = state.User
    }
-   var state saved_state
-   err := c.cache.Update(&state, func() error {
-      var user *roku.User
-      if c.get_user {
-         user = state.User
-      }
-      connection, err := roku.NewConnection(user)
-      if err != nil {
-         return err
-      }
-      state.Playback, err = connection.Playback(c.roku)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.Playback.Dash()
+   connection, err := roku.NewConnection(user)
+   if err != nil {
       return err
-   })
+   }
+   state.Playback, err = connection.Playback(c.roku)
+   if err != nil {
+      return err
+   }
+   state.Dash, err = state.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Set(state)
    if err != nil {
       return err
    }
@@ -37,6 +41,7 @@ func (c *client) do_roku() error {
 
 func main() {
    log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
    err := new(client).do()
    if err != nil {
       log.Fatal(err)
@@ -52,18 +57,17 @@ func (c *client) do_dash() error {
    c.job.Send = state.Playback.Widevine
    return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
+
 type client struct {
    cache maya.Cache
    // 1
-   proxy string
-   // 2
    connection bool
-   // 3
+   // 2
    set_user bool
-   // 4
+   // 3
    roku     string
    get_user bool
-   // 5
+   // 4
    dash string
    job  maya.WidevineJob
 }
@@ -76,23 +80,17 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.StringVar(&c.proxy, "x", "", "proxy")
-   // 2
    flag.BoolVar(&c.connection, "c", false, "connection")
-   // 3
+   // 2
    flag.BoolVar(&c.set_user, "s", false, "set user")
-   // 4
+   // 3
    flag.StringVar(&c.roku, "r", "", "Roku ID")
    flag.BoolVar(&c.get_user, "g", false, "get user")
-   // 5
+   // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
    flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
    flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
    flag.Parse()
-   err = maya.SetProxy(c.proxy, "*.mp4")
-   if err != nil {
-      return err
-   }
    if c.connection {
       return c.do_connection()
    }

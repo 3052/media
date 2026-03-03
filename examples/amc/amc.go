@@ -47,6 +47,7 @@ func (c *client) do_episode() error {
    }
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
+
 func (c *client) do_dash() error {
    var state saved_state
    err := c.cache.Get(&state)
