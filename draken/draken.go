@@ -10,6 +10,20 @@ import (
    "strings"
 )
 
+const get_custom_id = `
+query GetCustomIdFullMovie($customId: ID!) {
+   viewer {
+      viewableCustomId(customId: $customId) {
+         ... on Movie {
+            defaultPlayable {
+               id
+            }
+         }
+      }
+   }
+}
+`
+
 // setBaseHeaders adds the common authentication and access tokens to a request.
 func setBaseHeaders(req *http.Request, loginToken string) {
    req.Header.Set("magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663")
@@ -45,6 +59,11 @@ func (e *Error) Error() string {
 type Error struct {
    Message     string
    UserMessage string `json:"user_message"`
+}
+
+type Login struct {
+   Message string
+   Token   string
 }
 
 func (l *Login) Widevine(play *Playback, data []byte) ([]byte, error) {
@@ -153,6 +172,12 @@ func (l *Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
    return &result, nil
 }
 
+type MovieItem struct {
+   DefaultPlayable struct {
+      Id string
+   }
+}
+
 func FetchMovie(customId string) (*MovieItem, error) {
    data, err := json.Marshal(map[string]any{
       "query":     get_custom_id,
@@ -193,40 +218,6 @@ func FetchMovie(customId string) (*MovieItem, error) {
    return result.Data.Viewer.ViewableCustomId, nil
 }
 
-type Playback struct {
-   Headers struct {
-      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
-      MaginePlaySession       string `json:"Magine-Play-Session"`
-   }
-   Playlist string // MPD
-}
-
-///
-
-type Login struct {
-   Message string
-   Token   string
-}
-
-const get_custom_id = `
-query GetCustomIdFullMovie($customId: ID!) {
-   viewer {
-      viewableCustomId(customId: $customId) {
-         ... on Movie {
-            defaultPlayable {
-               id
-            }
-         }
-      }
-   }
-}
-`
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
 func (p *Playback) Dash() (*Dash, error) {
    resp, err := http.Get(p.Playlist)
    if err != nil {
@@ -242,8 +233,17 @@ func (p *Playback) Dash() (*Dash, error) {
    return &result, nil
 }
 
-type MovieItem struct {
-   DefaultPlayable struct {
-      Id string
+type Playback struct {
+   Headers struct {
+      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
+      MaginePlaySession       string `json:"Magine-Play-Session"`
    }
+   Playlist string // MPD
+}
+
+///
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
 }
