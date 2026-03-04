@@ -101,7 +101,6 @@ func (c *client) do_paramount() error {
    if err != nil {
       return err
    }
-   var state saved_state
    state.Dash, err = item.Dash()
    if err != nil {
       return err
@@ -122,7 +121,6 @@ func (c *client) do_dash() error {
    if err != nil {
       return err
    }
-   var state saved_state
    err = cache.Read(&state)
    if err != nil {
       return err
