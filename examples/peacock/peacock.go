@@ -9,6 +9,15 @@ import (
    "path"
 )
 
+func (c *client) do_dash_id() error {
+   _, err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.Playout.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.m4s")
@@ -18,76 +27,14 @@ func main() {
    }
 }
 
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Playout.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
+var cache maya.Cache
 
-type saved_state struct {
-   Cookie  *http.Cookie
-   Dash    *peacock.Dash
-   Playout *peacock.Playout
-}
-
-func (c *client) do_address() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   var token peacock.Token
-   err = token.Fetch(state.Cookie)
-   if err != nil {
-      return err
-   }
-   state.Playout, err = token.Playout(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   endpoint, err := state.Playout.Fastly()
-   if err != nil {
-      return err
-   }
-   state.Dash, err = endpoint.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Write(state)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
-func (c *client) do_email_password() error {
-   cookie, err := peacock.FetchIdSession(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return c.cache.Write(saved_state{Cookie: cookie})
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.WidevineJob
-}
+var job  maya.WidevineJob
 
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/peacock.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/peacock.xml")
    if err != nil {
       return err
    }
@@ -97,9 +44,9 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
    if c.email != "" {
       if c.password != "" {
@@ -109,12 +56,63 @@ func (c *client) do() error {
    if c.address != "" {
       return c.do_address()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
       {"d", "C", "P"},
    })
+}
+
+func (c *client) do_email_password() error {
+   var err error
+   c.Cookie, err = peacock.FetchIdSession(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+func (c *client) do_address() error {
+   _, err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   var token peacock.Token
+   err = token.Fetch(c.Cookie)
+   if err != nil {
+      return err
+   }
+   c.Playout, err = token.Playout(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   endpoint, err := c.Playout.Fastly()
+   if err != nil {
+      return err
+   }
+   c.Dash, err = endpoint.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+type client struct {
+   Cookie  *http.Cookie
+   Dash    *peacock.Dash
+   Playout *peacock.Playout
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash_id string
 }

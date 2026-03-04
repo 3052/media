@@ -16,47 +16,19 @@ func main() {
    }
 }
 
-func (c *client) do_tubi() error {
-   var content tubi.Content
-   err := content.Fetch(c.tubi)
-   if err != nil {
-      return err
-   }
-   var state saved_state
-   state.VideoResource = &content.VideoResources[0]
-   state.Dash, err = state.VideoResource.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Write(state)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
+var cache maya.Cache
 
-type saved_state struct {
-   Dash          *tubi.Dash
-   VideoResource *tubi.VideoResource
-}
+var job  maya.WidevineJob
 
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.VideoResource.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
+///
 
 type client struct {
-   cache maya.Cache
+   Dash          *tubi.Dash
+   VideoResource *tubi.VideoResource
    // 1
    tubi int
    // 2
    dash string
-   job  maya.WidevineJob
 }
 
 func (c *client) do() error {
@@ -84,3 +56,32 @@ func (c *client) do() error {
       {"d", "c", "p"},
    })
 }
+func (c *client) do_tubi() error {
+   var content tubi.Content
+   err := content.Fetch(c.tubi)
+   if err != nil {
+      return err
+   }
+   var state saved_state
+   state.VideoResource = &content.VideoResources[0]
+   state.Dash, err = state.VideoResource.Dash()
+   if err != nil {
+      return err
+   }
+   err = c.cache.Write(state)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Read(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = state.VideoResource.Widevine
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+

@@ -28,7 +28,7 @@ type client struct {
    // 5
    edit string
    // 6
-   dash string
+   dash_id string
 }
 
 func (c *client) do() error {
@@ -61,7 +61,7 @@ func (c *client) do() error {
    // 5
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 6
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -84,8 +84,8 @@ func (c *client) do() error {
    if c.edit != "" {
       return c.do_edit()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"x"},
@@ -119,7 +119,8 @@ func (c *client) do_edit() error {
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
-func (c *client) do_dash() error {
+
+func (c *client) do_dash_id() error {
    if c.Playback == nil {
       _, err := cache.Read(c)
       if err != nil {
@@ -127,8 +128,9 @@ func (c *client) do_dash() error {
       }
    }
    job.Send = c.Playback.PlayReady
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash)
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }
+
 func (c *client) do_address() error {
    show, err := hboMax.ParseUrl(c.address)
    if err != nil {
