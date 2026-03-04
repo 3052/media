@@ -18,23 +18,13 @@ func main() {
    }
 }
 
-type client struct {
-   cache maya.Cache
-   // 1
-   address string
-   // 2
-   season string
-   // 3
-   episode  string
-   language string
-   // 4
-   dash string
-   job  maya.WidevineJob
-}
+var cache maya.Cache
+
+var job  maya.WidevineJob
 
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
    err := c.cache.Setup("rosso/rakuten.xml")
    if err != nil {
       return err
@@ -44,12 +34,12 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.season, "s", "", "season ID")
    // 3
-   flag.StringVar(&c.episode, "e", "", "episode ID")
-   flag.StringVar(&c.language, "A", "", "audio language")
+   flag.StringVar(&c.Episode, "e", "", "episode ID")
+   flag.StringVar(&c.Language, "A", "", "audio language")
    // 4
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
    flag.Parse()
    if c.address != "" {
       return c.do_address()
@@ -57,11 +47,11 @@ func (c *client) do() error {
    if c.season != "" {
       return c.do_season()
    }
-   if c.language != "" {
+   if c.Language != "" {
       return c.do_language()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"a"},
@@ -70,6 +60,22 @@ func (c *client) do() error {
       {"d", "c", "p"},
    })
 }
+
+type client struct {
+   Dash     *rakuten.Dash
+   Media    *rakuten.Media
+   // 1
+   address string
+   // 2
+   season string
+   // 3
+   Episode  string
+   Language string
+   // 4
+   dash_id string
+}
+
+///
 
 func (c *client) do_address() error {
    var media rakuten.Media
@@ -93,8 +99,8 @@ func (c *client) do_address() error {
    }
    return c.cache.Write(saved_state{Media: &media})
 }
+
 func (c *client) do_language() error {
-   var state saved_state
    err := c.cache.Read(&state)
    if err != nil {
       return err
@@ -103,11 +109,11 @@ func (c *client) do_language() error {
    switch state.Media.Type {
    case rakuten.MovieType:
       stream, err = state.Media.MovieStream(
-         c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    case rakuten.TvShowType:
       stream, err = state.Media.EpisodeStream(
-         c.episode, c.language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         c.Episode, c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
       )
    }
    if err != nil {
@@ -117,8 +123,6 @@ func (c *client) do_language() error {
    if err != nil {
       return err
    }
-   state.Episode = c.episode
-   state.Language = c.language
    err = c.cache.Write(state)
    if err != nil {
       return err
@@ -126,15 +130,7 @@ func (c *client) do_language() error {
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
-type saved_state struct {
-   Dash     *rakuten.Dash
-   Episode  string
-   Language string
-   Media    *rakuten.Media
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
+func (c *client) do_dash_id() error {
    err := c.cache.Read(&state)
    if err != nil {
       return err
@@ -158,12 +154,11 @@ func (c *client) do_dash() error {
    if err != nil {
       return err
    }
-   c.job.Send = stream.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+   job.Send = stream.Widevine
+   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash_id)
 }
 
 func (c *client) do_season() error {
-   var state saved_state
    err := c.cache.Read(&state)
    if err != nil {
       return err
