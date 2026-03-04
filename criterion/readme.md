@@ -19,26 +19,6 @@
 
 WORKS
 
-## revolut.com
-
-1. criterionchannel.com/checkout
-2. monthly
-3. email
-   - mail.tm
-4. confirm email
-5. password
-6. name on card
-7. CARD NUMBER
-   - MUST USE NEW CARD EACH TIME
-   - CANNOT DO SINGLE USE CARD
-8. expiration
-9. security code
-10. zip code
-11. automatic renewal details
-12. start subscription
-
-WORKS
-
 ## privacy.com
 
 1. criterionchannel.com/checkout
