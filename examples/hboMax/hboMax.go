@@ -9,19 +9,85 @@ import (
    "net/http"
 )
 
-func (c *client) do_proxy() error {
-   ok, err := cache.Read(&state)
-   if !ok {
+type client struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   St       *http.Cookie
+   // 1
+   Proxy      string
+   proxy_save bool
+   // 2
+   initiate bool
+   market   string
+   // 3
+   login bool
+   // 4
+   address string
+   season  int
+   // 5
+   edit string
+   // 6
+   dash string
+}
+
+func (c *client) do_address() error {
+   show, err := hboMax.ParseUrl(c.address)
+   if err != nil {
       return err
    }
-   if c.proxy != nil {
-      state.Proxy = *c.proxy
-      err = cache.Write(state)
+   if c.Login == nil {
+      _, err = cache.Read(c)
       if err != nil {
          return err
       }
    }
-   return maya.SetProxy(state.Proxy, "*.mp4")
+   var videos *hboMax.Videos
+   if c.season >= 1 {
+      videos, err = c.Login.Season(show, c.season)
+   } else {
+      videos, err = c.Login.Movie(show)
+   }
+   if err != nil {
+      return err
+   }
+   videos.FilterAndSort()
+   for i, video := range videos.Included {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(video)
+   }
+   return nil
+}
+
+func (c *client) do_login() error {
+   if c.St == nil {
+      _, err := cache.Read(c)
+      if err != nil {
+         return err
+      }
+   }
+   var err error
+   c.Login, err = hboMax.FetchLogin(c.St)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+func (c *client) do_initiate() error {
+   var err error
+   c.St, err = hboMax.FetchSt()
+   if err != nil {
+      return err
+   }
+   initiate, err := hboMax.FetchInitiate(c.St, c.market)
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return cache.Write(c)
 }
 
 func main() {
@@ -43,9 +109,14 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
+   ok, err := cache.Read(c)
+   if !ok {
+      return err
+   }
    // 1
-   flag.Func("x", "proxy", func(s string) error {
-      c.proxy = &s
+   flag.Func("x", "proxy", func(proxy string) error {
+      c.Proxy = proxy
+      c.proxy_save = true
       return nil
    })
    // 2
@@ -65,12 +136,12 @@ func (c *client) do() error {
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   err = c.do_proxy()
+   err = maya.SetProxy(c.Proxy, "*.mp4")
    if err != nil {
       return err
    }
-   if c.proxy != nil {
-      return nil
+   if c.proxy_save {
+      return cache.Write(c)
    }
    if c.initiate {
       return c.do_initiate()
@@ -97,120 +168,35 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_initiate() error {
-   var err error
-   state.St, err = hboMax.FetchSt()
-   if err != nil {
-      return err
-   }
-   initiate, err := hboMax.FetchInitiate(state.St, c.market)
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return cache.Write(state)
-}
-
-type client struct {
-   // 1
-   proxy *string
-   // 2
-   initiate bool
-   market   string
-   // 3
-   login bool
-   // 4
-   address string
-   season  int
-   // 5
-   edit string
-   // 6
-   dash string
-}
-
-var state struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   Proxy    string
-   St       *http.Cookie
-}
-
-func (c *client) do_dash() error {
-   if state.Playback == nil {
-      _, err := cache.Read(&state)
-      if err != nil {
-         return err
-      }
-   }
-   job.Send = state.Playback.PlayReady
-   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func (c *client) do_address() error {
-   show, err := hboMax.ParseUrl(c.address)
-   if err != nil {
-      return err
-   }
-   if state.Login == nil {
-      _, err = cache.Read(&state)
-      if err != nil {
-         return err
-      }
-   }
-   var videos *hboMax.Videos
-   if c.season >= 1 {
-      videos, err = state.Login.Season(show, c.season)
-   } else {
-      videos, err = state.Login.Movie(show)
-   }
-   if err != nil {
-      return err
-   }
-   videos.FilterAndSort()
-   for i, video := range videos.Included {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(video)
-   }
-   return nil
-}
-
-func (c *client) do_login() error {
-   if state.St == nil {
-      _, err := cache.Read(&state)
-      if err != nil {
-         return err
-      }
-   }
-   var err error
-   state.Login, err = hboMax.FetchLogin(state.St)
-   if err != nil {
-      return err
-   }
-   return cache.Write(state)
-}
-
 func (c *client) do_edit() error {
-   if state.Login == nil {
-      _, err := cache.Read(&state)
+   if c.Login == nil {
+      _, err := cache.Read(c)
       if err != nil {
          return err
       }
    }
    var err error
-   state.Playback, err = state.Login.PlayReady(c.edit)
+   c.Playback, err = c.Login.PlayReady(c.edit)
    if err != nil {
       return err
    }
-   state.Dash, err = state.Playback.Dash()
+   c.Dash, err = c.Playback.Dash()
    if err != nil {
       return err
    }
-   err = cache.Write(state)
+   err = cache.Write(c)
    if err != nil {
       return err
    }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+func (c *client) do_dash() error {
+   if c.Playback == nil {
+      _, err := cache.Read(c)
+      if err != nil {
+         return err
+      }
+   }
+   job.Send = c.Playback.PlayReady
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash)
 }
