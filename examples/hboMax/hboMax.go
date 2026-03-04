@@ -9,58 +9,9 @@ import (
    "net/http"
 )
 
-func (c *client) do_dash() error {
-   if state.Playback == nil {
-      err := cache.Read(&state)
-      if err != nil {
-         return err
-      }
-   }
-   job.Send = state.Playback.PlayReady
-   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-func (c *client) do_address() error {
-   show, err := hboMax.ParseUrl(c.address)
-   if err != nil {
-      return err
-   }
-   if state.Login == nil {
-      err = cache.Read(&state)
-      if err != nil {
-         return err
-      }
-   }
-   var videos *hboMax.Videos
-   if c.season >= 1 {
-      videos, err = state.Login.Season(show, c.season)
-   } else {
-      videos, err = state.Login.Movie(show)
-   }
-   if err != nil {
-      return err
-   }
-   videos.FilterAndSort()
-   for i, video := range videos.Included {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(video)
-   }
-   return nil
-}
-
-var state struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   Proxy    string
-   St       *http.Cookie
-}
-
 func (c *client) do_proxy() error {
-   err := cache.Read(&state, true)
-   if err != nil {
+   ok, err := cache.Read(&state)
+   if !ok {
       return err
    }
    if c.proxy != nil {
@@ -71,21 +22,6 @@ func (c *client) do_proxy() error {
       }
    }
    return maya.SetProxy(state.Proxy, "*.mp4")
-}
-
-func (c *client) do_login() error {
-   if state.St == nil {
-      err := cache.Read(&state)
-      if err != nil {
-         return err
-      }
-   }
-   var err error
-   state.Login, err = hboMax.FetchLogin(state.St)
-   if err != nil {
-      return err
-   }
-   return cache.Write(state)
 }
 
 func main() {
@@ -192,9 +128,73 @@ type client struct {
    dash string
 }
 
+var state struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   Proxy    string
+   St       *http.Cookie
+}
+
+func (c *client) do_dash() error {
+   if state.Playback == nil {
+      _, err := cache.Read(&state)
+      if err != nil {
+         return err
+      }
+   }
+   job.Send = state.Playback.PlayReady
+   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
+func (c *client) do_address() error {
+   show, err := hboMax.ParseUrl(c.address)
+   if err != nil {
+      return err
+   }
+   if state.Login == nil {
+      _, err = cache.Read(&state)
+      if err != nil {
+         return err
+      }
+   }
+   var videos *hboMax.Videos
+   if c.season >= 1 {
+      videos, err = state.Login.Season(show, c.season)
+   } else {
+      videos, err = state.Login.Movie(show)
+   }
+   if err != nil {
+      return err
+   }
+   videos.FilterAndSort()
+   for i, video := range videos.Included {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(video)
+   }
+   return nil
+}
+
+func (c *client) do_login() error {
+   if state.St == nil {
+      _, err := cache.Read(&state)
+      if err != nil {
+         return err
+      }
+   }
+   var err error
+   state.Login, err = hboMax.FetchLogin(state.St)
+   if err != nil {
+      return err
+   }
+   return cache.Write(state)
+}
+
 func (c *client) do_edit() error {
    if state.Login == nil {
-      err := cache.Read(&state)
+      _, err := cache.Read(&state)
       if err != nil {
          return err
       }

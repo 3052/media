@@ -8,74 +8,10 @@ import (
    "log"
 )
 
-func (c *client) do_roku() error {
-   var (
-      state saved_state
-      user  *roku.User
-   )
-   if c.get_user {
-      err := c.cache.Read(&state)
-      if err != nil {
-         return err
-      }
-      user = state.User
-   }
-   connection, err := roku.NewConnection(user)
-   if err != nil {
-      return err
-   }
-   state.Playback, err = connection.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   state.Dash, err = state.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Write(state)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Playback.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   connection bool
-   // 2
-   set_user bool
-   // 3
-   roku     string
-   get_user bool
-   // 4
-   dash string
-   job  maya.WidevineJob
-}
-
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/roku.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/roku.xml")
    if err != nil {
       return err
    }
@@ -88,8 +24,8 @@ func (c *client) do() error {
    flag.BoolVar(&c.get_user, "g", false, "get user")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
    if c.connection {
       return c.do_connection()
@@ -111,21 +47,32 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_connection() error {
-   connection, err := roku.NewConnection(nil)
-   if err != nil {
-      return err
-   }
-   state := saved_state{Connection: connection}
-   state.LinkCode, err = state.Connection.LinkCode()
-   if err != nil {
-      return err
-   }
-   fmt.Println(state.LinkCode)
-   return c.cache.Write(state)
+var cache maya.Cache
+
+var job  maya.WidevineJob
+
+type client struct {
+   // 1
+   connection bool
+   // 2
+   set_user bool
+   // 3
+   roku     string
+   get_user bool
+   // 4
+   dash string
 }
 
-type saved_state struct {
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+var state struct {
    Dash       *roku.Dash
    Connection *roku.Connection
    LinkCode   *roku.LinkCode
@@ -133,9 +80,59 @@ type saved_state struct {
    User       *roku.User
 }
 
+func (c *client) do_connection() error {
+   var err error
+   state.Connection, err = roku.NewConnection(nil)
+   if err != nil {
+      return err
+   }
+   state.LinkCode, err = state.Connection.LinkCode()
+   if err != nil {
+      return err
+   }
+   fmt.Println(state.LinkCode)
+   return cache.Write(state)
+}
+
+func (c *client) do_roku() error {
+   var user *roku.User
+   if c.get_user {
+      _, err := cache.Read(&state)
+      if err != nil {
+         return err
+      }
+      user = state.User
+   }
+   connection, err := roku.NewConnection(user)
+   if err != nil {
+      return err
+   }
+   state.Playback, err = connection.Playback(c.roku)
+   if err != nil {
+      return err
+   }
+   state.Dash, err = state.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(state)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func (c *client) do_dash() error {
+   _, err := cache.Read(&state)
+   if err != nil {
+      return err
+   }
+   job.Send = state.Playback.Widevine
+   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+}
+
 func (c *client) do_set_user() error {
-   var state saved_state
-   err := c.cache.Read(&state)
+   _, err := cache.Read(&state)
    if err != nil {
       return err
    }
@@ -143,5 +140,5 @@ func (c *client) do_set_user() error {
    if err != nil {
       return err
    }
-   return c.cache.Write(state)
+   return cache.Write(state)
 }
