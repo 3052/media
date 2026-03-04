@@ -8,6 +8,30 @@ import (
    "net/http"
 )
 
+func (c *client) do_dash_id() error {
+   app_secret, err := paramount.FetchAppSecret()
+   if err != nil {
+      return err
+   }
+   at, err := paramount.GetAt(app_secret)
+   if err != nil {
+      return err
+   }
+   _, err = cache.Read(c)
+   if err != nil {
+      return err
+   }
+   if !c.cookie {
+      c.Cookie = nil
+   }
+   token, err := paramount.PlayReady(at, c.paramount, c.Cookie)
+   if err != nil {
+      return err
+   }
+   job.Send = token.Send
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.m4s,*.mp4")
@@ -16,6 +40,10 @@ func main() {
       log.Fatal(err)
    }
 }
+
+var cache maya.Cache
+
+var job    maya.PlayReadyJob
 
 func (c *client) do() error {
    job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
@@ -30,7 +58,7 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.paramount, "p", "", "paramount ID")
    // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    flag.BoolVar(&c.cookie, "c", false, "cookie")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
@@ -43,8 +71,8 @@ func (c *client) do() error {
    if c.paramount != "" {
       return c.do_paramount()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"U", "P"},
@@ -69,25 +97,6 @@ func (c *client) do_username_password() error {
    return cache.Write(c)
 }
 
-var cache maya.Cache
-
-var job    maya.PlayReadyJob
-
-type client struct {
-   Cookie    *http.Cookie
-   Dash      *paramount.Dash
-   // 1
-   username string
-   password string
-   // 2
-   paramount string
-   // 3
-   dash   string
-   cookie bool
-}
-
-///
-
 func (c *client) do_paramount() error {
    app_secret, err := paramount.FetchAppSecret()
    if err != nil {
@@ -101,37 +110,26 @@ func (c *client) do_paramount() error {
    if err != nil {
       return err
    }
-   state.Dash, err = item.Dash()
+   c.Dash, err = item.Dash()
    if err != nil {
       return err
    }
-   err = cache.Write(state)
+   err = cache.Write(c)
    if err != nil {
       return err
    }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
-func (c *client) do_dash() error {
-   app_secret, err := paramount.FetchAppSecret()
-   if err != nil {
-      return err
-   }
-   at, err := paramount.GetAt(app_secret)
-   if err != nil {
-      return err
-   }
-   err = cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
-      state.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, state.paramount, state.Cookie)
-   if err != nil {
-      return err
-   }
-   job.Send = token.Send
-   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+type client struct {
+   Cookie    *http.Cookie
+   Dash      *paramount.Dash
+   // 1
+   username string
+   password string
+   // 2
+   paramount string
+   // 3
+   dash_id   string
+   cookie bool
 }
