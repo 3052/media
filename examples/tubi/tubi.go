@@ -20,7 +20,31 @@ var cache maya.Cache
 
 var job  maya.WidevineJob
 
-///
+func (c *client) do() error {
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/tubi.xml")
+   if err != nil {
+      return err
+   }
+   // 1
+   flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
+   // 2
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
+   flag.Parse()
+   if c.tubi >= 1 {
+      return c.do_tubi()
+   }
+   if c.dash_id != "" {
+      return c.do_dash_id()
+   }
+   return maya.Usage([][]string{
+      {"t"},
+      {"d", "c", "p"},
+   })
+}
 
 type client struct {
    Dash          *tubi.Dash
@@ -28,34 +52,11 @@ type client struct {
    // 1
    tubi int
    // 2
-   dash string
+   dash_id string
 }
 
-func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/tubi.xml")
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
-   // 2
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
-   flag.Parse()
-   if c.tubi >= 1 {
-      return c.do_tubi()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"t"},
-      {"d", "c", "p"},
-   })
-}
+///
+
 func (c *client) do_tubi() error {
    var content tubi.Content
    err := content.Fetch(c.tubi)
@@ -68,20 +69,19 @@ func (c *client) do_tubi() error {
    if err != nil {
       return err
    }
-   err = c.cache.Write(state)
+   err = cache.Write(state)
    if err != nil {
       return err
    }
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
-func (c *client) do_dash() error {
+func (c *client) do_dash_id() error {
    var state saved_state
-   err := c.cache.Read(&state)
+   err := cache.Read(&state)
    if err != nil {
       return err
    }
-   c.job.Send = state.VideoResource.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+   job.Send = state.VideoResource.Widevine
+   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash_id)
 }
-

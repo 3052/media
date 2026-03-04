@@ -8,13 +8,36 @@ import (
    "log"
 )
 
-func (c *client) do_hls() error {
-   _, err := cache.Read(c)
+func (c *client) do_profile_id() error {
+   return cache.Update(c, func() error {
+      var err error
+      c.Account, err = c.InactiveAccount.SwitchProfile(c.profile_id)
+      return err
+   })
+}
+
+func (c *client) do_refresh() error {
+   return cache.Update(c, func() error {
+      return c.Account.RefreshToken()
+   })
+}
+
+func (c *client) do_email_password() error {
+   device, err := disney.RegisterDevice()
    if err != nil {
       return err
    }
-   job.Send = c.Account.PlayReady
-   return job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls)
+   c.InactiveAccount, err = device.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   for i, profile := range c.InactiveAccount.Data.Login.Account.Profiles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&profile)
+   }
+   return cache.Write(c)
 }
 
 var job maya.PlayReadyJob
@@ -43,12 +66,14 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.profile_id, "P", "", "profile ID")
    // 3
-   flag.StringVar(&c.address, "a", "", "address")
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
    // 4
-   flag.StringVar(&c.season_id, "s", "", "season ID")
+   flag.StringVar(&c.address, "a", "", "address")
    // 5
-   flag.StringVar(&c.media_id, "m", "", "media ID")
+   flag.StringVar(&c.season_id, "s", "", "season ID")
    // 6
+   flag.StringVar(&c.media_id, "m", "", "media ID")
+   // 7
    flag.IntVar(&c.hls, "h", -1, "HLS ID")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
@@ -60,6 +85,9 @@ func (c *client) do() error {
    }
    if c.profile_id != "" {
       return c.do_profile_id()
+   }
+   if c.refresh {
+      return c.do_refresh()
    }
    if c.address != "" {
       return c.do_address()
@@ -76,6 +104,7 @@ func (c *client) do() error {
    return maya.Usage([][]string{
       {"e", "p"},
       {"P"},
+      {"r"},
       {"a"},
       {"s"},
       {"m"},
@@ -83,46 +112,66 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_email_password() error {
-   device, err := disney.RegisterDevice()
+func (c *client) do_hls() error {
+   err := cache.Read(c)
    if err != nil {
       return err
    }
-   c.InactiveAccount, err = device.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   for i, profile := range c.InactiveAccount.Data.Login.Account.Profiles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&profile)
-   }
-   return cache.Write(c)
+   job.Send = c.Account.PlayReady
+   return job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls)
 }
 
-func (c *client) do_profile_id() error {
-   _, err := cache.Read(c)
+type client struct {
+   Account         *disney.Account
+   Hls             *disney.Hls
+   InactiveAccount *disney.InactiveAccount
+   // 1
+   email    string
+   password string
+   // 2
+   profile_id string
+   // 3
+   refresh bool
+   // 4
+   address string
+   // 5
+   season_id string
+   // 6
+   media_id string
+   // 7
+   hls int
+}
+
+func (c *client) do_media_id() error {
+   err := cache.Update(c, func() error {
+      stream, err := c.Account.Stream(c.media_id)
+      if err != nil {
+         return err
+      }
+      c.Hls, err = stream.Hls()
+      return err
+   })
    if err != nil {
       return err
    }
-   c.Account, err = c.InactiveAccount.SwitchProfile(c.profile_id)
+   return maya.ListHls(c.Hls.Body, c.Hls.Url)
+}
+
+func (c *client) do_season_id() error {
+   err := cache.Read(c)
    if err != nil {
       return err
    }
-   return cache.Write(c)
+   season, err := c.Account.Season(c.season_id)
+   if err != nil {
+      return err
+   }
+   fmt.Println(season)
+   return nil
 }
 
 func (c *client) do_address() error {
-   _, err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   err = c.Account.RefreshToken()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
+   err := cache.Read(c)
    if err != nil {
       return err
    }
@@ -136,56 +185,4 @@ func (c *client) do_address() error {
    }
    fmt.Println(page)
    return nil
-}
-
-func (c *client) do_season_id() error {
-   _, err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   season, err := c.Account.Season(c.season_id)
-   if err != nil {
-      return err
-   }
-   fmt.Println(season)
-   return nil
-}
-
-type client struct {
-   Account         *disney.Account
-   Hls             *disney.Hls
-   InactiveAccount *disney.InactiveAccount
-   // 1
-   email    string
-   password string
-   // 2
-   profile_id string
-   // 3
-   address string
-   // 4
-   season_id string
-   // 5
-   media_id string
-   // 6
-   hls int
-}
-
-func (c *client) do_media_id() error {
-   _, err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   stream, err := c.Account.Stream(c.media_id)
-   if err != nil {
-      return err
-   }
-   c.Hls, err = stream.Hls()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListHls(c.Hls.Body, c.Hls.Url)
 }
