@@ -16,7 +16,7 @@ type client struct {
    St       *http.Cookie
    // 1
    Proxy      string
-   proxy_save bool
+   proxy_write bool
    // 2
    initiate bool
    market   string
@@ -31,6 +31,104 @@ type client struct {
    dash string
 }
 
+func (c *client) do() error {
+   job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
+   job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
+   err := cache.Setup("rosso/hboMax.xml")
+   if err != nil {
+      return err
+   }
+   ok, err := cache.Read(c)
+   if !ok {
+      return err
+   }
+   // 1
+   flag.Func("x", "proxy", func(proxy string) error {
+      c.Proxy = proxy
+      c.proxy_write = true
+      return nil
+   })
+   // 2
+   flag.BoolVar(&c.initiate, "i", false, "device initiate")
+   flag.StringVar(
+      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
+   )
+   // 3
+   flag.BoolVar(&c.login, "l", false, "device login")
+   // 4
+   flag.StringVar(&c.address, "a", "", "address")
+   flag.IntVar(&c.season, "s", 0, "season")
+   // 5
+   flag.StringVar(&c.edit, "e", "", "edit ID")
+   // 6
+   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
+   flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
+   flag.Parse()
+   err = maya.SetProxy(c.Proxy, "*.mp4")
+   if err != nil {
+      return err
+   }
+   if c.proxy_write {
+      return cache.Write(c)
+   }
+   if c.initiate {
+      return c.do_initiate()
+   }
+   if c.login {
+      return c.do_login()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.edit != "" {
+      return c.do_edit()
+   }
+   if c.dash != "" {
+      return c.do_dash()
+   }
+   return maya.Usage([][]string{
+      {"x"},
+      {"i", "m"},
+      {"l"},
+      {"a", "s"},
+      {"e"},
+      {"d", "C", "E"},
+   })
+}
+
+func (c *client) do_edit() error {
+   if c.Login == nil {
+      _, err := cache.Read(c)
+      if err != nil {
+         return err
+      }
+   }
+   var err error
+   c.Playback, err = c.Login.PlayReady(c.edit)
+   if err != nil {
+      return err
+   }
+   c.Dash, err = c.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+func (c *client) do_dash() error {
+   if c.Playback == nil {
+      _, err := cache.Read(c)
+      if err != nil {
+         return err
+      }
+   }
+   job.Send = c.Playback.PlayReady
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash)
+}
 func (c *client) do_address() error {
    show, err := hboMax.ParseUrl(c.address)
    if err != nil {
@@ -101,102 +199,3 @@ func main() {
 var job maya.PlayReadyJob
 
 var cache maya.Cache
-
-func (c *client) do() error {
-   job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
-   job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
-   err := cache.Setup("rosso/hboMax.xml")
-   if err != nil {
-      return err
-   }
-   ok, err := cache.Read(c)
-   if !ok {
-      return err
-   }
-   // 1
-   flag.Func("x", "proxy", func(proxy string) error {
-      c.Proxy = proxy
-      c.proxy_save = true
-      return nil
-   })
-   // 2
-   flag.BoolVar(&c.initiate, "i", false, "device initiate")
-   flag.StringVar(
-      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
-   )
-   // 3
-   flag.BoolVar(&c.login, "l", false, "device login")
-   // 4
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.IntVar(&c.season, "s", 0, "season")
-   // 5
-   flag.StringVar(&c.edit, "e", "", "edit ID")
-   // 6
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
-   flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   err = maya.SetProxy(c.Proxy, "*.mp4")
-   if err != nil {
-      return err
-   }
-   if c.proxy_save {
-      return cache.Write(c)
-   }
-   if c.initiate {
-      return c.do_initiate()
-   }
-   if c.login {
-      return c.do_login()
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.edit != "" {
-      return c.do_edit()
-   }
-   if c.dash != "" {
-      return c.do_dash()
-   }
-   return maya.Usage([][]string{
-      {"x"},
-      {"i", "m"},
-      {"l"},
-      {"a", "s"},
-      {"e"},
-      {"d", "C", "E"},
-   })
-}
-
-func (c *client) do_edit() error {
-   if c.Login == nil {
-      _, err := cache.Read(c)
-      if err != nil {
-         return err
-      }
-   }
-   var err error
-   c.Playback, err = c.Login.PlayReady(c.edit)
-   if err != nil {
-      return err
-   }
-   c.Dash, err = c.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-func (c *client) do_dash() error {
-   if c.Playback == nil {
-      _, err := cache.Read(c)
-      if err != nil {
-         return err
-      }
-   }
-   job.Send = c.Playback.PlayReady
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash)
-}
