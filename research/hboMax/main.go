@@ -9,18 +9,6 @@ import (
    "net/http"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-var job maya.PlayReadyJob
-
-var cache maya.Cache
-
 type client struct {
    Dash     *hboMax.Dash
    Login    *hboMax.Login
@@ -42,6 +30,77 @@ type client struct {
    // 6
    dash string
 }
+
+func (c *client) do_address() error {
+   show, err := hboMax.ParseUrl(c.address)
+   if err != nil {
+      return err
+   }
+   if c.Login == nil {
+      _, err = cache.Read(c)
+      if err != nil {
+         return err
+      }
+   }
+   var videos *hboMax.Videos
+   if c.season >= 1 {
+      videos, err = c.Login.Season(show, c.season)
+   } else {
+      videos, err = c.Login.Movie(show)
+   }
+   if err != nil {
+      return err
+   }
+   videos.FilterAndSort()
+   for i, video := range videos.Included {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(video)
+   }
+   return nil
+}
+
+func (c *client) do_login() error {
+   if c.St == nil {
+      _, err := cache.Read(c)
+      if err != nil {
+         return err
+      }
+   }
+   var err error
+   c.Login, err = hboMax.FetchLogin(c.St)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+func (c *client) do_initiate() error {
+   var err error
+   c.St, err = hboMax.FetchSt()
+   if err != nil {
+      return err
+   }
+   initiate, err := hboMax.FetchInitiate(c.St, c.market)
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return cache.Write(c)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+var job maya.PlayReadyJob
+
+var cache maya.Cache
 
 func (c *client) do() error {
    job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
@@ -77,12 +136,11 @@ func (c *client) do() error {
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   
    err = c.do_proxy()
    if err != nil {
       return err
    }
-   if c.proxy != nil {
+   if c.proxy_save {
       return nil
    }
    if c.initiate {
@@ -108,4 +166,14 @@ func (c *client) do() error {
       {"e"},
       {"d", "C", "E"},
    })
+}
+
+func (c *client) do_proxy() error {
+   if c.proxy_save {
+      err := cache.Write(state)
+      if err != nil {
+         return err
+      }
+   }
+   return maya.SetProxy(c.Proxy, "*.mp4")
 }

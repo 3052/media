@@ -8,11 +8,18 @@ import (
    "log"
 )
 
+type saved_state struct {
+   Account         *disney.Account
+   Hls             *disney.Hls
+   InactiveAccount *disney.InactiveAccount
+}
+
 func (c *client) do_email_password() error {
    device, err := disney.RegisterDevice()
    if err != nil {
       return err
    }
+   var state saved_state
    state.InactiveAccount, err = device.Login(c.email, c.password)
    if err != nil {
       return err
@@ -27,6 +34,7 @@ func (c *client) do_email_password() error {
 }
 
 func (c *client) do_hls() error {
+   var state saved_state
    _, err := cache.Read(&state)
    if err != nil {
       return err
@@ -36,6 +44,7 @@ func (c *client) do_hls() error {
 }
 
 func (c *client) do_season_id() error {
+   var state saved_state
    _, err := cache.Read(&state)
    if err != nil {
       return err
@@ -49,6 +58,7 @@ func (c *client) do_season_id() error {
 }
 
 func (c *client) do_profile_id() error {
+   var state saved_state
    _, err := cache.Read(&state)
    if err != nil {
       return err
@@ -61,6 +71,7 @@ func (c *client) do_profile_id() error {
 }
 
 func (c *client) do_address() error {
+   var state saved_state
    _, err := cache.Read(&state)
    if err != nil {
       return err
@@ -84,7 +95,9 @@ func (c *client) do_address() error {
    fmt.Println(page)
    return nil
 }
+
 func (c *client) do_media_id() error {
+   var state saved_state
    _, err := cache.Read(&state)
    if err != nil {
       return err
@@ -184,10 +197,4 @@ func (c *client) do() error {
       {"m"},
       {"h", "C", "E"},
    })
-}
-
-var state struct {
-   Account         *disney.Account
-   Hls             *disney.Hls
-   InactiveAccount *disney.InactiveAccount
 }
