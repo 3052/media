@@ -42,6 +42,11 @@ func setPlaybackHeaders(req *http.Request) {
    req.Header.Set("magine-play-protocol", "dashs")
 }
 
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
 type Entitlement struct {
    Token string
    Error *Error
@@ -239,11 +244,4 @@ type Playback struct {
       MaginePlaySession       string `json:"Magine-Play-Session"`
    }
    Playlist string // MPD
-}
-
-///
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
 }

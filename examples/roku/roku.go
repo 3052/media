@@ -65,6 +65,7 @@ func (c *client) do() error {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
+      {"x"},
       {"c"},
       {"s"},
       {"r", "g"},

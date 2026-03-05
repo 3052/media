@@ -129,7 +129,7 @@ func (c *client) do_login() error {
 }
 
 func (c *client) do_address() error {
-   show, err := hboMax.ParseUrl(c.address)
+   show, err := hboMax.ParseShow(c.address)
    if err != nil {
       return err
    }

@@ -12,6 +12,35 @@ import (
    "strings"
 )
 
+func isCategory(segment string) bool {
+   switch segment {
+   case "movies", "shows", "movie", "show":
+      return true
+   default:
+      return false
+   }
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   if e.Detail != "" {
+      data.WriteString("\ndetail = ")
+      data.WriteString(e.Detail)
+   } else {
+      data.WriteString("\nmessage = ")
+      data.WriteString(e.Message)
+   }
+   return data.String()
+}
+
+type Error struct {
+   Code    string
+   Detail  string // show was filtered by validator
+   Message string // Token is missing or not valid
+}
+
 // 1080p SL2000
 // 1440p SL3000
 func (p *Playback) PlayReady(data []byte) ([]byte, error) {
@@ -34,7 +63,7 @@ func (p *Playback) PlayReady(data []byte) ([]byte, error) {
 // https://hbomax.com/shows/white-lotus/14f9834d-bc23-41a8-ab61-5c8abdbea505
 // https://play.hbomax.com/movie/b7b66574-c6e3-4ed3-a266-6bc44180252e
 // https://play.hbomax.com/show/31cb4b84-951a-4daf-8925-746fcdcddcb8
-func ParseUrl(inputUrl string) (*ShowItem, error) {
+func ParseShow(inputUrl string) (*ShowItem, error) {
    parsedUrl, err := url.Parse(inputUrl)
    if err != nil {
       return nil, err
@@ -67,34 +96,11 @@ type ShowItem struct {
    Id       string
 }
 
-func isCategory(segment string) bool {
-   switch segment {
-   case "movies", "shows", "movie", "show":
-      return true
-   default:
-      return false
-   }
+type Videos struct {
+   Errors   []Error
+   Included []*Video
 }
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("code = ")
-   data.WriteString(e.Code)
-   if e.Detail != "" {
-      data.WriteString("\ndetail = ")
-      data.WriteString(e.Detail)
-   } else {
-      data.WriteString("\nmessage = ")
-      data.WriteString(e.Message)
-   }
-   return data.String()
-}
-
-type Error struct {
-   Code    string
-   Detail  string // show was filtered by validator
-   Message string // Token is missing or not valid
-}
+///
 
 // you must
 // /authentication/linkDevice/initiate
@@ -477,9 +483,4 @@ type Video struct {
          }
       }
    }
-}
-
-type Videos struct {
-   Errors   []Error
-   Included []*Video
 }
