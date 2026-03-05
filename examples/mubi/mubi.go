@@ -17,10 +17,14 @@ func main() {
    }
 }
 
+var cache maya.Cache
+
+var job  maya.WidevineJob
+
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/mubi.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/mubi.xml")
    if err != nil {
       return err
    }
@@ -31,9 +35,9 @@ func (c *client) do() error {
    // 3
    flag.StringVar(&c.address, "a", "", "address")
    // 4
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
    if c.code {
       return c.do_code()
@@ -44,8 +48,8 @@ func (c *client) do() error {
    if c.address != "" {
       return c.do_address()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"c"},
@@ -55,8 +59,28 @@ func (c *client) do() error {
    })
 }
 
+func (c *client) do_code() error {
+   var err error
+   c.LinkCode, err = mubi.FetchLinkCode()
+   if err != nil {
+      return err
+   }
+   fmt.Println(c.LinkCode)
+   return cache.Write(c)
+}
+
+func (c *client) do_session() error {
+   return cache.Update(c, func() error {
+      var err error
+      c.Session, err = c.LinkCode.Session()
+      return err
+   })
+}
+
 type client struct {
-   cache maya.Cache
+   Dash     *mubi.Dash
+   LinkCode *mubi.LinkCode
+   Session  *mubi.Session
    // 1
    code bool
    // 2
@@ -64,48 +88,10 @@ type client struct {
    // 3
    address string
    // 4
-   dash string
-   job  maya.WidevineJob
+   dash_id string
 }
 
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.Session.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
-type saved_state struct {
-   Dash     *mubi.Dash
-   LinkCode *mubi.LinkCode
-   Session  *mubi.Session
-}
-
-func (c *client) do_code() error {
-   var link_code mubi.LinkCode
-   err := link_code.Fetch()
-   if err != nil {
-      return err
-   }
-   fmt.Println(&link_code)
-   return c.cache.Write(saved_state{LinkCode: &link_code})
-}
-
-func (c *client) do_session() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   state.Session, err = state.LinkCode.Session()
-   if err != nil {
-      return err
-   }
-   return c.cache.Write(state)
-}
+///
 
 func (c *client) do_address() error {
    slug, err := mubi.FilmSlug(c.address)
@@ -116,26 +102,34 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   var state saved_state
-   err = c.cache.Read(&state)
+   err = cache.Read(c)
    if err != nil {
       return err
    }
-   err = state.Session.Viewing(film_id)
+   err = c.Session.Viewing(film_id)
    if err != nil {
       return err
    }
-   secure, err := state.Session.SecureUrl(film_id)
+   secure, err := c.Session.SecureUrl(film_id)
    if err != nil {
       return err
    }
-   state.Dash, err = secure.Dash()
+   c.Dash, err = secure.Dash()
    if err != nil {
       return err
    }
-   err = c.cache.Write(state)
+   err = cache.Write(c)
    if err != nil {
       return err
    }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.Session.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }
