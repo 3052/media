@@ -12,7 +12,7 @@ func (c *client) do_language() error {
    err := cache.Update(c, func() error {
       var (
          stream *rakuten.StreamData
-         err error
+         err    error
       )
       switch c.Media.Type {
       case rakuten.MovieType:
@@ -37,8 +37,8 @@ func (c *client) do_language() error {
 }
 
 type client struct {
-   Dash     *rakuten.Dash
-   Media    *rakuten.Media
+   Dash  *rakuten.Dash
+   Media *rakuten.Media
    // 1
    address string
    // 2
@@ -49,6 +49,7 @@ type client struct {
    // 4
    dash_id string
 }
+
 func (c *client) do_dash_id() error {
    err := cache.Read(c)
    if err != nil {
@@ -89,7 +90,7 @@ func main() {
 
 var cache maya.Cache
 
-var job  maya.WidevineJob
+var job maya.WidevineJob
 
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")

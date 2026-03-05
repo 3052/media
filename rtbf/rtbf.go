@@ -23,7 +23,7 @@ func FetchAccount(id, password string) (*Account, error) {
    }
    defer resp.Body.Close()
    var result Account
-   err = json.NewDecoder(resp.Body).Decode(result)
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }

@@ -9,8 +9,32 @@ import (
    "path"
 )
 
+func (c *client) do_address() error {
+   err := cache.Update(c, func() error {
+      var token peacock.Token
+      err := token.Fetch(c.Cookie)
+      if err != nil {
+         return err
+      }
+      c.Playout, err = token.Playout(path.Base(c.address))
+      if err != nil {
+         return err
+      }
+      endpoint, err := c.Playout.Fastly()
+      if err != nil {
+         return err
+      }
+      c.Dash, err = endpoint.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
 func (c *client) do_dash_id() error {
-   _, err := cache.Read(c)
+   err := cache.Read(c)
    if err != nil {
       return err
    }
@@ -29,7 +53,7 @@ func main() {
 
 var cache maya.Cache
 
-var job  maya.WidevineJob
+var job maya.WidevineJob
 
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
@@ -73,35 +97,6 @@ func (c *client) do_email_password() error {
       return err
    }
    return cache.Write(c)
-}
-
-func (c *client) do_address() error {
-   _, err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   var token peacock.Token
-   err = token.Fetch(c.Cookie)
-   if err != nil {
-      return err
-   }
-   c.Playout, err = token.Playout(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   endpoint, err := c.Playout.Fastly()
-   if err != nil {
-      return err
-   }
-   c.Dash, err = endpoint.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
 type client struct {

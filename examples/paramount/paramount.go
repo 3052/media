@@ -17,7 +17,7 @@ func (c *client) do_dash_id() error {
    if err != nil {
       return err
    }
-   _, err = cache.Read(c)
+   err = cache.Read(c)
    if err != nil {
       return err
    }
@@ -43,7 +43,7 @@ func main() {
 
 var cache maya.Cache
 
-var job    maya.PlayReadyJob
+var job maya.PlayReadyJob
 
 func (c *client) do() error {
    job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
@@ -122,14 +122,14 @@ func (c *client) do_paramount() error {
 }
 
 type client struct {
-   Cookie    *http.Cookie
-   Dash      *paramount.Dash
+   Cookie *http.Cookie
+   Dash   *paramount.Dash
    // 1
    username string
    password string
    // 2
    paramount string
    // 3
-   dash_id   string
-   cookie bool
+   dash_id string
+   cookie  bool
 }
