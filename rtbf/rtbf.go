@@ -10,6 +10,29 @@ import (
    "strings"
 )
 
+func FetchAccount(id, password string) (*Account, error) {
+   resp, err := http.PostForm(
+      "https://login.auvio.rtbf.be/accounts.login", url.Values{
+         "APIKey":   {api_key},
+         "loginID":  {id},
+         "password": {password},
+      },
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Account
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   if result.ErrorMessage != "" {
+      return nil, errors.New(result.ErrorMessage)
+   }
+   return &result, nil
+}
+
 type Entitlement struct {
    AssetId   string
    Formats   []FormatItem
@@ -90,28 +113,6 @@ type Account struct {
    SessionInfo  struct {
       CookieValue string
    }
-}
-
-func (a *Account) Fetch(id, password string) error {
-   resp, err := http.PostForm(
-      "https://login.auvio.rtbf.be/accounts.login", url.Values{
-         "APIKey":   {api_key},
-         "loginID":  {id},
-         "password": {password},
-      },
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(a)
-   if err != nil {
-      return err
-   }
-   if a.ErrorMessage != "" {
-      return errors.New(a.ErrorMessage)
-   }
-   return nil
 }
 
 func (e *Entitlement) Widevine(data []byte) ([]byte, error) {

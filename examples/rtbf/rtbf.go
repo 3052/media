@@ -7,6 +7,15 @@ import (
    "log"
 )
 
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.Entitlement.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "")
@@ -18,12 +27,12 @@ func main() {
 
 var cache maya.Cache
 
-var job  maya.WidevineJob
+var job maya.WidevineJob
 
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/rtbf.xml")
+   err := cache.Setup("rosso/rtbf.xml")
    if err != nil {
       return err
    }
@@ -55,6 +64,15 @@ func (c *client) do() error {
    })
 }
 
+func (c *client) do_email_password() error {
+   var err error
+   c.Account, err = rtbf.FetchAccount(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
 type client struct {
    Account     *rtbf.Account
    Dash        *rtbf.Dash
@@ -68,26 +86,6 @@ type client struct {
    dash_id string
 }
 
-///
-
-func (c *client) do_email_password() error {
-   var account rtbf.Account
-   err := account.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return c.cache.Write(saved_state{Account: &account})
-}
-
-func (c *client) do_dash_id() error {
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   job.Send = state.Entitlement.Widevine
-   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash_id)
-}
-
 func (c *client) do_address() error {
    path, err := rtbf.GetPath(c.address)
    if err != nil {
@@ -97,33 +95,28 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   err = c.cache.Read(&state)
+   err = cache.Update(c, func() error {
+      identity, err := c.Account.Identity()
+      if err != nil {
+         return err
+      }
+      session, err := identity.Session()
+      if err != nil {
+         return err
+      }
+      c.Entitlement, err = session.Entitlement(asset_id)
+      if err != nil {
+         return err
+      }
+      format, err := c.Entitlement.Dash()
+      if err != nil {
+         return err
+      }
+      c.Dash, err = format.Dash()
+      return err
+   })
    if err != nil {
       return err
    }
-   identity, err := state.Account.Identity()
-   if err != nil {
-      return err
-   }
-   session, err := identity.Session()
-   if err != nil {
-      return err
-   }
-   state.Entitlement, err = session.Entitlement(asset_id)
-   if err != nil {
-      return err
-   }
-   format, err := state.Entitlement.Dash()
-   if err != nil {
-      return err
-   }
-   state.Dash, err = format.Dash()
-   if err != nil {
-      return err
-   }
-   err = c.cache.Write(state)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

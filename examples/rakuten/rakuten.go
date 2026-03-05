@@ -8,6 +8,47 @@ import (
    "log"
 )
 
+func (c *client) do_language() error {
+   err := cache.Update(c, func() error {
+      var (
+         stream *rakuten.StreamData
+         err error
+      )
+      switch c.Media.Type {
+      case rakuten.MovieType:
+         stream, err = c.Media.MovieStream(
+            c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         )
+      case rakuten.TvShowType:
+         stream, err = c.Media.EpisodeStream(
+            c.Episode, c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         )
+      }
+      if err != nil {
+         return err
+      }
+      c.Dash, err = stream.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+type client struct {
+   Dash     *rakuten.Dash
+   Media    *rakuten.Media
+   // 1
+   address string
+   // 2
+   season string
+   // 3
+   Language string
+   Episode  string
+   // 4
+   dash_id string
+}
 func (c *client) do_dash_id() error {
    err := cache.Read(c)
    if err != nil {
@@ -128,43 +169,4 @@ func (c *client) do_season() error {
       fmt.Println(&item)
    }
    return nil
-}
-
-func (c *client) do_language() error {
-   err := cache.Update(c, func() error {
-      var stream *rakuten.StreamData
-      switch c.Media.Type {
-      case rakuten.MovieType:
-         stream, err = c.Media.MovieStream(
-            c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
-         )
-      case rakuten.TvShowType:
-         stream, err = c.Media.EpisodeStream(
-            c.Episode, c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
-         )
-      }
-      if err != nil {
-         return err
-      }
-      c.Dash, err = stream.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-type client struct {
-   Dash     *rakuten.Dash
-   Media    *rakuten.Media
-   // 1
-   address string
-   // 2
-   season string
-   // 3
-   Language string
-   Episode  string
-   // 4
-   dash_id string
 }
