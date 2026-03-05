@@ -14,18 +14,18 @@ type Media struct {
    Type       ContentType
 }
 
-// ParseURL attempts to parse a URL and populate the Media struct.
-func (m *Media) ParseURL(rawLink string) error {
+func ParseMedia(rawLink string) (*Media, error) {
    link, err := url.Parse(rawLink)
    if err != nil {
-      return err
+      return nil, err
    }
+   // Assuming extractMarketCode is defined elsewhere in your package
    marketCode, err := extractMarketCode(link.Path)
    if err != nil {
-      return err
+      return nil, err
    }
-   m.MarketCode = marketCode
-
+   // Initialize the struct here
+   m := Media{MarketCode: marketCode}
    // 1. Check Query Parameters
    query := link.Query()
    contentType := query.Get("content_type")
@@ -34,33 +34,31 @@ func (m *Media) ParseURL(rawLink string) error {
       if contentType == "movies" {
          id = query.Get("content_id")
          if id == "" {
-            return errors.New("url missing content_id param")
+            return nil, errors.New("url missing content_id param")
          }
       } else {
          id = query.Get("tv_show_id")
          if id == "" {
-            return errors.New("url missing tv_show_id param")
+            return nil, errors.New("url missing tv_show_id param")
          }
       }
       m.Id = id
       m.Type = ContentType(contentType)
-      return nil
+      return &m, nil
    }
-
    // 2. Check Path Segments
    path := strings.Trim(link.Path, "/")
    segments := strings.Split(path, "/")
-
    for _, seg := range segments {
       if seg == "movies" || seg == "tv_shows" {
          id := segments[len(segments)-1]
          if id == seg {
-            return fmt.Errorf("url does not contain a specific %s id", seg)
+            return nil, fmt.Errorf("url does not contain a specific %s id", seg)
          }
          m.Id = id
          m.Type = ContentType(seg)
-         return nil
+         return &m, nil
       }
    }
-   return errors.New("not a movie or tv show url")
+   return nil, errors.New("not a movie or tv show url")
 }
