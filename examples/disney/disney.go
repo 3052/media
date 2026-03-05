@@ -8,17 +8,17 @@ import (
    "log"
 )
 
+func (c *client) do_refresh() error {
+   return cache.Update(c, func() error {
+      return c.Account.RefreshToken()
+   })
+}
+
 func (c *client) do_profile_id() error {
    return cache.Update(c, func() error {
       var err error
       c.Account, err = c.InactiveAccount.SwitchProfile(c.profile_id)
       return err
-   })
-}
-
-func (c *client) do_refresh() error {
-   return cache.Update(c, func() error {
-      return c.Account.RefreshToken()
    })
 }
 
