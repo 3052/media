@@ -17,6 +17,11 @@ var tests = []struct {
       url:    "https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d",
    },
    {
+      entity: "movie",
+      format: "4K ULTRA HD",
+      url:    "https://disneyplus.com/browse/entity-917f1bf3-3db4-4df0-afe2-60b2c5e67618",
+   },
+   {
       entity: "series",
       format: "HD",
       url:    "https://disneyplus.com/browse/entity-21e70fbf-6a51-41b3-88e9-f111830b046c",

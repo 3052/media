@@ -18,8 +18,9 @@ func main() {
    }
 }
 
+var cache maya.Cache
+
 type client struct {
-   cache maya.Cache
    // 1
    movie string
    // 2
@@ -28,13 +29,14 @@ type client struct {
    episode string
    // 4
    dash string
-   job  maya.WidevineJob
 }
 
+var job  maya.WidevineJob
+
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/pluto.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/pluto.xml")
    if err != nil {
       return err
    }
@@ -46,8 +48,8 @@ func (c *client) do() error {
    flag.StringVar(&c.episode, "e", "", "episode ID")
    // 4
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
    flag.Parse()
    if c.movie != "" {
       return c.do_movie()
@@ -80,7 +82,7 @@ func (c *client) do_movie() error {
    if err != nil {
       return err
    }
-   err = c.cache.Write(saved_state{Dash: &dash})
+   err = cache.Write(saved_state{Dash: &dash})
    if err != nil {
       return err
    }
@@ -94,7 +96,7 @@ func (c *client) do_show() error {
       return err
    }
    fmt.Println(&series.Vod[0])
-   return c.cache.Write(saved_state{Series: &series})
+   return cache.Write(saved_state{Series: &series})
 }
 
 type saved_state struct {
@@ -104,7 +106,7 @@ type saved_state struct {
 
 func (c *client) do_episode() error {
    var state saved_state
-   err := c.cache.Read(&state)
+   err := cache.Read(&state)
    if err != nil {
       return err
    }
@@ -118,7 +120,7 @@ func (c *client) do_episode() error {
       return err
    }
    state.Dash = &dash
-   err = c.cache.Write(state)
+   err = cache.Write(state)
    if err != nil {
       return err
    }
@@ -127,10 +129,10 @@ func (c *client) do_episode() error {
 
 func (c *client) do_dash() error {
    var state saved_state
-   err := c.cache.Read(&state)
+   err := cache.Read(&state)
    if err != nil {
       return err
    }
-   c.job.Send = pluto.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+   job.Send = pluto.Widevine
+   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }

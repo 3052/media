@@ -8,58 +8,6 @@ import (
    "log"
 )
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.m4f")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-type saved_state struct {
-   BcJwt      string
-   Client     *amc.Client
-   Dash       *amc.Dash
-   DataSource *amc.DataSource
-}
-
-func (c *client) do_episode() error {
-   var state saved_state
-   err := c.cache.Update(&state, func() error {
-      sources, header, err := state.Client.Playback(c.episode)
-      if err != nil {
-         return err
-      }
-      state.DataSource, err = amc.GetDash(sources)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.DataSource.Dash()
-      if err != nil {
-         return err
-      }
-      state.BcJwt = amc.BcJwt(header)
-      return nil
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return state.DataSource.Widevine(state.BcJwt, data)
-   }
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
-
 func (c *client) do() error {
    c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
@@ -195,4 +143,55 @@ type client struct {
    // 6
    dash string
    job  maya.WidevineJob
+}
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4f")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type saved_state struct {
+   BcJwt      string
+   Client     *amc.Client
+   Dash       *amc.Dash
+   DataSource *amc.DataSource
+}
+
+func (c *client) do_episode() error {
+   var state saved_state
+   err := c.cache.Update(&state, func() error {
+      sources, header, err := state.Client.Playback(c.episode)
+      if err != nil {
+         return err
+      }
+      state.DataSource, err = amc.GetDash(sources)
+      if err != nil {
+         return err
+      }
+      state.Dash, err = state.DataSource.Dash()
+      if err != nil {
+         return err
+      }
+      state.BcJwt = amc.BcJwt(header)
+      return nil
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+}
+
+func (c *client) do_dash() error {
+   var state saved_state
+   err := c.cache.Read(&state)
+   if err != nil {
+      return err
+   }
+   c.job.Send = func(data []byte) ([]byte, error) {
+      return state.DataSource.Widevine(state.BcJwt, data)
+   }
+   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
 }
