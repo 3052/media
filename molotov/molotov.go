@@ -11,6 +11,36 @@ import (
    "strings"
 )
 
+func FetchLogin(email, password string) (*Login, error) {
+   data, err := json.Marshal(map[string]string{
+      "grant_type": "password",
+      "email":      email,
+      "password":   password,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("x-molotov-agent", customer_area)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Login{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 func (l *Login) ProgramView(rosso *MediaId) (*ProgramView, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -135,31 +165,6 @@ type Login struct {
       AccessToken  string `json:"access_token"`
       RefreshToken string `json:"refresh_token"`
    }
-}
-
-func (l *Login) Fetch(email, password string) error {
-   data, err := json.Marshal(map[string]string{
-      "grant_type": "password",
-      "email":      email,
-      "password":   password,
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://fapi.molotov.tv/v3.1/auth/login",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("x-molotov-agent", customer_area)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 const (

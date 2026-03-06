@@ -17,10 +17,14 @@ func main() {
    }
 }
 
+var cache maya.Cache
+
+var job  maya.WidevineJob
+
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/kanopy.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/kanopy.xml")
    if err != nil {
       return err
    }
@@ -30,9 +34,9 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
    if c.email != "" {
       if c.password != "" {
@@ -42,8 +46,8 @@ func (c *client) do() error {
    if c.address != "" {
       return c.do_address()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"e", "p"},
@@ -52,11 +56,20 @@ func (c *client) do() error {
    })
 }
 
-type saved_state struct {
+type client struct {
    Dash         *kanopy.Dash
    Login        *kanopy.Login
    PlayManifest *kanopy.PlayManifest
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash_id string
 }
+
+///
 
 func (c *client) do_email_password() error {
    var login kanopy.Login
@@ -64,19 +77,7 @@ func (c *client) do_email_password() error {
    if err != nil {
       return err
    }
-   return c.cache.Write(saved_state{Login: &login})
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.WidevineJob
+   return cache.Write(saved_state{Login: &login})
 }
 
 func (c *client) do_address() error {
@@ -86,7 +87,7 @@ func (c *client) do_address() error {
       return err
    }
    var state saved_state
-   err = c.cache.Update(&state, func() error {
+   err = cache.Update(&state, func() error {
       if video.VideoId == 0 {
          video, err = state.Login.Video(video.Alias)
          if err != nil {
@@ -119,14 +120,14 @@ func (c *client) do_address() error {
    return maya.ListDash(state.Dash.Body, state.Dash.Url)
 }
 
-func (c *client) do_dash() error {
+func (c *client) do_dash_id() error {
    var state saved_state
-   err := c.cache.Read(&state)
+   err := cache.Read(&state)
    if err != nil {
       return err
    }
-   c.job.Send = func(data []byte) ([]byte, error) {
+   job.Send = func(data []byte) ([]byte, error) {
       return state.Login.Widevine(state.PlayManifest, data)
    }
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+   return job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash_id)
 }
