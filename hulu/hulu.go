@@ -10,6 +10,30 @@ import (
    "strings"
 )
 
+func FetchSession(email, password string) (*Session, error) {
+   resp, err := http.PostForm(
+      "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
+         "friendly_name": {"!"},
+         "password":      {password},
+         "serial_number": {"!"},
+         "user_email":    {email},
+      },
+   )
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   defer resp.Body.Close()
+   result := &Session{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 // 1080p L3, SL2000
 // 1440p SL3000
 func (s *Session) Playlist(deep *DeepLink) (*Playlist, error) {
@@ -282,30 +306,6 @@ func (s *Session) DeepLink(id string) (*DeepLink, error) {
       return nil, errors.New(result.Message)
    }
    return &result, nil
-}
-
-func (s *Session) Fetch(email, password string) error {
-   resp, err := http.PostForm(
-      "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
-         "friendly_name": {"!"},
-         "password":      {password},
-         "serial_number": {"!"},
-         "user_email":    {email},
-      },
-   )
-   if err != nil {
-      return err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var data strings.Builder
-      err = resp.Write(&data)
-      if err != nil {
-         return err
-      }
-      return errors.New(data.String())
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(s)
 }
 
 // returns user_token only
