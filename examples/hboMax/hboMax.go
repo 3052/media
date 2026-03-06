@@ -9,6 +9,22 @@ import (
    "net/http"
 )
 
+func (c *client) do_initiate() error {
+   return cache.Update(c, func() error {
+      var err error
+      c.St, err = hboMax.FetchSt()
+      if err != nil {
+         return err
+      }
+      initiate, err := hboMax.FetchInitiate(c.St, c.market)
+      if err != nil {
+         return err
+      }
+      fmt.Println(initiate)
+      return nil
+   }, true)
+}
+
 func (c *client) do_login() error {
    if c.St == nil {
       err := cache.Read(c)
@@ -110,22 +126,6 @@ func (c *client) do() error {
       {"e"},
       {"d", "C", "E"},
    })
-}
-
-func (c *client) do_initiate() error {
-   return cache.Update(c, func() error {
-      var err error
-      c.St, err = hboMax.FetchSt()
-      if err != nil {
-         return err
-      }
-      initiate, err := hboMax.FetchInitiate(c.St, c.market)
-      if err != nil {
-         return err
-      }
-      fmt.Println(initiate)
-      return nil
-   }, true)
 }
 
 func (c *client) do_address() error {
