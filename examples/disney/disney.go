@@ -8,6 +8,29 @@ import (
    "log"
 )
 
+type client struct {
+   Account         *disney.Account
+   Hls             *disney.Hls
+   InactiveAccount *disney.InactiveAccount
+   // 1
+   proxy string
+   // 2
+   email    string
+   password string
+   // 3
+   profile_id string
+   // 4
+   refresh bool
+   // 5
+   address string
+   // 6
+   season_id string
+   // 7
+   media_id string
+   // 8
+   hls_id int
+}
+
 func (c *client) do() error {
    job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
    job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
@@ -31,7 +54,7 @@ func (c *client) do() error {
    // 7
    flag.StringVar(&c.media_id, "m", "", "media ID")
    // 8
-   flag.IntVar(&c.hls, "h", -1, "HLS ID")
+   flag.IntVar(&c.hls_id, "h", -1, "HLS ID")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -59,8 +82,8 @@ func (c *client) do() error {
    if c.media_id != "" {
       return c.do_media_id()
    }
-   if c.hls >= 0 {
-      return c.do_hls()
+   if c.hls_id >= 0 {
+      return c.do_hls_id()
    }
    return maya.Usage([][]string{
       {"x"},
@@ -74,13 +97,13 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_hls() error {
+func (c *client) do_hls_id() error {
    err := cache.Read(c)
    if err != nil {
       return err
    }
    job.Send = c.Account.PlayReady
-   return job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls)
+   return job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id)
 }
 
 func (c *client) do_media_id() error {
@@ -127,6 +150,7 @@ func (c *client) do_address() error {
    fmt.Println(page)
    return nil
 }
+
 func (c *client) do_refresh() error {
    return cache.Update(c, func() error {
       return c.Account.RefreshToken()
@@ -169,27 +193,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-
-type client struct {
-   Account         *disney.Account
-   Hls             *disney.Hls
-   InactiveAccount *disney.InactiveAccount
-   // 1
-   proxy string
-   // 2
-   email    string
-   password string
-   // 3
-   profile_id string
-   // 4
-   refresh bool
-   // 5
-   address string
-   // 6
-   season_id string
-   // 7
-   media_id string
-   // 8
-   hls int
 }
