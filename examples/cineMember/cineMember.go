@@ -8,6 +8,30 @@ import (
    "net/http"
 )
 
+func (c *client) do_address() error {
+   id, err := cineMember.FetchId(c.address)
+   if err != nil {
+      return err
+   }
+   err = cache.Update(c, func() error {
+      var stream cineMember.Stream
+      err = stream.Fetch(c.Cookie, id)
+      if err != nil {
+         return err
+      }
+      link, err := stream.Dash()
+      if err != nil {
+         return err
+      }
+      c.Dash, err = link.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
 func (c *client) do_dash_id() error {
    err := cache.Read(c)
    if err != nil {
@@ -83,27 +107,4 @@ type client struct {
    address string
    // 3
    dash_id string
-}
-
-func (c *client) do_address() error {
-   id, err := cineMember.FetchId(c.address)
-   if err != nil {
-      return err
-   }
-   err = cache.Update(c, func() error {
-      stream, err := cineMember.FetchStream(c.Cookie, id)
-      if err != nil {
-         return err
-      }
-      link, err := stream.Dash()
-      if err != nil {
-         return err
-      }
-      c.Dash, err = link.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

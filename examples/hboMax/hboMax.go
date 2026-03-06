@@ -9,6 +9,21 @@ import (
    "net/http"
 )
 
+func (c *client) do_login() error {
+   if c.St == nil {
+      err := cache.Read(c)
+      if err != nil {
+         return err
+      }
+   }
+   c.Login = &hboMax.Login{}
+   err := c.Login.Fetch(c.St)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
 type client struct {
    Dash     *hboMax.Dash
    Login    *hboMax.Login
@@ -111,21 +126,6 @@ func (c *client) do_initiate() error {
       fmt.Println(initiate)
       return nil
    }, true)
-}
-
-func (c *client) do_login() error {
-   if c.St == nil {
-      err := cache.Read(c)
-      if err != nil {
-         return err
-      }
-   }
-   var err error
-   c.Login, err = hboMax.FetchLogin(c.St)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
 }
 
 func (c *client) do_address() error {

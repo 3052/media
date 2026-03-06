@@ -8,6 +8,16 @@ import (
    "log"
 )
 
+func (c *client) do_code() error {
+   c.LinkCode = &mubi.LinkCode{}
+   err := c.LinkCode.Fetch()
+   if err != nil {
+      return err
+   }
+   fmt.Println(c.LinkCode)
+   return cache.Write(c)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.dash")
@@ -59,16 +69,6 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_code() error {
-   var err error
-   c.LinkCode, err = mubi.FetchLinkCode()
-   if err != nil {
-      return err
-   }
-   fmt.Println(c.LinkCode)
-   return cache.Write(c)
-}
-
 func (c *client) do_session() error {
    return cache.Update(c, func() error {
       var err error
@@ -90,8 +90,6 @@ type client struct {
    // 4
    dash_id string
 }
-
-///
 
 func (c *client) do_address() error {
    slug, err := mubi.FilmSlug(c.address)

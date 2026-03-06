@@ -7,6 +7,39 @@ import (
    "log"
 )
 
+func (c *client) do_address() error {
+   c.User = &plex.User{}
+   err := c.User.Fetch()
+   if err != nil {
+      return err
+   }
+   address, err := plex.GetPath(c.address)
+   if err != nil {
+      return err
+   }
+   metadata, err := c.User.RatingKey(address)
+   if err != nil {
+      return err
+   }
+   metadata, err = c.User.Media(metadata, c.x_forwarded_for)
+   if err != nil {
+      return err
+   }
+   c.MediaPart, err = metadata.Dash()
+   if err != nil {
+      return err
+   }
+   c.Dash, err = c.User.Dash(c.MediaPart, c.x_forwarded_for)
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
 func (c *client) do_dash_id() error {
    err := cache.Read(c)
    if err != nil {
@@ -67,37 +100,4 @@ type client struct {
    x_forwarded_for string
    // 2
    dash_id string
-}
-
-func (c *client) do_address() error {
-   var err error
-   c.User, err = plex.FetchUser()
-   if err != nil {
-      return err
-   }
-   address, err := plex.GetPath(c.address)
-   if err != nil {
-      return err
-   }
-   metadata, err := c.User.RatingKey(address)
-   if err != nil {
-      return err
-   }
-   metadata, err = c.User.Media(metadata, c.x_forwarded_for)
-   if err != nil {
-      return err
-   }
-   c.MediaPart, err = metadata.Dash()
-   if err != nil {
-      return err
-   }
-   c.Dash, err = c.User.Dash(c.MediaPart, c.x_forwarded_for)
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

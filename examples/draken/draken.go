@@ -8,6 +8,15 @@ import (
    "path"
 )
 
+func (c *client) do_email_password() error {
+   c.Login = &draken.Login{}
+   err := c.Login.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
 func (c *client) do_dash_id() error {
    err := cache.Read(c)
    if err != nil {
@@ -65,15 +74,6 @@ func (c *client) do() error {
       {"a"},
       {"d", "C", "P"},
    })
-}
-
-func (c *client) do_email_password() error {
-   var err error
-   c.Login, err = draken.FetchLogin(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
 }
 
 type client struct {
