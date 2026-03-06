@@ -7,6 +7,15 @@ import (
    "log"
 )
 
+func (c *client) do_email_password() error {
+   c.Account = &rtbf.Account{}
+   err := c.Account.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
 func (c *client) do_dash_id() error {
    err := cache.Read(c)
    if err != nil {
@@ -62,15 +71,6 @@ func (c *client) do() error {
       {"a"},
       {"d", "C", "P"},
    })
-}
-
-func (c *client) do_email_password() error {
-   var err error
-   c.Account, err = rtbf.FetchAccount(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
 }
 
 type client struct {

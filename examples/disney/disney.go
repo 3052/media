@@ -162,6 +162,7 @@ func (c *client) do_email_password() error {
 var job maya.PlayReadyJob
 
 var cache maya.Cache
+
 func main() {
    log.SetFlags(log.Ltime)
    err := new(client).do()

@@ -10,13 +10,13 @@ import (
    "strings"
 )
 
-func FetchLogin(identity, accessKey string) (*Login, error) {
+func (l *Login) Fetch(identity, accessKey string) error {
    data, err := json.Marshal(map[string]string{
       "accessKey": accessKey,
       "identity":  identity,
    })
    if err != nil {
-      return nil, err
+      return err
    }
    var req http.Request
    req.Method = "POST"
@@ -30,18 +30,17 @@ func FetchLogin(identity, accessKey string) (*Login, error) {
    req.Body = io.NopCloser(bytes.NewReader(data))
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   var result Login
-   err = json.NewDecoder(resp.Body).Decode(&result)
+   err = json.NewDecoder(resp.Body).Decode(l)
    if err != nil {
-      return nil, err
+      return err
    }
-   if result.Message != "" {
-      return nil, errors.New(result.Message)
+   if l.Message != "" {
+      return errors.New(l.Message)
    }
-   return &result, nil
+   return nil
 }
 
 const get_custom_id = `

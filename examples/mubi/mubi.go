@@ -19,7 +19,7 @@ func main() {
 
 var cache maya.Cache
 
-var job  maya.WidevineJob
+var job maya.WidevineJob
 
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")

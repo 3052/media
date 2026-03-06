@@ -10,7 +10,7 @@ import (
    "strings"
 )
 
-func FetchSession(email, password string) (*Session, error) {
+func (s *Session) Fetch(email, password string) error {
    resp, err := http.PostForm(
       "https://auth.hulu.com/v2/livingroom/password/authenticate", url.Values{
          "friendly_name": {"!"},
@@ -20,18 +20,13 @@ func FetchSession(email, password string) (*Session, error) {
       },
    )
    if err != nil {
-      return nil, err
+      return err
    }
    if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
+      return errors.New(resp.Status)
    }
    defer resp.Body.Close()
-   result := &Session{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
+   return json.NewDecoder(resp.Body).Decode(s)
 }
 
 // 1080p L3, SL2000

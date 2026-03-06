@@ -18,7 +18,7 @@ func main() {
 
 var cache maya.Cache
 
-var job  maya.PlayReadyJob
+var job maya.PlayReadyJob
 
 func (c *client) do() error {
    job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")

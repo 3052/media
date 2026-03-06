@@ -12,6 +12,27 @@ import (
    "strings"
 )
 
+// you must
+// /authentication/linkDevice/initiate
+// first or this will always fail
+func (l *Login) Fetch(st *http.Cookie) error {
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   api_host, // Refactored
+      Path:   "/authentication/linkDevice/login",
+   }
+   req.Header = http.Header{}
+   req.AddCookie(st)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(l)
+}
+
 func isCategory(segment string) bool {
    switch segment {
    case "movies", "shows", "movie", "show":
@@ -99,33 +120,6 @@ type ShowItem struct {
 type Videos struct {
    Errors   []Error
    Included []*Video
-}
-///
-
-// you must
-// /authentication/linkDevice/initiate
-// first or this will always fail
-func FetchLogin(st *http.Cookie) (*Login, error) {
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   api_host, // Refactored
-      Path:   "/authentication/linkDevice/login",
-   }
-   req.Header = http.Header{}
-   req.AddCookie(st)
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Login{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
 
 func FetchSt() (*http.Cookie, error) {

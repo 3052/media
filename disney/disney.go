@@ -443,6 +443,7 @@ type Stream struct {
       }
    }
 }
+
 const mutation_register_device = `
 mutation registerDevice($input: RegisterDeviceInput!) {
    registerDevice(registerDevice: $input) {

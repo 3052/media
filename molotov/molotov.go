@@ -11,34 +11,29 @@ import (
    "strings"
 )
 
-func FetchLogin(email, password string) (*Login, error) {
+func (l *Login) Fetch(email, password string) error {
    data, err := json.Marshal(map[string]string{
       "grant_type": "password",
       "email":      email,
       "password":   password,
    })
    if err != nil {
-      return nil, err
+      return err
    }
    req, err := http.NewRequest(
       "POST", "https://fapi.molotov.tv/v3.1/auth/login",
       bytes.NewReader(data),
    )
    if err != nil {
-      return nil, err
+      return err
    }
    req.Header.Set("x-molotov-agent", customer_area)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   result := &Login{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
+   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 func (l *Login) ProgramView(rosso *MediaId) (*ProgramView, error) {

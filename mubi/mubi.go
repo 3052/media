@@ -12,7 +12,7 @@ import (
    "strings"
 )
 
-func FetchLinkCode() (*LinkCode, error) {
+func (l *LinkCode) Fetch() error {
    var req http.Request
    req.URL = &url.URL{
       Scheme: "https",
@@ -24,15 +24,10 @@ func FetchLinkCode() (*LinkCode, error) {
    req.Header.Set("client-country", ClientCountry)
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   result := &LinkCode{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
+   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 func (s *SecureUrl) Dash() (*Dash, error) {

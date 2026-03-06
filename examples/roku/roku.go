@@ -71,6 +71,7 @@ func main() {
       log.Fatal(err)
    }
 }
+
 type client struct {
    Connection *roku.Connection
    Dash       *roku.Dash
