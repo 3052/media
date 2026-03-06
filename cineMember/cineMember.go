@@ -10,35 +10,6 @@ import (
    "strings"
 )
 
-// must run login first
-func (s *Stream) Fetch(session *http.Cookie, id int) error {
-   var req http.Request
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.cinemember.nl",
-      Path:     "/elements/films/stream.php",
-      RawQuery: "id=" + strconv.Itoa(id),
-   }
-   req.Header = http.Header{}
-   req.AddCookie(session)
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Error != "" {
-      return errors.New(s.Error)
-   }
-   if s.NoAccess {
-      return errors.New("no access")
-   }
-   return nil
-}
-
 func FetchSession() (*http.Cookie, error) {
    // We ignore the error here because the method and URL are hardcoded and
    // known to be valid.
@@ -137,6 +108,35 @@ func (m *MediaLink) Dash() (*Dash, error) {
    }
    result.Url = resp.Request.URL
    return &result, nil
+}
+
+// must run login first
+func (s *Stream) Fetch(session *http.Cookie, id int) error {
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.cinemember.nl",
+      Path:     "/elements/films/stream.php",
+      RawQuery: "id=" + strconv.Itoa(id),
+   }
+   req.Header = http.Header{}
+   req.AddCookie(session)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(s)
+   if err != nil {
+      return err
+   }
+   if s.Error != "" {
+      return errors.New(s.Error)
+   }
+   if s.NoAccess {
+      return errors.New("no access")
+   }
+   return nil
 }
 
 type Stream struct {

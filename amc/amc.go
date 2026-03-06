@@ -11,6 +11,10 @@ import (
    "strings"
 )
 
+func BcJwt(header http.Header) string {
+   return header.Get("x-amcn-bc-jwt")
+}
+
 func Unauth() (*Client, error) {
    var req http.Request
    req.Method = "POST"
@@ -36,10 +40,6 @@ func Unauth() (*Client, error) {
       return nil, err
    }
    return result, nil
-}
-
-func BcJwt(header http.Header) string {
-   return header.Get("x-amcn-bc-jwt")
 }
 
 type Client struct {

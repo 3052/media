@@ -11,6 +11,78 @@ import (
    "strings"
 )
 
+const mutation_register_device = `
+mutation registerDevice($input: RegisterDeviceInput!) {
+   registerDevice(registerDevice: $input) {
+      token {
+         accessToken
+         accessTokenType
+      }
+   }
+}
+`
+
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+            name
+         }
+      }
+   }
+}
+`
+
+const mutation_switch_profile = `
+mutation switchProfile($input: SwitchProfileInput!) {
+   switchProfile(switchProfile: $input) {
+      account {
+         activeProfile {
+            name
+         }
+      }
+   }
+}
+`
+
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
+const mutation_refresh_token = `
+mutation refreshToken($input: RefreshTokenInput!) {
+   refreshToken(refreshToken: $input) {
+      activeSession {
+         sessionId
+      }
+   }
+}
+`
+
+// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+func GetEntity(link string) (string, error) {
+   // First, explicitly fail if the URL is a "play" link.
+   if strings.Contains(link, "/play/") {
+      return "", errors.New("URL is a 'play' link and not a 'browse' link")
+   }
+   // The unique marker for the ID we want is "/browse/entity-".
+   const marker = "/browse/entity-"
+   // strings.Cut splits the string at the first instance of the marker.
+   // It returns the part before, the part after, and a boolean indicating if the marker was found.
+   // We don't need the 'before' part, so we discard it with the blank identifier _.
+   _, id, found := strings.Cut(link, marker)
+   // If the marker was not found, or if the resulting ID string is empty, return an error.
+   if !found || id == "" {
+      return "", errors.New("failed to find a valid ID in the URL")
+   }
+   // The 'id' variable now holds the rest of the string after the marker.
+   return id, nil
+}
+
 func (a *Account) Page(entity string) (*Page, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -444,77 +516,7 @@ type Stream struct {
    }
 }
 
-const mutation_register_device = `
-mutation registerDevice($input: RegisterDeviceInput!) {
-   registerDevice(registerDevice: $input) {
-      token {
-         accessToken
-         accessTokenType
-      }
-   }
-}
-`
-
-const mutation_login = `
-mutation login($input: LoginInput!) {
-   login(login: $input) {
-      account {
-         profiles {
-            id
-            name
-         }
-      }
-   }
-}
-`
-
-const mutation_switch_profile = `
-mutation switchProfile($input: SwitchProfileInput!) {
-   switchProfile(switchProfile: $input) {
-      account {
-         activeProfile {
-            name
-         }
-      }
-   }
-}
-`
-
-// ZGlzbmV5JmJyb3dzZXImMS4wLjA
-// disney&browser&1.0.0
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
-
-const mutation_refresh_token = `
-mutation refreshToken($input: RefreshTokenInput!) {
-   refreshToken(refreshToken: $input) {
-      activeSession {
-         sessionId
-      }
-   }
-}
-`
-
-// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-func GetEntity(link string) (string, error) {
-   // First, explicitly fail if the URL is a "play" link.
-   if strings.Contains(link, "/play/") {
-      return "", errors.New("URL is a 'play' link and not a 'browse' link")
-   }
-   // The unique marker for the ID we want is "/browse/entity-".
-   const marker = "/browse/entity-"
-   // strings.Cut splits the string at the first instance of the marker.
-   // It returns the part before, the part after, and a boolean indicating if the marker was found.
-   // We don't need the 'before' part, so we discard it with the blank identifier _.
-   _, id, found := strings.Cut(link, marker)
-   // If the marker was not found, or if the resulting ID string is empty, return an error.
-   if !found || id == "" {
-      return "", errors.New("failed to find a valid ID in the URL")
-   }
-   // The 'id' variable now holds the rest of the string after the marker.
-   return id, nil
-}
+///
 
 // SL2000 720p
 // SL3000 2160p

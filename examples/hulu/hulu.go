@@ -7,6 +7,15 @@ import (
    "log"
 )
 
+func (c *client) do_email_password() error {
+   c.Session = &hulu.Session{}
+   err := c.Session.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.mp4,*.mp4a")
@@ -55,15 +64,6 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_email_password() error {
-   var err error
-   c.Session, err = hulu.FetchSession(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
-}
-
 type client struct {
    Dash     *hulu.Dash
    Playlist *hulu.Playlist
@@ -76,8 +76,6 @@ type client struct {
    // 3
    dash_id string
 }
-
-///
 
 func (c *client) do_address() error {
    id, err := hulu.Id(c.address)
