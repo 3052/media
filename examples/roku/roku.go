@@ -8,6 +8,69 @@ import (
    "log"
 )
 
+func (c *client) do_connection() error {
+   c.Connection = &roku.Connection{}
+   err := c.Connection.Fetch(nil)
+   if err != nil {
+      return err
+   }
+   c.LinkCode, err = c.Connection.LinkCode()
+   if err != nil {
+      return err
+   }
+   fmt.Println(c.LinkCode)
+   return cache.Write(c)
+}
+
+func (c *client) do_roku() error {
+   var user *roku.User
+   if c.get_user {
+      err := cache.Read(c)
+      if err != nil {
+         return err
+      }
+      user = c.User
+   }
+   var connection roku.Connection
+   err := connection.Fetch(user)
+   if err != nil {
+      return err
+   }
+   c.Playback, err = connection.Playback(c.roku)
+   if err != nil {
+      return err
+   }
+   c.Dash, err = c.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.Playback.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
+var cache maya.Cache
+
+var job maya.WidevineJob
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 type client struct {
    Connection *roku.Connection
    Dash       *roku.Dash
@@ -73,73 +136,10 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_connection() error {
-   var err error
-   c.Connection, err = roku.NewConnection(nil)
-   if err != nil {
-      return err
-   }
-   c.LinkCode, err = c.Connection.LinkCode()
-   if err != nil {
-      return err
-   }
-   fmt.Println(c.LinkCode)
-   return cache.Write(c)
-}
-
 func (c *client) do_set_user() error {
    return cache.Update(c, func() error {
       var err error
       c.User, err = c.Connection.User(c.LinkCode)
       return err
    })
-}
-
-func (c *client) do_roku() error {
-   var user *roku.User
-   if c.get_user {
-      err := cache.Read(c)
-      if err != nil {
-         return err
-      }
-      user = c.User
-   }
-   connection, err := roku.NewConnection(user)
-   if err != nil {
-      return err
-   }
-   c.Playback, err = connection.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   c.Dash, err = c.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = c.Playback.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}
-
-var cache maya.Cache
-
-var job maya.WidevineJob
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

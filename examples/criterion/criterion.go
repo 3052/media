@@ -8,6 +8,15 @@ import (
    "path"
 )
 
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.MediaFile.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.mp4")
@@ -17,44 +26,14 @@ func main() {
    }
 }
 
-type saved_state struct {
-   Dash      *criterion.Dash
-   MediaFile *criterion.MediaFile
-   Token     *criterion.Token
-}
+var cache maya.Cache
 
-func (c *client) do_address() error {
-   var state saved_state
-   err := c.cache.Update(&state, func() error {
-      err := state.Token.Refresh()
-      if err != nil {
-         return err
-      }
-      item, err := state.Token.Item(path.Base(c.address))
-      if err != nil {
-         return err
-      }
-      files, err := state.Token.Files(item)
-      if err != nil {
-         return err
-      }
-      state.MediaFile, err = files.Dash()
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.MediaFile.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
+var job maya.WidevineJob
 
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/criterion.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/criterion.xml")
    if err != nil {
       return err
    }
@@ -64,9 +43,9 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
    if c.email != "" {
       if c.password != "" {
@@ -76,8 +55,8 @@ func (c *client) do() error {
    if c.address != "" {
       return c.do_address()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"e", "p"},
@@ -86,33 +65,51 @@ func (c *client) do() error {
    })
 }
 
+func (c *client) do_email_password() error {
+   c.Token = &criterion.Token{}
+   err := c.Token.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
 type client struct {
-   cache maya.Cache
+   Dash      *criterion.Dash
+   MediaFile *criterion.MediaFile
+   Token     *criterion.Token
    // 1
    email    string
    password string
    // 2
    address string
    // 3
-   dash string
-   job  maya.WidevineJob
+   dash_id string
 }
 
-func (c *client) do_email_password() error {
-   var token criterion.Token
-   err := token.Fetch(c.email, c.password)
+func (c *client) do_address() error {
+   err := cache.Update(c, func() error {
+      err := c.Token.Refresh()
+      if err != nil {
+         return err
+      }
+      item, err := c.Token.Item(path.Base(c.address))
+      if err != nil {
+         return err
+      }
+      files, err := c.Token.Files(item)
+      if err != nil {
+         return err
+      }
+      c.MediaFile, err = files.Dash()
+      if err != nil {
+         return err
+      }
+      c.Dash, err = c.MediaFile.Dash()
+      return err
+   })
    if err != nil {
       return err
    }
-   return c.cache.Write(saved_state{Token: &token})
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = state.MediaFile.Widevine
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

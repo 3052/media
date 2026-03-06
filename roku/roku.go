@@ -10,6 +10,27 @@ import (
    "strings"
 )
 
+// User can be nil
+func (c *Connection) Fetch(current *User) error {
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "googletv.web.roku.com",
+      Path:   "/api/v1/account/token",
+   }
+   req.Header = http.Header{}
+   req.Header.Set("user-agent", user_agent)
+   if current != nil {
+      req.Header.Set("x-roku-content-token", current.Token)
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(c)
+}
+
 // Widevine fetches the license key
 func (p *Playback) Widevine(payload []byte) ([]byte, error) {
    resp, err := http.Post(
@@ -83,32 +104,6 @@ type Playback struct {
       }
    }
    Url string // MPD
-}
-
-// NewConnection initializes a session. User can be nil
-func NewConnection(current *User) (*Connection, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("user-agent", user_agent)
-   if current != nil {
-      req.Header.Set("x-roku-content-token", current.Token)
-   }
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "googletv.web.roku.com",
-      Path:   "/api/v1/account/token",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Connection{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
 }
 
 // GetUser exchanges the LinkCode for a permanent User token.
