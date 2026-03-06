@@ -11,6 +11,33 @@ import (
    "strings"
 )
 
+func Unauth() (*Client, error) {
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "gw.cds.amcn.com",
+      Path:   "/auth-orchestration-id/api/v1/unauth",
+   }
+   req.Header = http.Header{}
+   req.Header.Set("x-amcn-device-id", "-")
+   req.Header.Set("x-amcn-language", "en")
+   req.Header.Set("x-amcn-network", "amcplus")
+   req.Header.Set("x-amcn-platform", "web")
+   req.Header.Set("x-amcn-tenant", "amcn")
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Client{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 func BcJwt(header http.Header) string {
    return header.Get("x-amcn-bc-jwt")
 }
@@ -120,28 +147,6 @@ func (c *Client) SeriesDetail(id int) (*Node, error) {
       return nil, err
    }
    return &result.Data, nil
-}
-
-func (c *Client) Unauth() error {
-   var req http.Request
-   req.Method = "POST"
-   req.Header = http.Header{}
-   req.Header.Set("x-amcn-device-id", "-")
-   req.Header.Set("x-amcn-language", "en")
-   req.Header.Set("x-amcn-network", "amcplus")
-   req.Header.Set("x-amcn-platform", "web")
-   req.Header.Set("x-amcn-tenant", "amcn")
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "gw.cds.amcn.com",
-      Path:   "/auth-orchestration-id/api/v1/unauth",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
 }
 
 func (c *Client) Refresh() error {

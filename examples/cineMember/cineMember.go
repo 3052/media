@@ -8,6 +8,14 @@ import (
    "net/http"
 )
 
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.m4s")
@@ -17,17 +25,12 @@ func main() {
    }
 }
 
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
+var cache maya.Cache
+
+var job maya.Job
 
 func (c *client) do() error {
-   err := c.cache.Setup("rosso/cineMember.xml")
+   err := cache.Setup("rosso/cineMember.xml")
    if err != nil {
       return err
    }
@@ -37,7 +40,7 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    flag.Parse()
    if c.email != "" {
       if c.password != "" {
@@ -47,8 +50,8 @@ func (c *client) do() error {
    if c.address != "" {
       return c.do_address()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"e", "p"},
@@ -57,33 +60,29 @@ func (c *client) do() error {
    })
 }
 
+func (c *client) do_email_password() error {
+   var err error
+   c.Cookie, err = cineMember.FetchSession()
+   if err != nil {
+      return err
+   }
+   err = cineMember.FetchLogin(c.Cookie, c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
 type client struct {
-   cache maya.Cache
+   Cookie *http.Cookie
+   Dash   *cineMember.Dash
    // 1
    email    string
    password string
    // 2
    address string
    // 3
-   dash string
-   job  maya.Job
-}
-
-func (c *client) do_email_password() error {
-   cookie, err := cineMember.FetchSession()
-   if err != nil {
-      return err
-   }
-   err = cineMember.FetchLogin(cookie, c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return c.cache.Write(saved_state{Cookie: cookie})
-}
-
-type saved_state struct {
-   Cookie *http.Cookie
-   Dash   *cineMember.Dash
+   dash_id string
 }
 
 func (c *client) do_address() error {
@@ -91,9 +90,8 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   var state saved_state
-   err = c.cache.Update(&state, func() error {
-      stream, err := cineMember.FetchStream(state.Cookie, id)
+   err = cache.Update(c, func() error {
+      stream, err := cineMember.FetchStream(c.Cookie, id)
       if err != nil {
          return err
       }
@@ -101,11 +99,11 @@ func (c *client) do_address() error {
       if err != nil {
          return err
       }
-      state.Dash, err = link.Dash()
+      c.Dash, err = link.Dash()
       return err
    })
    if err != nil {
       return err
    }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
