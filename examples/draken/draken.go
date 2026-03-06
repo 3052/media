@@ -8,6 +8,17 @@ import (
    "path"
 )
 
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = func(data []byte) ([]byte, error) {
+      return c.Login.Widevine(c.Playback, data)
+   }
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.m4s")
@@ -17,64 +28,14 @@ func main() {
    }
 }
 
-func (c *client) do_address() error {
-   movie, err := draken.FetchMovie(path.Base(c.address))
-   if err != nil {
-      return err
-   }
-   var state saved_state
-   err = c.cache.Update(&state, func() error {
-      entitlement, err := state.Login.Entitlement(movie)
-      if err != nil {
-         return err
-      }
-      state.Playback, err = state.Login.Playback(movie, entitlement)
-      if err != nil {
-         return err
-      }
-      state.Dash, err = state.Playback.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(state.Dash.Body, state.Dash.Url)
-}
+var cache maya.Cache
 
-type client struct {
-   cache maya.Cache
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   dash string
-   job  maya.WidevineJob
-}
-
-type saved_state struct {
-   Dash     *draken.Dash
-   Login    *draken.Login
-   Playback *draken.Playback
-}
-
-func (c *client) do_dash() error {
-   var state saved_state
-   err := c.cache.Read(&state)
-   if err != nil {
-      return err
-   }
-   c.job.Send = func(data []byte) ([]byte, error) {
-      return state.Login.Widevine(state.Playback, data)
-   }
-   return c.job.DownloadDash(state.Dash.Body, state.Dash.Url, c.dash)
-}
+var job maya.WidevineJob
 
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/draken.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/draken.xml")
    if err != nil {
       return err
    }
@@ -84,9 +45,9 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "C", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "P", c.job.PrivateKey, "private key")
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
    if c.email != "" {
       if c.password != "" {
@@ -96,8 +57,8 @@ func (c *client) do() error {
    if c.address != "" {
       return c.do_address()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if c.dash_id != "" {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"e", "p"},
@@ -107,10 +68,46 @@ func (c *client) do() error {
 }
 
 func (c *client) do_email_password() error {
-   var login draken.Login
-   err := login.Fetch(c.email, c.password)
+   var err error
+   c.Login, err = draken.FetchLogin(c.email, c.password)
    if err != nil {
       return err
    }
-   return c.cache.Write(saved_state{Login: &login})
+   return cache.Write(c)
+}
+
+type client struct {
+   Dash     *draken.Dash
+   Login    *draken.Login
+   Playback *draken.Playback
+   // 1
+   email    string
+   password string
+   // 2
+   address string
+   // 3
+   dash_id string
+}
+
+func (c *client) do_address() error {
+   movie, err := draken.FetchMovie(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   err = cache.Update(c, func() error {
+      entitlement, err := c.Login.Entitlement(movie)
+      if err != nil {
+         return err
+      }
+      c.Playback, err = c.Login.Playback(movie, entitlement)
+      if err != nil {
+         return err
+      }
+      c.Dash, err = c.Playback.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

@@ -7,6 +7,16 @@ import (
    "log"
 )
 
+func (c *client) do_dash() error {
+   var dash ctv.Dash
+   err := cache.Read(&dash)
+   if err != nil {
+      return err
+   }
+   job.Send = ctv.Widevine
+   return job.DownloadDash(dash.Body, dash.Url, c.dash)
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.m4a,*.m4v")
@@ -16,10 +26,14 @@ func main() {
    }
 }
 
+var cache maya.Cache
+
+var job maya.WidevineJob
+
 func (c *client) do() error {
-   c.job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   c.job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := c.cache.Setup("rosso/ctv.xml")
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/ctv.xml")
    if err != nil {
       return err
    }
@@ -27,8 +41,8 @@ func (c *client) do() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.StringVar(&c.job.ClientId, "c", c.job.ClientId, "client ID")
-   flag.StringVar(&c.job.PrivateKey, "p", c.job.PrivateKey, "private key")
+   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
    flag.Parse()
    if c.address != "" {
       return c.do_address()
@@ -40,6 +54,13 @@ func (c *client) do() error {
       {"a"},
       {"d", "c", "p"},
    })
+}
+
+type client struct {
+   // 1
+   address string
+   // 2
+   dash string
 }
 
 func (c *client) do_address() error {
@@ -67,27 +88,9 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   err = c.cache.Write(dash)
+   err = cache.Write(dash)
    if err != nil {
       return err
    }
    return maya.ListDash(dash.Body, dash.Url)
-}
-func (c *client) do_dash() error {
-   c.job.Send = ctv.Widevine
-   var dash ctv.Dash
-   err := c.cache.Read(&dash)
-   if err != nil {
-      return err
-   }
-   return c.job.DownloadDash(dash.Body, dash.Url, c.dash)
-}
-
-type client struct {
-   cache maya.Cache
-   // 1
-   address string
-   // 2
-   dash string
-   job  maya.WidevineJob
 }

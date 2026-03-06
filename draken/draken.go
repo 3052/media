@@ -10,6 +10,40 @@ import (
    "strings"
 )
 
+func FetchLogin(identity, accessKey string) (*Login, error) {
+   data, err := json.Marshal(map[string]string{
+      "accessKey": accessKey,
+      "identity":  identity,
+   })
+   if err != nil {
+      return nil, err
+   }
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "client-api.magine.com",
+      Path:   "/api/login/v2/auth/email",
+   }
+   req.Header = http.Header{}
+   setBaseHeaders(&req, "") // No login token for this request
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Login
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
+   }
+   return &result, nil
+}
+
 const get_custom_id = `
 query GetCustomIdFullMovie($customId: ID!) {
    viewer {
@@ -116,39 +150,6 @@ func (l *Login) Playback(movie *MovieItem, title *Entitlement) (*Playback, error
       return nil, err
    }
    return result, nil
-}
-
-func (l *Login) Fetch(identity, accessKey string) error {
-   data, err := json.Marshal(map[string]string{
-      "accessKey": accessKey,
-      "identity":  identity,
-   })
-   if err != nil {
-      return err
-   }
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "client-api.magine.com",
-      Path:   "/api/login/v2/auth/email",
-   }
-   req.Header = http.Header{}
-   setBaseHeaders(&req, "") // No login token for this request
-   req.Body = io.NopCloser(bytes.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(l)
-   if err != nil {
-      return err
-   }
-   if l.Message != "" {
-      return errors.New(l.Message)
-   }
-   return nil
 }
 
 func (l *Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
