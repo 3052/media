@@ -10,7 +10,7 @@ import (
    "strings"
 )
 
-func FetchUser() (*User, error) {
+func (u *User) Fetch() error {
    var req http.Request
    req.Method = "POST"
    req.URL = &url.URL{
@@ -24,15 +24,10 @@ func FetchUser() (*User, error) {
    req.Header.Set("x-plex-client-identifier", "!")
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   result := &User{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
+   return json.NewDecoder(resp.Body).Decode(u)
 }
 
 func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {

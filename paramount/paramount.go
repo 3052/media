@@ -17,6 +17,43 @@ import (
    "strings"
 )
 
+func FetchItem(at, cId string) (*Item, error) {
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.paramountplus.com",
+      Path:     join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
+      RawQuery: url.Values{"at": {at}}.Encode(),
+   }
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK { // error 403 406
+      if len(data) >= 1 {
+         return nil, errors.New(string(data))
+      }
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      ItemList []Item
+   }
+   err = json.Unmarshal(data, &result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.ItemList) == 0 { // error 200
+      return nil, errors.New(string(data))
+   }
+   return &result.ItemList[0], nil
+}
+
 // WARNING IF YOU RUN THIS TOO MANY TIMES YOU WILL GET AN IP BAN. HOWEVER THE BAN
 // IS ONLY FOR THE ANDROID CLIENT NOT WEB CLIENT
 func Login(at, username, password string) (*http.Cookie, error) {
@@ -58,43 +95,6 @@ func Login(at, username, password string) (*http.Cookie, error) {
       }
    }
    return nil, http.ErrNoCookie
-}
-
-func FetchItem(at, cId string) (*Item, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.paramountplus.com",
-      Path:     join("/apps-api/v2.0/androidphone/video/cid/", cId, ".json"),
-      RawQuery: url.Values{"at": {at}}.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK { // error 403 406
-      if len(data) >= 1 {
-         return nil, errors.New(string(data))
-      }
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      ItemList []Item
-   }
-   err = json.Unmarshal(data, &result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.ItemList) == 0 { // error 200
-      return nil, errors.New(string(data))
-   }
-   return &result.ItemList[0], nil
 }
 
 // 576p L3

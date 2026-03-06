@@ -10,7 +10,7 @@ import (
    "strings"
 )
 
-func FetchAccount(id, password string) (*Account, error) {
+func (a *Account) Fetch(id, password string) error {
    resp, err := http.PostForm(
       "https://login.auvio.rtbf.be/accounts.login", url.Values{
          "APIKey":   {api_key},
@@ -19,18 +19,17 @@ func FetchAccount(id, password string) (*Account, error) {
       },
    )
    if err != nil {
-      return nil, err
+      return err
    }
    defer resp.Body.Close()
-   var result Account
-   err = json.NewDecoder(resp.Body).Decode(&result)
+   err = json.NewDecoder(resp.Body).Decode(a)
    if err != nil {
-      return nil, err
+      return err
    }
-   if result.ErrorMessage != "" {
-      return nil, errors.New(result.ErrorMessage)
+   if a.ErrorMessage != "" {
+      return errors.New(a.ErrorMessage)
    }
-   return &result, nil
+   return nil
 }
 
 type Entitlement struct {

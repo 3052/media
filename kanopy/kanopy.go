@@ -82,6 +82,7 @@ type Login struct {
    Jwt    string
    UserId int
 }
+
 func (l *Login) Plays(member *Membership, videoId int) (*Plays, error) {
    data, err := json.Marshal(map[string]int{
       "domainId": member.DomainId,
