@@ -5,39 +5,29 @@ import (
    "testing"
 )
 
-func TestDevice(t *testing.T) {
-   var device RegisterDevice
-   err := device.Fetch()
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(device.Token.AccessToken)
-}
-
 func TestAuthenticateWithOtp(t *testing.T) {
-   var device RegisterDevice
-   device.Token.AccessToken = otp_test.access_token
-   authenticate, err := device.AuthenticateWithOtp(
+   var token_value Token
+   token_value.AccessToken = otp_test.access_token
+   authenticate, err := token_value.AuthenticateWithOtp(
       otp_test.email, otp_test.passcode,
    )
    if err != nil {
       t.Fatal(err)
    }
-   inactive, err := device.LoginWithActionGrant(authenticate.ActionGrant)
+   inactive, err := token_value.LoginWithActionGrant(authenticate.ActionGrant)
    if err != nil {
       t.Fatal(err)
    }
    fmt.Printf("%+v\n", inactive)
 }
 
-func TestRequestOtp(t *testing.T) {
-   var device RegisterDevice
-   device.Token.AccessToken = otp_test.access_token
-   otp, err := device.RequestOtp(otp_test.email)
+func TestDevice(t *testing.T) {
+   var token_value Token
+   err := token_value.RegisterDevice()
    if err != nil {
       t.Fatal(err)
    }
-   fmt.Println(otp)
+   fmt.Println(token_value.AccessToken)
 }
 
 func TestEntity(t *testing.T) {
@@ -64,6 +54,16 @@ var entity_tests = []struct {
       format: "HD",
       url:    "https://disneyplus.com/browse/entity-21e70fbf-6a51-41b3-88e9-f111830b046c",
    },
+}
+
+func TestRequestOtp(t *testing.T) {
+   var token_value Token
+   token_value.AccessToken = otp_test.access_token
+   otp, err := token_value.RequestOtp(otp_test.email)
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(otp)
 }
 
 var otp_test = struct {
