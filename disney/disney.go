@@ -12,6 +12,15 @@ import (
    "strings"
 )
 
+//go:embed registerDevice.gql
+var mutation_register_device string
+
+//go:embed login.gql
+var mutation_login string
+
+//go:embed requestOtp.gql
+var mutation_request_otp string
+
 //go:embed refreshToken.gql
 var mutation_refresh_token string
 
@@ -167,15 +176,6 @@ func (t *Token) RegisterDevice() error {
 }
 
 ///
-
-//go:embed registerDevice.gql
-var mutation_register_device string
-
-//go:embed login.gql
-var mutation_login string
-
-//go:embed requestOtp.gql
-var mutation_request_otp string
 
 type RequestOtp struct {
    Accepted bool
