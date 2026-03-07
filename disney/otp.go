@@ -7,7 +7,7 @@ import (
    "strconv"
 )
 
-func (d *Device) authenticate_with_otp(email string, passcode int) (*http.Response, error) {
+func (d *Device) authenticate_with_otp(email string, passcode int) (*authenticate_with_otp, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_authenticate_with_otp,
       "variables": map[string]any{
@@ -29,7 +29,24 @@ func (d *Device) authenticate_with_otp(email string, passcode int) (*http.Respon
       return nil, err
    }
    req.Header.Set("authorization", "Bearer " + d.Token.AccessToken)
-   return http.DefaultClient.Do(req)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   var result struct {
+      Data struct {
+         AuthenticateWithOtp authenticate_with_otp
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Data.AuthenticateWithOtp, nil
+}
+
+type authenticate_with_otp struct {
+   ActionGrant string
 }
 
 func (r RequestOtp) String() string {

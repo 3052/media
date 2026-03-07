@@ -6,12 +6,10 @@ import (
    "testing"
 )
 
-const email = "27@riseup.net"
-
 func TestAuthenticateWithOtp(t *testing.T) {
    var device_item Device
-   device_item.Token.AccessToken = ""
-   resp, err := device_item.authenticate_with_otp(email, 123456)
+   device_item.Token.AccessToken = access_token
+   resp, err := device_item.authenticate_with_otp(email, 110854)
    if err != nil {
       t.Fatal(err)
    }
@@ -22,14 +20,24 @@ func TestAuthenticateWithOtp(t *testing.T) {
 }
 
 func TestRequestOtp(t *testing.T) {
-   device_item, err := RegisterDevice()
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(device_item.Token.AccessToken)
+   var device_item Device
+   device_item.Token.AccessToken = access_token
    otp, err := device_item.RequestOtp(email)
    if err != nil {
       t.Fatal(err)
    }
    fmt.Println(otp)
 }
+
+func TestDevice(t *testing.T) {
+   device_item, err := RegisterDevice()
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(device_item.Token.AccessToken)
+}
+
+const (
+   email = "27@riseup.net"
+   access_token = "eyJ6aXAiOiJERUYiLCJraWQiOiJ0Vy10M2ZQUTJEN2Q0YlBWTU1rSkd4dkJlZ0ZXQkdXek5KcFFtOGRJMWYwIiwiY3R5IjoiSldUIiwiZW5jIjoiQzIwUCIsImFsZyI6ImRpciJ9..2DeW1m6QhlxMVzas.Btxe7XFjBtx4ohmLNlEqGMCFliv0GmBiOXQJPI4c8EFNrOxw5-TZiBsUP1Y2VzQ9nvWZmGf9GxiFJEa_NiFJGoVdCSapsBQ4BLSvhpPuAmhH3qRIg789b4hBg1gEDg9ZvvVhsXXDdcOENxcyZqxe7YQm1clzPr86tjhBIn5EgUF4ofCOy1w6zWxqdJjLLjuwTeFogLEmeGn9Rj1ABd9UyYe1Kqh3ERA7HXCbewl2Twaih8lDwhDHHVGs35UprvDGGdBo-riAyNShxlC5pz7H-Un4cbQDatgqoxDjaeeJUNAhRS49bH4HEU8HbI_W9kqqNO3J3XK0Hh7La97OhoEwGytL7r7ys5xRIsgelT05kGoS_ITJrj_db9_7V5NPvWU3rp_wFbqsWLFQ0rz6UoUpzjkC3Q0ueM-e94r9D-42rOyOfw1HSXl-FSgKSqPjrWUccjCBSlNzB3LMG2Q8e8Q8FPVvxvyOkRdVXylhT-vnkhgG412dgtxvzkiXvIjaTioTlQrR_S87c1RRF_fLAdFy3ol6mZj44vIVi57Nr_M6wZc2qVDvD31oLVPQZB4cQUgu12LD_1qbtRbYji6haByXBBSHoXU_slt828RLBPafFnNxxgooZEVZM2I9QwGRLy4uoMZPeCM5R2TqNXKEvPeR5aMGkQM7zIk1wF3Md37Mdt_lFwUzH1F871nI-xzwmWv7_JjPIf3cU9jBSX_3u9ZApKo4F1frmFmpe30kaM7miKMJyyCst4tb1pAUJ8A2fPGNsra-sq9bxQ1dCK9Cu1ei0kEUjAcIruJ_VNkRcoQC_QyNr6JbTNfknxsvjCncQS2KO04kswXmGS-PedMSGl78ihdzQzf9fo4yaDsYcaq6v73kSB-e05hsdvTuGIs1VTC4_CRUk2WaO7l_ZC41c8Z_Rxs9qVMgcED01kU1Ex-SlnPcQNfT6b50yEGuy3EPO17aaNTqElqET_3kzeofkey_hJ71acsBA_a4651XOsOqCed6Xt_Toqd-u6zPn6vvFZEouJRHZeFsjssftL4ZI5cKcQDnviOU8Im4UIDVEGhJXaVadqW5qJmlptJeP8Uzrp1sZUoEwyZKJ0jVNlzlJxXlSnM7k-uknBPPkEPy4MUTA47KGzL2rIJOpnBrsQoNWLDuChiqpEDnZfYTyCN0bJw6-djZOSguzGZBI5s5v2WYVVB1gj0c8Hs_LHNRTLjC0mofFjLHVGFKZhUPPGtuudvE_ASBucV7OvmKoi4rLaP3cxoC0q6YvL_ZDKlD_hpDHi1Xs22zi0_fq3wgzRc8OHY3wakH5hpOVH8L_D7YM0S8osGoCBeZGzWpjiNwNQB_uOg9kl3b7XzKZeDvmjCUMWYFX7KZyVHyPpfbANG8xeBp5-algK6A4L5IN0pmPPrp2_QIEyd9aYSVmIQ8lYW2w6EKWIUZgNOkujCU-WxF530GfT2ur9QErFcCmz_3tich9UWuNqg-3iM7uTcdjZF1cuTNnCboo-_ZZrnnDAh1KYKwaJl5MTAQ1f_skIadlRd3YBqCACn7dgg66XXRssz_vxRvAXJ8PbvLEhff7Ly6cahM3Vp9ihrMq5HEmzczmbNZRXkHRKP0-pWBqAW49B8uB4aEKpMXM7u9M8-ug_AhG_YouzoOvguIyncEdlua7UEOEFsktxjNgHa1Q7R2qQt4Bp46Ptbkab07WWAbyh6Nkke4e3heaccTWp6FjlBHdYm1zzm3cRTYL7qgIjYJtRLiB1kKzdCzer6kW1VjtMPWlmvhBs93ZfaipTJk6Ha2OA15YxkIclIZc9SlLmWPaepu29qxDsW3GtEJudWUgFQj1Yy4sd991A1aAbsboMCaELnX8b8DE-Kt6vOpMKHzBYtCT2FYQt-_daPhzTzcWX63SwXz1KCNbbi5XVsMVF3VK7a3WZxSCO6vsCGnas-AK95OjndedaRnKs9d7s8krDcpT8j4GJqV263Ez8aqE6TmEbZEF0NGxh_EJWvMaIlEOUYbd5m2VoYnMRCBtUiQS9kk7bXfaQ1JfYkjiXvv9sNPP-e6yep8qcolVTN5DQN57KfgCLhqk3CELvi98mRKYvEfjaus_-vNW5SFdXMUnqWHOOPun8UrlQd6sXX7JA60biTpGRvmVc1ootSGN9BLqw0QN41MbPTE1rVU27t-cMHKcROK_I2fWbaF-A9-UZuCQlFJGvZozx4zjeL_PnQ08AQZznhERQFR_lFhTVn-COMUrEv_14pIBuqkGkyTPeH3dkAjCsvFEDMg5Ur7H59llNPCT96H0T9YJxw0076x1mx7pU5-csEsIYo4FxRIQbWPch4_3gOqOExhFsGITjyLJEsdgVrvMws_5LQit0wTS1ErSm6Vy6vxTMv1AouTJ-L5wKV5PJqvn8ZoLEnhDN3YXZ9vnjhGKA41XbDur-8qOTRtw4Dl24oW1Omtm2TI7w6zDAMGUsUS1WIiV1iAq5735clpFJpcE1khD7QTkIEtl7sNK87q1VtEmTP5GGK2b6V9rfhnDob41Fi8ilHVt7VhBwsLI-XRIoqnMZsKfejqrDNBbuJDdQ.HRW0EvpVVqQK0Uv129577g"
+)
