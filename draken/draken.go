@@ -32,130 +32,6 @@ func setPlaybackHeaders(req *http.Request) {
    req.Header.Set("magine-play-protocol", "dashs")
 }
 
-func FetchMovie(customId string) (*MovieItem, error) {
-   data, err := json.Marshal(map[string]any{
-      "query":     get_custom_id_full_movie,
-      "variables": map[string]string{"customId": customId},
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://client-api.magine.com/api/apiql/v2",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   setBaseHeaders(req, "") // No login token for this request
-   // this value is important, with the wrong value you get random failures
-   req.Header.Set("x-forwarded-for", "95.192.0.0")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         Viewer struct {
-            ViewableCustomId *MovieItem
-         }
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Data.Viewer.ViewableCustomId == nil {
-      return nil, errors.New("ViewableCustomId")
-   }
-   return result.Data.Viewer.ViewableCustomId, nil
-}
-
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Playlist)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Playback struct {
-   Headers struct {
-      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
-      MaginePlaySession       string `json:"Magine-Play-Session"`
-   }
-   Playlist string // MPD
-}
-
-///
-
-func (l *Login) Fetch(identity, accessKey string) error {
-   data, err := json.Marshal(map[string]string{
-      "accessKey": accessKey,
-      "identity":  identity,
-   })
-   if err != nil {
-      return err
-   }
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "client-api.magine.com",
-      Path:   "/api/login/v2/auth/email",
-   }
-   req.Header = http.Header{}
-   setBaseHeaders(&req, "") // No login token for this request
-   req.Body = io.NopCloser(bytes.NewReader(data))
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(l)
-   if err != nil {
-      return err
-   }
-   if l.Message != "" {
-      return errors.New(l.Message)
-   }
-   return nil
-}
-
-///
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type Entitlement struct {
-   Token string
-   Error *Error
-}
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("message = ")
-   data.WriteString(e.Message)
-   data.WriteString("\nuser message = ")
-   data.WriteString(e.UserMessage)
-   return data.String()
-}
-
-type Error struct {
-   Message     string
-   UserMessage string `json:"user_message"`
-}
-
 type Login struct {
    Message string
    Token   string
@@ -234,8 +110,130 @@ func (l *Login) Entitlement(movie *MovieItem) (*Entitlement, error) {
    return &result, nil
 }
 
+func (l *Login) Fetch(identity, accessKey string) error {
+   data, err := json.Marshal(map[string]string{
+      "accessKey": accessKey,
+      "identity":  identity,
+   })
+   if err != nil {
+      return err
+   }
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "client-api.magine.com",
+      Path:   "/api/login/v2/auth/email",
+   }
+   req.Header = http.Header{}
+   setBaseHeaders(&req, "") // No login token for this request
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   err = json.NewDecoder(resp.Body).Decode(l)
+   if err != nil {
+      return err
+   }
+   if l.Message != "" {
+      return errors.New(l.Message)
+   }
+   return nil
+}
+
 type MovieItem struct {
    DefaultPlayable struct {
       Id string
    }
+}
+
+func FetchMovie(customId string) (*MovieItem, error) {
+   data, err := json.Marshal(map[string]any{
+      "query":     get_custom_id_full_movie,
+      "variables": map[string]string{"customId": customId},
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://client-api.magine.com/api/apiql/v2",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   setBaseHeaders(req, "") // No login token for this request
+   // this value is important, with the wrong value you get random failures
+   req.Header.Set("x-forwarded-for", "95.192.0.0")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         Viewer struct {
+            ViewableCustomId *MovieItem
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Data.Viewer.ViewableCustomId == nil {
+      return nil, errors.New("ViewableCustomId")
+   }
+   return result.Data.Viewer.ViewableCustomId, nil
+}
+
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Playlist)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Playback struct {
+   Headers struct {
+      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
+      MaginePlaySession       string `json:"Magine-Play-Session"`
+   }
+   Playlist string // MPD
+}
+
+///
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+type Entitlement struct {
+   Token string
+   Error *Error
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("message = ")
+   data.WriteString(e.Message)
+   data.WriteString("\nuser message = ")
+   data.WriteString(e.UserMessage)
+   return data.String()
+}
+
+type Error struct {
+   Message     string
+   UserMessage string `json:"user_message"`
 }

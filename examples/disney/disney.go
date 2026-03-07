@@ -16,22 +16,21 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.StringVar(&c.proxy, "x", "", "proxy")
-   // 2
    flag.StringVar(&c.Email, "e", "", "email")
-   // 3
+   // 2
    flag.StringVar(&c.passcode, "p", "", "passcode")
-   // 4
+   // 3
    flag.StringVar(&c.profile_id, "P", "", "profile ID")
-   // 5
+   flag.StringVar(&c.proxy, "x", "", "proxy")
+   // 4
    flag.BoolVar(&c.refresh, "r", false, "refresh")
-   // 6
+   // 5
    flag.StringVar(&c.address, "a", "", "address")
-   // 7
+   // 6
    flag.StringVar(&c.season_id, "s", "", "season ID")
-   // 8
+   // 7
    flag.StringVar(&c.media_id, "m", "", "media ID")
-   // 9
+   // 8
    flag.IntVar(&c.hls_id, "h", -1, "HLS ID")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
@@ -65,16 +64,23 @@ func (c *client) do() error {
       return c.do_hls_id()
    }
    return maya.Usage([][]string{
-      {"x"},
       {"e"},
       {"p"},
-      {"P"},
+      {"P", "x"},
       {"r"},
       {"a"},
       {"s"},
       {"m"},
       {"h", "C", "E"},
    })
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 func (c *client) do_profile_id() error {
@@ -181,33 +187,24 @@ func (c *client) do_refresh() error {
    })
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 type client struct {
    Hls   *disney.Hls
    Token *disney.Token
    // 1
-   proxy string
-   // 2
    Email string
-   // 3
+   // 2
    passcode string
-   // 4
+   // 3
    profile_id string
-   // 5
+   proxy string
+   // 4
    refresh bool
-   // 6
+   // 5
    address string
-   // 7
+   // 6
    season_id string
-   // 8
+   // 7
    media_id string
-   // 9
+   // 8
    hls_id int
 }
