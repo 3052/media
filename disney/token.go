@@ -2,13 +2,20 @@ package disney
 
 import (
    "bytes"
+   _ "embed"
    "encoding/json"
    "errors"
    "io"
    "net/http"
    "net/url"
-   _ "embed"
 )
+
+func (r *RequestOtp) String() string {
+   if r.Accepted {
+      return "accepted = true"
+   }
+   return "accepted = false"
+}
 
 type Token struct {
    AccessTokenType string

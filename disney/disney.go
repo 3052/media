@@ -3,13 +3,13 @@ package disney
 
 import (
    "bytes"
+   _ "embed"
    "encoding/json"
    "errors"
    "io"
    "net/http"
    "net/url"
    "strings"
-   _ "embed"
 )
 
 type Login struct {
@@ -82,13 +82,6 @@ var mutation_login string
 
 //go:embed requestOtp.gql
 var mutation_request_otp string
-
-func (r RequestOtp) String() string {
-   if r.Accepted {
-      return "accepted = true"
-   }
-   return "accepted = false"
-}
 
 type RequestOtp struct {
    Accepted bool
@@ -266,6 +259,7 @@ func GetEntity(link string) (string, error) {
    // The 'id' variable now holds the rest of the string after the marker.
    return id, nil
 }
+
 //go:embed refreshToken.gql
 var mutation_refresh_token string
 
