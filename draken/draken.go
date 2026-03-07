@@ -10,6 +10,38 @@ import (
    "strings"
 )
 
+const get_custom_id = `
+query GetCustomIdFullMovie($customId: ID!) {
+   viewer {
+      viewableCustomId(customId: $customId) {
+         ... on Movie {
+            defaultPlayable {
+               id
+            }
+         }
+      }
+   }
+}
+`
+
+// setBaseHeaders adds the common authentication and access tokens to a request.
+func setBaseHeaders(req *http.Request, loginToken string) {
+   req.Header.Set("magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663")
+   if loginToken != "" {
+      req.Header.Set("authorization", "Bearer "+loginToken)
+   }
+}
+
+// setPlaybackHeaders adds the headers specific to playback functionality.
+func setPlaybackHeaders(req *http.Request) {
+   req.Header.Set("magine-play-deviceid", "!")
+   req.Header.Set("magine-play-devicemodel", "firefox 111.0 / windows 10")
+   req.Header.Set("magine-play-deviceplatform", "firefox")
+   req.Header.Set("magine-play-devicetype", "web")
+   req.Header.Set("magine-play-drm", "widevine")
+   req.Header.Set("magine-play-protocol", "dashs")
+}
+
 func (l *Login) Fetch(identity, accessKey string) error {
    data, err := json.Marshal(map[string]string{
       "accessKey": accessKey,
@@ -43,37 +75,7 @@ func (l *Login) Fetch(identity, accessKey string) error {
    return nil
 }
 
-const get_custom_id = `
-query GetCustomIdFullMovie($customId: ID!) {
-   viewer {
-      viewableCustomId(customId: $customId) {
-         ... on Movie {
-            defaultPlayable {
-               id
-            }
-         }
-      }
-   }
-}
-`
-
-// setBaseHeaders adds the common authentication and access tokens to a request.
-func setBaseHeaders(req *http.Request, loginToken string) {
-   req.Header.Set("magine-accesstoken", "22cc71a2-8b77-4819-95b0-8c90f4cf5663")
-   if loginToken != "" {
-      req.Header.Set("authorization", "Bearer "+loginToken)
-   }
-}
-
-// setPlaybackHeaders adds the headers specific to playback functionality.
-func setPlaybackHeaders(req *http.Request) {
-   req.Header.Set("magine-play-deviceid", "!")
-   req.Header.Set("magine-play-devicemodel", "firefox 111.0 / windows 10")
-   req.Header.Set("magine-play-deviceplatform", "firefox")
-   req.Header.Set("magine-play-devicetype", "web")
-   req.Header.Set("magine-play-drm", "widevine")
-   req.Header.Set("magine-play-protocol", "dashs")
-}
+///
 
 type Dash struct {
    Body []byte
