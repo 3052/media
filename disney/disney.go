@@ -12,6 +12,264 @@ import (
    _ "embed"
 )
 
+// access token expires in 14400 seconds AKA 240 minutes AKA 4 hours
+func RefreshToken(t *Token) error {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_refresh_token,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "refreshToken": t.RefreshToken,
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer "+client_api_key)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(t)
+}
+//go:embed refreshToken.gql
+var mutation_refresh_token string
+
+//go:embed switchProfile.gql
+var mutation_switch_profile string
+
+func (t *Token) RegisterDevice() error {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_register_device,
+      "variables": map[string]any{
+         "input": map[string]any{
+            "deviceProfile":      "!",
+            "deviceFamily":       "!",
+            "applicationRuntime": "!",
+            "attributes": map[string]string{
+               "operatingSystem":        "",
+               "operatingSystemVersion": "",
+            },
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer "+client_api_key)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         RegisterDevice struct {
+            Token Token
+         }
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return err
+   }
+   if len(result.Errors) >= 1 {
+      return &result.Errors[0]
+   }
+   *t = result.Data.RegisterDevice.Token
+   return nil
+}
+
+func (t *Token) Login(email, password string) (*Login, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_login,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email":    email,
+            "password": password,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         Login Login
+      }
+      Errors     []Error
+      Extensions struct {
+         Sdk struct {
+            Token Token
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   *t = result.Extensions.Sdk.Token
+   return &result.Data.Login, nil
+}
+
+func (t *Token) RequestOtp(email string) (*RequestOtp, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_request_otp,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email": email,
+            "reason": "Login",
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         RequestOtp RequestOtp
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data.RequestOtp, nil
+}
+
+// passcode can start with 0
+func (t *Token) AuthenticateWithOtp(email, passcode string) (*AuthenticateWithOtp, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_authenticate_with_otp,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email": email,
+            "passcode": passcode,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   var result struct {
+      Data struct {
+         AuthenticateWithOtp AuthenticateWithOtp
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data.AuthenticateWithOtp, nil
+}
+
+func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_login_with_action_grant,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "actionGrant": actionGrant,
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         LoginWithActionGrant LoginWithActionGrant 
+      }
+      Extensions struct {
+         Sdk struct {
+            Token Token
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   *t = result.Extensions.Sdk.Token
+   return &result.Data.LoginWithActionGrant, nil
+}
 type Profile struct {
    Name string
    Id   string
@@ -219,10 +477,55 @@ func GetEntity(link string) (string, error) {
    // The 'id' variable now holds the rest of the string after the marker.
    return id, nil
 }
+func (t *Token) SwitchProfile(profileId string) error {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": profileId,
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Extensions struct {
+         Sdk struct {
+            Token Token
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return err
+   }
+   *t = result.Extensions.Sdk.Token
+   return nil
+}
+
+type Token struct {
+   AccessToken     string
+   AccessTokenType string // Account, Device
+   RefreshToken    string
+}
 
 // SL2000 720p
 // SL3000 2160p
-func (a *Account) PlayReady(data []byte) ([]byte, error) {
+func (t *Token) PlayReady(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST",
       "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
@@ -231,7 +534,7 @@ func (a *Account) PlayReady(data []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("authorization", t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -245,7 +548,7 @@ func (a *Account) PlayReady(data []byte) ([]byte, error) {
 
 // L3 720p
 // L1 2160p
-func (a *Account) Widevine(data []byte) ([]byte, error) {
+func (t *Token) Widevine(data []byte) ([]byte, error) {
    req, err := http.NewRequest(
       "POST",
       "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
@@ -254,33 +557,19 @@ func (a *Account) Widevine(data []byte) ([]byte, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("authorization", t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Errors []Error
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, &result.Errors[0]
-   }
-   return data, nil
+   return io.ReadAll(resp.Body)
 }
 
-func (a *Account) Season(id string) (*Season, error) {
+func (t *Token) Season(id string) (*Season, error) {
    var req http.Request
    req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    req.URL = &url.URL{
       Scheme:   "https",
       Host:     "disney.api.edge.bamgrid.com",
@@ -304,10 +593,10 @@ func (a *Account) Season(id string) (*Season, error) {
    return &result.Data.Season, nil
 }
 
-func (a *Account) Page(entity string) (*Page, error) {
+func (t *Token) Page(entity string) (*Page, error) {
    var req http.Request
    req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    req.URL = &url.URL{
       Scheme:   "https",
       Host:     "disney.api.edge.bamgrid.com",
@@ -339,7 +628,7 @@ func (a *Account) Page(entity string) (*Page, error) {
    return &result.Data.Page, nil
 }
 
-func (a *Account) Stream(mediaId string) (*Stream, error) {
+func (t *Token) Stream(mediaId string) (*Stream, error) {
    playback_id, err := json.Marshal(map[string]string{
       "mediaId": mediaId,
    })
@@ -375,7 +664,7 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
       Path: "/v7/playback/ctr-regular",
    }
    req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+a.Extensions.Sdk.Token.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    req.Header.Set("content-type", "application/json")
    req.Header.Set("x-application-version", "")
    req.Header.Set("x-bamsdk-client-id", "")
@@ -401,50 +690,3 @@ func (a *Account) Stream(mediaId string) (*Stream, error) {
    }
    return &result.Stream, nil
 }
-
-// access token expires in 14400 seconds AKA 240 minutes AKA 4 hours
-func (a *Account) RefreshToken() error {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_refresh_token,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "refreshToken": a.Extensions.Sdk.Token.RefreshToken,
-         },
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("authorization", "Bearer "+client_api_key)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(a)
-}
-
-type Account struct {
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // Account
-            RefreshToken    string
-         }
-      }
-   }
-}
-
-//go:embed refreshToken.gql
-var mutation_refresh_token string
-
-//go:embed switchProfile.gql
-var mutation_switch_profile string
