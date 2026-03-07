@@ -8,6 +8,24 @@ import (
    "log"
 )
 
+func (c *client) do_email_password() error {
+   device, err := disney.RegisterDevice()
+   if err != nil {
+      return err
+   }
+   c.InactiveAccount, err = device.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   for i, profile := range c.InactiveAccount.Data.Login.Account.Profiles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&profile)
+   }
+   return cache.Write(c)
+}
+
 type client struct {
    Account         *disney.Account
    Hls             *disney.Hls
@@ -163,24 +181,6 @@ func (c *client) do_profile_id() error {
       c.Account, err = c.InactiveAccount.SwitchProfile(c.profile_id)
       return err
    })
-}
-
-func (c *client) do_email_password() error {
-   device, err := disney.RegisterDevice()
-   if err != nil {
-      return err
-   }
-   c.InactiveAccount, err = device.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   for i, profile := range c.InactiveAccount.Data.Login.Account.Profiles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&profile)
-   }
-   return cache.Write(c)
 }
 
 var job maya.PlayReadyJob
