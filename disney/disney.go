@@ -12,10 +12,107 @@ import (
    "strings"
 )
 
+//go:embed refreshToken.gql
+var mutation_refresh_token string
+
+//go:embed switchProfile.gql
+var mutation_switch_profile string
+
+// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
+func GetEntity(link string) (string, error) {
+   // First, explicitly fail if the URL is a "play" link.
+   if strings.Contains(link, "/play/") {
+      return "", errors.New("URL is a 'play' link and not a 'browse' link")
+   }
+   // The unique marker for the ID we want is "/browse/entity-".
+   const marker = "/browse/entity-"
+   // strings.Cut splits the string at the first instance of the marker.
+   // It returns the part before, the part after, and a boolean indicating if the marker was found.
+   // We don't need the 'before' part, so we discard it with the blank identifier _.
+   _, id, found := strings.Cut(link, marker)
+   // If the marker was not found, or if the resulting ID string is empty, return an error.
+   if !found || id == "" {
+      return "", errors.New("failed to find a valid ID in the URL")
+   }
+   // The 'id' variable now holds the rest of the string after the marker.
+   return id, nil
+}
+
+type AuthenticateWithOtp struct {
+   ActionGrant string
+}
+
 type Login struct {
    Account struct {
       Profiles []Profile
    }
+}
+
+type Profile struct {
+   Name string
+   Id   string
+}
+
+func (s Season) String() string {
+   var (
+      data strings.Builder
+      line bool
+   )
+   for _, item := range s.Items {
+      for _, action := range item.Actions {
+         if line {
+            data.WriteByte('\n')
+         } else {
+            line = true
+         }
+         data.WriteString(action.InternalTitle)
+      }
+   }
+   return data.String()
+}
+
+type Season struct {
+   Items []struct {
+      Actions []struct {
+         InternalTitle string
+      }
+   }
+}
+
+func (s *Stream) Hls() (*Hls, error) {
+   resp, err := http.Get(s.Sources[0].Complete.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Hls{data, resp.Request.URL}, nil
+}
+
+type Stream struct {
+   Sources []struct {
+      Complete struct {
+         Url string
+      }
+   }
+}
+
+func (t *Token) String() string {
+   var data strings.Builder
+   data.WriteString("type = ")
+   data.WriteString(t.AccessTokenType)
+   data.WriteString("\naccess token = ")
+   data.WriteString(t.AccessToken)
+   if t.RefreshToken != "" {
+      data.WriteString("\nrefresh token = ")
+      data.WriteString(t.RefreshToken)
+   }
+   return data.String()
 }
 
 // Response: Device
@@ -69,10 +166,7 @@ func (t *Token) RegisterDevice() error {
    return nil
 }
 
-type Profile struct {
-   Name string
-   Id   string
-}
+///
 
 //go:embed registerDevice.gql
 var mutation_register_device string
@@ -189,96 +283,4 @@ func (p *Profile) String() string {
    data.WriteString("\nid = ")
    data.WriteString(p.Id)
    return data.String()
-}
-
-func (s Season) String() string {
-   var (
-      data strings.Builder
-      line bool
-   )
-   for _, item := range s.Items {
-      for _, action := range item.Actions {
-         if line {
-            data.WriteByte('\n')
-         } else {
-            line = true
-         }
-         data.WriteString(action.InternalTitle)
-      }
-   }
-   return data.String()
-}
-
-type Season struct {
-   Items []struct {
-      Actions []struct {
-         InternalTitle string
-      }
-   }
-}
-
-func (s *Stream) Hls() (*Hls, error) {
-   resp, err := http.Get(s.Sources[0].Complete.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Hls{data, resp.Request.URL}, nil
-}
-
-type Stream struct {
-   Sources []struct {
-      Complete struct {
-         Url string
-      }
-   }
-}
-
-// https://disneyplus.com/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/cs-cz/browse/entity-7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-// https://disneyplus.com/play/7df81cf5-6be5-4e05-9ff6-da33baf0b94d
-func GetEntity(link string) (string, error) {
-   // First, explicitly fail if the URL is a "play" link.
-   if strings.Contains(link, "/play/") {
-      return "", errors.New("URL is a 'play' link and not a 'browse' link")
-   }
-   // The unique marker for the ID we want is "/browse/entity-".
-   const marker = "/browse/entity-"
-   // strings.Cut splits the string at the first instance of the marker.
-   // It returns the part before, the part after, and a boolean indicating if the marker was found.
-   // We don't need the 'before' part, so we discard it with the blank identifier _.
-   _, id, found := strings.Cut(link, marker)
-   // If the marker was not found, or if the resulting ID string is empty, return an error.
-   if !found || id == "" {
-      return "", errors.New("failed to find a valid ID in the URL")
-   }
-   // The 'id' variable now holds the rest of the string after the marker.
-   return id, nil
-}
-
-//go:embed refreshToken.gql
-var mutation_refresh_token string
-
-//go:embed switchProfile.gql
-var mutation_switch_profile string
-
-func (t *Token) String() string {
-   var data strings.Builder
-   data.WriteString("type = ")
-   data.WriteString(t.AccessTokenType)
-   data.WriteString("\naccess token = ")
-   data.WriteString(t.AccessToken)
-   if t.RefreshToken != "" {
-      data.WriteString("\nrefresh token = ")
-      data.WriteString(t.RefreshToken)
-   }
-   return data.String()
-}
-
-type AuthenticateWithOtp struct {
-   ActionGrant string
 }
