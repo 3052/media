@@ -1,0 +1,5 @@
+mutation authenticateWithOtp($input: AuthenticateWithOtpInput!) {
+   authenticateWithOtp(authenticateWithOtp: $input) {
+      actionGrant
+   }
+}

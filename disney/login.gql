@@ -1,0 +1,10 @@
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+            name
+         }
+      }
+   }
+}

@@ -1,0 +1,5 @@
+mutation requestOtp($input: RequestOtpInput!) {
+   requestOtp(requestOtp: $input) {
+      accepted
+   }
+}

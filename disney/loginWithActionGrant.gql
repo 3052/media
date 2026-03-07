@@ -1,0 +1,10 @@
+mutation loginWithActionGrant($input: LoginWithActionGrantInput!) {
+   loginWithActionGrant(login: $input) {
+      account {
+         profiles {
+            id
+            name
+         }
+      }
+   }
+}
