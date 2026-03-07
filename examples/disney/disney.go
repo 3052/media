@@ -8,6 +8,105 @@ import (
    "log"
 )
 
+func (c *client) do() error {
+   job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
+   job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
+   err := cache.Setup("rosso/disney.xml")
+   if err != nil {
+      return err
+   }
+   // 1
+   flag.StringVar(&c.proxy, "x", "", "proxy")
+   // 2
+   flag.StringVar(&c.Email, "e", "", "email")
+   // 3
+   flag.StringVar(&c.passcode, "p", "", "passcode")
+   // 4
+   flag.StringVar(&c.profile_id, "P", "", "profile ID")
+   // 5
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   // 6
+   flag.StringVar(&c.address, "a", "", "address")
+   // 7
+   flag.StringVar(&c.season_id, "s", "", "season ID")
+   // 8
+   flag.StringVar(&c.media_id, "m", "", "media ID")
+   // 9
+   flag.IntVar(&c.hls_id, "h", -1, "HLS ID")
+   flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
+   flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
+   flag.Parse()
+   err = maya.SetProxy(c.proxy, "*.mp4,*.mp4a")
+   if err != nil {
+      return err
+   }
+   if c.Email != "" {
+      return c.do_email()
+   }
+   if c.passcode != "" {
+      return c.do_passcode()
+   }
+   if c.profile_id != "" {
+      return c.do_profile_id()
+   }
+   if c.refresh {
+      return c.do_refresh()
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.season_id != "" {
+      return c.do_season_id()
+   }
+   if c.media_id != "" {
+      return c.do_media_id()
+   }
+   if c.hls_id >= 0 {
+      return c.do_hls_id()
+   }
+   return maya.Usage([][]string{
+      {"x"},
+      {"e"},
+      {"p"},
+      {"P"},
+      {"r"},
+      {"a"},
+      {"s"},
+      {"m"},
+      {"h", "C", "E"},
+   })
+}
+
+func (c *client) do_profile_id() error {
+   return cache.Update(c, func() error {
+      return c.Token.SwitchProfile(c.profile_id)
+   })
+}
+
+func (c *client) do_passcode() error {
+   return cache.Update(c, func() error {
+      otp, err := c.Token.AuthenticateWithOtp(c.Email, c.passcode)
+      if err != nil {
+         return err
+      }
+      login, err := c.Token.LoginWithActionGrant(otp.ActionGrant)
+      if err != nil {
+         return err
+      }
+      for i, profile := range login.Account.Profiles {
+         if i >= 1 {
+            fmt.Println()
+         }
+         fmt.Println(&profile)
+      }
+      return nil
+   })
+}
+
+var job maya.PlayReadyJob
+
+var cache maya.Cache
+
 func (c *client) do_email() error {
    c.Token = &disney.Token{}
    err := c.Token.RegisterDevice()
@@ -29,27 +128,6 @@ func (c *client) do_hls_id() error {
    }
    job.Send = c.Token.PlayReady
    return job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id)
-}
-
-type client struct {
-   Hls   *disney.Hls
-   Token *disney.Token
-   // 1
-   Email string
-   // 2
-   passcode string
-   // 3
-   profile_id string
-   // 4
-   refresh bool
-   // 5
-   address string
-   // 6
-   season_id string
-   // 7
-   media_id string
-   // 8
-   hls_id int
 }
 
 func (c *client) do_media_id() error {
@@ -102,103 +180,34 @@ func (c *client) do_refresh() error {
       return disney.RefreshToken(c.Token)
    })
 }
-func (c *client) do_profile_id() error {
-   return cache.Update(c, func() error {
-      return c.Token.SwitchProfile(c.profile_id)
-   })
-}
-
-func (c *client) do_passcode() error {
-   return cache.Update(c, func() error {
-      otp, err := c.Token.AuthenticateWithOtp(c.Email, c.passcode)
-      if err != nil {
-         return err
-      }
-      login, err := c.Token.LoginWithActionGrant(otp.ActionGrant)
-      if err != nil {
-         return err
-      }
-      for i, profile := range login.Account.Profiles {
-         if i >= 1 {
-            fmt.Println()
-         }
-         fmt.Println(&profile)
-      }
-      return nil
-   })
-}
-
-var job maya.PlayReadyJob
-
-var cache maya.Cache
 
 func main() {
    log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4,*.mp4a")
    err := new(client).do()
    if err != nil {
       log.Fatal(err)
    }
 }
 
-func (c *client) do() error {
-   job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
-   job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
-   err := cache.Setup("rosso/disney.xml")
-   if err != nil {
-      return err
-   }
+type client struct {
+   Hls   *disney.Hls
+   Token *disney.Token
    // 1
-   flag.StringVar(&c.Email, "e", "", "email")
+   proxy string
    // 2
-   flag.StringVar(&c.passcode, "p", "", "passcode")
+   Email string
    // 3
-   flag.StringVar(&c.profile_id, "P", "", "profile ID")
+   passcode string
    // 4
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   profile_id string
    // 5
-   flag.StringVar(&c.address, "a", "", "address")
+   refresh bool
    // 6
-   flag.StringVar(&c.season_id, "s", "", "season ID")
+   address string
    // 7
-   flag.StringVar(&c.media_id, "m", "", "media ID")
+   season_id string
    // 8
-   flag.IntVar(&c.hls_id, "h", -1, "HLS ID")
-   flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
-   flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   if c.Email != "" {
-      return c.do_email()
-   }
-   if c.passcode != "" {
-      return c.do_passcode()
-   }
-   if c.profile_id != "" {
-      return c.do_profile_id()
-   }
-   if c.refresh {
-      return c.do_refresh()
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.season_id != "" {
-      return c.do_season_id()
-   }
-   if c.media_id != "" {
-      return c.do_media_id()
-   }
-   if c.hls_id >= 0 {
-      return c.do_hls_id()
-   }
-   return maya.Usage([][]string{
-      {"e"},
-      {"p"},
-      {"P"},
-      {"r"},
-      {"a"},
-      {"s"},
-      {"m"},
-      {"h", "C", "E"},
-   })
+   media_id string
+   // 9
+   hls_id int
 }
