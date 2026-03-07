@@ -4,116 +4,7 @@ import (
    "bytes"
    "encoding/json"
    "net/http"
-   "strconv"
 )
-
-func (d *Device) authenticate_with_otp(email string, passcode int) (*authenticate_with_otp, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_authenticate_with_otp,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "email": email,
-            "passcode": strconv.Itoa(passcode),
-         },
-      },
-      "operationName": "authenticateWithOtp",
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer " + d.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   var result struct {
-      Data struct {
-         AuthenticateWithOtp authenticate_with_otp
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Data.AuthenticateWithOtp, nil
-}
-
-func (r RequestOtp) String() string {
-   if r.Accepted {
-      return "accepted = true"
-   }
-   return "accepted = false"
-}
-
-type RequestOtp struct {
-   Accepted bool
-}
-
-func (d *Device) RequestOtp(email string) (*RequestOtp, error) {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_request_otp,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "email": email,
-            "reason": "Login",
-         },
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", "Bearer " + d.Token.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         RequestOtp RequestOtp
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Data.RequestOtp, nil
-}
-
-const mutation_authenticate_with_otp = `
-mutation authenticateWithOtp($input: AuthenticateWithOtpInput!) {
-   authenticateWithOtp(authenticateWithOtp: $input) {
-      actionGrant
-      securityAction
-      identity {
-         personalInfo {
-            dateOfBirth
-            gender
-         }
-         flows {
-            personalInfo {
-               requiresCollection
-               eligibleForCollection
-            }
-         }
-      }
-   }
-}
-`
 
 const mutation_request_otp = `
 mutation requestOtp($input: RequestOtpInput!) {
@@ -160,11 +51,126 @@ mutation loginWithActionGrant($input: LoginWithActionGrantInput!) {
 }
 `
 
+const mutation_authenticate_with_otp = `
+mutation authenticateWithOtp($input: AuthenticateWithOtpInput!) {
+   authenticateWithOtp(authenticateWithOtp: $input) {
+      actionGrant
+      securityAction
+      identity {
+         personalInfo {
+            dateOfBirth
+            gender
+         }
+         flows {
+            personalInfo {
+               requiresCollection
+               eligibleForCollection
+            }
+         }
+      }
+   }
+}
+`
+
+type RequestOtp struct {
+   Accepted bool
+}
+
+func (d *Device) RequestOtp(email string) (*RequestOtp, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_request_otp,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email": email,
+            "reason": "Login",
+         },
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + d.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         RequestOtp RequestOtp
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data.RequestOtp, nil
+}
+
+func (r RequestOtp) String() string {
+   if r.Accepted {
+      return "accepted = true"
+   }
+   return "accepted = false"
+}
+
+///
+
 type authenticate_with_otp struct {
    ActionGrant string
 }
 
-func (d *Device) login_with_action_grant(action_grant string) (*http.Response, error) {
+// passcode can start with 0
+func (d *Device) authenticate_with_otp(email, passcode string) (*authenticate_with_otp, error) {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_authenticate_with_otp,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "email": email,
+            "passcode": passcode,
+         },
+      },
+      "operationName": "authenticateWithOtp",
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", "Bearer " + d.Token.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   var result struct {
+      Data struct {
+         AuthenticateWithOtp authenticate_with_otp
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Data.AuthenticateWithOtp, nil
+}
+
+func (d *Device) login_with_action_grant(action_grant string) (*InactiveAccount, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_login_with_action_grant,
       "variables": map[string]any{
@@ -216,3 +222,4 @@ func (d *Device) login_with_action_grant(action_grant string) (*http.Response, e
    }
    return result, nil
 }
+

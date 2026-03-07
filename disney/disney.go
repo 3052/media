@@ -11,13 +11,6 @@ import (
    "strings"
 )
 
-type Device struct {
-   Token struct {
-      AccessToken     string
-      AccessTokenType string // Device
-   }
-}
-
 func (d *Device) Login(email, password string) (*InactiveAccount, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_login,
@@ -587,5 +580,11 @@ type Account struct {
             RefreshToken    string
          }
       }
+   }
+}
+type Device struct {
+   Token struct {
+      AccessToken     string
+      AccessTokenType string // Device
    }
 }
