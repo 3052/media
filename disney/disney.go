@@ -12,6 +12,10 @@ import (
    "strings"
 )
 
+// ZGlzbmV5JmJyb3dzZXImMS4wLjA
+// disney&browser&1.0.0
+const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
+
 //go:embed registerDevice.gql
 var mutation_register_device string
 
@@ -53,10 +57,104 @@ type AuthenticateWithOtp struct {
    ActionGrant string
 }
 
+func (e *Error) Error() string {
+   var data strings.Builder
+   if e.Code != "" {
+      data.WriteString("code = ")
+      data.WriteString(e.Code)
+   }
+   if e.Description != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("description = ")
+      data.WriteString(e.Description)
+   }
+   if e.Extensions != nil {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("extensions = ")
+      data.WriteString(e.Extensions.Code)
+   }
+   if e.Message != "" {
+      if data.Len() >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("message = ")
+      data.WriteString(e.Message)
+   }
+   return data.String()
+}
+
+type Error struct {
+   Code        string
+   Description string
+   Extensions  *struct {
+      Code string
+   }
+   Message string
+}
+
+type Hls struct {
+   Body []byte
+   Url  *url.URL
+}
+
 type Login struct {
    Account struct {
       Profiles []Profile
    }
+}
+
+type LoginWithActionGrant struct {
+   Account struct {
+      Profiles []Profile
+   }
+}
+
+func (p *Page) String() string {
+   var data strings.Builder
+   if len(p.Containers[0].Seasons) >= 1 {
+      var line bool
+      for _, seasonItem := range p.Containers[0].Seasons {
+         if line {
+            data.WriteString("\n\n")
+         } else {
+            line = true
+         }
+         data.WriteString("name = ")
+         data.WriteString(seasonItem.Visuals.Name)
+         data.WriteString("\nid = ")
+         data.WriteString(seasonItem.Id)
+      }
+   } else {
+      data.WriteString(p.Actions[0].InternalTitle)
+   }
+   return data.String()
+}
+
+type Page struct {
+   Actions []struct {
+      InternalTitle string // movie
+   }
+   Containers []struct {
+      Seasons []struct { // series
+         Visuals struct {
+            Name string
+         }
+         Id string
+      }
+   }
+}
+
+func (p *Profile) String() string {
+   var data strings.Builder
+   data.WriteString("name = ")
+   data.WriteString(p.Name)
+   data.WriteString("\nid = ")
+   data.WriteString(p.Id)
+   return data.String()
 }
 
 type Profile struct {
@@ -186,101 +284,3 @@ var mutation_authenticate_with_otp string
 
 //go:embed loginWithActionGrant.gql
 var mutation_login_with_action_grant string
-
-type LoginWithActionGrant struct {
-   Account struct {
-      Profiles []Profile
-   }
-}
-
-// ZGlzbmV5JmJyb3dzZXImMS4wLjA
-// disney&browser&1.0.0
-const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   if e.Code != "" {
-      data.WriteString("code = ")
-      data.WriteString(e.Code)
-   }
-   if e.Description != "" {
-      if data.Len() >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("description = ")
-      data.WriteString(e.Description)
-   }
-   if e.Extensions != nil {
-      if data.Len() >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("extensions = ")
-      data.WriteString(e.Extensions.Code)
-   }
-   if e.Message != "" {
-      if data.Len() >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("message = ")
-      data.WriteString(e.Message)
-   }
-   return data.String()
-}
-
-type Error struct {
-   Code        string
-   Description string
-   Extensions  *struct {
-      Code string
-   }
-   Message string
-}
-
-type Hls struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (p *Page) String() string {
-   var data strings.Builder
-   if len(p.Containers[0].Seasons) >= 1 {
-      var line bool
-      for _, seasonItem := range p.Containers[0].Seasons {
-         if line {
-            data.WriteString("\n\n")
-         } else {
-            line = true
-         }
-         data.WriteString("name = ")
-         data.WriteString(seasonItem.Visuals.Name)
-         data.WriteString("\nid = ")
-         data.WriteString(seasonItem.Id)
-      }
-   } else {
-      data.WriteString(p.Actions[0].InternalTitle)
-   }
-   return data.String()
-}
-
-type Page struct {
-   Actions []struct {
-      InternalTitle string // movie
-   }
-   Containers []struct {
-      Seasons []struct { // series
-         Visuals struct {
-            Name string
-         }
-         Id string
-      }
-   }
-}
-
-func (p *Profile) String() string {
-   var data strings.Builder
-   data.WriteString("name = ")
-   data.WriteString(p.Name)
-   data.WriteString("\nid = ")
-   data.WriteString(p.Id)
-   return data.String()
-}
