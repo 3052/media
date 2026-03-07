@@ -132,10 +132,7 @@ func get(address string) error {
    }
    defer file.Close()
    _, err = file.ReadFrom(resp.Body)
-   if err != nil {
-      return err
-   }
-   return nil
+   return err
 }
 
 func main() {
