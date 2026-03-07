@@ -5,6 +5,15 @@ import (
    "testing"
 )
 
+func TestRegisterDevice(t *testing.T) {
+   var token_value Token
+   err := token_value.RegisterDevice()
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(&token_value)
+}
+
 func TestAuthenticateWithOtp(t *testing.T) {
    var token_value Token
    token_value.AccessToken = otp_test.access_token
@@ -19,15 +28,6 @@ func TestAuthenticateWithOtp(t *testing.T) {
       t.Fatal(err)
    }
    fmt.Printf("%+v\n", inactive)
-}
-
-func TestDevice(t *testing.T) {
-   var token_value Token
-   err := token_value.RegisterDevice()
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(token_value.AccessToken)
 }
 
 func TestEntity(t *testing.T) {
