@@ -30,7 +30,8 @@ func (t *Token) assert(expected string) error {
    return nil
 }
 
-// Response: AccountWithoutActiveProfile
+// request: Device
+// response: AccountWithoutActiveProfile
 func (t *Token) Login(email, password string) (*Login, error) {
    if err := t.assert("Device"); err != nil {
       return nil, err
@@ -82,6 +83,7 @@ func (t *Token) Login(email, password string) (*Login, error) {
    return &result.Data.Login, nil
 }
 
+// request: Device
 func (t *Token) RequestOtp(email string) (*RequestOtp, error) {
    if err := t.assert("Device"); err != nil {
       return nil, err
@@ -127,6 +129,7 @@ func (t *Token) RequestOtp(email string) (*RequestOtp, error) {
    return &result.Data.RequestOtp, nil
 }
 
+// request: Device
 func (t *Token) AuthenticateWithOtp(email, passcode string) (*AuthenticateWithOtp, error) {
    if err := t.assert("Device"); err != nil {
       return nil, err
@@ -171,7 +174,8 @@ func (t *Token) AuthenticateWithOtp(email, passcode string) (*AuthenticateWithOt
    return &result.Data.AuthenticateWithOtp, nil
 }
 
-// Response: AccountWithoutActiveProfile
+// request: Device
+// response: AccountWithoutActiveProfile
 func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant, error) {
    if err := t.assert("Device"); err != nil {
       return nil, err
@@ -218,7 +222,8 @@ func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant,
    return &result.Data.LoginWithActionGrant, nil
 }
 
-// Response: Account
+// request: AccountWithoutActiveProfile
+// response: Account
 func (t *Token) SwitchProfile(profileId string) error {
    if err := t.assert("AccountWithoutActiveProfile"); err != nil {
       return err
@@ -262,8 +267,9 @@ func (t *Token) SwitchProfile(profileId string) error {
    return nil
 }
 
-// SL2000 720p
-// SL3000 2160p
+// SL2000: 720p
+// SL3000: 2160p
+// request: Account
 func (t *Token) PlayReady(data []byte) ([]byte, error) {
    if err := t.assert("Account"); err != nil {
       return nil, err
@@ -288,8 +294,9 @@ func (t *Token) PlayReady(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-// L3 720p
-// L1 2160p
+// L1: 2160p
+// L3: 720p
+// request: Account
 func (t *Token) Widevine(data []byte) ([]byte, error) {
    if err := t.assert("Account"); err != nil {
       return nil, err
@@ -311,6 +318,7 @@ func (t *Token) Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
+// request: Account
 func (t *Token) Season(id string) (*Season, error) {
    if err := t.assert("Account"); err != nil {
       return nil, err
@@ -341,6 +349,7 @@ func (t *Token) Season(id string) (*Season, error) {
    return &result.Data.Season, nil
 }
 
+// request: Account
 func (t *Token) Page(entity string) (*Page, error) {
    if err := t.assert("Account"); err != nil {
       return nil, err
@@ -379,6 +388,7 @@ func (t *Token) Page(entity string) (*Page, error) {
    return &result.Data.Page, nil
 }
 
+// request: Account
 func (t *Token) Stream(mediaId string) (*Stream, error) {
    if err := t.assert("Account"); err != nil {
       return nil, err
@@ -445,7 +455,8 @@ func (t *Token) Stream(mediaId string) (*Stream, error) {
    return &result.Stream, nil
 }
 
-// access token expires in 14400 seconds AKA 240 minutes AKA 4 hours
+// expires: 4 hours
+// request: Account
 func RefreshToken(refresh *Token) error {
    if err := refresh.assert("Account"); err != nil {
       return err
