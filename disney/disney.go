@@ -16,6 +16,12 @@ import (
 // disney&browser&1.0.0
 const client_api_key = "ZGlzbmV5JmJyb3dzZXImMS4wLjA.Cu56AgSfBTDag5NiRA81oLHkDZfu5L3CKadnefEAY84"
 
+//go:embed authenticateWithOtp.gql
+var mutation_authenticate_with_otp string
+
+//go:embed loginWithActionGrant.gql
+var mutation_login_with_action_grant string
+
 //go:embed registerDevice.gql
 var mutation_register_device string
 
@@ -162,6 +168,10 @@ type Profile struct {
    Id   string
 }
 
+type RequestOtp struct {
+   Accepted bool
+}
+
 func (s Season) String() string {
    var (
       data strings.Builder
@@ -272,15 +282,3 @@ func (t *Token) RegisterDevice() error {
    *t = result.Data.RegisterDevice.Token
    return nil
 }
-
-///
-
-type RequestOtp struct {
-   Accepted bool
-}
-
-//go:embed authenticateWithOtp.gql
-var mutation_authenticate_with_otp string
-
-//go:embed loginWithActionGrant.gql
-var mutation_login_with_action_grant string

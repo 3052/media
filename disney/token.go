@@ -2,13 +2,45 @@ package disney
 
 import (
    "bytes"
-   _ "embed"
    "encoding/json"
    "errors"
    "io"
    "net/http"
    "net/url"
 )
+
+// expires: 4 hours
+// request: Account
+func RefreshToken(refresh *Token) error {
+   if err := refresh.assert("Account"); err != nil {
+      return err
+   }
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_refresh_token,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "refreshToken": refresh.RefreshToken,
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer "+client_api_key)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(refresh)
+}
 
 func (r *RequestOtp) String() string {
    if r.Accepted {
@@ -453,37 +485,4 @@ func (t *Token) Stream(mediaId string) (*Stream, error) {
       return nil, &result.Errors[0]
    }
    return &result.Stream, nil
-}
-
-// expires: 4 hours
-// request: Account
-func RefreshToken(refresh *Token) error {
-   if err := refresh.assert("Account"); err != nil {
-      return err
-   }
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_refresh_token,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "refreshToken": refresh.RefreshToken,
-         },
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("authorization", "Bearer "+client_api_key)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(refresh)
 }

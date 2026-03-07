@@ -8,21 +8,11 @@ import (
    "net/http"
    "net/url"
    "strings"
+   _ "embed"
 )
 
-const get_custom_id = `
-query GetCustomIdFullMovie($customId: ID!) {
-   viewer {
-      viewableCustomId(customId: $customId) {
-         ... on Movie {
-            defaultPlayable {
-               id
-            }
-         }
-      }
-   }
-}
-`
+//go:embed GetCustomIdFullMovie.gql
+var get_custom_id_full_movie string
 
 // setBaseHeaders adds the common authentication and access tokens to a request.
 func setBaseHeaders(req *http.Request, loginToken string) {
@@ -41,6 +31,71 @@ func setPlaybackHeaders(req *http.Request) {
    req.Header.Set("magine-play-drm", "widevine")
    req.Header.Set("magine-play-protocol", "dashs")
 }
+
+func FetchMovie(customId string) (*MovieItem, error) {
+   data, err := json.Marshal(map[string]any{
+      "query":     get_custom_id_full_movie,
+      "variables": map[string]string{"customId": customId},
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://client-api.magine.com/api/apiql/v2",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   setBaseHeaders(req, "") // No login token for this request
+   // this value is important, with the wrong value you get random failures
+   req.Header.Set("x-forwarded-for", "95.192.0.0")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         Viewer struct {
+            ViewableCustomId *MovieItem
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Data.Viewer.ViewableCustomId == nil {
+      return nil, errors.New("ViewableCustomId")
+   }
+   return result.Data.Viewer.ViewableCustomId, nil
+}
+
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Playlist)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Dash
+   result.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   result.Url = resp.Request.URL
+   return &result, nil
+}
+
+type Playback struct {
+   Headers struct {
+      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
+      MaginePlaySession       string `json:"Magine-Play-Session"`
+   }
+   Playlist string // MPD
+}
+
+///
 
 func (l *Login) Fetch(identity, accessKey string) error {
    data, err := json.Marshal(map[string]string{
@@ -183,67 +238,4 @@ type MovieItem struct {
    DefaultPlayable struct {
       Id string
    }
-}
-
-func FetchMovie(customId string) (*MovieItem, error) {
-   data, err := json.Marshal(map[string]any{
-      "query":     get_custom_id,
-      "variables": map[string]string{"customId": customId},
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://client-api.magine.com/api/apiql/v2",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   setBaseHeaders(req, "") // No login token for this request
-   // this value is important, with the wrong value you get random failures
-   req.Header.Set("x-forwarded-for", "95.192.0.0")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         Viewer struct {
-            ViewableCustomId *MovieItem
-         }
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Data.Viewer.ViewableCustomId == nil {
-      return nil, errors.New("ViewableCustomId")
-   }
-   return result.Data.Viewer.ViewableCustomId, nil
-}
-
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Playlist)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
-}
-
-type Playback struct {
-   Headers struct {
-      MaginePlayEntitlementId string `json:"Magine-Play-EntitlementId"`
-      MaginePlaySession       string `json:"Magine-Play-Session"`
-   }
-   Playlist string // MPD
 }
