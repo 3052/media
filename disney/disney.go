@@ -11,6 +11,19 @@ import (
    "strings"
 )
 
+const mutation_login = `
+mutation login($input: LoginInput!) {
+   login(login: $input) {
+      account {
+         profiles {
+            id
+            name
+         }
+      }
+   }
+}
+`
+
 func (d *Device) Login(email, password string) (*InactiveAccount, error) {
    data, err := json.Marshal(map[string]any{
       "query": mutation_login,
@@ -31,9 +44,7 @@ func (d *Device) Login(email, password string) (*InactiveAccount, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set(
-      "authorization", "Bearer "+d.Token.AccessToken,
-   )
+   req.Header.Set("authorization", "Bearer "+d.Token.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -174,25 +185,6 @@ func (i *InactiveAccount) SwitchProfile(profileId string) (*Account, error) {
    return result, nil
 }
 
-type InactiveAccount struct {
-   Data struct {
-      Login struct {
-         Account struct {
-            Profiles []Profile
-         }
-      }
-   }
-   Errors     []Error
-   Extensions struct {
-      Sdk struct {
-         Token struct {
-            AccessToken     string
-            AccessTokenType string // AccountWithoutActiveProfile
-         }
-      }
-   }
-}
-
 func (p *Page) String() string {
    var data strings.Builder
    if len(p.Containers[0].Seasons) >= 1 {
@@ -294,19 +286,6 @@ mutation registerDevice($input: RegisterDeviceInput!) {
       token {
          accessToken
          accessTokenType
-      }
-   }
-}
-`
-
-const mutation_login = `
-mutation login($input: LoginInput!) {
-   login(login: $input) {
-      account {
-         profiles {
-            id
-            name
-         }
       }
    }
 }
