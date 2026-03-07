@@ -5,16 +5,25 @@ import (
    "testing"
 )
 
+func TestDevice(t *testing.T) {
+   var device RegisterDevice
+   err := device.Fetch()
+   if err != nil {
+      t.Fatal(err)
+   }
+   fmt.Println(device.Token.AccessToken)
+}
+
 func TestAuthenticateWithOtp(t *testing.T) {
-   var device_item Device
-   device_item.Token.AccessToken = otp_test.access_token
-   authenticate, err := device_item.AuthenticateWithOtp(
+   var device RegisterDevice
+   device.Token.AccessToken = otp_test.access_token
+   authenticate, err := device.AuthenticateWithOtp(
       otp_test.email, otp_test.passcode,
    )
    if err != nil {
       t.Fatal(err)
    }
-   inactive, err := device_item.LoginWithActionGrant(authenticate.ActionGrant)
+   inactive, err := device.LoginWithActionGrant(authenticate.ActionGrant)
    if err != nil {
       t.Fatal(err)
    }
@@ -22,21 +31,13 @@ func TestAuthenticateWithOtp(t *testing.T) {
 }
 
 func TestRequestOtp(t *testing.T) {
-   var device_item Device
-   device_item.Token.AccessToken = otp_test.access_token
-   otp, err := device_item.RequestOtp(otp_test.email)
+   var device RegisterDevice
+   device.Token.AccessToken = otp_test.access_token
+   otp, err := device.RequestOtp(otp_test.email)
    if err != nil {
       t.Fatal(err)
    }
    fmt.Println(otp)
-}
-
-func TestDevice(t *testing.T) {
-   device_item, err := RegisterDevice()
-   if err != nil {
-      t.Fatal(err)
-   }
-   fmt.Println(device_item.Token.AccessToken)
 }
 
 func TestEntity(t *testing.T) {
