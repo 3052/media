@@ -16,60 +16,18 @@ type Token struct {
    RefreshToken    string
 }
 
-// Response: Device
-func (t *Token) RegisterDevice() error {
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_register_device,
-      "variables": map[string]any{
-         "input": map[string]any{
-            "deviceProfile":      "!",
-            "deviceFamily":       "!",
-            "applicationRuntime": "!",
-            "attributes": map[string]string{
-               "operatingSystem":        "",
-               "operatingSystemVersion": "",
-            },
-         },
-      },
-   })
-   if err != nil {
-      return err
+func (t *Token) assert(expected string) error {
+   if t.AccessTokenType != expected {
+      return errors.New("expected token type " + expected)
    }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("authorization", "Bearer "+client_api_key)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Data struct {
-         RegisterDevice struct {
-            Token Token
-         }
-      }
-      Errors []Error
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return err
-   }
-   if len(result.Errors) >= 1 {
-      return &result.Errors[0]
-   }
-   *t = result.Data.RegisterDevice.Token
    return nil
 }
 
-// Request: Device
 // Response: AccountWithoutActiveProfile
 func (t *Token) Login(email, password string) (*Login, error) {
+   if err := t.assert("Device"); err != nil {
+      return nil, err
+   }
    data, err := json.Marshal(map[string]any{
       "query": mutation_login,
       "variables": map[string]any{
@@ -89,7 +47,7 @@ func (t *Token) Login(email, password string) (*Login, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -117,13 +75,15 @@ func (t *Token) Login(email, password string) (*Login, error) {
    return &result.Data.Login, nil
 }
 
-// Request: Device
 func (t *Token) RequestOtp(email string) (*RequestOtp, error) {
+   if err := t.assert("Device"); err != nil {
+      return nil, err
+   }
    data, err := json.Marshal(map[string]any{
       "query": mutation_request_otp,
       "variables": map[string]any{
          "input": map[string]string{
-            "email": email,
+            "email":  email,
             "reason": "Login",
          },
       },
@@ -138,7 +98,7 @@ func (t *Token) RequestOtp(email string) (*RequestOtp, error) {
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -160,13 +120,15 @@ func (t *Token) RequestOtp(email string) (*RequestOtp, error) {
    return &result.Data.RequestOtp, nil
 }
 
-// Request: Device
 func (t *Token) AuthenticateWithOtp(email, passcode string) (*AuthenticateWithOtp, error) {
+   if err := t.assert("Device"); err != nil {
+      return nil, err
+   }
    data, err := json.Marshal(map[string]any{
       "query": mutation_authenticate_with_otp,
       "variables": map[string]any{
          "input": map[string]string{
-            "email": email,
+            "email":    email,
             "passcode": passcode,
          },
       },
@@ -181,7 +143,7 @@ func (t *Token) AuthenticateWithOtp(email, passcode string) (*AuthenticateWithOt
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -202,9 +164,11 @@ func (t *Token) AuthenticateWithOtp(email, passcode string) (*AuthenticateWithOt
    return &result.Data.AuthenticateWithOtp, nil
 }
 
-// Request: Device
 // Response: AccountWithoutActiveProfile
 func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant, error) {
+   if err := t.assert("Device"); err != nil {
+      return nil, err
+   }
    data, err := json.Marshal(map[string]any{
       "query": mutation_login_with_action_grant,
       "variables": map[string]any{
@@ -223,7 +187,7 @@ func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant,
    if err != nil {
       return nil, err
    }
-   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
@@ -231,7 +195,7 @@ func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant,
    defer resp.Body.Close()
    var result struct {
       Data struct {
-         LoginWithActionGrant LoginWithActionGrant 
+         LoginWithActionGrant LoginWithActionGrant
       }
       Extensions struct {
          Sdk struct {
@@ -247,9 +211,11 @@ func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant,
    return &result.Data.LoginWithActionGrant, nil
 }
 
-// Request: AccountWithoutActiveProfile
 // Response: Account
 func (t *Token) SwitchProfile(profileId string) error {
+   if err := t.assert("AccountWithoutActiveProfile"); err != nil {
+      return err
+   }
    data, err := json.Marshal(map[string]any{
       "query": mutation_switch_profile,
       "variables": map[string]any{
@@ -268,7 +234,7 @@ func (t *Token) SwitchProfile(profileId string) error {
    if err != nil {
       return err
    }
-   req.Header.Set("authorization", "Bearer " + t.AccessToken)
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return err
@@ -291,8 +257,10 @@ func (t *Token) SwitchProfile(profileId string) error {
 
 // SL2000 720p
 // SL3000 2160p
-// Request: Account
 func (t *Token) PlayReady(data []byte) ([]byte, error) {
+   if err := t.assert("Account"); err != nil {
+      return nil, err
+   }
    req, err := http.NewRequest(
       "POST",
       "https://disney.playback.edge.bamgrid.com/playready/v1/obtain-license.asmx",
@@ -315,8 +283,10 @@ func (t *Token) PlayReady(data []byte) ([]byte, error) {
 
 // L3 720p
 // L1 2160p
-// Request: Account
 func (t *Token) Widevine(data []byte) ([]byte, error) {
+   if err := t.assert("Account"); err != nil {
+      return nil, err
+   }
    req, err := http.NewRequest(
       "POST",
       "https://disney.playback.edge.bamgrid.com/widevine/v1/obtain-license",
@@ -334,8 +304,10 @@ func (t *Token) Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-// Request: Account
 func (t *Token) Season(id string) (*Season, error) {
+   if err := t.assert("Account"); err != nil {
+      return nil, err
+   }
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+t.AccessToken)
@@ -362,8 +334,10 @@ func (t *Token) Season(id string) (*Season, error) {
    return &result.Data.Season, nil
 }
 
-// Request: Account
 func (t *Token) Page(entity string) (*Page, error) {
+   if err := t.assert("Account"); err != nil {
+      return nil, err
+   }
    var req http.Request
    req.Header = http.Header{}
    req.Header.Set("authorization", "Bearer "+t.AccessToken)
@@ -398,8 +372,10 @@ func (t *Token) Page(entity string) (*Page, error) {
    return &result.Data.Page, nil
 }
 
-// Request: Account
 func (t *Token) Stream(mediaId string) (*Stream, error) {
+   if err := t.assert("Account"); err != nil {
+      return nil, err
+   }
    playback_id, err := json.Marshal(map[string]string{
       "mediaId": mediaId,
    })
@@ -463,8 +439,10 @@ func (t *Token) Stream(mediaId string) (*Stream, error) {
 }
 
 // access token expires in 14400 seconds AKA 240 minutes AKA 4 hours
-// Request: Account
 func RefreshToken(refresh *Token) error {
+   if err := refresh.assert("Account"); err != nil {
+      return err
+   }
    data, err := json.Marshal(map[string]any{
       "query": mutation_refresh_token,
       "variables": map[string]any{

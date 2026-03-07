@@ -2,6 +2,8 @@
 package disney
 
 import (
+   "bytes"
+   "encoding/json"
    "errors"
    "io"
    "net/http"
@@ -9,6 +11,63 @@ import (
    "strings"
    _ "embed"
 )
+
+type Login struct {
+   Account struct {
+      Profiles []Profile
+   }
+}
+
+// Response: Device
+func (t *Token) RegisterDevice() error {
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_register_device,
+      "variables": map[string]any{
+         "input": map[string]any{
+            "deviceProfile":      "!",
+            "deviceFamily":       "!",
+            "applicationRuntime": "!",
+            "attributes": map[string]string{
+               "operatingSystem":        "",
+               "operatingSystemVersion": "",
+            },
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/graph/v1/device/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer "+client_api_key)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data struct {
+         RegisterDevice struct {
+            Token Token
+         }
+      }
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return err
+   }
+   if len(result.Errors) >= 1 {
+      return &result.Errors[0]
+   }
+   *t = result.Data.RegisterDevice.Token
+   return nil
+}
 
 type Profile struct {
    Name string
@@ -20,12 +79,6 @@ var mutation_register_device string
 
 //go:embed login.gql
 var mutation_login string
-
-type Login struct {
-   Account struct {
-      Profiles []Profile
-   }
-}
 
 //go:embed requestOtp.gql
 var mutation_request_otp string
