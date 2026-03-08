@@ -12,6 +12,29 @@ import (
    "strings"
 )
 
+func (s StreamData) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.StreamInfos[0].LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
+
+type SeasonData struct {
+   Episodes []VideoItem `json:"episodes"`
+}
+
+type StreamData struct {
+   StreamInfos []struct {
+      LicenseUrl string `json:"license_url"`
+      Url        string `json:"url"`
+   } `json:"stream_infos"`
+}
+
 // It returns the ID, Title, and a unique list of available audio languages
 func (v *VideoItem) String() string {
    seen := make(map[string]bool)
@@ -157,6 +180,24 @@ func (s StreamData) Dash() (*Dash, error) {
    return &Dash{Body: body, Url: resp.Request.URL}, nil
 }
 
+func buildUrl(marketCode, endpoint, id string) (string, error) {
+   classId, ok := classificationMap[marketCode]
+   if !ok {
+      return "", fmt.Errorf("unsupported market code %v", marketCode)
+   }
+   url_data := url.URL{
+      Scheme: "https",
+      Host:   "gizmo.rakuten.tv",
+      Path:   join("/v3/", endpoint, "/", id),
+      RawQuery: url.Values{
+         "classification_id": {strconv.Itoa(classId)},
+         "device_identifier": {DeviceId},
+         "market_code":       {marketCode},
+      }.Encode(),
+   }
+   return url_data.String(), nil
+}
+
 ///
 
 func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
@@ -204,24 +245,6 @@ func makeStreamRequest(marketCode, contentType, contentId string, player PlayerT
    return &result.Data, nil
 }
 
-func buildUrl(marketCode, endpoint, id string) (string, error) {
-   classId, ok := classificationMap[marketCode]
-   if !ok {
-      return "", fmt.Errorf("unsupported market code %v", marketCode)
-   }
-   url_data := url.URL{
-      Scheme: "https",
-      Host:   "gizmo.rakuten.tv",
-      Path:   join("/v3/", endpoint, "/", id),
-      RawQuery: url.Values{
-         "classification_id": {strconv.Itoa(classId)},
-         "device_identifier": {DeviceId},
-         "market_code":       {marketCode},
-      }.Encode(),
-   }
-   return url_data.String(), nil
-}
-
 // EpisodeStream requests the stream for a specific TV Show Episode (POST).
 func (c *Content) EpisodeStream(episodeId, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
    if c.Type != "tv_shows" {
@@ -235,11 +258,11 @@ func (c *Content) RequestMovie() (*VideoItem, error) {
    if c.Type != "movies" {
       return nil, errors.New("cannot request movie details for a non-movie content type")
    }
-   fullURL, err := buildUrl(c.MarketCode, "movies", c.Id)
+   fullUrl, err := buildUrl(c.MarketCode, "movies", c.Id)
    if err != nil {
       return nil, err
    }
-   resp, err := http.Get(fullURL)
+   resp, err := http.Get(fullUrl)
    if err != nil {
       return nil, err
    }
@@ -256,43 +279,17 @@ func (c *Content) RequestMovie() (*VideoItem, error) {
    return &result.Data, nil
 }
 
-// RequestTvShow fetches TV show details like seasons (GET).
-func (c *Content) RequestTvShow() (*TvShowData, error) {
-   if c.Type != "tv_shows" {
-      return nil, errors.New("cannot request tv show details for a non-tv show content type")
-   }
-   fullURL, err := buildUrl(c.MarketCode, "tv_shows", c.Id)
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Get(fullURL)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   var result struct {
-      Data TvShowData `json:"data"`
-   }
-   if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-      return nil, err
-   }
-   return &result.Data, nil
-}
-
 // RequestSeason fetches episodes for a specific season (GET).
 // This method is only applicable to TV Shows.
 func (c *Content) RequestSeason(seasonId string) (*SeasonData, error) {
    if c.Type != "tv_shows" {
       return nil, errors.New("cannot request season for a non-tv show content type")
    }
-   fullURL, err := buildUrl(c.MarketCode, "seasons", seasonId)
+   fullUrl, err := buildUrl(c.MarketCode, "seasons", seasonId)
    if err != nil {
       return nil, err
    }
-   resp, err := http.Get(fullURL)
+   resp, err := http.Get(fullUrl)
    if err != nil {
       return nil, err
    }
@@ -309,16 +306,30 @@ func (c *Content) RequestSeason(seasonId string) (*SeasonData, error) {
    return &result.Data, nil
 }
 
-func (s StreamData) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.StreamInfos[0].LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
+// RequestTvShow fetches TV show details like seasons (GET).
+func (c *Content) RequestTvShow() (*TvShowData, error) {
+   if c.Type != "tv_shows" {
+      return nil, errors.New("cannot request tv show details for a non-tv show content type")
+   }
+   fullUrl, err := buildUrl(c.MarketCode, "tv_shows", c.Id)
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Get(fullUrl)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   var result struct {
+      Data TvShowData `json:"data"`
+   }
+   if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+      return nil, err
+   }
+   return &result.Data, nil
 }
 
 // MovieStream requests the stream for this movie (POST).
@@ -327,15 +338,4 @@ func (c *Content) MovieStream(audioLanguage string, player PlayerType, quality V
       return nil, errors.New("cannot request a movie stream for non-movie content")
    }
    return makeStreamRequest(c.MarketCode, "movies", c.Id, player, quality, audioLanguage)
-}
-
-type SeasonData struct {
-   Episodes []VideoItem `json:"episodes"`
-}
-
-type StreamData struct {
-   StreamInfos []struct {
-      LicenseUrl string `json:"license_url"`
-      Url        string `json:"url"`
-   } `json:"stream_infos"`
 }

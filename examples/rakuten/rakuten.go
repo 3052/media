@@ -9,96 +9,6 @@ import (
    "log"
 )
 
-func (c *client) do_language() error {
-   err := cache.Update(c, func() error {
-      var (
-         stream *rakuten.StreamData
-         err    error
-      )
-      switch c.Media.Type {
-      case rakuten.MovieType:
-         stream, err = c.Media.MovieStream(
-            c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
-         )
-      case rakuten.TvShowType:
-         stream, err = c.Media.EpisodeStream(
-            c.Episode, c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
-         )
-      }
-      if err != nil {
-         return err
-      }
-      c.Dash, err = stream.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   var stream *rakuten.StreamData
-   switch c.Media.Type {
-   case rakuten.MovieType:
-      stream, err = c.Media.MovieStream(
-         c.Language,
-         rakuten.Player.Widevine,
-         rakuten.Quality.HD,
-      )
-   case rakuten.TvShowType:
-      stream, err = c.Media.EpisodeStream(
-         c.Episode,
-         c.Language,
-         rakuten.Player.Widevine,
-         rakuten.Quality.HD,
-      )
-   }
-   if err != nil {
-      return err
-   }
-   job.Send = stream.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}
-
-var cache maya.Cache
-
-var job maya.WidevineJob
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-func (c *client) do_address() error {
-   var err error
-   c.Media, err = rakuten.ParseMedia(c.address)
-   if err != nil {
-      return err
-   }
-   switch c.Media.Type {
-   case rakuten.MovieType:
-      item, err := c.Media.RequestMovie()
-      if err != nil {
-         return err
-      }
-      fmt.Println(item)
-   case rakuten.TvShowType:
-      item, err := c.Media.RequestTvShow()
-      if err != nil {
-         return err
-      }
-      fmt.Println(item)
-   }
-   return cache.Write(c)
-}
-
 func (c *client) do_season() error {
    err := cache.Read(c)
    if err != nil {
@@ -179,4 +89,96 @@ func (c *client) do() error {
       {"A", "e"},
       {"d", "c", "p"},
    })
+}
+var cache maya.Cache
+
+var job maya.WidevineJob
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+///
+
+func (c *client) do_address() error {
+   var err error
+   c.Media, err = rakuten.ParseMedia(c.address)
+   if err != nil {
+      return err
+   }
+   switch c.Media.Type {
+   case rakuten.MovieType:
+      item, err := c.Media.RequestMovie()
+      if err != nil {
+         return err
+      }
+      fmt.Println(item)
+   case rakuten.TvShowType:
+      item, err := c.Media.RequestTvShow()
+      if err != nil {
+         return err
+      }
+      fmt.Println(item)
+   }
+   return cache.Write(c)
+}
+
+func (c *client) do_language() error {
+   err := cache.Update(c, func() error {
+      var (
+         stream *rakuten.StreamData
+         err    error
+      )
+      switch c.Media.Type {
+      case rakuten.MovieType:
+         stream, err = c.Media.MovieStream(
+            c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         )
+      case rakuten.TvShowType:
+         stream, err = c.Media.EpisodeStream(
+            c.Episode, c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
+         )
+      }
+      if err != nil {
+         return err
+      }
+      c.Dash, err = stream.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   var stream *rakuten.StreamData
+   switch c.Media.Type {
+   case rakuten.MovieType:
+      stream, err = c.Media.MovieStream(
+         c.Language,
+         rakuten.Player.Widevine,
+         rakuten.Quality.HD,
+      )
+   case rakuten.TvShowType:
+      stream, err = c.Media.EpisodeStream(
+         c.Episode,
+         c.Language,
+         rakuten.Player.Widevine,
+         rakuten.Quality.HD,
+      )
+   }
+   if err != nil {
+      return err
+   }
+   job.Send = stream.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }
