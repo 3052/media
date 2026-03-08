@@ -1,3 +1,4 @@
+// everything needs proxy
 package main
 
 import (
@@ -36,20 +37,6 @@ func (c *client) do_language() error {
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
-type client struct {
-   Dash  *rakuten.Dash
-   Media *rakuten.Media
-   // 1
-   address string
-   // 2
-   season string
-   // 3
-   Language string
-   Episode  string
-   // 4
-   dash_id string
-}
-
 func (c *client) do_dash_id() error {
    err := cache.Read(c)
    if err != nil {
@@ -78,59 +65,17 @@ func (c *client) do_dash_id() error {
    return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }
 
+var cache maya.Cache
+
+var job maya.WidevineJob
+
 func main() {
    log.SetFlags(log.Ltime)
-   // everything needs proxy
-   maya.SetProxy("", "*.isma,*.ismv")
    err := new(client).do()
    if err != nil {
       log.Fatal(err)
    }
 }
-
-var cache maya.Cache
-
-var job maya.WidevineJob
-
-func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := cache.Setup("rosso/rakuten.xml")
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.StringVar(&c.address, "a", "", "address")
-   // 2
-   flag.StringVar(&c.season, "s", "", "season ID")
-   // 3
-   flag.StringVar(&c.Episode, "e", "", "episode ID")
-   flag.StringVar(&c.Language, "A", "", "audio language")
-   // 4
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
-   flag.Parse()
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.season != "" {
-      return c.do_season()
-   }
-   if c.Language != "" {
-      return c.do_language()
-   }
-   if c.dash_id != "" {
-      return c.do_dash_id()
-   }
-   return maya.Usage([][]string{
-      {"a"},
-      {"s"},
-      {"e", "A"},
-      {"d", "c", "p"},
-   })
-}
-
 func (c *client) do_address() error {
    var err error
    c.Media, err = rakuten.ParseMedia(c.address)
@@ -171,3 +116,68 @@ func (c *client) do_season() error {
    }
    return nil
 }
+
+type client struct {
+   Dash  *rakuten.Dash
+   Media *rakuten.Media
+   // 1
+   proxy string
+   // 2
+   address string
+   // 3
+   season string
+   // 4
+   Language string
+   Episode  string
+   // 5
+   dash_id string
+}
+
+func (c *client) do() error {
+   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
+   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
+   err := cache.Setup("rosso/rakuten.xml")
+   if err != nil {
+      return err
+   }
+   // 1
+   flag.StringVar(
+      &c.proxy, "x", "", "proxy (server checks location on all requests)",
+   )
+   // 2
+   flag.StringVar(&c.address, "a", "", "address")
+   // 3
+   flag.StringVar(&c.season, "s", "", "season ID")
+   // 4
+   flag.StringVar(&c.Language, "A", "", "audio language")
+   flag.StringVar(&c.Episode, "e", "", "episode ID")
+   // 5
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
+   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
+   flag.Parse()
+   err = maya.SetProxy(c.proxy, "*.isma,*.ismv")
+   if err != nil {
+      return err
+   }
+   if c.address != "" {
+      return c.do_address()
+   }
+   if c.season != "" {
+      return c.do_season()
+   }
+   if c.Language != "" {
+      return c.do_language()
+   }
+   if c.dash_id != "" {
+      return c.do_dash_id()
+   }
+   return maya.Usage([][]string{
+      {"x"},
+      {"a"},
+      {"s"},
+      {"A", "e"},
+      {"d", "c", "p"},
+   })
+}
+

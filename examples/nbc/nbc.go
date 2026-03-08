@@ -18,6 +18,7 @@ func (c *client) do() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 2
    flag.StringVar(&c.dash, "d", "", "DASH ID")
+   flag.IntVar(&job.Threads, "t", 2, "threads")
    flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
    flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
    flag.Parse()
@@ -29,7 +30,7 @@ func (c *client) do() error {
    }
    return maya.Usage([][]string{
       {"a"},
-      {"d", "c", "p"},
+      {"d", "t", "c", "p"},
    })
 }
 
