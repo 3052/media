@@ -92,6 +92,7 @@ func generate_sky_ott(method, path string, headers http.Header, body []byte) str
       sky_version,
    )
 }
+
 // userToken is good for one day
 type Token struct {
    Description string

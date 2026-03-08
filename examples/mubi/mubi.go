@@ -13,7 +13,7 @@ type client struct {
    LinkCode *mubi.LinkCode
    Session  *mubi.Session
    // 1
-   Proxy string
+   Proxy       string
    proxy_write bool
    // 2
    code bool
@@ -37,7 +37,7 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.Func("x", "proxy", func(proxy string) error {
+   flag.Func("x", "write proxy", func(proxy string) error {
       c.Proxy = proxy
       c.proxy_write = true
       return nil

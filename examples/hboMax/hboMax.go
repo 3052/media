@@ -21,7 +21,7 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.Func("x", "proxy", func(proxy string) error {
+   flag.Func("x", "write proxy", func(proxy string) error {
       c.Proxy = proxy
       c.proxy_write = true
       return nil
@@ -163,6 +163,7 @@ func (c *client) do_edit() error {
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
+
 type client struct {
    Dash     *hboMax.Dash
    Login    *hboMax.Login

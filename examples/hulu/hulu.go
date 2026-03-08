@@ -7,6 +7,37 @@ import (
    "log"
 )
 
+func (c *client) do_address() error {
+   err := cache.Update(c, func() error {
+      err := c.Session.TokenRefresh()
+      if err != nil {
+         return err
+      }
+      deep_link, err := c.Session.DeepLink(hulu.Id(c.address))
+      if err != nil {
+         return err
+      }
+      c.Playlist, err = c.Session.Playlist(deep_link)
+      if err != nil {
+         return err
+      }
+      c.Dash, err = c.Playlist.Dash()
+      return err
+   })
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.Playlist.PlayReady
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
 func (c *client) do_email_password() error {
    c.Session = &hulu.Session{}
    err := c.Session.Fetch(c.email, c.password)
@@ -77,38 +108,3 @@ type client struct {
    dash_id string
 }
 
-func (c *client) do_address() error {
-   id, err := hulu.Id(c.address)
-   if err != nil {
-      return err
-   }
-   err = cache.Update(c, func() error {
-      err := c.Session.TokenRefresh()
-      if err != nil {
-         return err
-      }
-      deep_link, err := c.Session.DeepLink(id)
-      if err != nil {
-         return err
-      }
-      c.Playlist, err = c.Session.Playlist(deep_link)
-      if err != nil {
-         return err
-      }
-      c.Dash, err = c.Playlist.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = c.Playlist.PlayReady
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}

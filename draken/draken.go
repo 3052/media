@@ -2,13 +2,13 @@ package draken
 
 import (
    "bytes"
+   _ "embed"
    "encoding/json"
    "errors"
    "io"
    "net/http"
    "net/url"
    "strings"
-   _ "embed"
 )
 
 func (p *Playback) Dash() (*Dash, error) {

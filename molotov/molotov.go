@@ -11,6 +11,19 @@ import (
    "strings"
 )
 
+func (a *Asset) Dash() (*Dash, error) {
+   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 // Parse extracts the IDs from a Molotov URL and populates the MediaId struct.
 // It maps the first number in the URL to Program and the second to Channel.
 func (m *MediaId) Parse(urlData string) error {
@@ -204,21 +217,6 @@ type MediaId struct {
 type Dash struct {
    Body []byte
    Url  *url.URL
-}
-
-func (a *Asset) Dash() (*Dash, error) {
-   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 // authorization server issues a new refresh token, in which case the

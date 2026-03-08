@@ -264,6 +264,7 @@ func (v *Videos) FilterAndSort() {
       return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
    })
 }
+
 ///
 
 // 1080p SL2000

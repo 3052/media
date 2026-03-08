@@ -12,6 +12,24 @@ import (
    "strings"
 )
 
+func (p *PlayManifest) Dash() (*Dash, error) {
+   req, err := http.NewRequest("", p.Url, nil)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("user-agent", "Mozilla")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 type Video struct {
    Alias   string
    VideoId int
@@ -21,17 +39,17 @@ type Video struct {
 // https://kanopy.com/video/genius-party
 // https://kanopy.com/en/video/genius-party
 // https://kanopy.com/en/product/genius-party
-func (v *Video) Parse(inputUrl string) error {
-   parsedUrl, err := url.Parse(inputUrl)
+func (v *Video) Parse(urlData string) error {
+   urlParse, err := url.Parse(urlData)
    if err != nil {
       return err
    }
-   if !strings.Contains(parsedUrl.Host, "kanopy.com") {
+   if !strings.Contains(urlParse.Host, "kanopy.com") {
       return errors.New("invalid domain")
    }
    // Get the directory of the path (removes the final identifier).
    // e.g., "/en/product/genius-party" -> "/en/product"
-   dir := path.Dir(parsedUrl.Path)
+   dir := path.Dir(urlParse.Path)
    // Update: Check if the directory ends with "/video" OR "/product".
    // This supports:
    // - /video/{id}
@@ -40,7 +58,7 @@ func (v *Video) Parse(inputUrl string) error {
    if !strings.HasSuffix(dir, "/video") && !strings.HasSuffix(dir, "/product") {
       return errors.New("invalid path structure")
    }
-   identifier := path.Base(parsedUrl.Path)
+   identifier := path.Base(urlParse.Path)
    numericId, err := strconv.Atoi(identifier)
    if err != nil {
       v.Alias = identifier
@@ -174,26 +192,6 @@ func (l *Login) Widevine(manifest *PlayManifest, data []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-func (p *PlayManifest) Dash() (*Dash, error) {
-   req, err := http.NewRequest("", p.Url, nil)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("user-agent", "Mozilla")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 type Dash struct {

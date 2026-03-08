@@ -2,6 +2,7 @@ package itv
 
 import (
    "bytes"
+   _ "embed"
    "encoding/json"
    "errors"
    "io"
@@ -11,8 +12,25 @@ import (
    "path"
    "strconv"
    "strings"
-   _ "embed"
 )
+
+func (m *MediaFile) Dash() (*Dash, error) {
+   var err error
+   http.DefaultClient.Jar, err = cookiejar.New(nil)
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
 
 //go:embed ProgrammePage.gql
 var programme_page string
@@ -53,26 +71,6 @@ type MediaFile struct {
 type Dash struct {
    Body []byte
    Url  *url.URL
-}
-
-func (m *MediaFile) Dash() (*Dash, error) {
-   var err error
-   http.DefaultClient.Jar, err = cookiejar.New(nil)
-   if err != nil {
-      return nil, err
-   }
-   resp, err := http.Get(strings.Replace(m.Href, "itvpnpctv", "itvpnpdotcom", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 func Titles(legacyId string) ([]Title, error) {

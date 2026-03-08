@@ -2,6 +2,7 @@ package ctv
 
 import (
    "bytes"
+   _ "embed"
    "encoding/json"
    "errors"
    "io"
@@ -9,7 +10,6 @@ import (
    "net/url"
    "strconv"
    "strings"
-   _ "embed"
 )
 
 func (m Manifest) Dash() (*Dash, error) {

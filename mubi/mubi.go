@@ -12,6 +12,24 @@ import (
    "strings"
 )
 
+func (s *SecureUrl) Dash() (*Dash, error) {
+   s.Url = strings.NewReplacer(
+      ".AVC1", "",
+      ".ex-eac3", "",
+      ".ex-vtt", "",
+   ).Replace(s.Url)
+   resp, err := http.Get(s.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 func (l *LinkCode) Fetch() error {
    var req http.Request
    req.URL = &url.URL{
@@ -28,26 +46,6 @@ func (l *LinkCode) Fetch() error {
    }
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(l)
-}
-
-func (s *SecureUrl) Dash() (*Dash, error) {
-   s.Url = strings.NewReplacer(
-      ".AVC1", "",
-      ".ex-eac3", "",
-      ".ex-vtt", "",
-   ).Replace(s.Url)
-   resp, err := http.Get(s.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {
