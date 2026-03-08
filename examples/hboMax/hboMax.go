@@ -9,28 +9,6 @@ import (
    "net/http"
 )
 
-type client struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   St       *http.Cookie
-   // 1
-   Proxy       string
-   proxy_write bool
-   // 2
-   initiate bool
-   market   string
-   // 3
-   login bool
-   // 4
-   address string
-   season  int
-   // 5
-   edit string
-   // 6
-   dash_id string
-}
-
 func (c *client) do() error {
    job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
    job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
@@ -62,6 +40,7 @@ func (c *client) do() error {
    flag.StringVar(&c.edit, "e", "", "edit ID")
    // 6
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.IntVar(&job.Threads, "t", 2, "threads")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
@@ -183,4 +162,25 @@ func (c *client) do_edit() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+type client struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   St       *http.Cookie
+   // 1
+   Proxy       string
+   proxy_write bool
+   // 2
+   initiate bool
+   market   string
+   // 3
+   login bool
+   // 4
+   address string
+   season  int
+   // 5
+   edit string
+   // 6
+   dash_id string
 }

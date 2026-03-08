@@ -8,29 +8,6 @@ import (
    "log"
 )
 
-func (c *client) do_code() error {
-   c.LinkCode = &mubi.LinkCode{}
-   err := c.LinkCode.Fetch()
-   if err != nil {
-      return err
-   }
-   fmt.Println(c.LinkCode)
-   return cache.Write(c)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.dash")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-var cache maya.Cache
-
-var job maya.WidevineJob
-
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
@@ -39,16 +16,22 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.BoolVar(&c.code, "c", false, "link code")
+   flag.StringVar(&c.proxy, "x", "", "proxy")
    // 2
-   flag.BoolVar(&c.session, "s", false, "session")
+   flag.BoolVar(&c.code, "c", false, "link code")
    // 3
-   flag.StringVar(&c.address, "a", "", "address")
+   flag.BoolVar(&c.session, "s", false, "session")
    // 4
+   flag.StringVar(&c.address, "a", "", "address")
+   // 5
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
    flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
+   err = maya.SetProxy(c.proxy, "*.dash")
+   if err != nil {
+      return err
+   }
    if c.code {
       return c.do_code()
    }
@@ -62,6 +45,7 @@ func (c *client) do() error {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
+      {"x"},
       {"c"},
       {"s"},
       {"a"},
@@ -69,26 +53,26 @@ func (c *client) do() error {
    })
 }
 
+func (c *client) do_code() error {
+   c.LinkCode = &mubi.LinkCode{}
+   err := c.LinkCode.Fetch()
+   if err != nil {
+      return err
+   }
+   fmt.Println(c.LinkCode)
+   return cache.Write(c)
+}
+
+var cache maya.Cache
+
+var job maya.WidevineJob
+
 func (c *client) do_session() error {
    return cache.Update(c, func() error {
       var err error
       c.Session, err = c.LinkCode.Session()
       return err
    })
-}
-
-type client struct {
-   Dash     *mubi.Dash
-   LinkCode *mubi.LinkCode
-   Session  *mubi.Session
-   // 1
-   code bool
-   // 2
-   session bool
-   // 3
-   address string
-   // 4
-   dash_id string
 }
 
 func (c *client) do_address() error {
@@ -130,4 +114,28 @@ func (c *client) do_dash_id() error {
    }
    job.Send = c.Session.Widevine
    return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
+type client struct {
+   Dash     *mubi.Dash
+   LinkCode *mubi.LinkCode
+   Session  *mubi.Session
+   // 1
+   proxy string
+   // 2
+   code bool
+   // 3
+   session bool
+   // 4
+   address string
+   // 5
+   dash_id string
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
