@@ -65,6 +65,111 @@ type Error struct {
    Message string // Token is missing or not valid
 }
 
+func (l Login) Movie(show *ShowItem) (*Videos, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   api_host,
+      RawQuery: url.Values{
+         "include":          {"default"},
+         "page[items.size]": {"1"},
+      }.Encode(),
+      Path: join(
+         "/cms/routes/", strings.TrimSuffix(show.Category, "s"), "/", show.Id,
+      ),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Videos
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result, nil
+}
+
+func (l *Login) playback(edit_id, drm string) (*Playback, error) {
+   data, err := json.Marshal(map[string]any{
+      "editId":               edit_id,
+      "consumptionType":      "streaming",
+      "appBundle":            "",         // required
+      "applicationSessionId": "",         // required
+      "firstPlay":            false,      // required
+      "gdpr":                 false,      // required
+      "playbackSessionId":    "",         // required
+      "userPreferences":      struct{}{}, // required
+      "capabilities": map[string]any{
+         "contentProtection": map[string]any{
+            "contentDecryptionModules": []any{
+               map[string]string{
+                  "drmKeySystem": drm,
+               },
+            },
+         },
+         "manifests": map[string]any{
+            "formats": map[string]any{
+               "dash": struct{}{}, // required
+            }, // required
+         }, // required
+      }, // required
+      "deviceInfo": map[string]any{
+         "player": map[string]any{
+            "mediaEngine": map[string]string{
+               "name":    "", // required
+               "version": "", // required
+            }, // required
+            "playerView": map[string]int{
+               "height": 0, // required
+               "width":  0, // required
+            }, // required
+            "sdk": map[string]string{
+               "name":    "", // required
+               "version": "", // required
+            }, // required
+         }, // required
+      }, // required
+   })
+   var req http.Request
+   if err != nil {
+      return nil, err
+   }
+   req.Body = io.NopCloser(bytes.NewReader(data))
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   req.Header.Set("content-type", "application/json")
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   api_host,
+      Path:   "/playback-orchestrator/any/playback-orchestrator/v1/playbackInfo",
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode == 504 {
+      return nil, errors.New(resp.Status) // bail since no response body
+   }
+   var result Playback
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result, nil
+}
+
 func (l Login) Season(show *ShowItem, number int) (*Videos, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -373,109 +478,4 @@ func (p *Playback) Dash() (*Dash, error) {
 type Dash struct {
    Body []byte
    Url  *url.URL
-}
-
-func (l Login) Movie(show *ShowItem) (*Videos, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   api_host,
-      RawQuery: url.Values{
-         "include":          {"default"},
-         "page[items.size]": {"1"},
-      }.Encode(),
-      Path: join(
-         "/cms/routes/", strings.TrimSuffix(show.Category, "s"), "/", show.Id,
-      ),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Videos
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
-}
-
-func (l *Login) playback(edit_id, drm string) (*Playback, error) {
-   data, err := json.Marshal(map[string]any{
-      "editId":               edit_id,
-      "consumptionType":      "streaming",
-      "appBundle":            "",         // required
-      "applicationSessionId": "",         // required
-      "firstPlay":            false,      // required
-      "gdpr":                 false,      // required
-      "playbackSessionId":    "",         // required
-      "userPreferences":      struct{}{}, // required
-      "capabilities": map[string]any{
-         "contentProtection": map[string]any{
-            "contentDecryptionModules": []any{
-               map[string]string{
-                  "drmKeySystem": drm,
-               },
-            },
-         },
-         "manifests": map[string]any{
-            "formats": map[string]any{
-               "dash": struct{}{}, // required
-            }, // required
-         }, // required
-      }, // required
-      "deviceInfo": map[string]any{
-         "player": map[string]any{
-            "mediaEngine": map[string]string{
-               "name":    "", // required
-               "version": "", // required
-            }, // required
-            "playerView": map[string]int{
-               "height": 0, // required
-               "width":  0, // required
-            }, // required
-            "sdk": map[string]string{
-               "name":    "", // required
-               "version": "", // required
-            }, // required
-         }, // required
-      }, // required
-   })
-   var req http.Request
-   if err != nil {
-      return nil, err
-   }
-   req.Body = io.NopCloser(bytes.NewReader(data))
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   req.Header.Set("content-type", "application/json")
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   api_host,
-      Path:   "/playback-orchestrator/any/playback-orchestrator/v1/playbackInfo",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode == 504 {
-      return nil, errors.New(resp.Status) // bail since no response body
-   }
-   var result Playback
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, &result.Errors[0]
-   }
-   return &result, nil
 }

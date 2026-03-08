@@ -2,13 +2,13 @@ package disney
 
 import (
    "bytes"
+   _ "embed"
    "encoding/json"
    "errors"
    "io"
    "net/http"
    "net/url"
    "strings"
-   _ "embed"
 )
 
 func (s *Stream) Hls() (*Hls, error) {
