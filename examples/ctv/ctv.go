@@ -56,11 +56,11 @@ var cache maya.Cache
 var job maya.WidevineJob
 
 func (c *client) do_address() error {
-   link_path, err := ctv.GetPath(c.address)
+   path, err := ctv.GetPath(c.address)
    if err != nil {
       return err
    }
-   resolve, err := ctv.Resolve(link_path)
+   resolve, err := ctv.Resolve(path)
    if err != nil {
       return err
    }

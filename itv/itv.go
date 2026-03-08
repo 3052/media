@@ -11,7 +11,20 @@ import (
    "path"
    "strconv"
    "strings"
+   _ "embed"
 )
+
+//go:embed ProgrammePage.gql
+var programme_page string
+
+func LegacyId(urlData string) string {
+   // 1. Get the last part of the URL (e.g., "10a5356a0001B")
+   base := path.Base(urlData)
+   // 2. Split the string by the character 'a'
+   parts := strings.Split(base, "a")
+   // 3. Join them back together with '/'
+   return strings.Join(parts, "/")
+}
 
 func (p *Playlist) FullHd() (*MediaFile, error) {
    for _, file := range p.Playlist.Video.MediaFiles {
@@ -194,28 +207,6 @@ func (p *Playlist) playReady(id string) error {
    return json.NewDecoder(resp.Body).Decode(p)
 }
 
-const programme_page = `
-query ProgrammePage( $brandLegacyId: BrandLegacyId ) {
-   titles(
-      filter: {
-         brandLegacyId: $brandLegacyId
-      }
-      sortBy: SEQUENCE_ASC
-   ) {
-      ... on Episode {
-         series {
-            seriesNumber
-         }
-         episodeNumber
-      }
-      title
-      latestAvailableVersion {
-         playlistUrl
-      }
-   }
-}
-`
-
 func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       m.KeyServiceUrl, "application/x-protobuf", bytes.NewReader(data),
@@ -248,15 +239,6 @@ func (t *Title) String() string {
    data.WriteString("playlist = ")
    data.WriteString(t.LatestAvailableVersion.PlaylistUrl)
    return data.String()
-}
-
-func LegacyId(link string) string {
-   // 1. Get the last part of the URL (e.g., "10a5356a0001B")
-   base := path.Base(link)
-   // 2. Split the string by the character 'a'
-   parts := strings.Split(base, "a")
-   // 3. Join them back together with '/'
-   return strings.Join(parts, "/")
 }
 
 func graphql_compact(data string) string {

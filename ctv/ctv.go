@@ -19,15 +19,15 @@ var query_resolve_path string
 var query_axis_content string
 
 // https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
-func GetPath(rawLink string) (string, error) {
-   link, err := url.Parse(rawLink)
+func GetPath(urlData string) (string, error) {
+   urlParse, err := url.Parse(urlData)
    if err != nil {
       return "", err
    }
-   if link.Scheme == "" {
+   if urlParse.Scheme == "" {
       return "", errors.New("invalid URL: scheme is missing")
    }
-   return link.Path, nil
+   return urlParse.Path, nil
 }
 
 func join(items ...string) string {

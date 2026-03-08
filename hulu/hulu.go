@@ -7,7 +7,6 @@ import (
    "io"
    "net/http"
    "net/url"
-   "strings"
 )
 
 func (s *Session) Fetch(email, password string) error {
@@ -135,23 +134,6 @@ type DeepLink struct {
    Message string
 }
 
-// hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
-// hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
-func Id(link string) (string, error) {
-   slash := strings.LastIndex(link, "/")
-   if slash == -1 {
-      return "", errors.New("no slash found in URL")
-   }
-   part := link[slash+1:]
-   len_part := len(part)
-   const len_uuid = 36
-   if len_part > len_uuid {
-      if part[len_part-len_uuid-1] == '-' {
-         return part[len_part-len_uuid:], nil
-      }
-   }
-   return part, nil
-}
 func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.DashPrServer, "", bytes.NewReader(data),

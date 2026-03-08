@@ -1,0 +1,17 @@
+query ProgrammePage($brandLegacyId: BrandLegacyId) {
+   titles(
+      filter: { brandLegacyId: $brandLegacyId }
+      sortBy: SEQUENCE_ASC
+   ) {
+      ... on Episode {
+         series {
+            seriesNumber
+         }
+         episodeNumber
+      }
+      title
+      latestAvailableVersion {
+         playlistUrl
+      }
+   }
+}

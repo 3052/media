@@ -115,31 +115,28 @@ func Widevine(data []byte) ([]byte, error) {
    return io.ReadAll(resp.Body)
 }
 
-// GetMovieURL generates the Stitcher URL object for a movie.
-// It assumes Vod and Stitched.Paths always have at least one entry.
-func (s *Series) GetMovieURL() *url.URL {
+// It assumes Vod and Stitched.Paths always have at least one entry
+func (s *Series) GetMovieUrl() *url.URL {
    // Directly access the required path based on the data guarantees
    path := s.Vod[0].Stitched.Paths[0].Path
-   return s.buildStitcherURL(path)
+   return s.buildStitcherUrl(path)
 }
 
-// GetEpisodeURL generates the Stitcher URL object for a specific episode by its ID.
-func (s *Series) GetEpisodeURL(episodeID string) (*url.URL, error) {
+func (s *Series) GetEpisodeUrl(episodeId string) (*url.URL, error) {
    // Iterate through all seasons and episodes to find the matching ID
    for _, season := range s.Vod[0].Seasons {
       for _, episode := range season.Episodes {
-         if episode.Id == episodeID {
+         if episode.Id == episodeId {
             // Directly access the path based on the data guarantees
             path := episode.Stitched.Paths[0].Path
-            return s.buildStitcherURL(path), nil
+            return s.buildStitcherUrl(path), nil
          }
       }
    }
    return nil, errors.New("episode not found")
 }
 
-// buildStitcherURL manually constructs the URL struct.
-func (s *Series) buildStitcherURL(path string) *url.URL {
+func (s *Series) buildStitcherUrl(path string) *url.URL {
    stitcher := &url.URL{
       Host:   stitcherHost,
       Path:   "/v2" + path,
