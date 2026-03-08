@@ -12,6 +12,15 @@ import (
    "strings"
 )
 
+func isCategory(segment string) bool {
+   switch segment {
+   case "movies", "shows", "movie", "show":
+      return true
+   default:
+      return false
+   }
+}
+
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
@@ -33,14 +42,23 @@ func (l *Login) Fetch(st *http.Cookie) error {
    return json.NewDecoder(resp.Body).Decode(l)
 }
 
-func isCategory(segment string) bool {
-   switch segment {
-   case "movies", "shows", "movie", "show":
-      return true
-   default:
-      return false
+type Video struct {
+   Attributes *struct {
+      SeasonNumber  int
+      EpisodeNumber int
+      Name          string
+      VideoType     string
+   }
+   Relationships *struct {
+      Edit *struct {
+         Data struct {
+            Id string
+         }
+      }
    }
 }
+
+///
 
 func (e *Error) Error() string {
    var data strings.Builder
@@ -461,20 +479,4 @@ func (v *Videos) FilterAndSort() {
       }
       return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
    })
-}
-
-type Video struct {
-   Attributes *struct {
-      SeasonNumber  int
-      EpisodeNumber int
-      Name          string
-      VideoType     string
-   }
-   Relationships *struct {
-      Edit *struct {
-         Data struct {
-            Id string
-         }
-      }
-   }
 }

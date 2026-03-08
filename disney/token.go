@@ -9,6 +9,52 @@ import (
    "net/url"
 )
 
+// THIS REQUEST SETS THE LOCATION BASED ON YOUR IP
+// request: AccountWithoutActiveProfile
+// response: Account
+func (t *Token) SwitchProfile(profileId string) error {
+   if err := t.assert("AccountWithoutActiveProfile"); err != nil {
+      return err
+   }
+   data, err := json.Marshal(map[string]any{
+      "query": mutation_switch_profile,
+      "variables": map[string]any{
+         "input": map[string]string{
+            "profileId": profileId,
+         },
+      },
+   })
+   if err != nil {
+      return err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return err
+   }
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Extensions struct {
+         Sdk struct {
+            Token Token
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return err
+   }
+   *t = result.Extensions.Sdk.Token
+   return nil
+}
+
 // expires: 4 hours
 // request: Account
 func RefreshToken(refresh *Token) error {
@@ -252,51 +298,6 @@ func (t *Token) LoginWithActionGrant(actionGrant string) (*LoginWithActionGrant,
    }
    *t = result.Extensions.Sdk.Token
    return &result.Data.LoginWithActionGrant, nil
-}
-
-// request: AccountWithoutActiveProfile
-// response: Account
-func (t *Token) SwitchProfile(profileId string) error {
-   if err := t.assert("AccountWithoutActiveProfile"); err != nil {
-      return err
-   }
-   data, err := json.Marshal(map[string]any{
-      "query": mutation_switch_profile,
-      "variables": map[string]any{
-         "input": map[string]string{
-            "profileId": profileId,
-         },
-      },
-   })
-   if err != nil {
-      return err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://disney.api.edge.bamgrid.com/v1/public/graphql",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Extensions struct {
-         Sdk struct {
-            Token Token
-         }
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return err
-   }
-   *t = result.Extensions.Sdk.Token
-   return nil
 }
 
 // SL2000: 720p
