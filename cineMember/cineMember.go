@@ -10,6 +10,15 @@ import (
    "strings"
 )
 
+func (s *Stream) Dash() (*MediaLink, error) {
+   for _, link := range s.Links {
+      if link.MimeType == "application/dash+xml" {
+         return &link, nil
+      }
+   }
+   return nil, errors.New("DASH link not found")
+}
+
 func FetchSession() (*http.Cookie, error) {
    // We ignore the error here because the method and URL are hardcoded and
    // known to be valid.
@@ -60,8 +69,8 @@ func FetchLogin(session *http.Cookie, email, password string) error {
 }
 
 // extracts the numeric ID and converts it to an integer
-func FetchId(link string) (int, error) {
-   resp, err := http.Get(link)
+func FetchId(url_data string) (int, error) {
+   resp, err := http.Get(url_data)
    if err != nil {
       return 0, err
    }
@@ -143,14 +152,4 @@ type Stream struct {
    Error    string
    Links    []MediaLink
    NoAccess bool
-}
-
-func (s *Stream) Dash() (*MediaLink, error) {
-   for i := range s.Links {
-      if s.Links[i].MimeType == "application/dash+xml" {
-         return &s.Links[i], nil
-      }
-   }
-   // Create and return the error directly.
-   return nil, errors.New("DASH link not found")
 }

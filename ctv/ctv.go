@@ -9,39 +9,14 @@ import (
    "net/url"
    "strconv"
    "strings"
+   _ "embed"
 )
 
-const query_resolve_path = `
-query resolvePath($path: String!) {
-   resolvedPath(path: $path) {
-      lastSegment {
-         content {
-            ... on AxisObject {
-               id
-               ... on AxisMedia {
-                  firstPlayableContent {
-                     id
-                  }
-               }
-            }
-         }
-      }
-   }
-}
-`
+//go:embed resolvePath.gql
+var query_resolve_path string
 
-const query_axis_content = `
-query axisContent($id: ID!) {
-   axisContent(id: $id) {
-      axisId
-      axisPlaybackLanguages {
-         ... on AxisPlayback {
-            destinationCode
-         }
-      }
-   }
-}
-`
+//go:embed axisContent.gql
+var query_axis_content string
 
 // https://ctv.ca/shows/friends/the-one-with-the-bullies-s2e21
 func GetPath(rawLink string) (string, error) {

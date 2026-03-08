@@ -10,6 +10,40 @@ import (
    "strings"
 )
 
+func (t *Token) Item(slug string) (*VideoItem, error) {
+   var req http.Request
+   req.URL = &url.URL{
+      Host:     "api.vhx.com",
+      Path:     join("/collections/", slug, "/items"),
+      RawQuery: "site_id=59054",
+      Scheme:   "https",
+   }
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+t.AccessToken)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Embedded struct {
+         Items []VideoItem
+      } `json:"_embedded"`
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   return &result.Embedded.Items[0], nil
+}
+
+type VideoItem struct {
+   Links struct {
+      Files struct {
+         Href string // https://api.vhx.tv/videos/3460957/files
+      }
+   } `json:"_links"`
+}
 const client_id = "9a87f110f79cd25250f6c7f3a6ec8b9851063ca156dae493bf362a7faf146c78"
 
 func join(items ...string) string {
@@ -150,39 +184,4 @@ func (t *Token) Files(item *VideoItem) (MediaFiles, error) {
       return nil, err
    }
    return result, nil
-}
-
-func (t *Token) Item(slug string) (*VideoItem, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+t.AccessToken)
-   req.URL = &url.URL{
-      Host:     "api.vhx.com",
-      Path:     join("/collections/", slug, "/items"),
-      RawQuery: "site_id=59054",
-      Scheme:   "https",
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Embedded struct {
-         Items []VideoItem
-      } `json:"_embedded"`
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   return &result.Embedded.Items[0], nil
-}
-
-type VideoItem struct {
-   Links struct {
-      Files struct {
-         Href string // https://api.vhx.tv/videos/3460957/files
-      }
-   } `json:"_links"`
 }

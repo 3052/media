@@ -11,6 +11,23 @@ import (
    "strings"
 )
 
+func (d *Dash) Fetch(urlData *url.URL) error {
+   var req http.Request
+   req.URL = urlData
+   req.Header = http.Header{}
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   d.Body, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return err
+   }
+   d.Url = resp.Request.URL
+   return nil
+}
+
 // pluto.tv/on-demand/movies/64946365c5ae350013623630
 // pluto.tv/on-demand/movies/disobedience-ca-2018-1-1
 func (s *Series) Fetch(movieShow string) error {
@@ -73,24 +90,6 @@ type Vod struct {
 type Dash struct {
    Body []byte
    Url  *url.URL
-}
-
-func (d *Dash) Fetch(link *url.URL) error {
-   var req http.Request
-   req.Method = "GET"
-   req.URL = link
-   req.Header = http.Header{}
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   d.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return err
-   }
-   d.Url = resp.Request.URL
-   return nil
 }
 
 // Define constants for the hardcoded URL parts

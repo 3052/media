@@ -24,7 +24,7 @@ const (
    secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
 )
 
-func get_client(link *url.URL, body []byte) (string, error) {
+func get_client(url_data *url.URL, body []byte) (string, error) {
    encoding := base64.RawURLEncoding
    // 1. base64 raw URL decode secret key
    decoded_key, err := encoding.DecodeString(secret_key)
@@ -38,8 +38,7 @@ func get_client(link *url.URL, body []byte) (string, error) {
    // 2. hmac.New(sha256.New, secret key)
    hash := hmac.New(sha256.New, decoded_key)
    // 3, 4, 5. Write components to the hasher
-   // link is now a string, so we pass it directly
-   io.WriteString(hash, link.String())
+   io.WriteString(hash, url_data.String())
    io.WriteString(hash, encoded_body_hash)
    io.WriteString(hash, timestamp)
    // 6. base64 raw URL encode the hmac sum
@@ -55,8 +54,8 @@ func get_client(link *url.URL, body []byte) (string, error) {
    return data.String(), nil
 }
 
-func FetchTracking(link string) (string, error) {
-   resp, err := http.Get(link)
+func FetchTracking(url_data string) (string, error) {
+   resp, err := http.Get(url_data)
    if err != nil {
       return "", err
    }
