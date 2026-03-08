@@ -12,62 +12,6 @@ import (
    "strings"
 )
 
-// Parse populates the Media struct from a raw URL.
-func (m *Media) Parse(urlData string) error {
-   urlParse, err := url.Parse(urlData)
-   if err != nil {
-      return err
-   }
-   marketCode, err := extractMarketCode(urlParse.Path)
-   if err != nil {
-      return err
-   }
-   m.MarketCode = marketCode
-
-   // 1. Check Query Parameters
-   query := urlParse.Query()
-   // 'contentType' here is the URL parameter value (e.g. "movies", "tv_shows")
-   contentType := query.Get("content_type")
-   if contentType == "movies" || contentType == "tv_shows" {
-      var id string
-      if contentType == "movies" {
-         id = query.Get("content_id")
-         if id == "" {
-            return errors.New("url missing content_id param")
-         }
-         m.Type = Movies
-      } else {
-         id = query.Get("tv_show_id")
-         if id == "" {
-            return errors.New("url missing tv_show_id param")
-         }
-         m.Type = TvShows
-      }
-      m.Id = id
-      return nil
-   }
-
-   // 2. Check Path Segments
-   path := strings.Trim(urlParse.Path, "/")
-   segments := strings.Split(path, "/")
-   for _, seg := range segments {
-      if seg == "movies" || seg == "tv_shows" {
-         id := segments[len(segments)-1]
-         if id == seg {
-            return fmt.Errorf("url does not contain a specific %s id", seg)
-         }
-         m.Id = id
-         if seg == "movies" {
-            m.Type = Movies
-         } else {
-            m.Type = TvShows
-         }
-         return nil
-      }
-   }
-   return errors.New("not a movie or tv show url")
-}
-
 func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
    classId, ok := classificationMap[marketCode]
    if !ok {
@@ -112,6 +56,7 @@ func makeStreamRequest(marketCode, contentType, contentId string, player PlayerT
    }
    return &wrapper.Data, nil
 }
+
 func buildUrl(marketCode, endpoint, id string) (string, error) {
    classId, ok := classificationMap[marketCode]
    if !ok {
@@ -144,19 +89,19 @@ func (s StreamData) Dash() (*Dash, error) {
 }
 
 // EpisodeStream requests the stream for a specific TV Show Episode (POST).
-func (m *Media) EpisodeStream(episodeId, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
-   if m.Type != TvShows {
+func (c *Content) EpisodeStream(episodeId, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
+   if c.Type != TvShows {
       return nil, errors.New("cannot request an episode stream for non-tv-show content")
    }
-   return makeStreamRequest(m.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
+   return makeStreamRequest(c.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
 }
 
 // RequestMovie fetches movie details (GET).
-func (m *Media) RequestMovie() (*VideoItem, error) {
-   if m.Type != Movies {
+func (c *Content) RequestMovie() (*VideoItem, error) {
+   if c.Type != Movies {
       return nil, errors.New("cannot request movie details for a non-movie content type")
    }
-   fullURL, err := buildUrl(m.MarketCode, "movies", m.Id)
+   fullURL, err := buildUrl(c.MarketCode, "movies", c.Id)
    if err != nil {
       return nil, err
    }
@@ -178,11 +123,11 @@ func (m *Media) RequestMovie() (*VideoItem, error) {
 }
 
 // RequestTvShow fetches TV show details like seasons (GET).
-func (m *Media) RequestTvShow() (*TvShowData, error) {
-   if m.Type != TvShows {
+func (c *Content) RequestTvShow() (*TvShowData, error) {
+   if c.Type != TvShows {
       return nil, errors.New("cannot request tv show details for a non-tv show content type")
    }
-   fullURL, err := buildUrl(m.MarketCode, "tv_shows", m.Id)
+   fullURL, err := buildUrl(c.MarketCode, "tv_shows", c.Id)
    if err != nil {
       return nil, err
    }
@@ -205,11 +150,11 @@ func (m *Media) RequestTvShow() (*TvShowData, error) {
 
 // RequestSeason fetches episodes for a specific season (GET).
 // This method is only applicable to TV Shows.
-func (m *Media) RequestSeason(seasonId string) (*SeasonData, error) {
-   if m.Type != TvShows {
+func (c *Content) RequestSeason(seasonId string) (*SeasonData, error) {
+   if c.Type != TvShows {
       return nil, errors.New("cannot request season for a non-tv show content type")
    }
-   fullURL, err := buildUrl(m.MarketCode, "seasons", seasonId)
+   fullURL, err := buildUrl(c.MarketCode, "seasons", seasonId)
    if err != nil {
       return nil, err
    }
@@ -243,11 +188,11 @@ func (s StreamData) Widevine(data []byte) ([]byte, error) {
 }
 
 // MovieStream requests the stream for this movie (POST).
-func (m *Media) MovieStream(audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
-   if m.Type != Movies {
+func (c *Content) MovieStream(audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
+   if c.Type != Movies {
       return nil, errors.New("cannot request a movie stream for non-movie content")
    }
-   return makeStreamRequest(m.MarketCode, "movies", m.Id, player, quality, audioLanguage)
+   return makeStreamRequest(c.MarketCode, "movies", c.Id, player, quality, audioLanguage)
 }
 
 // join takes a variable number of strings and returns them combined into one string without separators.
@@ -298,30 +243,6 @@ type Dash struct {
    Url  *url.URL
 }
 
-// extractMarketCode extracts the first segment of the path (e.g., "nl", "uk").
-func extractMarketCode(path string) (string, error) {
-   trimmed := strings.Trim(path, "/")
-   // Check if we have anything left after trimming
-   if trimmed == "" {
-      return "", errors.New("could not determine market code from path")
-   }
-   segments := strings.Split(trimmed, "/")
-   return segments[0], nil
-}
-
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-var classificationMap = map[string]int{
-   "cz": 272,
-   "es": 5,
-   "fr": 23,
-   "ie": 41,
-   "nl": 69,
-   "pl": 277,
-   "pt": 64,
-   "se": 282,
-   "uk": 18,
-}
-
 type VideoItem struct {
    Title       string `json:"title"`
    Id          string `json:"id"`
@@ -362,18 +283,3 @@ const (
    PlayReady PlayerType = DeviceId + ":DASH-CENC:PR"
    Widevine  PlayerType = DeviceId + ":DASH-CENC:WVM"
 )
-
-///
-
-type Content int
-
-const (
-   Movies Content = iota
-   TvShows
-)
-
-type Media struct {
-   Id         string
-   MarketCode string
-   Type       Content
-}
