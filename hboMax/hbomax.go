@@ -12,6 +12,21 @@ import (
    "strings"
 )
 
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 const (
    api_host     = "default.prd.api.hbomax.com"
    disco_client = "!:!:beam:!"
@@ -456,23 +471,6 @@ func (v *Video) String() string {
    data.WriteString("\nedit id = ")
    data.WriteString(v.Relationships.Edit.Data.Id)
    return data.String()
-}
-
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 type Dash struct {

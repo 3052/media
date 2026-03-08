@@ -10,6 +10,19 @@ import (
    "strings"
 )
 
+func (m *MediaLink) Dash() (*Dash, error) {
+   resp, err := http.Get(m.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 func (s *Stream) Dash() (*MediaLink, error) {
    for _, link := range s.Links {
       if link.MimeType == "application/dash+xml" {
@@ -102,21 +115,6 @@ type Dash struct {
 type MediaLink struct {
    MimeType string
    Url      string
-}
-
-func (m *MediaLink) Dash() (*Dash, error) {
-   resp, err := http.Get(m.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 // must run login first

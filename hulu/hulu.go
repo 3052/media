@@ -7,7 +7,35 @@ import (
    "io"
    "net/http"
    "net/url"
+   "path"
 )
+
+func (p *Playlist) Dash() (*Dash, error) {
+   resp, err := http.Get(p.StreamUrl)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
+// https://hulu.com/movie/05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+// https://hulu.com/movie/alien-romulus-05e76ad8-c3dd-4c3e-bab9-df3cf71c6871
+func Id(url string) string {
+   part := path.Base(url)
+   len_part := len(part)
+   const len_uuid = 36
+   if len_part > len_uuid {
+      if part[len_part-len_uuid-1] == '-' {
+         return part[len_part-len_uuid:]
+      }
+   }
+   return part
+}
 
 func (s *Session) Fetch(email, password string) error {
    resp, err := http.PostForm(
@@ -239,21 +267,6 @@ var deejay = []struct {
 type Dash struct {
    Body []byte
    Url  *url.URL
-}
-
-func (p *Playlist) Dash() (*Dash, error) {
-   resp, err := http.Get(p.StreamUrl)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 func (s *Session) DeepLink(id string) (*DeepLink, error) {

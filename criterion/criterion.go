@@ -10,6 +10,19 @@ import (
    "strings"
 )
 
+func (m *MediaFile) Dash() (*Dash, error) {
+   resp, err := http.Get(m.Links.Source.Href)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 func (t *Token) Item(slug string) (*VideoItem, error) {
    var req http.Request
    req.URL = &url.URL{
@@ -82,21 +95,6 @@ func (m *MediaFile) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func (m *MediaFile) Dash() (*Dash, error) {
-   resp, err := http.Get(m.Links.Source.Href)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 type MediaFiles []MediaFile

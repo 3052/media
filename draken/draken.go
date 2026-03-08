@@ -11,6 +11,19 @@ import (
    _ "embed"
 )
 
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Playlist)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 //go:embed GetCustomIdFullMovie.gql
 var get_custom_id_full_movie string
 
@@ -211,21 +224,6 @@ func FetchMovie(customId string) (*MovieItem, error) {
       return nil, errors.New("ViewableCustomId")
    }
    return result.Data.Viewer.ViewableCustomId, nil
-}
-
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Playlist)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 type Playback struct {

@@ -16,6 +16,19 @@ import (
    "time"
 )
 
+func (p *Player) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 const device_serial = "!!!!"
 
 // Global variables for authentication
@@ -135,21 +148,6 @@ type Player struct {
       Url string
    }
    Url string // MPD
-}
-
-func (p *Player) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 func (p *Player) Widevine(data []byte) ([]byte, error) {
