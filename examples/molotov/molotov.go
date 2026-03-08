@@ -7,37 +7,6 @@ import (
    "log"
 )
 
-func (c *client) do_email_password() error {
-   c.Login = &molotov.Login{}
-   err := c.Login.Fetch(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
-}
-
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = c.Asset.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.m4s")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-var cache maya.Cache
-
-var job maya.WidevineJob
-
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
@@ -52,6 +21,7 @@ func (c *client) do() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 3
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.IntVar(&job.Threads, "t", 2, "threads")
    flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
    flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
@@ -69,7 +39,7 @@ func (c *client) do() error {
    return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
-      {"d", "C", "P"},
+      {"d", "t", "C", "P"},
    })
 }
 
@@ -113,3 +83,33 @@ func (c *client) do_address() error {
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
+func (c *client) do_email_password() error {
+   c.Login = &molotov.Login{}
+   err := c.Login.Fetch(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.Asset.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+var cache maya.Cache
+
+var job maya.WidevineJob
