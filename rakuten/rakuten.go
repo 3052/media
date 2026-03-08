@@ -12,11 +12,83 @@ import (
    "strings"
 )
 
-// extractMarketCode extracts the first segment of the path (e.g., "nl", "uk").
-func extractMarketCode(path string) string {
-   path = strings.TrimPrefix(path, "/")
-   marketCode, _, _ := strings.Cut(path, "/")
-   return marketCode
+// It returns the ID, Title, and a unique list of available audio languages
+func (v *VideoItem) String() string {
+   seen := make(map[string]bool)
+   var data strings.Builder
+   data.WriteString("title = ")
+   data.WriteString(v.Title)
+   data.WriteString("\nid = ")
+   data.WriteString(v.Id)
+   for _, stream := range v.ViewOptions.Private.Streams {
+      for _, lang := range stream.AudioLanguages {
+         if !seen[lang.Id] {
+            seen[lang.Id] = true
+            data.WriteString("\naudio language = ")
+            data.WriteString(lang.Id)
+         }
+      }
+   }
+   return data.String()
+}
+
+type VideoItem struct {
+   Title       string `json:"title"`
+   Id          string `json:"id"`
+   ViewOptions struct {
+      Private struct {
+         Streams []struct {
+            AudioLanguages []struct {
+               Id string `json:"id"`
+            } `json:"audio_languages"`
+         } `json:"streams"`
+      } `json:"private"`
+   } `json:"view_options"`
+}
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+const DeviceId = "atvui40"
+
+type VideoQuality string
+
+const (
+   Fhd VideoQuality = "FHD"
+   Hd  VideoQuality = "HD"
+)
+
+type PlayerType string
+
+const (
+   PlayReady PlayerType = DeviceId + ":DASH-CENC:PR"
+   Widevine  PlayerType = DeviceId + ":DASH-CENC:WVM"
+)
+
+func (t TvShowData) String() string {
+   var data strings.Builder
+   for i, season := range t.Seasons {
+      if i >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("season id = ")
+      data.WriteString(season.Id)
+   }
+   return data.String()
+}
+
+type TvShowData struct {
+   Seasons []struct {
+      Id string `json:"id"`
+   } `json:"seasons"`
+}
+
+// join takes a variable number of strings and returns them combined into one
+// string without separators
+func join(strs ...string) string {
+   return strings.Join(strs, "")
 }
 
 type Content struct {
@@ -30,26 +102,23 @@ func (c *Content) Parse(urlData string) error {
    if err != nil {
       return err
    }
-   c.MarketCode = extractMarketCode(urlParse.Path)
-
+   // Trim prefix once and extract the market code
+   path := strings.TrimPrefix(urlParse.Path, "/")
+   c.MarketCode, _, _ = strings.Cut(path, "/")
    // 1. Check Query Parameters
    query := urlParse.Query()
    contentType := query.Get("content_type")
-
    switch contentType {
    case "movies":
       c.Id = query.Get("content_id")
       c.Type = contentType
       return nil
-
    case "tv_shows":
       c.Id = query.Get("tv_show_id")
       c.Type = contentType
       return nil
    }
-
    // 2. Check Path Segments
-   path := strings.TrimPrefix(urlParse.Path, "/")
    segments := strings.Split(path, "/")
    for _, segment := range segments {
       switch segment {
@@ -59,7 +128,6 @@ func (c *Content) Parse(urlData string) error {
          return nil
       }
    }
-
    return errors.New("not a movie or tv show url")
 }
 
@@ -75,6 +143,21 @@ var classificationMap = map[string]int{
    "se": 282,
    "uk": 18,
 }
+
+func (s StreamData) Dash() (*Dash, error) {
+   resp, err := http.Get(s.StreamInfos[0].Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
+///
 
 func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
    classId, ok := classificationMap[marketCode]
@@ -105,20 +188,20 @@ func makeStreamRequest(marketCode, contentType, contentId string, player PlayerT
       return nil, err
    }
    defer resp.Body.Close()
-   var wrapper struct {
+   var result struct {
       Data   StreamData `json:"data"`
       Errors []struct {
          Message string
       }
    }
-   err = json.NewDecoder(resp.Body).Decode(&wrapper)
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   if len(wrapper.Errors) >= 1 {
-      return nil, errors.New(wrapper.Errors[0].Message)
+   if len(result.Errors) >= 1 {
+      return nil, errors.New(result.Errors[0].Message)
    }
-   return &wrapper.Data, nil
+   return &result.Data, nil
 }
 
 func buildUrl(marketCode, endpoint, id string) (string, error) {
@@ -137,19 +220,6 @@ func buildUrl(marketCode, endpoint, id string) (string, error) {
       }.Encode(),
    }
    return url_data.String(), nil
-}
-
-func (s StreamData) Dash() (*Dash, error) {
-   resp, err := http.Get(s.StreamInfos[0].Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
 }
 
 // EpisodeStream requests the stream for a specific TV Show Episode (POST).
@@ -177,13 +247,13 @@ func (c *Content) RequestMovie() (*VideoItem, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   var wrapper struct {
+   var result struct {
       Data VideoItem `json:"data"`
    }
-   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+   if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
       return nil, err
    }
-   return &wrapper.Data, nil
+   return &result.Data, nil
 }
 
 // RequestTvShow fetches TV show details like seasons (GET).
@@ -203,13 +273,13 @@ func (c *Content) RequestTvShow() (*TvShowData, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   var wrapper struct {
+   var result struct {
       Data TvShowData `json:"data"`
    }
-   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+   if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
       return nil, err
    }
-   return &wrapper.Data, nil
+   return &result.Data, nil
 }
 
 // RequestSeason fetches episodes for a specific season (GET).
@@ -230,13 +300,13 @@ func (c *Content) RequestSeason(seasonId string) (*SeasonData, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   var wrapper struct {
+   var result struct {
       Data SeasonData `json:"data"`
    }
-   if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+   if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
       return nil, err
    }
-   return &wrapper.Data, nil
+   return &result.Data, nil
 }
 
 func (s StreamData) Widevine(data []byte) ([]byte, error) {
@@ -259,68 +329,6 @@ func (c *Content) MovieStream(audioLanguage string, player PlayerType, quality V
    return makeStreamRequest(c.MarketCode, "movies", c.Id, player, quality, audioLanguage)
 }
 
-// join takes a variable number of strings and returns them combined into one string without separators.
-func join(strs ...string) string {
-   return strings.Join(strs, "")
-}
-
-func (t TvShowData) String() string {
-   var data strings.Builder
-   for i, season := range t.Seasons {
-      if i >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("season id = ")
-      data.WriteString(season.Id)
-   }
-   return data.String()
-}
-
-type TvShowData struct {
-   Seasons []struct {
-      Id string `json:"id"`
-   } `json:"seasons"`
-}
-
-// It returns the ID, Title, and a unique list of available audio languages.
-func (v *VideoItem) String() string {
-   seen := make(map[string]bool)
-   var data strings.Builder
-   data.WriteString("title = ")
-   data.WriteString(v.Title)
-   data.WriteString("\nid = ")
-   data.WriteString(v.Id)
-   for _, stream := range v.ViewOptions.Private.Streams {
-      for _, lang := range stream.AudioLanguages {
-         if !seen[lang.Id] {
-            seen[lang.Id] = true
-            data.WriteString("\naudio language = ")
-            data.WriteString(lang.Id)
-         }
-      }
-   }
-   return data.String()
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-type VideoItem struct {
-   Title       string `json:"title"`
-   Id          string `json:"id"`
-   ViewOptions struct {
-      Private struct {
-         Streams []struct {
-            AudioLanguages []struct {
-               Id string `json:"id"`
-            } `json:"audio_languages"`
-         } `json:"streams"`
-      } `json:"private"`
-   } `json:"view_options"`
-}
-
 type SeasonData struct {
    Episodes []VideoItem `json:"episodes"`
 }
@@ -331,19 +339,3 @@ type StreamData struct {
       Url        string `json:"url"`
    } `json:"stream_infos"`
 }
-
-const DeviceId = "atvui40"
-
-type VideoQuality string
-
-const (
-   Fhd VideoQuality = "FHD"
-   Hd  VideoQuality = "HD"
-)
-
-type PlayerType string
-
-const (
-   PlayReady PlayerType = DeviceId + ":DASH-CENC:PR"
-   Widevine  PlayerType = DeviceId + ":DASH-CENC:WVM"
-)
