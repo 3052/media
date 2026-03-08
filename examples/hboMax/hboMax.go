@@ -9,25 +9,26 @@ import (
    "net/http"
 )
 
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = c.Playback.PlayReady
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}
-
-var job maya.PlayReadyJob
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
+type client struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   St       *http.Cookie
+   // 1
+   Proxy       string
+   proxy_write bool
+   // 2
+   initiate bool
+   market   string
+   // 3
+   login bool
+   // 4
+   address string
+   season  int
+   // 5
+   edit string
+   // 6
+   dash_id string
 }
 
 func (c *client) do() error {
@@ -96,6 +97,27 @@ func (c *client) do() error {
    })
 }
 
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = c.Playback.PlayReady
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
+var job maya.PlayReadyJob
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *client) do_initiate() error {
    return cache.Update(c, func() error {
       var err error
@@ -145,28 +167,6 @@ func (c *client) do_address() error {
       fmt.Println(video)
    }
    return nil
-}
-
-type client struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   St       *http.Cookie
-   // 1
-   Proxy       string
-   proxy_write bool
-   // 2
-   initiate bool
-   market   string
-   // 3
-   login bool
-   // 4
-   address string
-   season  int
-   // 5
-   edit string
-   // 6
-   dash_id string
 }
 
 func (c *client) do_edit() error {

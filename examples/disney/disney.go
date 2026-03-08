@@ -8,6 +8,30 @@ import (
    "log"
 )
 
+type client struct {
+   Hls   *disney.Hls
+   Token *disney.Token
+   // 1
+   Proxy string
+   proxy_write bool
+   // 2
+   Email string
+   // 3
+   passcode string
+   // 4
+   profile_id string
+   // 5
+   refresh bool
+   // 6
+   address string
+   // 7
+   season_id string
+   // 8
+   media_id string
+   // 9
+   hls_id int
+}
+
 func (c *client) do() error {
    job.CertificateChain, _ = maya.ResolveCache("SL3000/CertificateChain")
    job.EncryptSignKey, _ = maya.ResolveCache("SL3000/EncryptSignKey")
@@ -15,29 +39,41 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
+   err = cache.Read(c, true)
+   if err != nil {
+      return err
+   }
    // 1
-   flag.StringVar(&c.Email, "e", "", "email")
+   flag.Func("x", "proxy", func(proxy string) error {
+      c.Proxy = proxy
+      c.proxy_write = true
+      return nil
+   })
    // 2
-   flag.StringVar(&c.passcode, "p", "", "passcode")
+   flag.StringVar(&c.Email, "e", "", "email")
    // 3
-   flag.StringVar(&c.profile_id, "P", "", "profile ID")
-   flag.StringVar(&c.proxy, "x", "", "proxy")
+   flag.StringVar(&c.passcode, "p", "", "passcode")
    // 4
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   flag.StringVar(&c.profile_id, "P", "", "profile ID")
    // 5
-   flag.StringVar(&c.address, "a", "", "address")
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
    // 6
-   flag.StringVar(&c.season_id, "s", "", "season ID")
+   flag.StringVar(&c.address, "a", "", "address")
    // 7
-   flag.StringVar(&c.media_id, "m", "", "media ID")
+   flag.StringVar(&c.season_id, "s", "", "season ID")
    // 8
+   flag.StringVar(&c.media_id, "m", "", "media ID")
+   // 9
    flag.IntVar(&c.hls_id, "h", -1, "HLS ID")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   err = maya.SetProxy(c.proxy, "*.mp4,*.mp4a")
+   err = maya.SetProxy(c.Proxy, "*.mp4,*.mp4a")
    if err != nil {
       return err
+   }
+   if c.proxy_write {
+      return cache.Write(c)
    }
    if c.Email != "" {
       return c.do_email()
@@ -64,9 +100,10 @@ func (c *client) do() error {
       return c.do_hls_id()
    }
    return maya.Usage([][]string{
+      {"x"},
       {"e"},
       {"p"},
-      {"P", "x"},
+      {"P"},
       {"r"},
       {"a"},
       {"s"},
@@ -185,26 +222,4 @@ func (c *client) do_refresh() error {
    return cache.Update(c, func() error {
       return disney.RefreshToken(c.Token)
    })
-}
-
-type client struct {
-   Hls   *disney.Hls
-   Token *disney.Token
-   // 1
-   Email string
-   // 2
-   passcode string
-   // 3
-   profile_id string
-   proxy string
-   // 4
-   refresh bool
-   // 5
-   address string
-   // 6
-   season_id string
-   // 7
-   media_id string
-   // 8
-   hls_id int
 }

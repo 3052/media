@@ -21,6 +21,26 @@ func isCategory(segment string) bool {
    }
 }
 
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   if e.Detail != "" {
+      data.WriteString("\ndetail = ")
+      data.WriteString(e.Detail)
+   } else {
+      data.WriteString("\nmessage = ")
+      data.WriteString(e.Message)
+   }
+   return data.String()
+}
+
+type Error struct {
+   Code    string
+   Detail  string // show was filtered by validator
+   Message string // Token is missing or not valid
+}
+
 // you must
 // /authentication/linkDevice/initiate
 // first or this will always fail
@@ -59,26 +79,6 @@ type Video struct {
 }
 
 ///
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("code = ")
-   data.WriteString(e.Code)
-   if e.Detail != "" {
-      data.WriteString("\ndetail = ")
-      data.WriteString(e.Detail)
-   } else {
-      data.WriteString("\nmessage = ")
-      data.WriteString(e.Message)
-   }
-   return data.String()
-}
-
-type Error struct {
-   Code    string
-   Detail  string // show was filtered by validator
-   Message string // Token is missing or not valid
-}
 
 // 1080p SL2000
 // 1440p SL3000
