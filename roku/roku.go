@@ -10,6 +10,19 @@ import (
    "strings"
 )
 
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 // User can be nil
 func (c *Connection) Fetch(current *User) error {
    var req http.Request
@@ -45,21 +58,6 @@ func (p *Playback) Widevine(payload []byte) ([]byte, error) {
       return nil, errors.New(resp.Status)
    }
    return io.ReadAll(resp.Body)
-}
-
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 type Dash struct {

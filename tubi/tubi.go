@@ -16,13 +16,11 @@ func (v *VideoResource) Dash() (*Dash, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
+   body, err := io.ReadAll(resp.Body)
    if err != nil {
       return nil, err
    }
-   result.Url = resp.Request.URL
-   return &result, nil
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
 }
 
 type VideoResource struct {

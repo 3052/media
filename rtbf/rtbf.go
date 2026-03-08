@@ -10,6 +10,19 @@ import (
    "strings"
 )
 
+func (f *FormatItem) Dash() (*Dash, error) {
+   resp, err := http.Get(f.MediaLocator)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 func (a *Account) Fetch(id, password string) error {
    resp, err := http.PostForm(
       "https://login.auvio.rtbf.be/accounts.login", url.Values{
@@ -53,21 +66,6 @@ func (e *Entitlement) Dash() (*FormatItem, error) {
       }
    }
    return nil, errors.New("DASH format not found")
-}
-
-func (f *FormatItem) Dash() (*Dash, error) {
-   resp, err := http.Get(f.MediaLocator)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   result.Url = resp.Request.URL
-   return &result, nil
 }
 
 type Dash struct {
