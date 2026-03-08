@@ -12,24 +12,31 @@ type client struct {
    Hls   *disney.Hls
    Token *disney.Token
    // 1
-   Proxy string
-   proxy_write bool
-   // 2
    Email string
-   // 3
+   // 2
    passcode string
-   // 4
+   // 3
    profile_id string
-   // 5
+   // 4
    refresh bool
-   // 6
+   // 5
    address string
-   // 7
+   // 6
    season_id string
-   // 8
+   // 7
    media_id string
-   // 9
+   // 8
    hls_id int
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   // MP4 ARE GEO BLOCKED SO JUST USE VPN
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 func (c *client) do() error {
@@ -39,42 +46,26 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
    // 1
-   flag.Func("x", "proxy", func(proxy string) error {
-      c.Proxy = proxy
-      c.proxy_write = true
-      return nil
-   })
-   // 2
    flag.StringVar(&c.Email, "e", "", "email")
-   // 3
+   // 2
    flag.StringVar(&c.passcode, "p", "", "passcode")
-   // 4
+   // 3
    flag.StringVar(&c.profile_id, "P", "", "profile ID")
-   // 5
+   // 4
    flag.BoolVar(&c.refresh, "r", false, "refresh")
-   // 6
+   // 5
    flag.StringVar(&c.address, "a", "", "address")
-   // 7
+   // 6
    flag.StringVar(&c.season_id, "s", "", "season ID")
-   // 8
+   // 7
    flag.StringVar(&c.media_id, "m", "", "media ID")
-   // 9
+   // 8
    flag.IntVar(&c.hls_id, "h", -1, "HLS ID")
+   flag.IntVar(&job.Threads, "t", 2, "threads")
    flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
    flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
    flag.Parse()
-   err = maya.SetProxy(c.Proxy, "*.mp4,*.mp4a")
-   if err != nil {
-      return err
-   }
-   if c.proxy_write {
-      return cache.Write(c)
-   }
    if c.Email != "" {
       return c.do_email()
    }
@@ -100,7 +91,6 @@ func (c *client) do() error {
       return c.do_hls_id()
    }
    return maya.Usage([][]string{
-      {"x"},
       {"e"},
       {"p"},
       {"P"},
@@ -108,16 +98,8 @@ func (c *client) do() error {
       {"a"},
       {"s"},
       {"m"},
-      {"h", "C", "E"},
+      {"h", "t", "C", "E"},
    })
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 func (c *client) do_profile_id() error {

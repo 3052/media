@@ -12,6 +12,30 @@ import (
    "strings"
 )
 
+const (
+   api_host     = "default.prd.api.hbomax.com"
+   disco_client = "!:!:beam:!"
+   device_info  = "!/!(!/!;!/!;!/!)"
+)
+
+var Markets = []string{
+   "amer",
+   "apac",
+   "emea",
+   "latam",
+}
+
+// validVideoTypes acts as a set to hold the video types we want to keep.
+var validVideoTypes = []string{
+   "EPISODE",
+   "MOVIE",
+   "STANDALONE_EVENT",
+}
+
+func join(data ...string) string {
+   return strings.Join(data, "")
+}
+
 func isCategory(segment string) bool {
    switch segment {
    case "movies", "shows", "movie", "show":
@@ -39,6 +63,33 @@ type Error struct {
    Code    string
    Detail  string // show was filtered by validator
    Message string // Token is missing or not valid
+}
+
+func (l Login) Season(show *ShowItem, number int) (*Videos, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   api_host,
+      Path:   "/cms/collections/generic-show-page-rail-episodes-tabbed-content",
+      RawQuery: url.Values{
+         "include":          {"default"},
+         "pf[seasonNumber]": {strconv.Itoa(number)},
+         "pf[show.id]":      {show.Id},
+      }.Encode(),
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Videos{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
 }
 
 // you must
@@ -78,6 +129,21 @@ type Video struct {
    }
 }
 
+func (v *Videos) FilterAndSort() {
+   v.Included = slices.DeleteFunc(v.Included, func(vid *Video) bool {
+      if vid.Attributes == nil {
+         return true // Remove videos with nil attributes.
+      }
+      // We return 'true' to delete if the video's type is NOT in our slice.
+      return !slices.Contains(validVideoTypes, vid.Attributes.VideoType)
+   })
+   slices.SortFunc(v.Included, func(a, b *Video) int {
+      if a.Attributes == nil || b.Attributes == nil {
+         return 0 // Consider them equal if attributes are missing.
+      }
+      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
+   })
+}
 ///
 
 // 1080p SL2000
@@ -412,71 +478,4 @@ func (l *Login) playback(edit_id, drm string) (*Playback, error) {
       return nil, &result.Errors[0]
    }
    return &result, nil
-}
-
-const (
-   api_host     = "default.prd.api.hbomax.com"
-   disco_client = "!:!:beam:!"
-   device_info  = "!/!(!/!;!/!;!/!)"
-)
-
-var Markets = []string{
-   "amer",
-   "apac",
-   "emea",
-   "latam",
-}
-
-func join(data ...string) string {
-   return strings.Join(data, "")
-}
-
-func (l Login) Season(show *ShowItem, number int) (*Videos, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("authorization", "Bearer "+l.Data.Attributes.Token)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   api_host,
-      Path:   "/cms/collections/generic-show-page-rail-episodes-tabbed-content",
-      RawQuery: url.Values{
-         "include":          {"default"},
-         "pf[seasonNumber]": {strconv.Itoa(number)},
-         "pf[show.id]":      {show.Id},
-      }.Encode(),
-   }
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   result := &Videos{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
-// validVideoTypes acts as a set to hold the video types we want to keep.
-var validVideoTypes = []string{
-   "EPISODE",
-   "MOVIE",
-   "STANDALONE_EVENT",
-}
-
-func (v *Videos) FilterAndSort() {
-   v.Included = slices.DeleteFunc(v.Included, func(vid *Video) bool {
-      if vid.Attributes == nil {
-         return true // Remove videos with nil attributes.
-      }
-      // We return 'true' to delete if the video's type is NOT in our slice.
-      return !slices.Contains(validVideoTypes, vid.Attributes.VideoType)
-   })
-   slices.SortFunc(v.Included, func(a, b *Video) int {
-      if a.Attributes == nil || b.Attributes == nil {
-         return 0 // Consider them equal if attributes are missing.
-      }
-      return a.Attributes.EpisodeNumber - b.Attributes.EpisodeNumber
-   })
 }
