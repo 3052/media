@@ -12,6 +12,62 @@ import (
    "strings"
 )
 
+// Parse populates the Media struct from a raw URL.
+func (m *Media) Parse(urlData string) error {
+   urlParse, err := url.Parse(urlData)
+   if err != nil {
+      return err
+   }
+   marketCode, err := extractMarketCode(urlParse.Path)
+   if err != nil {
+      return err
+   }
+   m.MarketCode = marketCode
+
+   // 1. Check Query Parameters
+   query := urlParse.Query()
+   // 'contentType' here is the URL parameter value (e.g. "movies", "tv_shows")
+   contentType := query.Get("content_type")
+   if contentType == "movies" || contentType == "tv_shows" {
+      var id string
+      if contentType == "movies" {
+         id = query.Get("content_id")
+         if id == "" {
+            return errors.New("url missing content_id param")
+         }
+         m.Type = Movies
+      } else {
+         id = query.Get("tv_show_id")
+         if id == "" {
+            return errors.New("url missing tv_show_id param")
+         }
+         m.Type = TvShows
+      }
+      m.Id = id
+      return nil
+   }
+
+   // 2. Check Path Segments
+   path := strings.Trim(urlParse.Path, "/")
+   segments := strings.Split(path, "/")
+   for _, seg := range segments {
+      if seg == "movies" || seg == "tv_shows" {
+         id := segments[len(segments)-1]
+         if id == seg {
+            return fmt.Errorf("url does not contain a specific %s id", seg)
+         }
+         m.Id = id
+         if seg == "movies" {
+            m.Type = Movies
+         } else {
+            m.Type = TvShows
+         }
+         return nil
+      }
+   }
+   return errors.New("not a movie or tv show url")
+}
+
 func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
    classId, ok := classificationMap[marketCode]
    if !ok {
@@ -320,60 +376,4 @@ type Media struct {
    Id         string
    MarketCode string
    Type       Content
-}
-
-// Parse populates the Media struct from a raw URL.
-func (m *Media) Parse(rawLink string) error {
-   link, err := url.Parse(rawLink)
-   if err != nil {
-      return err
-   }
-   marketCode, err := extractMarketCode(link.Path)
-   if err != nil {
-      return err
-   }
-   m.MarketCode = marketCode
-
-   // 1. Check Query Parameters
-   query := link.Query()
-   // 'contentType' here is the URL parameter value (e.g. "movies", "tv_shows")
-   contentType := query.Get("content_type")
-   if contentType == "movies" || contentType == "tv_shows" {
-      var id string
-      if contentType == "movies" {
-         id = query.Get("content_id")
-         if id == "" {
-            return errors.New("url missing content_id param")
-         }
-         m.Type = Movies
-      } else {
-         id = query.Get("tv_show_id")
-         if id == "" {
-            return errors.New("url missing tv_show_id param")
-         }
-         m.Type = TvShows
-      }
-      m.Id = id
-      return nil
-   }
-
-   // 2. Check Path Segments
-   path := strings.Trim(link.Path, "/")
-   segments := strings.Split(path, "/")
-   for _, seg := range segments {
-      if seg == "movies" || seg == "tv_shows" {
-         id := segments[len(segments)-1]
-         if id == seg {
-            return fmt.Errorf("url does not contain a specific %s id", seg)
-         }
-         m.Id = id
-         if seg == "movies" {
-            m.Type = Movies
-         } else {
-            m.Type = TvShows
-         }
-         return nil
-      }
-   }
-   return errors.New("not a movie or tv show url")
 }

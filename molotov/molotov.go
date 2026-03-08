@@ -11,6 +11,35 @@ import (
    "strings"
 )
 
+// Parse extracts the IDs from a Molotov URL and populates the MediaId struct.
+// It maps the first number in the URL to Program and the second to Channel.
+func (m *MediaId) Parse(urlData string) error {
+   // 1. Cut the string to get everything after "/p/"
+   _, remainder, found := strings.Cut(urlData, "/p/")
+   if !found {
+      return errors.New("url does not contain the /p/ marker")
+   }
+   // 2. Cut the remainder at the next slash to remove any trailing text (e.g., title)
+   // If no slash exists, strings.Cut returns the whole string as 'idsStr', which is what we want.
+   idsStr, _, _ := strings.Cut(remainder, "/")
+   // 3. Cut the string at the hyphen to separate the two numbers
+   progStr, chanStr, found := strings.Cut(idsStr, "-")
+   if !found {
+      return errors.New("invalid format: hyphen not found between IDs")
+   }
+   // 4. Convert and assign to the struct fields
+   var err error
+   m.Program, err = strconv.Atoi(progStr)
+   if err != nil {
+      return errors.New("program ID is not a valid integer")
+   }
+   m.Channel, err = strconv.Atoi(chanStr)
+   if err != nil {
+      return errors.New("channel ID is not a valid integer")
+   }
+   return nil
+}
+
 func (l *Login) Fetch(email, password string) error {
    data, err := json.Marshal(map[string]string{
       "grant_type": "password",
@@ -170,35 +199,6 @@ const (
 type MediaId struct {
    Program int
    Channel int
-}
-
-// Parse extracts the IDs from a Molotov URL and populates the MediaId struct.
-// It maps the first number in the URL to Program and the second to Channel.
-func (m *MediaId) Parse(link string) error {
-   // 1. Cut the string to get everything after "/p/"
-   _, remainder, found := strings.Cut(link, "/p/")
-   if !found {
-      return errors.New("url does not contain the /p/ marker")
-   }
-   // 2. Cut the remainder at the next slash to remove any trailing text (e.g., title)
-   // If no slash exists, strings.Cut returns the whole string as 'idsStr', which is what we want.
-   idsStr, _, _ := strings.Cut(remainder, "/")
-   // 3. Cut the string at the hyphen to separate the two numbers
-   progStr, chanStr, found := strings.Cut(idsStr, "-")
-   if !found {
-      return errors.New("invalid format: hyphen not found between IDs")
-   }
-   // 4. Convert and assign to the struct fields
-   var err error
-   m.Program, err = strconv.Atoi(progStr)
-   if err != nil {
-      return errors.New("program ID is not a valid integer")
-   }
-   m.Channel, err = strconv.Atoi(chanStr)
-   if err != nil {
-      return errors.New("channel ID is not a valid integer")
-   }
-   return nil
 }
 
 type Dash struct {

@@ -10,26 +10,6 @@ import (
    "strings"
 )
 
-func (u *User) Fetch() error {
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "plex.tv",
-      Path:   "/api/v2/users/anonymous",
-   }
-   req.Header = http.Header{}
-   req.Header.Set("accept", "application/json")
-   req.Header.Set("x-plex-product", "Plex Mediaverse")
-   req.Header.Set("x-plex-client-identifier", "!")
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(u)
-}
-
 func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
    var req http.Request
    req.URL = &url.URL{
@@ -47,13 +27,11 @@ func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   var result Dash
-   result.Body, err = io.ReadAll(resp.Body)
+   body, err := io.ReadAll(resp.Body)
    if err != nil {
       return nil, err
    }
-   result.Url = resp.Request.URL
-   return &result, nil
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
 }
 
 type User struct {
@@ -194,4 +172,23 @@ func (i *ItemMetadata) Dash() (*MediaPart, error) {
    }
    // Failure: No "dash" protocol was found.
    return nil, errors.New("DASH media part not found")
+}
+func (u *User) Fetch() error {
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "plex.tv",
+      Path:   "/api/v2/users/anonymous",
+   }
+   req.Header = http.Header{}
+   req.Header.Set("accept", "application/json")
+   req.Header.Set("x-plex-product", "Plex Mediaverse")
+   req.Header.Set("x-plex-client-identifier", "!")
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return err
+   }
+   defer resp.Body.Close()
+   return json.NewDecoder(resp.Body).Decode(u)
 }
