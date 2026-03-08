@@ -12,42 +12,9 @@ import (
    "strings"
 )
 
-// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
-var classificationMap = map[string]int{
-   "cz": 272,
-   "dk": 283,
-   "es": 5,
-   "fr": 23,
-   "ie": 41,
-   "nl": 69,
-   "pl": 277,
-   "pt": 64,
-   "se": 282,
-   "uk": 18,
-}
-
 // join takes a variable number of strings and returns them combined into one string without separators.
 func join(strs ...string) string {
    return strings.Join(strs, "")
-}
-
-type AudioLanguage struct {
-   Id string `json:"id"`
-}
-
-type SeasonData struct {
-   Episodes []VideoItem `json:"episodes"`
-}
-
-type Stream struct {
-   AudioLanguages []AudioLanguage `json:"audio_languages"`
-}
-
-type StreamData struct {
-   StreamInfos []struct {
-      LicenseUrl string `json:"license_url"`
-      Url        string `json:"url"`
-   } `json:"stream_infos"`
 }
 
 func (t TvShowData) String() string {
@@ -86,18 +53,6 @@ func (v *VideoItem) String() string {
       }
    }
    return data.String()
-}
-
-type VideoItem struct {
-   Title       string      `json:"title"`
-   Id          string      `json:"id"`
-   ViewOptions ViewOptions `json:"view_options"`
-}
-
-type ViewOptions struct {
-   Private struct {
-      Streams []Stream `json:"streams"`
-   } `json:"private"`
 }
 
 type Dash struct {
@@ -229,17 +184,3 @@ func buildURL(marketCode, endpoint, id string) (string, error) {
       params.Encode(),
    ), nil
 }
-
-// extractMarketCode extracts the first segment of the path (e.g., "nl", "uk").
-func extractMarketCode(path string) (string, error) {
-   trimmed := strings.Trim(path, "/")
-   // Check if we have anything left after trimming
-   if trimmed == "" {
-      return "", errors.New("could not determine market code from path")
-   }
-   segments := strings.Split(trimmed, "/")
-   return segments[0], nil
-}
-
-// DeviceID is the default identifier used for requests.
-const DeviceID = "atvui40"
