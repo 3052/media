@@ -12,6 +12,70 @@ import (
    "strings"
 )
 
+// extractMarketCode extracts the first segment of the path (e.g., "nl", "uk").
+func extractMarketCode(path string) string {
+   path = strings.TrimPrefix(path, "/")
+   marketCode, _, _ := strings.Cut(path, "/")
+   return marketCode
+}
+
+type Content struct {
+   Id         string
+   MarketCode string
+   Type       string
+}
+
+func (c *Content) Parse(urlData string) error {
+   urlParse, err := url.Parse(urlData)
+   if err != nil {
+      return err
+   }
+   c.MarketCode = extractMarketCode(urlParse.Path)
+
+   // 1. Check Query Parameters
+   query := urlParse.Query()
+   contentType := query.Get("content_type")
+
+   switch contentType {
+   case "movies":
+      c.Id = query.Get("content_id")
+      c.Type = contentType
+      return nil
+
+   case "tv_shows":
+      c.Id = query.Get("tv_show_id")
+      c.Type = contentType
+      return nil
+   }
+
+   // 2. Check Path Segments
+   path := strings.TrimPrefix(urlParse.Path, "/")
+   segments := strings.Split(path, "/")
+   for _, segment := range segments {
+      switch segment {
+      case "movies", "tv_shows":
+         c.Id = segments[len(segments)-1]
+         c.Type = segment
+         return nil
+      }
+   }
+
+   return errors.New("not a movie or tv show url")
+}
+
+// github.com/pandvan/rakuten-m3u-generator/blob/master/rakuten.py
+var classificationMap = map[string]int{
+   "cz": 272,
+   "es": 5,
+   "fr": 23,
+   "ie": 41,
+   "nl": 69,
+   "pl": 277,
+   "pt": 64,
+   "se": 282,
+   "uk": 18,
+}
+
 func makeStreamRequest(marketCode, contentType, contentId string, player PlayerType, quality VideoQuality, audioLanguage string) (*StreamData, error) {
    classId, ok := classificationMap[marketCode]
    if !ok {
@@ -90,7 +154,7 @@ func (s StreamData) Dash() (*Dash, error) {
 
 // EpisodeStream requests the stream for a specific TV Show Episode (POST).
 func (c *Content) EpisodeStream(episodeId, audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
-   if c.Type != TvShows {
+   if c.Type != "tv_shows" {
       return nil, errors.New("cannot request an episode stream for non-tv-show content")
    }
    return makeStreamRequest(c.MarketCode, "episodes", episodeId, player, quality, audioLanguage)
@@ -98,7 +162,7 @@ func (c *Content) EpisodeStream(episodeId, audioLanguage string, player PlayerTy
 
 // RequestMovie fetches movie details (GET).
 func (c *Content) RequestMovie() (*VideoItem, error) {
-   if c.Type != Movies {
+   if c.Type != "movies" {
       return nil, errors.New("cannot request movie details for a non-movie content type")
    }
    fullURL, err := buildUrl(c.MarketCode, "movies", c.Id)
@@ -124,7 +188,7 @@ func (c *Content) RequestMovie() (*VideoItem, error) {
 
 // RequestTvShow fetches TV show details like seasons (GET).
 func (c *Content) RequestTvShow() (*TvShowData, error) {
-   if c.Type != TvShows {
+   if c.Type != "tv_shows" {
       return nil, errors.New("cannot request tv show details for a non-tv show content type")
    }
    fullURL, err := buildUrl(c.MarketCode, "tv_shows", c.Id)
@@ -151,7 +215,7 @@ func (c *Content) RequestTvShow() (*TvShowData, error) {
 // RequestSeason fetches episodes for a specific season (GET).
 // This method is only applicable to TV Shows.
 func (c *Content) RequestSeason(seasonId string) (*SeasonData, error) {
-   if c.Type != TvShows {
+   if c.Type != "tv_shows" {
       return nil, errors.New("cannot request season for a non-tv show content type")
    }
    fullURL, err := buildUrl(c.MarketCode, "seasons", seasonId)
@@ -189,7 +253,7 @@ func (s StreamData) Widevine(data []byte) ([]byte, error) {
 
 // MovieStream requests the stream for this movie (POST).
 func (c *Content) MovieStream(audioLanguage string, player PlayerType, quality VideoQuality) (*StreamData, error) {
-   if c.Type != Movies {
+   if c.Type != "movies" {
       return nil, errors.New("cannot request a movie stream for non-movie content")
    }
    return makeStreamRequest(c.MarketCode, "movies", c.Id, player, quality, audioLanguage)
