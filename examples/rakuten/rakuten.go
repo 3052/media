@@ -8,35 +8,6 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   stream, err := c.Content.Stream(
-      c.Episode, c.Language, rakuten.Widevine, rakuten.Hd,
-   )
-   if err != nil {
-      return err
-   }
-   job.Send = stream.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}
-
-var cache maya.Cache
-
-var job maya.WidevineJob
-
-func main() {
-   log.SetFlags(log.Ltime)
-   // server checks location on all requests
-   maya.SetProxy("", "*.isma,*.ismv")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
@@ -45,17 +16,25 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.StringVar(&c.address, "a", "", "address")
+   flag.StringVar(
+      &c.proxy, "x", "", "proxy (server checks location on all requests)",
+   )
    // 2
-   flag.StringVar(&c.season, "s", "", "season ID")
+   flag.StringVar(&c.address, "a", "", "address")
    // 3
+   flag.StringVar(&c.season, "s", "", "season ID")
+   // 4
    flag.StringVar(&c.Language, "A", "", "audio language")
    flag.StringVar(&c.Episode, "e", "", "episode ID")
-   // 4
+   // 5
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
    flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
    flag.Parse()
+   err = maya.SetProxy(c.proxy, "*.isma,*.ismv")
+   if err != nil {
+      return err
+   }
    if c.address != "" {
       return c.do_address()
    }
@@ -69,6 +48,7 @@ func (c *client) do() error {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
+      {"x"},
       {"a"},
       {"s"},
       {"A", "e"},
@@ -134,16 +114,45 @@ func (c *client) do_language() error {
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   stream, err := c.Content.Stream(
+      c.Episode, c.Language, rakuten.Widevine, rakuten.Hd,
+   )
+   if err != nil {
+      return err
+   }
+   job.Send = stream.Widevine
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+
+var cache maya.Cache
+
+var job maya.WidevineJob
+
 type client struct {
    Content *rakuten.Content
-   Dash  *rakuten.Dash
+   Dash    *rakuten.Dash
    // 1
-   address string
+   proxy string
    // 2
-   season string
+   address string
    // 3
+   season string
+   // 4
    Language string
    Episode  string
-   // 4
+   // 5
    dash_id string
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

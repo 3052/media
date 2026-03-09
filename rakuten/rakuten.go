@@ -11,6 +11,125 @@ import (
    "strings"
 )
 
+// Stream requests a playback stream.
+// For TV Shows, 'id' should be the Episode ID.
+// For Movies, 'id' is ignored (uses c.Id).
+func (c *Content) Stream(id, audioLanguage string, playerData Player, quality VideoQuality) (*Stream, error) {
+   body := map[string]string{
+      "audio_language":              audioLanguage,
+      "audio_quality":               "2.0",
+      "classification_id":           strconv.Itoa(c.ClassificationId),
+      "device_identifier":           DeviceId,
+      "device_serial":               "not implemented",
+      "device_stream_video_quality": string(quality),
+      "player":                      string(playerData),
+      "subtitle_language":           "MIS",
+      "video_type":                  "stream",
+   }
+   switch c.Type {
+   case "tv_shows":
+      body["content_id"] = id
+      body["content_type"] = "episodes"
+   case "movies":
+      body["content_id"] = c.Id
+      body["content_type"] = "movies"
+   }
+   data, err := json.Marshal(body)
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://gizmo.rakuten.tv/v3/avod/streamings", "application/json",
+      bytes.NewBuffer(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Data   Stream
+      Errors []Error
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if len(result.Errors) >= 1 {
+      return nil, &result.Errors[0]
+   }
+   return &result.Data, nil
+}
+
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("code = ")
+   data.WriteString(e.Code)
+   data.WriteString("\nmessage = ")
+   data.WriteString(e.Message)
+   return data.String()
+}
+
+type Error struct {
+   Code string
+   Message string
+}
+
+// String implementation for MovieOrEpisode to pretty print details
+func (m *MovieOrEpisode) String() string {
+   seen := make(map[string]bool)
+   var data strings.Builder
+   data.WriteString("title = ")
+   data.WriteString(m.Title)
+   data.WriteString("\nid = ")
+   data.WriteString(m.Id)
+   for _, streamData := range m.ViewOptions.Private.Streams {
+      for _, language := range streamData.AudioLanguages {
+         if !seen[language.Id] {
+            seen[language.Id] = true
+            data.WriteString("\naudio language = ")
+            data.WriteString(language.Id)
+         }
+      }
+   }
+   return data.String()
+}
+
+func (t TvShow) String() string {
+   var data strings.Builder
+   for i, season := range t.Seasons {
+      if i >= 1 {
+         data.WriteByte('\n')
+      }
+      data.WriteString("season id = ")
+      data.WriteString(season.Id)
+   }
+   return data.String()
+}
+
+func (s Stream) Dash() (*Dash, error) {
+   resp, err := http.Get(s.StreamInfos[0].Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
+func (s Stream) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      s.StreamInfos[0].LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   return io.ReadAll(resp.Body)
+}
 var classificationMap = map[string]int{
    "cz": 272,
    "es": 5,
@@ -168,116 +287,4 @@ func (c *Content) Movie() (*MovieOrEpisode, error) {
       return nil, err
    }
    return &result.Data, nil
-}
-
-// Stream requests a playback stream.
-// For TV Shows, 'id' should be the Episode ID.
-// For Movies, 'id' is ignored (uses c.Id).
-func (c *Content) Stream(id, audioLanguage string, playerData Player, quality VideoQuality) (*Stream, error) {
-   body := map[string]string{
-      "audio_language":              audioLanguage,
-      "audio_quality":               "2.0",
-      "classification_id":           strconv.Itoa(c.ClassificationId),
-      "device_identifier":           DeviceId,
-      "device_serial":               "not implemented",
-      "device_stream_video_quality": string(quality),
-      "player":                      string(playerData),
-      "subtitle_language":           "MIS",
-      "video_type":                  "stream",
-   }
-
-   switch c.Type {
-   case "tv_shows":
-      body["content_id"] = id
-      body["content_type"] = "episodes"
-   case "movies":
-      body["content_id"] = c.Id
-      body["content_type"] = "movies"
-   }
-
-   data, err := json.Marshal(body)
-   if err != nil {
-      return nil, err
-   }
-
-   resp, err := http.Post(
-      "https://gizmo.rakuten.tv/v3/avod/streamings", "application/json",
-      bytes.NewBuffer(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-
-   var result struct {
-      Data   Stream
-      Errors []struct {
-         Message string
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if len(result.Errors) >= 1 {
-      return nil, errors.New(result.Errors[0].Message)
-   }
-   return &result.Data, nil
-}
-
-// String implementation for MovieOrEpisode to pretty print details
-func (m *MovieOrEpisode) String() string {
-   seen := make(map[string]bool)
-   var data strings.Builder
-   data.WriteString("title = ")
-   data.WriteString(m.Title)
-   data.WriteString("\nid = ")
-   data.WriteString(m.Id)
-   for _, streamData := range m.ViewOptions.Private.Streams {
-      for _, language := range streamData.AudioLanguages {
-         if !seen[language.Id] {
-            seen[language.Id] = true
-            data.WriteString("\naudio language = ")
-            data.WriteString(language.Id)
-         }
-      }
-   }
-   return data.String()
-}
-
-func (t TvShow) String() string {
-   var data strings.Builder
-   for i, season := range t.Seasons {
-      if i >= 1 {
-         data.WriteByte('\n')
-      }
-      data.WriteString("season id = ")
-      data.WriteString(season.Id)
-   }
-   return data.String()
-}
-
-func (s Stream) Dash() (*Dash, error) {
-   resp, err := http.Get(s.StreamInfos[0].Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
-}
-
-func (s Stream) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      s.StreamInfos[0].LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   return io.ReadAll(resp.Body)
 }
