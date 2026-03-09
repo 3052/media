@@ -16,25 +16,17 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.StringVar(
-      &c.proxy, "x", "", "proxy (server checks location on all requests)",
-   )
-   // 2
    flag.StringVar(&c.address, "a", "", "address")
-   // 3
+   // 2
    flag.StringVar(&c.season, "s", "", "season ID")
-   // 4
+   // 3
    flag.StringVar(&c.Language, "A", "", "audio language")
    flag.StringVar(&c.Episode, "e", "", "episode ID")
-   // 5
+   // 4
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
    flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
    flag.Parse()
-   err = maya.SetProxy(c.proxy, "*.isma,*.ismv")
-   if err != nil {
-      return err
-   }
    if c.address != "" {
       return c.do_address()
    }
@@ -48,7 +40,6 @@ func (c *client) do() error {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
-      {"x"},
       {"a"},
       {"s"},
       {"A", "e"},
@@ -129,6 +120,16 @@ func (c *client) do_dash_id() error {
    return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }
 
+func main() {
+   log.SetFlags(log.Ltime)
+   // server checks location on all requests
+   maya.SetProxy("", "*.isma,*.ismv")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 var cache maya.Cache
 
 var job maya.WidevineJob
@@ -137,22 +138,12 @@ type client struct {
    Content *rakuten.Content
    Dash    *rakuten.Dash
    // 1
-   proxy string
-   // 2
    address string
-   // 3
+   // 2
    season string
-   // 4
+   // 3
    Language string
    Episode  string
-   // 5
+   // 4
    dash_id string
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
