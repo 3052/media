@@ -8,23 +8,6 @@ import (
    "log"
 )
 
-type client struct {
-   Dash     *mubi.Dash
-   LinkCode *mubi.LinkCode
-   Session  *mubi.Session
-   // 1
-   Proxy       string
-   proxy_write bool
-   // 2
-   code bool
-   // 3
-   session bool
-   // 4
-   address string
-   // 5
-   dash_id string
-}
-
 func (c *client) do() error {
    job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
    job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
@@ -50,7 +33,6 @@ func (c *client) do() error {
    flag.StringVar(&c.address, "a", "", "address")
    // 5
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.IntVar(&job.Threads, "t", 2, "threads")
    flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
    flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
    flag.Parse()
@@ -151,4 +133,20 @@ func (c *client) do_dash_id() error {
    }
    job.Send = c.Session.Widevine
    return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+}
+type client struct {
+   Dash     *mubi.Dash
+   LinkCode *mubi.LinkCode
+   Session  *mubi.Session
+   // 1
+   Proxy       string
+   proxy_write bool
+   // 2
+   code bool
+   // 3
+   session bool
+   // 4
+   address string
+   // 5
+   dash_id string
 }
