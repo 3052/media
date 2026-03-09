@@ -1,4 +1,3 @@
-// everything needs proxy
 package main
 
 import (
@@ -9,38 +8,18 @@ import (
    "log"
 )
 
-func (c *client) do_season() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   season, err := c.Media.RequestSeason(c.season)
-   if err != nil {
-      return err
-   }
-   for i, item := range season.Episodes {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&item)
-   }
-   return nil
-}
+var cache maya.Cache
 
-type client struct {
-   Dash  *rakuten.Dash
-   Media *rakuten.Media
-   // 1
-   proxy string
-   // 2
-   address string
-   // 3
-   season string
-   // 4
-   Language string
-   Episode  string
-   // 5
-   dash_id string
+var job maya.WidevineJob
+
+func main() {
+   log.SetFlags(log.Ltime)
+   // server checks location on all requests
+   maya.SetProxy("", "*.isma,*.ismv")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 func (c *client) do() error {
@@ -51,25 +30,17 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.StringVar(
-      &c.proxy, "x", "", "proxy (server checks location on all requests)",
-   )
-   // 2
    flag.StringVar(&c.address, "a", "", "address")
-   // 3
+   // 2
    flag.StringVar(&c.season, "s", "", "season ID")
-   // 4
+   // 3
    flag.StringVar(&c.Language, "A", "", "audio language")
    flag.StringVar(&c.Episode, "e", "", "episode ID")
-   // 5
+   // 4
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
    flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
    flag.Parse()
-   err = maya.SetProxy(c.proxy, "*.isma,*.ismv")
-   if err != nil {
-      return err
-   }
    if c.address != "" {
       return c.do_address()
    }
@@ -83,42 +54,44 @@ func (c *client) do() error {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
-      {"x"},
       {"a"},
       {"s"},
       {"A", "e"},
       {"d", "c", "p"},
    })
 }
-var cache maya.Cache
 
-var job maya.WidevineJob
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
+type client struct {
+   Content *rakuten.Content
+   Dash  *rakuten.Dash
+   // 1
+   address string
+   // 2
+   season string
+   // 3
+   Language string
+   Episode  string
+   // 4
+   dash_id string
 }
 
 ///
 
 func (c *client) do_address() error {
    var err error
-   c.Media, err = rakuten.ParseMedia(c.address)
+   c.Content, err = rakuten.ParseMedia(c.address)
    if err != nil {
       return err
    }
-   switch c.Media.Type {
+   switch c.Content.Type {
    case rakuten.MovieType:
-      item, err := c.Media.RequestMovie()
+      item, err := c.Content.RequestMovie()
       if err != nil {
          return err
       }
       fmt.Println(item)
    case rakuten.TvShowType:
-      item, err := c.Media.RequestTvShow()
+      item, err := c.Content.RequestTvShow()
       if err != nil {
          return err
       }
@@ -127,19 +100,37 @@ func (c *client) do_address() error {
    return cache.Write(c)
 }
 
+func (c *client) do_season() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   season, err := c.Content.RequestSeason(c.season)
+   if err != nil {
+      return err
+   }
+   for i, item := range season.Episodes {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&item)
+   }
+   return nil
+}
+
 func (c *client) do_language() error {
    err := cache.Update(c, func() error {
       var (
          stream *rakuten.StreamData
          err    error
       )
-      switch c.Media.Type {
+      switch c.Content.Type {
       case rakuten.MovieType:
-         stream, err = c.Media.MovieStream(
+         stream, err = c.Content.MovieStream(
             c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
          )
       case rakuten.TvShowType:
-         stream, err = c.Media.EpisodeStream(
+         stream, err = c.Content.EpisodeStream(
             c.Episode, c.Language, rakuten.Player.Widevine, rakuten.Quality.FHD,
          )
       }
@@ -161,15 +152,15 @@ func (c *client) do_dash_id() error {
       return err
    }
    var stream *rakuten.StreamData
-   switch c.Media.Type {
+   switch c.Content.Type {
    case rakuten.MovieType:
-      stream, err = c.Media.MovieStream(
+      stream, err = c.Content.MovieStream(
          c.Language,
          rakuten.Player.Widevine,
          rakuten.Quality.HD,
       )
    case rakuten.TvShowType:
-      stream, err = c.Media.EpisodeStream(
+      stream, err = c.Content.EpisodeStream(
          c.Episode,
          c.Language,
          rakuten.Player.Widevine,
