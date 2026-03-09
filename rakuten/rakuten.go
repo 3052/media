@@ -139,8 +139,7 @@ func (c *Content) TvShow() (*TvShow, error) {
    return &result.Data, nil
 }
 
-// MovieOrEpisode fetches movie details (GET).
-func (c *Content) MovieOrEpisode() (*MovieOrEpisode, error) {
+func (c *Content) Movie() (*MovieOrEpisode, error) {
    urlData := url.URL{
       Scheme: "https",
       Host:   "gizmo.rakuten.tv",
