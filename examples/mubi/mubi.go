@@ -20,11 +20,7 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.Func("x", "write proxy", func(proxy string) error {
-      c.Proxy = proxy
-      c.proxy_write = true
-      return nil
-   })
+   flag.StringVar(&c.Proxy, "x", c.Proxy, "write proxy")
    // 2
    flag.BoolVar(&c.code, "c", false, "link code")
    // 3
@@ -40,6 +36,12 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
+
+   set := map[string]bool{}
+   flag.Visit(func(f *flag.Flag) {
+      set[f.Name] = true
+   })
+
    if c.proxy_write {
       return cache.Write(c)
    }
@@ -64,6 +66,10 @@ func (c *client) do() error {
    })
 }
 
+var cache maya.Cache
+
+var job maya.WidevineJob
+
 func main() {
    log.SetFlags(log.Ltime)
    err := new(client).do()
@@ -81,10 +87,6 @@ func (c *client) do_code() error {
    fmt.Println(c.LinkCode)
    return cache.Write(c)
 }
-
-var cache maya.Cache
-
-var job maya.WidevineJob
 
 func (c *client) do_session() error {
    return cache.Update(c, func() error {
@@ -134,13 +136,13 @@ func (c *client) do_dash_id() error {
    job.Send = c.Session.Widevine
    return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }
+
 type client struct {
    Dash     *mubi.Dash
    LinkCode *mubi.LinkCode
    Session  *mubi.Session
    // 1
-   Proxy       string
-   proxy_write bool
+   Proxy string
    // 2
    code bool
    // 3

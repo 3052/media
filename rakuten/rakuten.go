@@ -70,7 +70,7 @@ func (e *Error) Error() string {
 }
 
 type Error struct {
-   Code string
+   Code    string
    Message string
 }
 
@@ -130,6 +130,7 @@ func (s Stream) Widevine(data []byte) ([]byte, error) {
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
 }
+
 var classificationMap = map[string]int{
    "cz": 272,
    "es": 5,
