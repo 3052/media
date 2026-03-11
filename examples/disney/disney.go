@@ -8,35 +8,82 @@ import (
    "log"
 )
 
+func (c *client) do() error {
+   c.job.PlayReady = &maya.PlayReadyJob{}
+   err := cache.Setup("rosso/disney.xml")
+   if err != nil {
+      return err
+   }
+   err = cache.Read(c, true)
+   if err != nil {
+      return err
+   }
+   // 1
+   flag.StringVar(&c.Email, "e", c.Email, "email")
+   // 2
+   flag.StringVar(&c.passcode, "p", "", "passcode")
+   // 3
+   flag.StringVar(&c.profile_id, "P", "", "profile ID")
+   // 4
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   // 5
+   flag.StringVar(&c.address, "a", "", "address")
+   // 6
+   flag.StringVar(&c.season_id, "s", "", "season ID")
+   // 7
+   flag.StringVar(&c.media_id, "m", "", "media ID")
+   // 8
+   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
+   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   // 9
+   flag.IntVar(&c.hls_id, "h", 0, "HLS ID")
+   set := maya.Parse()
+   if set["e"] {
+      return c.do_email()
+   }
+   if set["p"] {
+      return c.do_passcode()
+   }
+   if set["P"] {
+      return c.do_profile_id()
+   }
+   if set["r"] {
+      return c.do_refresh()
+   }
+   if set["a"] {
+      return c.do_address()
+   }
+   if set["s"] {
+      return c.do_season_id()
+   }
+   if set["m"] {
+      return c.do_media_id()
+   }
+   if set["C"] || set["E"] {
+      return cache.Write(c)
+   }
+   if set["h"] {
+      return c.do_hls_id()
+   }
+   return maya.Usage([][]string{
+      {"e"},
+      {"p"},
+      {"P"},
+      {"r"},
+      {"a"},
+      {"s"},
+      {"m"},
+      {"C", "E"},
+      {"h"},
+   })
+}
+
 func (c *client) do_hls_id() error {
    err := cache.Read(c)
    if err != nil {
       return err
    }
    return c.job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
-}
-
-type client struct {
-   Hls   *disney.Hls
-   Token *disney.Token
-   // 1
-   Email string
-   // 2
-   passcode string
-   // 3
-   profile_id string
-   // 4
-   refresh bool
-   // 5
-   address string
-   // 6
-   season_id string
-   // 7
-   media_id string
-   // 8
-   job maya.PlayReadyJob
-   // 9
-   hls_id int
 }
 
 func (c *client) do_media_id() error {
@@ -116,96 +163,4 @@ func (c *client) do_passcode() error {
    })
 }
 
-func (c *client) do_email() error {
-   c.Token = &disney.Token{}
-   err := c.Token.RegisterDevice()
-   if err != nil {
-      return err
-   }
-   request_otp, err := c.Token.RequestOtp(c.Email)
-   if err != nil {
-      return err
-   }
-   fmt.Println(request_otp)
-   return cache.Write(c)
-}
-
 var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4,*.mp4a")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *client) do() error {
-   err := cache.Setup("rosso/disney.xml")
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.StringVar(&c.Email, "e", c.Email, "email")
-   // 2
-   flag.StringVar(&c.passcode, "p", "", "passcode")
-   // 3
-   flag.StringVar(&c.profile_id, "P", "", "profile ID")
-   // 4
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   // 5
-   flag.StringVar(&c.address, "a", "", "address")
-   // 6
-   flag.StringVar(&c.season_id, "s", "", "season ID")
-   // 7
-   flag.StringVar(&c.media_id, "m", "", "media ID")
-   // 8
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
-   // 9
-   flag.IntVar(&c.hls_id, "h", 0, "HLS ID")
-   set := maya.Parse()
-   if set["e"] {
-      return c.do_email()
-   }
-   if set["p"] {
-      return c.do_passcode()
-   }
-   if set["P"] {
-      return c.do_profile_id()
-   }
-   if set["r"] {
-      return c.do_refresh()
-   }
-   if set["a"] {
-      return c.do_address()
-   }
-   if set["s"] {
-      return c.do_season_id()
-   }
-   if set["m"] {
-      return c.do_media_id()
-   }
-   if set["C"] || set["E"] {
-      return cache.Write(c)
-   }
-   if set["h"] {
-      return c.do_hls_id()
-   }
-   return maya.Usage([][]string{
-      {"e"},
-      {"p"},
-      {"P"},
-      {"r"},
-      {"a"},
-      {"s"},
-      {"m"},
-      {"C", "E"},
-      {"h"},
-   })
-}
