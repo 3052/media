@@ -9,7 +9,6 @@ import (
 )
 
 func (c *client) do() error {
-   c.job.PlayReady = &maya.PlayReadyJob{}
    err := cache.Setup("rosso/disney.xml")
    if err != nil {
       return err
@@ -33,8 +32,7 @@ func (c *client) do() error {
    // 7
    flag.StringVar(&c.media_id, "m", "", "media ID")
    // 8
-   flag.StringVar(&c.job.CertificateChain, "C", c.job.CertificateChain, "certificate chain")
-   flag.StringVar(&c.job.EncryptSignKey, "E", c.job.EncryptSignKey, "encrypt sign key")
+   flag.StringVar(&c.Job.PlayReady, "PR", c.Job.PlayReady, "PlayReady")
    // 9
    flag.IntVar(&c.hls_id, "h", 0, "HLS ID")
    set := maya.Parse()
@@ -59,7 +57,7 @@ func (c *client) do() error {
    if set["m"] {
       return c.do_media_id()
    }
-   if set["C"] || set["E"] {
+   if set["PR"] {
       return cache.Write(c)
    }
    if set["h"] {
@@ -73,7 +71,7 @@ func (c *client) do() error {
       {"a"},
       {"s"},
       {"m"},
-      {"C", "E"},
+      {"PR"},
       {"h"},
    })
 }
@@ -83,7 +81,7 @@ func (c *client) do_hls_id() error {
    if err != nil {
       return err
    }
-   return c.job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
+   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
 }
 
 func (c *client) do_media_id() error {
@@ -164,3 +162,48 @@ func (c *client) do_passcode() error {
 }
 
 var cache maya.Cache
+type client struct {
+   Hls   *disney.Hls
+   Token *disney.Token
+   // 1
+   Email string
+   // 2
+   passcode string
+   // 3
+   profile_id string
+   // 4
+   refresh bool
+   // 5
+   address string
+   // 6
+   season_id string
+   // 7
+   media_id string
+   // 8
+   Job maya.Job
+   // 9
+   hls_id int
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do_email() error {
+   c.Token = &disney.Token{}
+   err := c.Token.RegisterDevice()
+   if err != nil {
+      return err
+   }
+   request_otp, err := c.Token.RequestOtp(c.Email)
+   if err != nil {
+      return err
+   }
+   fmt.Println(request_otp)
+   return cache.Write(c)
+}
