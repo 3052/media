@@ -10,6 +10,31 @@ import (
    "path"
 )
 
+func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.DashPrServer, "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   data, err = io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusOK {
+      var result struct {
+         Message string
+      }
+      err = json.Unmarshal(data, &result)
+      if err != nil {
+         return nil, err
+      }
+      return nil, errors.New(result.Message)
+   }
+   return data, nil
+}
+
 func (p *Playlist) Dash() (*Dash, error) {
    resp, err := http.Get(p.StreamUrl)
    if err != nil {
@@ -162,31 +187,6 @@ type DeepLink struct {
    Message string
 }
 
-func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.DashPrServer, "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Message string
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(result.Message)
-   }
-   return data, nil
-}
-
 func (p *Playlist) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.WvServer, "application/x-protobuf", bytes.NewReader(data),
@@ -195,21 +195,7 @@ func (p *Playlist) Widevine(data []byte) ([]byte, error) {
       return nil, err
    }
    defer resp.Body.Close()
-   data, err = io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      var result struct {
-         Message string
-      }
-      err = json.Unmarshal(data, &result)
-      if err != nil {
-         return nil, err
-      }
-      return nil, errors.New(result.Message)
-   }
-   return data, nil
+   return io.ReadAll(resp.Body)
 }
 
 var deejay = []struct {
