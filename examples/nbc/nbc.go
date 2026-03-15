@@ -7,15 +7,27 @@ import (
    "log"
 )
 
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4")
-   err := new(client).do()
+func (c *client) do_address() error {
+   name, err := nbc.GetName(c.address)
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   metadata, err := nbc.FetchMetadata(name)
+   if err != nil {
+      return err
+   }
+   stream, err := metadata.Stream()
+   if err != nil {
+      return err
+   }
+   err = cache.Update(c, func() error {
+      c.Dash, err = stream.Dash()
+      return err
+   }, true)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
 func (c *client) do() error {
@@ -33,6 +45,7 @@ func (c *client) do() error {
    flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
    // 3
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.IntVar(&c.Job.Threads, "t", 2, "threads")
    set := maya.Parse()
    if set["a"] {
       return c.do_address()
@@ -46,11 +59,12 @@ func (c *client) do() error {
    return maya.Usage([][]string{
       {"a"},
       {"w"},
-      {"d"},
+      {"d", "t"},
    })
 }
 
 type client struct {
+   Dash *nbc.Dash
    // 1
    address string
    // 2
@@ -59,39 +73,21 @@ type client struct {
    dash_id string
 }
 
-///
-
-func (c *client) do_address() error {
-   name, err := nbc.GetName(c.address)
-   if err != nil {
-      return err
-   }
-   metadata, err := nbc.FetchMetadata(name)
-   if err != nil {
-      return err
-   }
-   stream, err := metadata.Stream()
-   if err != nil {
-      return err
-   }
-   dash, err := stream.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(dash)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(dash.Body, dash.Url)
-}
-
 func (c *client) do_dash_id() error {
-   var dash nbc.Dash
-   err := cache.Read(&dash)
+   err := cache.Read(c)
    if err != nil {
       return err
    }
-   job.Send = nbc.Widevine
-   return job.DownloadDash(dash.Body, dash.Url, c.dash_id)
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, nbc.Widevine)
 }
 
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}

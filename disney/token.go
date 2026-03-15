@@ -42,6 +42,13 @@ func RefreshToken(refresh *Token) error {
    return json.NewDecoder(resp.Body).Decode(refresh)
 }
 
+func (r *RequestOtp) String() string {
+   if r.Accepted {
+      return "accepted = true"
+   }
+   return "accepted = false"
+}
+
 type Token struct {
    AccessTokenType string
    AccessToken     string
@@ -479,13 +486,4 @@ func (t *Token) SwitchProfile(profileId string) error {
    }
    *t = result.Extensions.Sdk.Token
    return nil
-}
-
-///
-
-func (r *RequestOtp) String() string {
-   if r.Accepted {
-      return "accepted = true"
-   }
-   return "accepted = false"
 }
