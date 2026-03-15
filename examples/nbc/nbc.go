@@ -7,30 +7,46 @@ import (
    "log"
 )
 
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
    err := cache.Setup("rosso/nbc.xml")
+   if err != nil {
+      return err
+   }
+   err = cache.Read(c, true)
    if err != nil {
       return err
    }
    // 1
    flag.StringVar(&c.address, "a", "", "address")
    // 2
-   flag.StringVar(&c.dash, "d", "", "DASH ID")
-   flag.IntVar(&job.Threads, "t", 2, "threads")
-   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
-   flag.Parse()
-   if c.address != "" {
+   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
+   // 3
+   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   set := maya.Parse()
+   if set["a"] {
       return c.do_address()
    }
-   if c.dash != "" {
-      return c.do_dash()
+   if set["w"] {
+      return cache.Write(c)
+   }
+   if set["d"] {
+      return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"a"},
-      {"d", "t", "c", "p"},
+      {"w"},
+      {"d"},
    })
 }
 
@@ -38,8 +54,12 @@ type client struct {
    // 1
    address string
    // 2
-   dash string
+   Job maya.Job
+   // 3
+   dash_id string
 }
+
+///
 
 func (c *client) do_address() error {
    name, err := nbc.GetName(c.address)
@@ -64,25 +84,14 @@ func (c *client) do_address() error {
    }
    return maya.ListDash(dash.Body, dash.Url)
 }
-func (c *client) do_dash() error {
+
+func (c *client) do_dash_id() error {
    var dash nbc.Dash
    err := cache.Read(&dash)
    if err != nil {
       return err
    }
    job.Send = nbc.Widevine
-   return job.DownloadDash(dash.Body, dash.Url, c.dash)
+   return job.DownloadDash(dash.Body, dash.Url, c.dash_id)
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-var cache maya.Cache
-
-var job maya.WidevineJob
