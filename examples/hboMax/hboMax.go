@@ -34,10 +34,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
+   cache.Read(c)
    // 1
    flag.BoolVar(&c.initiate, "i", false, "device initiate")
    flag.StringVar(

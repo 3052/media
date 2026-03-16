@@ -8,33 +8,12 @@ import (
    "log"
 )
 
-func (c *client) do_hls_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
-   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
-}
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4,*.mp4a")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *client) do() error {
    err := cache.Setup("rosso/disney.xml")
    if err != nil {
       return err
    }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
+   cache.Read(c)
    // 1
    flag.StringVar(&c.Email, "e", c.Email, "email")
    // 2
@@ -219,4 +198,21 @@ func (c *client) do_media_id() error {
       return err
    }
    return maya.ListHls(c.Hls.Body, c.Hls.Url)
+}
+func (c *client) do_hls_id() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

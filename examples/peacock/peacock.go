@@ -14,10 +14,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
+   cache.Read(c)
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -102,6 +99,7 @@ type client struct {
    // 4
    dash_id string
 }
+
 func (c *client) do_dash_id() error {
    if cache.Error != nil {
       return cache.Error

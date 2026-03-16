@@ -12,10 +12,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
+   cache.Read(c)
    // 1
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
@@ -101,6 +98,7 @@ func (c *client) do_address() error {
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
+
 func (c *client) do_dash_id() error {
    if cache.Error != nil {
       return cache.Error

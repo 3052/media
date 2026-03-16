@@ -7,15 +7,11 @@ var tests = []struct {
    drm bool
 }{
    {
-      url: "https://tubitv.com/movies/667315",
-      drm: false,
-   },
-   {
-      url: "https://tubitv.com/movies/100047876",
+      url: "https://tubitv.com/movies/617502",
       drm: true,
    },
    {
-      url: "https://tubitv.com/tv-shows/200042567",
+      url: "https://tubitv.com/series/300015509",
       drm: true,
    },
 }
