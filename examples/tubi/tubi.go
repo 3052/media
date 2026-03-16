@@ -8,13 +8,15 @@ import (
 )
 
 func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
+   if cache.Error != nil {
+      return cache.Error
    }
-   job.Send = c.VideoResource.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.VideoResource.Widevine,
+   )
 }
+
+var cache maya.Cache
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -25,33 +27,35 @@ func main() {
    }
 }
 
-var cache maya.Cache
-
-var job maya.WidevineJob
-
 func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
    err := cache.Setup("rosso/tubi.xml")
+   if err != nil {
+      return err
+   }
+   err = cache.Read(c, true)
    if err != nil {
       return err
    }
    // 1
    flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
    // 2
+   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
+   // 3
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
-   flag.Parse()
-   if c.tubi >= 1 {
+   set := maya.Parse()
+   if set["t"] {
       return c.do_tubi()
    }
-   if c.dash_id != "" {
+   if set["w"] {
+      return cache.Write(c)
+   }
+   if set["d"] {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"t"},
-      {"d", "c", "p"},
+      {"w"},
+      {"d"},
    })
 }
 
@@ -61,6 +65,8 @@ type client struct {
    // 1
    tubi int
    // 2
+   Job maya.Job
+   // 3
    dash_id string
 }
 

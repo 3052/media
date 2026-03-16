@@ -8,16 +8,7 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = func(data []byte) ([]byte, error) {
-      return c.DataSource.Widevine(c.BcJwt, data)
-   }
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}
+var cache maya.Cache
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -28,14 +19,36 @@ func main() {
    }
 }
 
-var cache maya.Cache
+type client struct {
+   BcJwt      string
+   Client     *amc.Client
+   Dash       *amc.Dash
+   DataSource *amc.DataSource
+   // 1
+   email    string
+   password string
+   // 2
+   refresh bool
+   // 3
+   series int
+   // 4
+   season int
+   // 5
+   episode int
+   // 6
+   Job maya.Job
+   // 7
+   dash_id string
+}
 
-var job maya.WidevineJob
+///
 
 func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
    err := cache.Setup("rosso/amc.xml")
+   if err != nil {
+      return err
+   }
+   err = cache.Read(c, true)
    if err != nil {
       return err
    }
@@ -147,27 +160,6 @@ func (c *client) do_season() error {
    }
    return nil
 }
-
-type client struct {
-   BcJwt      string
-   Client     *amc.Client
-   Dash       *amc.Dash
-   DataSource *amc.DataSource
-   // 1
-   email    string
-   password string
-   // 2
-   refresh bool
-   // 3
-   series int
-   // 4
-   season int
-   // 5
-   episode int
-   // 6
-   dash_id string
-}
-
 func (c *client) do_episode() error {
    err := cache.Update(c, func() error {
       sources, header, err := c.Client.Playback(c.episode)
@@ -189,4 +181,15 @@ func (c *client) do_episode() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_dash_id() error {
+   err := cache.Read(c)
+   if err != nil {
+      return err
+   }
+   job.Send = func(data []byte) ([]byte, error) {
+      return c.DataSource.Widevine(c.BcJwt, data)
+   }
+   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }

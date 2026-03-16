@@ -9,26 +9,6 @@ import (
    "path"
 )
 
-func (c *client) do_dash_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
-   )
-}
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.m4s")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *client) do() error {
    err := cache.Setup("rosso/peacock.xml")
    if err != nil {
@@ -47,6 +27,7 @@ func (c *client) do() error {
    flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
    // 4
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   flag.IntVar(&c.Job.Threads, "t", 2, "threads")
    set := maya.Parse()
    if set["e"] {
       if set["p"] {
@@ -120,4 +101,23 @@ type client struct {
    Job maya.Job
    // 4
    dash_id string
+}
+func (c *client) do_dash_id() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
+   )
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
