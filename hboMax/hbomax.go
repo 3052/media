@@ -241,6 +241,23 @@ func (l *Login) Widevine(editId string) (*Playback, error) {
    return l.playback(editId, "widevine")
 }
 
+// 1080p SL2000
+// 1440p SL3000
+func (p *Playback) PlayReady(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
 type Playback struct {
    Drm struct {
       Schemes struct {
@@ -346,23 +363,6 @@ func (v *Videos) FilterAndSort() {
 }
 
 ///
-
-// 1080p SL2000
-// 1440p SL3000
-func (p *Playback) PlayReady(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.PlayReady.LicenseUrl, "text/xml",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
 
 // https://hbomax.com/at/en/movies/austin-powers-international-man-of-mystery/a979fb8b-f713-4de3-a625-d16ad4d37448
 // https://hbomax.com/movies/one-battle-after-another/bebe611d-8178-481a-a4f2-de743b5b135a
