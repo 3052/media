@@ -8,6 +8,24 @@ import (
    "log"
 )
 
+func (c *client) do_hls_id() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *client) do() error {
    err := cache.Setup("rosso/disney.xml")
    if err != nil {
@@ -76,46 +94,66 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_hls_id() error {
-   err := cache.Read(c)
+func (c *client) do_email() error {
+   c.Token = &disney.Token{}
+   err := c.Token.RegisterDevice()
    if err != nil {
       return err
    }
-   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
+   request_otp, err := c.Token.RequestOtp(c.Email)
+   if err != nil {
+      return err
+   }
+   fmt.Println(request_otp)
+   return cache.Write(c)
 }
 
-func (c *client) do_media_id() error {
-   err := cache.Update(c, func() error {
-      stream, err := c.Token.Stream(c.media_id)
-      if err != nil {
-         return err
+func (c *client) do_passcode() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   otp, err := c.Token.AuthenticateWithOtp(c.Email, c.passcode)
+   if err != nil {
+      return err
+   }
+   login, err := c.Token.LoginWithActionGrant(otp.ActionGrant)
+   if err != nil {
+      return err
+   }
+   for i, profile := range login.Account.Profiles {
+      if i >= 1 {
+         fmt.Println()
       }
-      c.Hls, err = stream.Hls()
-      return err
-   })
-   if err != nil {
-      return err
+      fmt.Println(&profile)
    }
-   return maya.ListHls(c.Hls.Body, c.Hls.Url)
+   return cache.Write(c)
 }
 
-func (c *client) do_season_id() error {
-   err := cache.Read(c)
+func (c *client) do_profile_id() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   err := c.Token.SwitchProfile(c.profile_id)
    if err != nil {
       return err
    }
-   season, err := c.Token.Season(c.season_id)
+   return cache.Write(c)
+}
+
+func (c *client) do_refresh() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   err := disney.RefreshToken(c.Token)
    if err != nil {
       return err
    }
-   fmt.Println(season)
-   return nil
+   return cache.Write(c)
 }
 
 func (c *client) do_address() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
+   if cache.Error != nil {
+      return cache.Error
    }
    entity, err := disney.GetEntity(c.address)
    if err != nil {
@@ -129,39 +167,18 @@ func (c *client) do_address() error {
    return nil
 }
 
-func (c *client) do_refresh() error {
-   return cache.Update(c, func() error {
-      return disney.RefreshToken(c.Token)
-   })
+func (c *client) do_season_id() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   season, err := c.Token.Season(c.season_id)
+   if err != nil {
+      return err
+   }
+   fmt.Println(season)
+   return nil
 }
 
-func (c *client) do_profile_id() error {
-   return cache.Update(c, func() error {
-      return c.Token.SwitchProfile(c.profile_id)
-   })
-}
-
-func (c *client) do_passcode() error {
-   return cache.Update(c, func() error {
-      otp, err := c.Token.AuthenticateWithOtp(c.Email, c.passcode)
-      if err != nil {
-         return err
-      }
-      login, err := c.Token.LoginWithActionGrant(otp.ActionGrant)
-      if err != nil {
-         return err
-      }
-      for i, profile := range login.Account.Profiles {
-         if i >= 1 {
-            fmt.Println()
-         }
-         fmt.Println(&profile)
-      }
-      return nil
-   })
-}
-
-var cache maya.Cache
 type client struct {
    Hls   *disney.Hls
    Token *disney.Token
@@ -185,25 +202,21 @@ type client struct {
    hls_id int
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4,*.mp4a")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
+func (c *client) do_media_id() error {
+   if cache.Error != nil {
+      return cache.Error
    }
-}
-
-func (c *client) do_email() error {
-   c.Token = &disney.Token{}
-   err := c.Token.RegisterDevice()
+   stream, err := c.Token.Stream(c.media_id)
    if err != nil {
       return err
    }
-   request_otp, err := c.Token.RequestOtp(c.Email)
+   c.Hls, err = stream.Hls()
    if err != nil {
       return err
    }
-   fmt.Println(request_otp)
-   return cache.Write(c)
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListHls(c.Hls.Body, c.Hls.Url)
 }

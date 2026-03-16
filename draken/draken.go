@@ -42,6 +42,20 @@ type Entitlement struct {
    Error *Error
 }
 
+func (e *Error) Error() string {
+   var data strings.Builder
+   data.WriteString("message = ")
+   data.WriteString(e.Message)
+   data.WriteString("\nuser message = ")
+   data.WriteString(e.UserMessage)
+   return data.String()
+}
+
+type Error struct {
+   Message     string
+   UserMessage string `json:"user_message"`
+}
+
 type Login struct {
    Message string
    Token   string
@@ -218,20 +232,4 @@ func (p *Playback) Dash() (*Dash, error) {
       return nil, err
    }
    return &Dash{Body: body, Url: resp.Request.URL}, nil
-}
-
-///
-
-func (e *Error) Error() string {
-   var data strings.Builder
-   data.WriteString("message = ")
-   data.WriteString(e.Message)
-   data.WriteString("\nuser message = ")
-   data.WriteString(e.UserMessage)
-   return data.String()
-}
-
-type Error struct {
-   Message     string
-   UserMessage string `json:"user_message"`
 }
