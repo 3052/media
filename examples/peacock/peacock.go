@@ -9,41 +9,60 @@ import (
    "path"
 )
 
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
+   )
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *client) do() error {
    err := cache.Setup("rosso/peacock.xml")
    if err != nil {
       return err
    }
-   cache.Read(c)
+   err = cache.Read(c)
    // 1
+   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
+   // 2
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
-   // 2
-   flag.StringVar(&c.address, "a", "", "address")
    // 3
-   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
+   flag.StringVar(&c.address, "a", "", "address")
    // 4
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.IntVar(&c.Job.Threads, "t", 2, "threads")
    set := maya.Parse()
-   if set["e"] {
-      if set["p"] {
-         return c.do_email_password()
-      }
-   }
-   if set["a"] {
-      return c.do_address()
-   }
-   if set["w"] {
+   var action func() error
+   switch {
+   case set["w"]:
       return cache.Write(c)
+   case set["e"] && set["p"]:
+      return c.do_email_password()
+   case set["a"]:
+      action = c.do_address
+   case set["d"]:
+      action = c.do_dash_id
    }
-   if set["d"] {
-      return c.do_dash_id()
+   if action != nil {
+      if err != nil {
+         return err
+      }
+      return action()
    }
    return maya.Usage([][]string{
+      {"w"},
       {"e", "p"},
       {"a"},
-      {"w"},
       {"d"},
    })
 }
@@ -57,10 +76,22 @@ func (c *client) do_email_password() error {
    return cache.Write(c)
 }
 
+type client struct {
+   Cookie  *http.Cookie
+   Dash    *peacock.Dash
+   Playout *peacock.Playout
+   // 1
+   Job maya.Job
+   // 2
+   email    string
+   password string
+   // 3
+   address string
+   // 4
+   dash_id string
+}
+
 func (c *client) do_address() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
    var token peacock.Token
    err := token.Fetch(c.Cookie)
    if err != nil {
@@ -83,39 +114,4 @@ func (c *client) do_address() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-type client struct {
-   Cookie  *http.Cookie
-   Dash    *peacock.Dash
-   Playout *peacock.Playout
-   // 1
-   email    string
-   password string
-   // 2
-   address string
-   // 3
-   Job maya.Job
-   // 4
-   dash_id string
-}
-
-func (c *client) do_dash_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
-   )
-}
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.m4s")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

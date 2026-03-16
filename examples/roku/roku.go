@@ -8,15 +8,6 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
-   )
-}
-
 var cache maya.Cache
 
 func main() {
@@ -28,44 +19,76 @@ func main() {
    }
 }
 
+type client struct {
+   Connection *roku.Connection
+   Dash       *roku.Dash
+   LinkCode   *roku.LinkCode
+   Playback   *roku.Playback
+   User       *roku.User
+   // 1
+   Job maya.Job
+   // 2
+   connection bool
+   // 3
+   set_user bool
+   // 4
+   roku     string
+   get_user bool
+   // 5
+   dash_id string
+}
+
+///
+
 func (c *client) do() error {
    err := cache.Setup("rosso/roku.xml")
    if err != nil {
       return err
    }
-   cache.Read(c)
+   err = cache.Read(c)
    // 1
-   flag.BoolVar(&c.connection, "c", false, "connection")
+   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
    // 2
-   flag.BoolVar(&c.set_user, "s", false, "set user")
+   flag.BoolVar(&c.connection, "c", false, "connection")
    // 3
+   flag.BoolVar(&c.set_user, "s", false, "set user")
+   // 4
    flag.StringVar(&c.roku, "r", "", "Roku ID")
    flag.BoolVar(&c.get_user, "g", false, "get user")
-   // 4
-   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
    // 5
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    set := maya.Parse()
+   if set["w"] {
+      return cache.Write(c)
+   }
    if set["c"] {
       return c.do_connection()
    }
    if set["s"] {
+      if err != nil {
+         return err
+      }
       return c.do_set_user()
    }
-   if set["r"] {
-      return c.do_roku()
-   }
-   if set["w"] {
-      return cache.Write(c)
-   }
    if set["d"] {
+      if err != nil {
+         return err
+      }
       return c.do_dash_id()
    }
+   if set["r"] {
+      if set["g"] {
+         if err != nil {
+            return err
+         }
+      }
+      return c.do_roku()
+   }
    return maya.Usage([][]string{
+      {"w"},
       {"c"},
       {"s"},
       {"r", "g"},
-      {"w"},
       {"d"},
    })
 }
@@ -123,22 +146,11 @@ func (c *client) do_roku() error {
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
-
-type client struct {
-   Connection *roku.Connection
-   Dash       *roku.Dash
-   LinkCode   *roku.LinkCode
-   Playback   *roku.Playback
-   User       *roku.User
-   // 1
-   connection bool
-   // 2
-   set_user bool
-   // 3
-   roku     string
-   get_user bool
-   // 4
-   Job maya.Job
-   // 5
-   dash_id string
+func (c *client) do_dash_id() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
+   )
 }
