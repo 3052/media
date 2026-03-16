@@ -8,6 +8,110 @@ import (
    "log"
 )
 
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do() error {
+   err := cache.Setup("rosso/disney.xml")
+   if err != nil {
+      return err
+   }
+   err = cache.Read(c)
+   // 1
+   flag.StringVar(&c.Job.PlayReady, "PR", c.Job.PlayReady, "PlayReady")
+   // 2
+   flag.StringVar(&c.Email, "e", c.Email, "email")
+   // 3
+   flag.StringVar(&c.passcode, "p", "", "passcode")
+   // 4
+   flag.StringVar(&c.profile_id, "P", "", "profile ID")
+   // 5
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   // 6
+   flag.StringVar(&c.address, "a", "", "address")
+   // 7
+   flag.StringVar(&c.season_id, "s", "", "season ID")
+   // 8
+   flag.StringVar(&c.media_id, "m", "", "media ID")
+   // 9
+   flag.IntVar(&c.hls_id, "h", 0, "HLS ID")
+   set := maya.Parse()
+   switch {
+   case set["PR"]:
+      return cache.Write(c)
+   case set["e"]:
+      return c.do_email()
+   case set["p"]:
+      return c.do_passcode(err)
+   case set["P"]:
+      return c.do_profile_id(err)
+   case set["r"]:
+      return c.do_refresh(err)
+   case set["a"]:
+      return c.do_address(err)
+   case set["s"]:
+      return c.do_season_id(err)
+   case set["m"]:
+      return c.do_media_id(err)
+   case set["h"]:
+      return c.do_hls_id(err)
+   }
+   return maya.Usage([][]string{
+      {"PR"},
+      {"e"},
+      {"p"},
+      {"P"},
+      {"r"},
+      {"a"},
+      {"s"},
+      {"m"},
+      {"h"},
+   })
+}
+
+func (c *client) do_email() error {
+   var err error
+   c.Token, err = disney.RegisterDevice()
+   if err != nil {
+      return err
+   }
+   request_otp, err := c.Token.RequestOtp(c.Email)
+   if err != nil {
+      return err
+   }
+   fmt.Println(request_otp)
+   return cache.Write(c)
+}
+
+func (c *client) do_passcode(err error) error {
+   if err != nil {
+      return err
+   }
+   otp, err := c.Token.AuthenticateWithOtp(c.Email, c.passcode)
+   if err != nil {
+      return err
+   }
+   login, err := c.Token.LoginWithActionGrant(otp.ActionGrant)
+   if err != nil {
+      return err
+   }
+   for i, profile := range login.Account.Profiles {
+      if i >= 1 {
+         fmt.Println()
+      }
+      fmt.Println(&profile)
+   }
+   return cache.Write(c)
+}
+
 func (c *client) do_profile_id(err error) error {
    if err != nil {
       return err
@@ -99,113 +203,10 @@ func (c *client) do_media_id(err error) error {
    }
    return maya.ListHls(c.Hls.Body, c.Hls.Url)
 }
+
 func (c *client) do_hls_id(err error) error {
    if err != nil {
       return err
    }
    return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
-}
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4,*.mp4a")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *client) do() error {
-   err := cache.Setup("rosso/disney.xml")
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c)
-   // 1
-   flag.StringVar(&c.Job.PlayReady, "PR", c.Job.PlayReady, "PlayReady")
-   // 2
-   flag.StringVar(&c.Email, "e", c.Email, "email")
-   // 3
-   flag.StringVar(&c.passcode, "p", "", "passcode")
-   // 4
-   flag.StringVar(&c.profile_id, "P", "", "profile ID")
-   // 5
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   // 6
-   flag.StringVar(&c.address, "a", "", "address")
-   // 7
-   flag.StringVar(&c.season_id, "s", "", "season ID")
-   // 8
-   flag.StringVar(&c.media_id, "m", "", "media ID")
-   // 9
-   flag.IntVar(&c.hls_id, "h", 0, "HLS ID")
-   set := maya.Parse()
-   switch {
-   case set["PR"]:
-      return cache.Write(c)
-   case set["e"]:
-      return c.do_email()
-   case set["p"]:
-      return c.do_passcode(err)
-   case set["P"]:
-      return c.do_profile_id(err)
-   case set["r"]:
-      return c.do_refresh(err)
-   case set["a"]:
-      return c.do_address(err)
-   case set["s"]:
-      return c.do_season_id(err)
-   case set["m"]:
-      return c.do_media_id(err)
-   case set["h"]:
-      return c.do_hls_id(err)
-   }
-   return maya.Usage([][]string{
-      {"PR"},
-      {"e"},
-      {"p"},
-      {"P"},
-      {"r"},
-      {"a"},
-      {"s"},
-      {"m"},
-      {"h"},
-   })
-}
-
-func (c *client) do_email() error {
-   c.Token = &disney.Token{}
-   err := c.Token.RegisterDevice()
-   if err != nil {
-      return err
-   }
-   request_otp, err := c.Token.RequestOtp(c.Email)
-   if err != nil {
-      return err
-   }
-   fmt.Println(request_otp)
-   return cache.Write(c)
-}
-
-func (c *client) do_passcode(err error) error {
-   if err != nil {
-      return err
-   }
-   otp, err := c.Token.AuthenticateWithOtp(c.Email, c.passcode)
-   if err != nil {
-      return err
-   }
-   login, err := c.Token.LoginWithActionGrant(otp.ActionGrant)
-   if err != nil {
-      return err
-   }
-   for i, profile := range login.Account.Profiles {
-      if i >= 1 {
-         fmt.Println()
-      }
-      fmt.Println(&profile)
-   }
-   return cache.Write(c)
 }
