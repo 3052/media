@@ -17,18 +17,15 @@ func (c *client) do() error {
       return err
    }
    // 1
-   flag.StringVar(&c.proxy, "x", "", "proxy")
-   // 2
    flag.StringVar(&c.email, "e", "", "email")
    flag.StringVar(&c.password, "p", "", "password")
-   // 3
+   // 2
    flag.StringVar(&c.address, "a", "", "address")
-   // 4
+   // 3
    flag.StringVar(&c.Job.PlayReady, "P", c.Job.PlayReady, "PlayReady")
-   // 5
+   // 4
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    set := maya.Parse()
-   err = maya.SetProxy(c.proxy, "*.mp4,*.mp4a")
    if err != nil {
       return err
    }
@@ -47,22 +44,11 @@ func (c *client) do() error {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
-      {"x"},
       {"e", "p"},
       {"a"},
       {"P"},
       {"d"},
    })
-}
-
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
-   )
 }
 
 func (c *client) do_email_password() error {
@@ -74,52 +60,63 @@ func (c *client) do_email_password() error {
    return cache.Write(c)
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-var cache maya.Cache
-
-func (c *client) do_address() error {
-   err := cache.Update(c, func() error {
-      err := c.Session.TokenRefresh()
-      if err != nil {
-         return err
-      }
-      deep_link, err := c.Session.DeepLink(hulu.Id(c.address))
-      if err != nil {
-         return err
-      }
-      c.Playlist, err = c.Session.Playlist(deep_link)
-      if err != nil {
-         return err
-      }
-      c.Dash, err = c.Playlist.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
 type client struct {
    Dash     *hulu.Dash
    Playlist *hulu.Playlist
    Session  *hulu.Session
    // 1
-   proxy string
-   // 2
    email    string
    password string
-   // 3
+   // 2
    address string
-   // 4
+   // 3
    Job maya.Job
-   // 5
+   // 4
    dash_id string
+}
+
+func (c *client) do_address() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   err := c.Session.TokenRefresh()
+   if err != nil {
+      return err
+   }
+   deep_link, err := c.Session.DeepLink(hulu.Id(c.address))
+   if err != nil {
+      return err
+   }
+   c.Playlist, err = c.Session.Playlist(deep_link)
+   if err != nil {
+      return err
+   }
+   c.Dash, err = c.Playlist.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+func (c *client) do_dash_id() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
+   )
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }

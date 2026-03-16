@@ -45,22 +45,10 @@ func isCategory(segment string) bool {
    }
 }
 
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
+type Dash struct {
+   Body []byte
+   Url  *url.URL
 }
-
-///
 
 func (e *Error) Error() string {
    var data strings.Builder
@@ -81,6 +69,59 @@ type Error struct {
    Detail  string // show was filtered by validator
    Message string // Token is missing or not valid
 }
+
+func (i *Initiate) String() string {
+   var data strings.Builder
+   data.WriteString("target URL = ")
+   data.WriteString(i.TargetUrl)
+   data.WriteString("\nlinking code = ")
+   data.WriteString(i.LinkingCode)
+   return data.String()
+}
+
+type Initiate struct {
+   LinkingCode string
+   TargetUrl   string
+}
+
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
+func (v *Video) String() string {
+   var data strings.Builder
+   if v.Attributes.SeasonNumber >= 1 {
+      data.WriteString("season number = ")
+      data.WriteString(strconv.Itoa(v.Attributes.SeasonNumber))
+   }
+   if v.Attributes.EpisodeNumber >= 1 {
+      data.WriteString("\nepisode number = ")
+      data.WriteString(strconv.Itoa(v.Attributes.EpisodeNumber))
+   }
+   if data.Len() >= 1 {
+      data.WriteByte('\n')
+   }
+   data.WriteString("name = ")
+   data.WriteString(v.Attributes.Name)
+   data.WriteString("\nvideo type = ")
+   data.WriteString(v.Attributes.VideoType)
+   data.WriteString("\nedit id = ")
+   data.WriteString(v.Relationships.Edit.Data.Id)
+   return data.String()
+}
+
+///
 
 func (l Login) Movie(show *ShowItem) (*Videos, error) {
    var req http.Request
@@ -438,45 +479,4 @@ func (p *Playback) Widevine(data []byte) ([]byte, error) {
 
 func (l *Login) Widevine(editId string) (*Playback, error) {
    return l.playback(editId, "widevine")
-}
-
-func (i *Initiate) String() string {
-   var data strings.Builder
-   data.WriteString("target URL = ")
-   data.WriteString(i.TargetUrl)
-   data.WriteString("\nlinking code = ")
-   data.WriteString(i.LinkingCode)
-   return data.String()
-}
-
-type Initiate struct {
-   LinkingCode string
-   TargetUrl   string
-}
-
-func (v *Video) String() string {
-   var data strings.Builder
-   if v.Attributes.SeasonNumber >= 1 {
-      data.WriteString("season number = ")
-      data.WriteString(strconv.Itoa(v.Attributes.SeasonNumber))
-   }
-   if v.Attributes.EpisodeNumber >= 1 {
-      data.WriteString("\nepisode number = ")
-      data.WriteString(strconv.Itoa(v.Attributes.EpisodeNumber))
-   }
-   if data.Len() >= 1 {
-      data.WriteByte('\n')
-   }
-   data.WriteString("name = ")
-   data.WriteString(v.Attributes.Name)
-   data.WriteString("\nvideo type = ")
-   data.WriteString(v.Attributes.VideoType)
-   data.WriteString("\nedit id = ")
-   data.WriteString(v.Relationships.Edit.Data.Id)
-   return data.String()
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
 }
