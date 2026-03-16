@@ -7,7 +7,10 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id() error {
+func (c *client) do_dash_id(err error) error {
+   if err != nil {
+      return err
+   }
    return c.Job.DownloadDash(
       c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
    )
@@ -40,22 +43,15 @@ func (c *client) do() error {
    // 4
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    set := maya.Parse()
-   var action func() error
    switch {
    case set["P"]:
       return cache.Write(c)
    case set["e"] && set["p"]:
       return c.do_email_password()
    case set["a"]:
-      action = c.do_address
+      return c.do_address(err)
    case set["d"]:
-      action = c.do_dash_id
-   }
-   if action != nil {
-      if err != nil {
-         return err
-      }
-      return action()
+      return c.do_dash_id(err)
    }
    return maya.Usage([][]string{
       {"P"},
@@ -74,8 +70,11 @@ func (c *client) do_email_password() error {
    return cache.Write(c)
 }
 
-func (c *client) do_address() error {
-   err := c.Session.TokenRefresh()
+func (c *client) do_address(err error) error {
+   if err != nil {
+      return err
+   }
+   err = c.Session.TokenRefresh()
    if err != nil {
       return err
    }
