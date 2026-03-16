@@ -84,82 +84,6 @@ type Initiate struct {
    TargetUrl   string
 }
 
-func (l *Login) Widevine(editId string) (*Playback, error) {
-   return l.playback(editId, "widevine")
-}
-
-type Playback struct {
-   Drm struct {
-      Schemes struct {
-         PlayReady *Scheme
-         Widevine  *Scheme
-      }
-   }
-   Errors   []Error
-   Fallback struct {
-      Manifest struct {
-         Url string // _fallback.mpd:1080p, .mpd:4K
-      }
-   }
-   Manifest struct {
-      Url string // 1080p
-   }
-}
-
-func (p *Playback) Widevine(data []byte) ([]byte, error) {
-   resp, err := http.Post(
-      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
-      bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(
-      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
-   )
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
-}
-
-func (v *Video) String() string {
-   var data strings.Builder
-   if v.Attributes.SeasonNumber >= 1 {
-      data.WriteString("season number = ")
-      data.WriteString(strconv.Itoa(v.Attributes.SeasonNumber))
-   }
-   if v.Attributes.EpisodeNumber >= 1 {
-      data.WriteString("\nepisode number = ")
-      data.WriteString(strconv.Itoa(v.Attributes.EpisodeNumber))
-   }
-   if data.Len() >= 1 {
-      data.WriteByte('\n')
-   }
-   data.WriteString("name = ")
-   data.WriteString(v.Attributes.Name)
-   data.WriteString("\nvideo type = ")
-   data.WriteString(v.Attributes.VideoType)
-   data.WriteString("\nedit id = ")
-   data.WriteString(v.Relationships.Edit.Data.Id)
-   return data.String()
-}
-
-///
-
 func (l Login) Movie(show *ShowItem) (*Videos, error) {
    var req http.Request
    req.Header = http.Header{}
@@ -312,6 +236,82 @@ func (l *Login) Fetch(st *http.Cookie) error {
    defer resp.Body.Close()
    return json.NewDecoder(resp.Body).Decode(l)
 }
+
+func (l *Login) Widevine(editId string) (*Playback, error) {
+   return l.playback(editId, "widevine")
+}
+
+type Playback struct {
+   Drm struct {
+      Schemes struct {
+         PlayReady *Scheme
+         Widevine  *Scheme
+      }
+   }
+   Errors   []Error
+   Fallback struct {
+      Manifest struct {
+         Url string // _fallback.mpd:1080p, .mpd:4K
+      }
+   }
+   Manifest struct {
+      Url string // 1080p
+   }
+}
+
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
+   resp, err := http.Post(
+      p.Drm.Schemes.Widevine.LicenseUrl, "application/x-protobuf",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(
+      strings.Replace(p.Fallback.Manifest.Url, "_fallback", "", 1),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
+func (v *Video) String() string {
+   var data strings.Builder
+   if v.Attributes.SeasonNumber >= 1 {
+      data.WriteString("season number = ")
+      data.WriteString(strconv.Itoa(v.Attributes.SeasonNumber))
+   }
+   if v.Attributes.EpisodeNumber >= 1 {
+      data.WriteString("\nepisode number = ")
+      data.WriteString(strconv.Itoa(v.Attributes.EpisodeNumber))
+   }
+   if data.Len() >= 1 {
+      data.WriteByte('\n')
+   }
+   data.WriteString("name = ")
+   data.WriteString(v.Attributes.Name)
+   data.WriteString("\nvideo type = ")
+   data.WriteString(v.Attributes.VideoType)
+   data.WriteString("\nedit id = ")
+   data.WriteString(v.Relationships.Edit.Data.Id)
+   return data.String()
+}
+
+///
 
 type Video struct {
    Attributes *struct {

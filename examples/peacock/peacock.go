@@ -9,38 +9,16 @@ import (
    "path"
 )
 
-func (c *client) do_address() error {
-   err := cache.Update(c, func() error {
-      var token peacock.Token
-      err := token.Fetch(c.Cookie)
-      if err != nil {
-         return err
-      }
-      c.Playout, err = token.Playout(path.Base(c.address))
-      if err != nil {
-         return err
-      }
-      endpoint, err := c.Playout.Fastly()
-      if err != nil {
-         return err
-      }
-      c.Dash, err = endpoint.Dash()
-      return err
-   })
-   if err != nil {
-      return err
+func (c *client) do_dash_id() error {
+   if cache.Error != nil {
+      return cache.Error
    }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
+   )
 }
 
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = c.Playout.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
-}
+var cache maya.Cache
 
 func main() {
    log.SetFlags(log.Ltime)
@@ -51,14 +29,12 @@ func main() {
    }
 }
 
-var cache maya.Cache
-
-var job maya.WidevineJob
-
 func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
    err := cache.Setup("rosso/peacock.xml")
+   if err != nil {
+      return err
+   }
+   err = cache.Read(c, true)
    if err != nil {
       return err
    }
@@ -68,25 +44,29 @@ func (c *client) do() error {
    // 2
    flag.StringVar(&c.address, "a", "", "address")
    // 3
+   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
+   // 4
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
-   flag.Parse()
-   if c.email != "" {
-      if c.password != "" {
+   set := maya.Parse()
+   if set["e"] {
+      if set["p"] {
          return c.do_email_password()
       }
    }
-   if c.address != "" {
+   if set["a"] {
       return c.do_address()
    }
-   if c.dash_id != "" {
+   if set["w"] {
+      return cache.Write(c)
+   }
+   if set["d"] {
       return c.do_dash_id()
    }
    return maya.Usage([][]string{
       {"e", "p"},
       {"a"},
-      {"d", "C", "P"},
+      {"w"},
+      {"d"},
    })
 }
 
@@ -99,6 +79,34 @@ func (c *client) do_email_password() error {
    return cache.Write(c)
 }
 
+func (c *client) do_address() error {
+   if cache.Error != nil {
+      return cache.Error
+   }
+   var token peacock.Token
+   err := token.Fetch(c.Cookie)
+   if err != nil {
+      return err
+   }
+   c.Playout, err = token.Playout(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   endpoint, err := c.Playout.Fastly()
+   if err != nil {
+      return err
+   }
+   c.Dash, err = endpoint.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
 type client struct {
    Cookie  *http.Cookie
    Dash    *peacock.Dash
@@ -109,5 +117,7 @@ type client struct {
    // 2
    address string
    // 3
+   Job maya.Job
+   // 4
    dash_id string
 }
