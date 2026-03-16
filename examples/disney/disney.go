@@ -13,54 +13,55 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   cache.Read(c)
+   err = cache.Read(c)
    // 1
-   flag.StringVar(&c.Email, "e", c.Email, "email")
-   // 2
-   flag.StringVar(&c.passcode, "p", "", "passcode")
-   // 3
-   flag.StringVar(&c.profile_id, "P", "", "profile ID")
-   // 4
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
-   // 5
-   flag.StringVar(&c.address, "a", "", "address")
-   // 6
-   flag.StringVar(&c.season_id, "s", "", "season ID")
-   // 7
-   flag.StringVar(&c.media_id, "m", "", "media ID")
-   // 8
    flag.StringVar(&c.Job.PlayReady, "PR", c.Job.PlayReady, "PlayReady")
+   // 2
+   flag.StringVar(&c.Email, "e", c.Email, "email")
+   // 3
+   flag.StringVar(&c.passcode, "p", "", "passcode")
+   // 4
+   flag.StringVar(&c.profile_id, "P", "", "profile ID")
+   // 5
+   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   // 6
+   flag.StringVar(&c.address, "a", "", "address")
+   // 7
+   flag.StringVar(&c.season_id, "s", "", "season ID")
+   // 8
+   flag.StringVar(&c.media_id, "m", "", "media ID")
    // 9
    flag.IntVar(&c.hls_id, "h", 0, "HLS ID")
    set := maya.Parse()
-   if set["e"] {
-      return c.do_email()
-   }
-   if set["p"] {
-      return c.do_passcode()
-   }
-   if set["P"] {
-      return c.do_profile_id()
-   }
-   if set["r"] {
-      return c.do_refresh()
-   }
-   if set["a"] {
-      return c.do_address()
-   }
-   if set["s"] {
-      return c.do_season_id()
-   }
-   if set["m"] {
-      return c.do_media_id()
-   }
-   if set["PR"] {
+   var action func() error
+   switch {
+   case set["PR"]:
       return cache.Write(c)
+   case set["e"]:
+      return c.do_email()
+   case set["p"]:
+      action = c.do_passcode
+   case set["P"]:
+      action = c.do_profile_id
+   case set["r"]:
+      action = c.do_refresh
+   case set["a"]:
+      action = c.do_address
+   case set["s"]:
+      action = c.do_season_id
+   case set["m"]:
+      action = c.do_media_id
+   case set["h"]:
+      action = c.do_hls_id
    }
-   if set["h"] {
-      return c.do_hls_id()
+   if action != nil {
+      if err != nil {
+         return err
+      }
+      return action()
    }
    return maya.Usage([][]string{
+      {"PR"},
       {"e"},
       {"p"},
       {"P"},
@@ -68,9 +69,12 @@ func (c *client) do() error {
       {"a"},
       {"s"},
       {"m"},
-      {"PR"},
       {"h"},
    })
+}
+
+func (c *client) do_hls_id() error {
+   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
 }
 
 func (c *client) do_email() error {
@@ -88,9 +92,6 @@ func (c *client) do_email() error {
 }
 
 func (c *client) do_passcode() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
    otp, err := c.Token.AuthenticateWithOtp(c.Email, c.passcode)
    if err != nil {
       return err
@@ -109,9 +110,6 @@ func (c *client) do_passcode() error {
 }
 
 func (c *client) do_profile_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
    err := c.Token.SwitchProfile(c.profile_id)
    if err != nil {
       return err
@@ -120,9 +118,6 @@ func (c *client) do_profile_id() error {
 }
 
 func (c *client) do_refresh() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
    err := disney.RefreshToken(c.Token)
    if err != nil {
       return err
@@ -131,9 +126,6 @@ func (c *client) do_refresh() error {
 }
 
 func (c *client) do_address() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
    entity, err := disney.GetEntity(c.address)
    if err != nil {
       return err
@@ -147,9 +139,6 @@ func (c *client) do_address() error {
 }
 
 func (c *client) do_season_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
    season, err := c.Token.Season(c.season_id)
    if err != nil {
       return err
@@ -162,29 +151,26 @@ type client struct {
    Hls   *disney.Hls
    Token *disney.Token
    // 1
-   Email string
-   // 2
-   passcode string
-   // 3
-   profile_id string
-   // 4
-   refresh bool
-   // 5
-   address string
-   // 6
-   season_id string
-   // 7
-   media_id string
-   // 8
    Job maya.Job
+   // 2
+   Email string
+   // 3
+   passcode string
+   // 4
+   profile_id string
+   // 5
+   refresh bool
+   // 6
+   address string
+   // 7
+   season_id string
+   // 8
+   media_id string
    // 9
    hls_id int
 }
 
 func (c *client) do_media_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
    stream, err := c.Token.Stream(c.media_id)
    if err != nil {
       return err
@@ -199,13 +185,6 @@ func (c *client) do_media_id() error {
    }
    return maya.ListHls(c.Hls.Body, c.Hls.Url)
 }
-func (c *client) do_hls_id() error {
-   if cache.Error != nil {
-      return cache.Error
-   }
-   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
-}
-
 var cache maya.Cache
 
 func main() {
