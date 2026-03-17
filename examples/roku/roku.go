@@ -9,19 +9,18 @@ import (
 )
 
 func (c *client) do_roku(err error) error {
-   var user *roku.User
-   if c.get_user {
+   var code *roku.Code
+   if c.get_code {
       if err != nil {
          return err
       }
-      user = c.User
+      code = c.Code
    }
-   var connection roku.Connection
-   err = connection.Fetch(user)
+   c.Token, err = roku.FetchToken(code)
    if err != nil {
       return err
    }
-   c.Playback, err = connection.Playback(c.roku)
+   c.Playback, err = c.Token.Playback(c.roku)
    if err != nil {
       return err
    }
@@ -34,6 +33,17 @@ func (c *client) do_roku(err error) error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_set_code(err error) error {
+   if err != nil {
+      return err
+   }
+   c.Code, err = c.Token.Code(c.Activation)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
 }
 
 var cache maya.Cache
@@ -56,12 +66,12 @@ func (c *client) do() error {
    // 1
    flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
    // 2
-   flag.BoolVar(&c.connection, "c", false, "connection")
+   flag.BoolVar(&c.token, "c", false, "token")
    // 3
-   flag.BoolVar(&c.set_user, "s", false, "set user")
+   flag.BoolVar(&c.set_code, "s", false, "set code")
    // 4
    flag.StringVar(&c.roku, "r", "", "Roku ID")
-   flag.BoolVar(&c.get_user, "g", false, "get user")
+   flag.BoolVar(&c.get_code, "g", false, "get code")
    // 5
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    set := maya.Parse()
@@ -69,9 +79,9 @@ func (c *client) do() error {
    case set["w"]:
       return cache.Write(c)
    case set["c"]:
-      return c.do_connection()
+      return c.do_token()
    case set["s"]:
-      return c.do_set_user(err)
+      return c.do_set_code(err)
    case set["r"]:
       return c.do_roku(err)
    case set["d"]:
@@ -86,46 +96,35 @@ func (c *client) do() error {
    })
 }
 
-func (c *client) do_connection() error {
-   c.Connection = &roku.Connection{}
-   err := c.Connection.Fetch(nil)
+func (c *client) do_token() error {
+   var err error
+   c.Token, err = roku.FetchToken(nil)
    if err != nil {
       return err
    }
-   c.LinkCode, err = c.Connection.LinkCode()
+   c.Activation, err = c.Token.Activation()
    if err != nil {
       return err
    }
-   fmt.Println(c.LinkCode)
-   return cache.Write(c)
-}
-
-func (c *client) do_set_user(err error) error {
-   if err != nil {
-      return err
-   }
-   c.User, err = c.Connection.User(c.LinkCode)
-   if err != nil {
-      return err
-   }
+   fmt.Println(c.Activation)
    return cache.Write(c)
 }
 
 type client struct {
-   Connection *roku.Connection
+   Activation   *roku.Activation
+   Code       *roku.Code
    Dash       *roku.Dash
-   LinkCode   *roku.LinkCode
    Playback   *roku.Playback
-   User       *roku.User
+   Token *roku.Token
    // 1
    Job maya.Job
    // 2
-   connection bool
+   token bool
    // 3
-   set_user bool
+   set_code bool
    // 4
    roku     string
-   get_user bool
+   get_code bool
    // 5
    dash_id string
 }

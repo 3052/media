@@ -10,21 +10,10 @@ import (
    "strings"
 )
 
-func (p *Playback) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Url)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
-}
-
-// User can be nil
-func (c *Connection) Fetch(current *User) error {
+// input can be nil
+//
+// /api/v1/account/token
+func FetchToken(codeData *Code) (*Token, error) {
    var req http.Request
    req.URL = &url.URL{
       Scheme: "https",
@@ -33,22 +22,49 @@ func (c *Connection) Fetch(current *User) error {
    }
    req.Header = http.Header{}
    req.Header.Set("user-agent", user_agent)
-   if current != nil {
-      req.Header.Set("x-roku-content-token", current.Token)
+   if codeData != nil {
+      req.Header.Set("x-roku-content-token", codeData.Token)
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(c)
+   result := &Token{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+// /api/v1/account/activation/code
+func (t *Token) Code(activationData *Activation) (*Code, error) {
+   var req http.Request
+   req.Header = http.Header{}
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-roku-content-token", t.AuthToken)
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "googletv.web.roku.com",
+      Path:   "/api/v1/account/activation/" + activationData.Code,
+   }
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Code{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
 }
 
-// Widevine fetches the license key
-func (p *Playback) Widevine(payload []byte) ([]byte, error) {
+func (p *Playback) Widevine(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.Drm.Widevine.LicenseServer, "application/x-protobuf",
-      bytes.NewReader(payload),
+      bytes.NewReader(data),
    )
    if err != nil {
       return nil, err
@@ -67,34 +83,29 @@ type Dash struct {
 
 const user_agent = "trc-googletv; production; 0"
 
-// Connection represents the active session with the Roku API.
-type Connection struct {
+type Token struct {
    AuthToken string
 }
 
-// LinkCode represents the activation code displayed to the user.
-type LinkCode struct {
+type Activation struct {
    Code string
 }
 
-// User represents the persistent saved account token.
-type User struct {
+type Code struct {
    Token string
 }
 
-// String generates the user instructions
-func (l *LinkCode) String() string {
+func (a *Activation) String() string {
    var data strings.Builder
    data.WriteString("1 Visit the URL\n")
    data.WriteString("  therokuchannel.com/link\n")
    data.WriteString("\n")
    data.WriteString("2 Enter the activation code\n")
    data.WriteString("  ")
-   data.WriteString(l.Code)
+   data.WriteString(a.Code)
    return data.String()
 }
 
-// Playback represents the media playback metadata.
 type Playback struct {
    Drm struct {
       Widevine struct {
@@ -104,32 +115,56 @@ type Playback struct {
    Url string // MPD
 }
 
-// GetUser exchanges the LinkCode for a permanent User token.
-func (c *Connection) User(link *LinkCode) (*User, error) {
-   var req http.Request
-   req.Header = http.Header{}
-   req.Header.Set("user-agent", user_agent)
-   req.Header.Set("x-roku-content-token", c.AuthToken)
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "googletv.web.roku.com",
-      Path:   "/api/v1/account/activation/" + link.Code,
-   }
-   resp, err := http.DefaultClient.Do(&req)
+func (p *Playback) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Url)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   result := &User{}
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
+// /api/v3/playback
+func (t *Token) Playback(rokuId string) (*Playback, error) {
+   data, err := json.Marshal(map[string]string{
+      "mediaFormat": "DASH",
+      "providerId":  "rokuavod",
+      "rokuId":      rokuId,
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://googletv.web.roku.com/api/v3/playback",
+      bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/json")
+   req.Header.Set("user-agent", user_agent)
+   req.Header.Set("x-roku-content-token", t.AuthToken)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   result := &Playback{}
    err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
    }
    return result, nil
 }
-
-// RequestLinkCode requests a new activation code from the server
-func (c *Connection) LinkCode() (*LinkCode, error) {
+// /api/v1/account/activation
+func (t *Token) Activation() (*Activation, error) {
    data, err := json.Marshal(map[string]string{"platform": "googletv"})
    if err != nil {
       return nil, err
@@ -143,49 +178,13 @@ func (c *Connection) LinkCode() (*LinkCode, error) {
    }
    req.Header.Set("content-type", "application/json")
    req.Header.Set("user-agent", user_agent)
-   req.Header.Set("x-roku-content-token", c.AuthToken)
+   req.Header.Set("x-roku-content-token", t.AuthToken)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   result := &LinkCode{}
-   err = json.NewDecoder(resp.Body).Decode(result)
-   if err != nil {
-      return nil, err
-   }
-   return result, nil
-}
-
-// Playback fetches the DASH manifest and DRM information.
-func (c *Connection) Playback(rokuId string) (*Playback, error) {
-   payload, err := json.Marshal(map[string]string{
-      "mediaFormat": "DASH",
-      "providerId":  "rokuavod",
-      "rokuId":      rokuId,
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://googletv.web.roku.com/api/v3/playback",
-      bytes.NewReader(payload),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/json")
-   req.Header.Set("user-agent", user_agent)
-   req.Header.Set("x-roku-content-token", c.AuthToken)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   result := &Playback{}
+   result := &Activation{}
    err = json.NewDecoder(resp.Body).Decode(result)
    if err != nil {
       return nil, err
