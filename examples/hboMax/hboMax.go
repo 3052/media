@@ -9,13 +9,21 @@ import (
    "net/http"
 )
 
-func (c *client) do_dash_id(err error) error {
+func (c *client) do_edit_id() error {
+   var err error
+   c.Playback, err = c.Login.PlayReady(c.edit_id)
    if err != nil {
       return err
    }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.PlayReady,
-   )
+   c.Dash, err = c.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
 var cache maya.Cache
@@ -38,12 +46,12 @@ func (c *client) do() error {
    // 1
    flag.StringVar(&c.Job.PlayReady, "p", c.Job.PlayReady, "PlayReady")
    // 2
-   flag.BoolVar(&c.initiate, "i", false, "device initiate")
+   flag.Bool("i", false, "device initiate")
    flag.StringVar(
       &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
    )
    // 3
-   flag.BoolVar(&c.login, "l", false, "device login")
+   flag.Bool("l", false, "device login")
    // 4
    flag.StringVar(&c.address, "a", "", "address")
    flag.IntVar(&c.season, "s", 0, "season")
@@ -57,14 +65,21 @@ func (c *client) do() error {
       return cache.Write(c)
    case set["i"]:
       return c.do_initiate()
+   }
+   if err != nil {
+      return err
+   }
+   switch {
    case set["l"]:
-      return c.do_login(err)
+      return c.do_login()
    case set["a"]:
-      return c.do_address(err)
+      return c.do_address()
    case set["e"]:
-      return c.do_edit_id(err)
+      return c.do_edit_id()
    case set["d"]:
-      return c.do_dash_id(err)
+      return c.Job.DownloadDash(
+         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.PlayReady,
+      )
    }
    return maya.Usage([][]string{
       {"p"},
@@ -89,11 +104,8 @@ func (c *client) do_initiate() error {
    fmt.Println(initiate)
    return cache.Write(c)
 }
-
-func (c *client) do_login(err error) error {
-   if err != nil {
-      return err
-   }
+func (c *client) do_login() error {
+   var err error
    c.Login, err = hboMax.FetchLogin(c.St)
    if err != nil {
       return err
@@ -101,10 +113,7 @@ func (c *client) do_login(err error) error {
    return cache.Write(c)
 }
 
-func (c *client) do_address(err error) error {
-   if err != nil {
-      return err
-   }
+func (c *client) do_address() error {
    show, err := hboMax.ParseShow(c.address)
    if err != nil {
       return err
@@ -135,11 +144,9 @@ type client struct {
    St       *http.Cookie
    // 1
    Job maya.Job
-   // 2
-   initiate bool
+   // 2 initiate
    market   string
-   // 3
-   login bool
+   // 3 login
    // 4
    address string
    season  int
@@ -147,23 +154,4 @@ type client struct {
    edit_id string
    // 6
    dash_id string
-}
-
-func (c *client) do_edit_id(err error) error {
-   if err != nil {
-      return err
-   }
-   c.Playback, err = c.Login.PlayReady(c.edit_id)
-   if err != nil {
-      return err
-   }
-   c.Dash, err = c.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

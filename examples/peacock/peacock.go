@@ -9,15 +9,6 @@ import (
    "path"
 )
 
-func (c *client) do_dash_id(err error) error {
-   if err != nil {
-      return err
-   }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
-   )
-}
-
 var cache maya.Cache
 
 func main() {
@@ -50,10 +41,17 @@ func (c *client) do() error {
       return cache.Write(c)
    case set["e"] && set["p"]:
       return c.do_email_password()
+   }
+   if err != nil {
+      return err
+   }
+   switch {
    case set["a"]:
-      return c.do_address(err)
+      return c.do_address()
    case set["d"]:
-      return c.do_dash_id(err)
+      return c.Job.DownloadDash(
+         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
+      )
    }
    return maya.Usage([][]string{
       {"w"},
@@ -72,10 +70,7 @@ func (c *client) do_email_password() error {
    return cache.Write(c)
 }
 
-func (c *client) do_address(err error) error {
-   if err != nil {
-      return err
-   }
+func (c *client) do_address() error {
    token, err := peacock.FetchToken(c.Cookie)
    if err != nil {
       return err

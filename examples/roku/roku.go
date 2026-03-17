@@ -8,14 +8,21 @@ import (
    "log"
 )
 
-func (c *client) do_roku(err error) error {
+func (c *client) do_set_code() error {
+   var err error
+   c.Code, err = c.Token.Code(c.Activation)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+func (c *client) do_roku() error {
    var code *roku.Code
    if c.get_code {
-      if err != nil {
-         return err
-      }
       code = c.Code
    }
+   var err error
    c.Token, err = roku.FetchToken(code)
    if err != nil {
       return err
@@ -35,15 +42,21 @@ func (c *client) do_roku(err error) error {
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
-func (c *client) do_set_code(err error) error {
-   if err != nil {
-      return err
-   }
-   c.Code, err = c.Token.Code(c.Activation)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
+type client struct {
+   Activation *roku.Activation
+   Code       *roku.Code
+   Dash       *roku.Dash
+   Playback   *roku.Playback
+   Token      *roku.Token
+   // 1
+   Job maya.Job
+   // 2 token
+   // 3 set code
+   // 4
+   roku     string
+   get_code bool
+   // 5
+   dash_id string
 }
 
 var cache maya.Cache
@@ -66,26 +79,42 @@ func (c *client) do() error {
    // 1
    flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
    // 2
-   flag.BoolVar(&c.token, "c", false, "token")
+   flag.Bool("c", false, "token")
    // 3
-   flag.BoolVar(&c.set_code, "s", false, "set code")
+   flag.Bool("s", false, "set code")
    // 4
    flag.StringVar(&c.roku, "r", "", "Roku ID")
    flag.BoolVar(&c.get_code, "g", false, "get code")
    // 5
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    set := maya.Parse()
-   switch {
-   case set["w"]:
+   if set["w"] {
       return cache.Write(c)
-   case set["c"]:
+   }
+   if set["c"] {
       return c.do_token()
-   case set["s"]:
-      return c.do_set_code(err)
-   case set["r"]:
-      return c.do_roku(err)
-   case set["d"]:
-      return c.do_dash_id(err)
+   }
+   if set["s"] {
+      if err != nil {
+         return err
+      }
+      return c.do_set_code()
+   }
+   if set["r"] {
+      if set["g"] {
+         if err != nil {
+            return err
+         }
+      }
+      return c.do_roku()
+   }
+   if set["d"] {
+      if err != nil {
+         return err
+      }
+      return c.Job.DownloadDash(
+         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
+      )
    }
    return maya.Usage([][]string{
       {"w"},
@@ -108,32 +137,4 @@ func (c *client) do_token() error {
    }
    fmt.Println(c.Activation)
    return cache.Write(c)
-}
-
-type client struct {
-   Activation   *roku.Activation
-   Code       *roku.Code
-   Dash       *roku.Dash
-   Playback   *roku.Playback
-   Token *roku.Token
-   // 1
-   Job maya.Job
-   // 2
-   token bool
-   // 3
-   set_code bool
-   // 4
-   roku     string
-   get_code bool
-   // 5
-   dash_id string
-}
-
-func (c *client) do_dash_id(err error) error {
-   if err != nil {
-      return err
-   }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
-   )
 }
