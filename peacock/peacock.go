@@ -17,94 +17,7 @@ import (
    "time"
 )
 
-func FetchIdSession(user, password string) (*http.Cookie, error) {
-   data := url.Values{
-      "userIdentifier": {user},
-      "password":       {password},
-   }.Encode()
-   req, err := http.NewRequest(
-      "POST", "https://rango.id.peacocktv.com/signin/service/international",
-      strings.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("content-type", "application/x-www-form-urlencoded")
-   req.Header.Set("x-skyott-proposition", "NBCUOTT")
-   req.Header.Set("x-skyott-provider", "NBCU")
-   req.Header.Set("x-skyott-territory", Territory)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result struct {
-      Properties struct {
-         Errors struct {
-            CategoryErrors []struct {
-               Code string
-            }
-         }
-      }
-   }
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusCreated {
-      return nil, errors.New(result.Properties.Errors.CategoryErrors[0].Code)
-   }
-   for _, cookie := range resp.Cookies() {
-      if cookie.Name == "idsession" {
-         return cookie, nil
-      }
-   }
-   return nil, http.ErrNoCookie
-}
-
-type Playout struct {
-   Asset struct {
-      Endpoints []AssetEndpoint
-   }
-   Description string
-   Protection  struct {
-      LicenceAcquisitionUrl string
-   }
-}
-
-// 1080p L3
-func (p *Playout) Widevine(body []byte) ([]byte, error) {
-   req, err := http.NewRequest(
-      "POST", p.Protection.LicenceAcquisitionUrl, bytes.NewReader(body),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set(
-      "x-sky-signature",
-      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
-   )
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
-      return nil, errors.New(resp.Status)
-   }
-   return io.ReadAll(resp.Body)
-}
-
-func (p *Playout) Fastly() (*AssetEndpoint, error) {
-   for _, endpoint := range p.Asset.Endpoints {
-      if endpoint.Cdn == "FASTLY" {
-         return &endpoint, nil
-      }
-   }
-   return nil, errors.New("FASTLY endpoint not found")
-}
-
-func (t *Token) Fetch(idSession *http.Cookie) error {
+func FetchToken(idSession *http.Cookie) (*Token, error) {
    body, err := json.Marshal(map[string]any{
       "auth": map[string]string{
          "authScheme":        "MESSO",
@@ -135,13 +48,13 @@ func (t *Token) Fetch(idSession *http.Cookie) error {
       },
    })
    if err != nil {
-      return err
+      return nil, err
    }
    req, err := http.NewRequest(
       "POST", "https://ovp.peacocktv.com/auth/tokens", bytes.NewReader(body),
    )
    if err != nil {
-      return err
+      return nil, err
    }
    req.AddCookie(idSession)
    req.Header.Set("content-type", "application/vnd.tokens.v1+json")
@@ -150,17 +63,18 @@ func (t *Token) Fetch(idSession *http.Cookie) error {
    )
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(t)
+   var result Token
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
-      return err
+      return nil, err
    }
-   if t.Description != "" {
-      return errors.New(t.Description)
+   if result.Description != "" {
+      return nil, errors.New(result.Description)
    }
-   return nil
+   return &result, nil
 }
 
 type Dash struct {
@@ -306,4 +220,91 @@ func (t *Token) Playout(variantId string) (*Playout, error) {
 }
 
 var Territory = "US"
+
+func FetchIdSession(user, password string) (*http.Cookie, error) {
+   data := url.Values{
+      "userIdentifier": {user},
+      "password":       {password},
+   }.Encode()
+   req, err := http.NewRequest(
+      "POST", "https://rango.id.peacocktv.com/signin/service/international",
+      strings.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("content-type", "application/x-www-form-urlencoded")
+   req.Header.Set("x-skyott-proposition", "NBCUOTT")
+   req.Header.Set("x-skyott-provider", "NBCU")
+   req.Header.Set("x-skyott-territory", Territory)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result struct {
+      Properties struct {
+         Errors struct {
+            CategoryErrors []struct {
+               Code string
+            }
+         }
+      }
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if resp.StatusCode != http.StatusCreated {
+      return nil, errors.New(result.Properties.Errors.CategoryErrors[0].Code)
+   }
+   for _, cookie := range resp.Cookies() {
+      if cookie.Name == "idsession" {
+         return cookie, nil
+      }
+   }
+   return nil, http.ErrNoCookie
+}
+
+type Playout struct {
+   Asset struct {
+      Endpoints []AssetEndpoint
+   }
+   Description string
+   Protection  struct {
+      LicenceAcquisitionUrl string
+   }
+}
+
+// 1080p L3
+func (p *Playout) Widevine(body []byte) ([]byte, error) {
+   req, err := http.NewRequest(
+      "POST", p.Protection.LicenceAcquisitionUrl, bytes.NewReader(body),
+   )
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set(
+      "x-sky-signature",
+      generate_sky_ott(req.Method, req.URL.Path, req.Header, body),
+   )
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return nil, errors.New(resp.Status)
+   }
+   return io.ReadAll(resp.Body)
+}
+
+func (p *Playout) Fastly() (*AssetEndpoint, error) {
+   for _, endpoint := range p.Asset.Endpoints {
+      if endpoint.Cdn == "FASTLY" {
+         return &endpoint, nil
+      }
+   }
+   return nil, errors.New("FASTLY endpoint not found")
+}
 

@@ -72,27 +72,11 @@ func (c *client) do_email_password() error {
    return cache.Write(c)
 }
 
-type client struct {
-   Cookie  *http.Cookie
-   Dash    *peacock.Dash
-   Playout *peacock.Playout
-   // 1
-   Job maya.Job
-   // 2
-   email    string
-   password string
-   // 3
-   address string
-   // 4
-   dash_id string
-}
-
 func (c *client) do_address(err error) error {
    if err != nil {
       return err
    }
-   var token peacock.Token
-   err = token.Fetch(c.Cookie)
+   token, err := peacock.FetchToken(c.Cookie)
    if err != nil {
       return err
    }
@@ -113,4 +97,19 @@ func (c *client) do_address(err error) error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+type client struct {
+   Cookie  *http.Cookie
+   Dash    *peacock.Dash
+   Playout *peacock.Playout
+   // 1
+   Job maya.Job
+   // 2
+   email    string
+   password string
+   // 3
+   address string
+   // 4
+   dash_id string
 }
