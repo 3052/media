@@ -8,93 +8,6 @@ import (
    "log"
 )
 
-func (c *client) do_profile_id() error {
-   err := c.Token.SwitchProfile(c.profile_id)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
-}
-
-func (c *client) do_refresh() error {
-   err := disney.RefreshToken(c.Token)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
-}
-
-func (c *client) do_address() error {
-   entity, err := disney.GetEntity(c.address)
-   if err != nil {
-      return err
-   }
-   page, err := c.Token.Page(entity)
-   if err != nil {
-      return err
-   }
-   fmt.Println(page)
-   return nil
-}
-
-func (c *client) do_season_id() error {
-   season, err := c.Token.Season(c.season_id)
-   if err != nil {
-      return err
-   }
-   fmt.Println(season)
-   return nil
-}
-
-func (c *client) do_media_id() error {
-   stream, err := c.Token.Stream(c.media_id)
-   if err != nil {
-      return err
-   }
-   c.Hls, err = stream.Hls()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListHls(c.Hls.Body, c.Hls.Url)
-}
-
-type client struct {
-   Hls   *disney.Hls
-   Token *disney.Token
-   // 1
-   Job maya.Job
-   // 2
-   Email string
-   // 3
-   passcode string
-   // 4
-   profile_id string
-   // 5
-   refresh bool
-   // 6
-   address string
-   // 7
-   season_id string
-   // 8
-   media_id string
-   // 9
-   hls_id int
-}
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4,*.mp4a")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *client) do() error {
    err := cache.Setup("rosso/disney.xml")
    if err != nil {
@@ -110,7 +23,7 @@ func (c *client) do() error {
    // 4
    flag.StringVar(&c.profile_id, "P", "", "profile ID")
    // 5
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   flag.Bool("r", false, "refresh")
    // 6
    flag.StringVar(&c.address, "a", "", "address")
    // 7
@@ -190,4 +103,91 @@ func (c *client) do_passcode() error {
       fmt.Println(&profile)
    }
    return cache.Write(c)
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do_profile_id() error {
+   err := c.Token.SwitchProfile(c.profile_id)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+func (c *client) do_address() error {
+   entity, err := disney.GetEntity(c.address)
+   if err != nil {
+      return err
+   }
+   page, err := c.Token.Page(entity)
+   if err != nil {
+      return err
+   }
+   fmt.Println(page)
+   return nil
+}
+
+func (c *client) do_season_id() error {
+   season, err := c.Token.Season(c.season_id)
+   if err != nil {
+      return err
+   }
+   fmt.Println(season)
+   return nil
+}
+
+func (c *client) do_media_id() error {
+   stream, err := c.Token.Stream(c.media_id)
+   if err != nil {
+      return err
+   }
+   c.Hls, err = stream.Hls()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListHls(c.Hls.Body, c.Hls.Url)
+}
+
+func (c *client) do_refresh() error {
+   err := disney.RefreshToken(c.Token)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+type client struct {
+   Hls   *disney.Hls
+   Token *disney.Token
+   // 1
+   Job maya.Job
+   // 2
+   Email string
+   // 3
+   passcode string
+   // 4
+   profile_id string
+   // 5 refresh
+   // 6
+   address string
+   // 7
+   season_id string
+   // 8
+   media_id string
+   // 9
+   hls_id int
 }

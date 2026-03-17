@@ -7,15 +7,44 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id(err error) error {
+func (c *client) do_address() error {
+   err := c.Session.TokenRefresh()
    if err != nil {
       return err
    }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
-   )
+   deep_link, err := c.Session.DeepLink(hulu.Id(c.address))
+   if err != nil {
+      return err
+   }
+   c.Playlist, err = c.Session.Playlist(deep_link)
+   if err != nil {
+      return err
+   }
+   c.Dash, err = c.Playlist.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
+type client struct {
+   Dash     *hulu.Dash
+   Playlist *hulu.Playlist
+   Session  *hulu.Session
+   // 1
+   Job maya.Job
+   // 2
+   email    string
+   password string
+   // 3
+   address string
+   // 4
+   dash_id string
+}
 var cache maya.Cache
 
 func main() {
@@ -48,10 +77,17 @@ func (c *client) do() error {
       return cache.Write(c)
    case set["e"] && set["p"]:
       return c.do_email_password()
+   }
+   if err != nil {
+      return err
+   }
+   switch {
    case set["a"]:
-      return c.do_address(err)
+      return c.do_address()
    case set["d"]:
-      return c.do_dash_id(err)
+      return c.Job.DownloadDash(
+         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
+      )
    }
    return maya.Usage([][]string{
       {"P"},
@@ -68,46 +104,4 @@ func (c *client) do_email_password() error {
       return err
    }
    return cache.Write(c)
-}
-
-type client struct {
-   Dash     *hulu.Dash
-   Playlist *hulu.Playlist
-   Session  *hulu.Session
-   // 1
-   Job maya.Job
-   // 2
-   email    string
-   password string
-   // 3
-   address string
-   // 4
-   dash_id string
-}
-
-func (c *client) do_address(err error) error {
-   if err != nil {
-      return err
-   }
-   err = c.Session.TokenRefresh()
-   if err != nil {
-      return err
-   }
-   deep_link, err := c.Session.DeepLink(hulu.Id(c.address))
-   if err != nil {
-      return err
-   }
-   c.Playlist, err = c.Session.Playlist(deep_link)
-   if err != nil {
-      return err
-   }
-   c.Dash, err = c.Playlist.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
