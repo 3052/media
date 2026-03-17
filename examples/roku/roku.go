@@ -17,9 +17,9 @@ func (c *client) do_set_code() error {
    return cache.Write(c)
 }
 
-func (c *client) do_roku() error {
+func (c *client) do_roku(get_code bool) error {
    var code *roku.Code
-   if c.get_code {
+   if get_code {
       code = c.Code
    }
    var err error
@@ -54,7 +54,6 @@ type client struct {
    // 3 set code
    // 4
    roku     string
-   get_code bool
    // 5
    dash_id string
 }
@@ -84,7 +83,7 @@ func (c *client) do() error {
    flag.Bool("s", false, "set code")
    // 4
    flag.StringVar(&c.roku, "r", "", "Roku ID")
-   flag.BoolVar(&c.get_code, "g", false, "get code")
+   flag.Bool("g", false, "get code")
    // 5
    flag.StringVar(&c.dash_id, "d", "", "DASH ID")
    set := maya.Parse()
@@ -106,7 +105,7 @@ func (c *client) do() error {
             return err
          }
       }
-      return c.do_roku()
+      return c.do_roku(set["g"])
    }
    if set["d"] {
       if err != nil {
