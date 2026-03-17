@@ -12,6 +12,32 @@ import (
    "strings"
 )
 
+// you must
+// /authentication/linkDevice/initiate
+// first or this will always fail
+func FetchLogin(st *http.Cookie) (*Login, error) {
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   api_host, // Refactored
+      Path:   "/authentication/linkDevice/login",
+   }
+   req.Header = http.Header{}
+   req.AddCookie(st)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &Login{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 const (
    api_host     = "default.prd.api.hbomax.com"
    disco_client = "!:!:beam:!"
@@ -214,27 +240,6 @@ func (l Login) Season(show *ShowItem, number int) (*Videos, error) {
       return nil, err
    }
    return result, nil
-}
-
-// you must
-// /authentication/linkDevice/initiate
-// first or this will always fail
-func (l *Login) Fetch(st *http.Cookie) error {
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   api_host, // Refactored
-      Path:   "/authentication/linkDevice/login",
-   }
-   req.Header = http.Header{}
-   req.AddCookie(st)
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 func (l *Login) Widevine(editId string) (*Playback, error) {

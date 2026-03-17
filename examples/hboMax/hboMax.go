@@ -94,8 +94,7 @@ func (c *client) do_login(err error) error {
    if err != nil {
       return err
    }
-   c.Login = &hboMax.Login{}
-   err = c.Login.Fetch(c.St)
+   c.Login, err = hboMax.FetchLogin(c.St)
    if err != nil {
       return err
    }

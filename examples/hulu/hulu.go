@@ -62,12 +62,27 @@ func (c *client) do() error {
 }
 
 func (c *client) do_email_password() error {
-   c.Session = &hulu.Session{}
-   err := c.Session.Fetch(c.email, c.password)
+   var err error
+   c.Session, err = hulu.FetchSession(c.email, c.password)
    if err != nil {
       return err
    }
    return cache.Write(c)
+}
+
+type client struct {
+   Dash     *hulu.Dash
+   Playlist *hulu.Playlist
+   Session  *hulu.Session
+   // 1
+   Job maya.Job
+   // 2
+   email    string
+   password string
+   // 3
+   address string
+   // 4
+   dash_id string
 }
 
 func (c *client) do_address(err error) error {
@@ -95,19 +110,4 @@ func (c *client) do_address(err error) error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-type client struct {
-   Dash     *hulu.Dash
-   Playlist *hulu.Playlist
-   Session  *hulu.Session
-   // 1
-   Job maya.Job
-   // 2
-   email    string
-   password string
-   // 3
-   address string
-   // 4
-   dash_id string
 }
