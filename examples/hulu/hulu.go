@@ -45,6 +45,7 @@ type client struct {
    // 4
    dash_id string
 }
+
 var cache maya.Cache
 
 func main() {

@@ -8,6 +8,88 @@ import (
    "log"
 )
 
+func (c *client) do() error {
+   err := cache.Setup("rosso/roku.xml")
+   if err != nil {
+      return err
+   }
+   err = cache.Read(c)
+   // 1
+   flag.StringVar(&c.Job.Widevine, flag_w, c.Job.Widevine, "Widevine")
+   // 2
+   flag.Bool(flag_t, false, "token")
+   // 3
+   flag.Bool(flag_s, false, "set code")
+   // 4
+   flag.StringVar(&c.roku, flag_r, "", "Roku ID")
+   flag.Bool(flag_g, false, "get code")
+   // 5
+   flag.StringVar(&c.dash_id, flag_d, "", "DASH ID")
+   set := maya.Parse()
+   if set[flag_w] {
+      return cache.Write(c)
+   }
+   if set[flag_t] {
+      return c.do_token()
+   }
+   if set[flag_s] {
+      if err != nil {
+         return err
+      }
+      return c.do_set_code()
+   }
+   if set[flag_r] {
+      if set[flag_g] {
+         if err != nil {
+            return err
+         }
+      }
+      return c.do_roku(set[flag_g])
+   }
+   if set[flag_d] {
+      if err != nil {
+         return err
+      }
+      return c.Job.DownloadDash(
+         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
+      )
+   }
+   return maya.Usage([][]string{
+      {flag_w},
+      {flag_t},
+      {flag_s},
+      {flag_r, flag_g},
+      {flag_d},
+   })
+}
+
+type client struct {
+   Activation *roku.Activation
+   Code       *roku.Code
+   Dash       *roku.Dash
+   Playback   *roku.Playback
+   Token      *roku.Token
+   // 1
+   Job maya.Job
+   // 2 token
+   // 3 set code
+   // 4
+   roku string
+   // 5
+   dash_id string
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
 func (c *client) do_set_code() error {
    var err error
    c.Code, err = c.Token.Code(c.Activation)
@@ -42,88 +124,6 @@ func (c *client) do_roku(get_code bool) error {
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
-type client struct {
-   Activation *roku.Activation
-   Code       *roku.Code
-   Dash       *roku.Dash
-   Playback   *roku.Playback
-   Token      *roku.Token
-   // 1
-   Job maya.Job
-   // 2 token
-   // 3 set code
-   // 4
-   roku     string
-   // 5
-   dash_id string
-}
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *client) do() error {
-   err := cache.Setup("rosso/roku.xml")
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c)
-   // 1
-   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
-   // 2
-   flag.Bool("c", false, "token")
-   // 3
-   flag.Bool("s", false, "set code")
-   // 4
-   flag.StringVar(&c.roku, "r", "", "Roku ID")
-   flag.Bool("g", false, "get code")
-   // 5
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   set := maya.Parse()
-   if set["w"] {
-      return cache.Write(c)
-   }
-   if set["c"] {
-      return c.do_token()
-   }
-   if set["s"] {
-      if err != nil {
-         return err
-      }
-      return c.do_set_code()
-   }
-   if set["r"] {
-      if set["g"] {
-         if err != nil {
-            return err
-         }
-      }
-      return c.do_roku(set["g"])
-   }
-   if set["d"] {
-      if err != nil {
-         return err
-      }
-      return c.Job.DownloadDash(
-         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
-      )
-   }
-   return maya.Usage([][]string{
-      {"w"},
-      {"c"},
-      {"s"},
-      {"r", "g"},
-      {"d"},
-   })
-}
-
 func (c *client) do_token() error {
    var err error
    c.Token, err = roku.FetchToken(nil)
@@ -137,3 +137,12 @@ func (c *client) do_token() error {
    fmt.Println(c.Activation)
    return cache.Write(c)
 }
+
+const (
+   flag_d = "d"
+   flag_g = "g"
+   flag_r = "r"
+   flag_s = "s"
+   flag_t = "t"
+   flag_w = "w"
+)

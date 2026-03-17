@@ -265,6 +265,7 @@ type Session struct {
       UserToken   string `json:"user_token"`
    }
 }
+
 func (p *Playlist) PlayReady(data []byte) ([]byte, error) {
    resp, err := http.Post(
       p.DashPrServer, "", bytes.NewReader(data),

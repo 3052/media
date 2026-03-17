@@ -86,6 +86,7 @@ type AssetEndpoint struct {
    Cdn string
    Url string
 }
+
 func (a *AssetEndpoint) Dash() (*Dash, error) {
    resp, err := http.Get(a.Url)
    if err != nil {
@@ -307,4 +308,3 @@ func (p *Playout) Fastly() (*AssetEndpoint, error) {
    }
    return nil, errors.New("FASTLY endpoint not found")
 }
-

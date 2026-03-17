@@ -145,7 +145,7 @@ type client struct {
    // 1
    Job maya.Job
    // 2 initiate
-   market   string
+   market string
    // 3 login
    // 4
    address string

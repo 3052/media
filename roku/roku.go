@@ -37,6 +37,7 @@ func FetchToken(codeData *Code) (*Token, error) {
    }
    return result, nil
 }
+
 // /api/v1/account/activation/code
 func (t *Token) Code(activationData *Activation) (*Code, error) {
    var req http.Request
@@ -163,6 +164,7 @@ func (t *Token) Playback(rokuId string) (*Playback, error) {
    }
    return result, nil
 }
+
 // /api/v1/account/activation
 func (t *Token) Activation() (*Activation, error) {
    data, err := json.Marshal(map[string]string{"platform": "googletv"})

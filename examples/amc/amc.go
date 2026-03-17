@@ -106,6 +106,7 @@ type client struct {
    // 7
    dash_id string
 }
+
 func (c *client) do_dash_id(err error) error {
    if err != nil {
       return err
