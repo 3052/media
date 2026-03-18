@@ -3,22 +3,28 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/rosso/disney"
-   "flag"
    "fmt"
-   "log"
 )
 
 type client struct {
-   Email      string
-   Hls        *disney.Hls
-   Job        maya.Job
-   Token      *disney.Token
-   address    string
-   hls_id     int
-   media_id   string
-   passcode   string
+   Hls   *disney.Hls
+   Token *disney.Token
+   // 1
+   Job maya.Job
+   // 2
+   Email string
+   // 3
+   passcode string
+   // 4
    profile_id string
-   season_id  string
+   // 6
+   address string
+   // 7
+   season_id string
+   // 8
+   media_id string
+   // 9
+   hls_id int
 }
 
 func (c *client) do_email() error {
@@ -51,78 +57,6 @@ func (c *client) do_passcode() error {
       fmt.Println(&profile)
    }
    return cache.Write(c)
-}
-func (c *client) do() error {
-   err := cache.Setup("rosso/disney.xml")
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c)
-   // 1
-   flag.StringVar(&c.Job.PlayReady, "PR", c.Job.PlayReady, "PlayReady")
-   // 2
-   flag.StringVar(&c.Email, "e", c.Email, "email")
-   // 3
-   flag.StringVar(&c.passcode, "p", "", "passcode")
-   // 4
-   flag.StringVar(&c.profile_id, "P", "", "profile ID")
-   // 5
-   flag.Bool("r", false, "refresh")
-   // 6
-   flag.StringVar(&c.address, "a", "", "address")
-   // 7
-   flag.StringVar(&c.season_id, "s", "", "season ID")
-   // 8
-   flag.StringVar(&c.media_id, "m", "", "media ID")
-   // 9
-   flag.IntVar(&c.hls_id, "h", 0, "HLS ID")
-   set := maya.Parse()
-   switch {
-   case set["PR"]:
-      return cache.Write(c)
-   case set["e"]:
-      return c.do_email()
-   }
-   if err != nil {
-      return err
-   }
-   switch {
-   case set["p"]:
-      return c.do_passcode()
-   case set["P"]:
-      return c.do_profile_id()
-   case set["r"]:
-      return c.do_refresh()
-   case set["a"]:
-      return c.do_address()
-   case set["s"]:
-      return c.do_season_id()
-   case set["m"]:
-      return c.do_media_id()
-   case set["h"]:
-      return c.Job.DownloadHls(
-         c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady,
-      )
-   }
-   return maya.Usage([][]string{
-      {"PR"},
-      {"e"},
-      {"p"},
-      {"P"},
-      {"r"},
-      {"a"},
-      {"s"},
-      {"m"},
-      {"h"},
-   })
-}
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4,*.mp4a")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }
 
 var cache maya.Cache
