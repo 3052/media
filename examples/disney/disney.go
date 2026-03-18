@@ -3,8 +3,83 @@ package main
 import (
    "41.neocities.org/maya"
    "41.neocities.org/rosso/disney"
+   "flag"
    "fmt"
+   "log"
 )
+
+func (c *client) do() error {
+   err := cache.Setup("rosso/disney.xml")
+   if err != nil {
+      return err
+   }
+   readErr := cache.Read(c)
+   // 1
+   playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
+   // 2
+   email := maya.StringVar(&c.Email, "e", "email")
+   // 3
+   passcode := maya.StringVar(&c.passcode, "p", "passcode")
+   // 4
+   profile := maya.StringVar(&c.profile, "P", "profile ID")
+   // 5
+   refresh := maya.BoolVar(new(bool), "r", "refresh")
+   // 6
+   address := maya.StringVar(&c.address, "a", "address")
+   // 7
+   season := maya.StringVar(&c.season, "s", "season ID")
+   // 8
+   media := maya.StringVar(&c.media, "m", "media ID")
+   // 9
+   hls_id := maya.IntVar(&c.hls_id, "h", "HLS ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {playReady},
+         {email},
+         {passcode},
+         {profile},
+         {refresh},
+         {address},
+         {season},
+         {media},
+         {hls_id},
+      })
+   case set[playReady.Name]:
+      return cache.Write(c)
+   case set[email.Name]:
+      return c.do_email()
+   case readErr != nil:
+      return readErr
+   case set[passcode.Name]:
+      return c.do_passcode()
+   case set[profile.Name]:
+      return c.do_profile_id()
+   case set[refresh.Name]:
+      return c.do_refresh()
+   case set[address.Name]:
+      return c.do_address()
+   case set[season.Name]:
+      return c.do_season_id()
+   case set[media.Name]:
+      return c.do_media_id()
+   case set[hls_id.Name]:
+      return c.Job.DownloadHls(
+         c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady,
+      )
+   }
+   return nil
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4,*.mp4a")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
 
 type client struct {
    Hls   *disney.Hls
@@ -16,13 +91,13 @@ type client struct {
    // 3
    passcode string
    // 4
-   profile_id string
+   profile string
    // 6
    address string
    // 7
-   season_id string
+   season string
    // 8
-   media_id string
+   media string
    // 9
    hls_id int
 }
@@ -62,7 +137,7 @@ func (c *client) do_passcode() error {
 var cache maya.Cache
 
 func (c *client) do_profile_id() error {
-   err := c.Token.SwitchProfile(c.profile_id)
+   err := c.Token.SwitchProfile(c.profile)
    if err != nil {
       return err
    }
@@ -83,7 +158,7 @@ func (c *client) do_address() error {
 }
 
 func (c *client) do_season_id() error {
-   season, err := c.Token.Season(c.season_id)
+   season, err := c.Token.Season(c.season)
    if err != nil {
       return err
    }
@@ -92,7 +167,7 @@ func (c *client) do_season_id() error {
 }
 
 func (c *client) do_media_id() error {
-   stream, err := c.Token.Stream(c.media_id)
+   stream, err := c.Token.Stream(c.media)
    if err != nil {
       return err
    }
