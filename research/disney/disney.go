@@ -8,6 +8,21 @@ import (
    "log"
 )
 
+func IntVar(name string, value *int, usage string) *flag.Flag {
+   flag.IntVar(value, name, *value, usage)
+   return flag.Lookup(name)
+}
+
+func set(f *flag.Flag) bool {
+   var ok bool
+   flag.Visit(func(g *flag.Flag) {
+      if g.Name == f.Name {
+         ok = true
+      }
+   })
+   return ok
+}
+
 type client struct {
    Email      string
    Hls        *disney.Hls
