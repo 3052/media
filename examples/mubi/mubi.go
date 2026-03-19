@@ -9,69 +9,50 @@ import (
 )
 
 func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
    err := cache.Setup("rosso/mubi.xml")
    if err != nil {
       return err
    }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
+   read_err := cache.Read(c)
    // 1
-   flag.StringVar(&c.Proxy, "x", c.Proxy, "write proxy")
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
-   flag.BoolVar(&c.code, "c", false, "link code")
+   code := maya.BoolVar(new(bool), "c", "link code")
    // 3
-   flag.BoolVar(&c.session, "s", false, "session")
+   session := maya.BoolVar(new(bool), "s", "session")
    // 4
-   flag.StringVar(&c.address, "a", "", "address")
+   address := maya.StringVar(&c.address, "a", "address")
    // 5
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
-   flag.Parse()
-   err = maya.SetProxy(c.Proxy, "*.dash")
-   if err != nil {
-      return err
-   }
-
-   set := map[string]bool{}
-   flag.Visit(func(f *flag.Flag) {
-      set[f.Name] = true
-   })
-
-   if c.proxy_write {
-      return cache.Write(c)
-   }
-   if c.code {
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {code},
+         {session},
+         {address},
+         {dash_id},
+      })
+   case set[code]:
       return c.do_code()
-   }
-   if c.session {
+   case read_err != nil:
+      return read_err
+   case set[session]:
       return c.do_session()
-   }
-   if c.address != "" {
+   case set[address]:
       return c.do_address()
-   }
-   if c.dash_id != "" {
+   case set[dash_id]:
       return c.do_dash_id()
    }
-   return maya.Usage([][]string{
-      {"x"},
-      {"c"},
-      {"s"},
-      {"a"},
-      {"d", "C", "P"},
-   })
+   return nil
 }
 
 var cache maya.Cache
 
-var job maya.WidevineJob
-
 func main() {
    log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.dash")
    err := new(client).do()
    if err != nil {
       log.Fatal(err)
@@ -79,8 +60,8 @@ func main() {
 }
 
 func (c *client) do_code() error {
-   c.LinkCode = &mubi.LinkCode{}
-   err := c.LinkCode.Fetch()
+   var err error
+   c.LinkCode, err = mubi.FetchLinkCode()
    if err != nil {
       return err
    }
@@ -89,11 +70,12 @@ func (c *client) do_code() error {
 }
 
 func (c *client) do_session() error {
-   return cache.Update(c, func() error {
-      var err error
-      c.Session, err = c.LinkCode.Session()
+   var err error
+   c.Session, err = c.LinkCode.Session()
+   if err != nil {
       return err
-   })
+   }
+   return cache.Write(c)
 }
 
 func (c *client) do_address() error {
@@ -102,10 +84,6 @@ func (c *client) do_address() error {
       return err
    }
    film_id, err := mubi.FetchId(slug)
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c)
    if err != nil {
       return err
    }
@@ -129,12 +107,9 @@ func (c *client) do_address() error {
 }
 
 func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = c.Session.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Session.Widevine,
+   )
 }
 
 type client struct {
@@ -142,11 +117,7 @@ type client struct {
    LinkCode *mubi.LinkCode
    Session  *mubi.Session
    // 1
-   Proxy string
-   // 2
-   code bool
-   // 3
-   session bool
+   Job maya.Job
    // 4
    address string
    // 5

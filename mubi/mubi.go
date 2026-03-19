@@ -12,6 +12,29 @@ import (
    "strings"
 )
 
+func FetchLinkCode() (*LinkCode, error) {
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "api.mubi.com",
+      Path:   "/v3/link_code",
+   }
+   req.Header = http.Header{}
+   req.Header.Set("client", client)
+   req.Header.Set("client-country", ClientCountry)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &LinkCode{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 func (s *SecureUrl) Dash() (*Dash, error) {
    s.Url = strings.NewReplacer(
       ".AVC1", "",
@@ -28,24 +51,6 @@ func (s *SecureUrl) Dash() (*Dash, error) {
       return nil, err
    }
    return &Dash{Body: body, Url: resp.Request.URL}, nil
-}
-
-func (l *LinkCode) Fetch() error {
-   var req http.Request
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "api.mubi.com",
-      Path:   "/v3/link_code",
-   }
-   req.Header = http.Header{}
-   req.Header.Set("client", client)
-   req.Header.Set("client-country", ClientCountry)
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
 }
 
 func (s *Session) SecureUrl(filmId int) (*SecureUrl, error) {

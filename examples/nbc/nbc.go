@@ -7,6 +7,38 @@ import (
    "log"
 )
 
+func (c *client) do() error {
+   err := cache.Setup("rosso/nbc.xml")
+   if err != nil {
+      return err
+   }
+   read_err := cache.Read(c)
+   // 1
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
+   // 2
+   address := maya.StringVar(&c.address, "a", "address")
+   // 3
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {address},
+         {dash_id},
+      })
+   case set[widevine]:
+      return cache.Write(c)
+   case read_err != nil:
+      return read_err
+   case set[address]:
+      return c.do_address()
+   case set[dash_id]:
+      return c.do_dash_id()
+   }
+   return nil
+}
+
 func (c *client) do_address() error {
    name, err := nbc.GetName(c.address)
    if err != nil {
@@ -20,64 +52,28 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   err = cache.Update(c, func() error {
-      c.Dash, err = stream.Dash()
+   c.Dash, err = stream.Dash()
+   if err != nil {
       return err
-   }, true)
+   }
+   err = cache.Write(c)
    if err != nil {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
-func (c *client) do() error {
-   err := cache.Setup("rosso/nbc.xml")
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.StringVar(&c.address, "a", "", "address")
-   // 2
-   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
-   // 3
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.IntVar(&c.Job.Threads, "t", 2, "threads")
-   set := maya.Parse()
-   if set["a"] {
-      return c.do_address()
-   }
-   if set["w"] {
-      return cache.Write(c)
-   }
-   if set["d"] {
-      return c.do_dash_id()
-   }
-   return maya.Usage([][]string{
-      {"a"},
-      {"w"},
-      {"d", "t"},
-   })
-}
-
 type client struct {
    Dash *nbc.Dash
    // 1
-   address string
-   // 2
    Job maya.Job
+   // 2
+   address string
    // 3
    dash_id string
 }
 
 func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
    return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, nbc.Widevine)
 }
 
