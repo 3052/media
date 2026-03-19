@@ -13,81 +13,50 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   err = cache.Read(c)
+   read_err := cache.Read(c)
    // 1
-   flag.StringVar(&c.Job.Widevine, flag_w, c.Job.Widevine, "Widevine")
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
-   flag.Bool(flag_t, false, "token")
+   token := maya.BoolVar(new(bool), "t", "token")
    // 3
-   flag.Bool(flag_s, false, "set code")
+   set_code := maya.BoolVar(new(bool), "s", "set code")
    // 4
-   flag.StringVar(&c.roku, flag_r, "", "Roku ID")
-   flag.Bool(flag_g, false, "get code")
+   roku_id := maya.StringVar(&c.roku_id, "r", "Roku ID")
+   get_code := maya.BoolVar(new(bool), "g", "get code")
    // 5
-   flag.StringVar(&c.dash_id, flag_d, "", "DASH ID")
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
-   if set[flag_w] {
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {token},
+         {set_code},
+         {roku_id, get_code},
+         {dash_id},
+      })
+   case set[widevine.Name]:
       return cache.Write(c)
-   }
-   if set[flag_t] {
+   case set[token.Name]:
       return c.do_token()
-   }
-   if set[flag_s] {
-      if err != nil {
-         return err
-      }
+   case set[roku_id.Name] && !set[get_code.Name]:
+      return c.do_roku_id(false)
+   case read_err != nil:
+      return read_err
+   case set[set_code.Name]:
       return c.do_set_code()
+   case set[roku_id.Name]:
+      return c.do_roku_id(true)
+   case set[dash_id.Name]:
+      return c.do_dash_id()
    }
-   if set[flag_r] {
-      if set[flag_g] {
-         if err != nil {
-            return err
-         }
-      }
-      return c.do_roku(set[flag_g])
-   }
-   if set[flag_d] {
-      if err != nil {
-         return err
-      }
-      return c.Job.DownloadDash(
-         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
-      )
-   }
-   return maya.Usage([][]string{
-      {flag_w},
-      {flag_t},
-      {flag_s},
-      {flag_r, flag_g},
-      {flag_d},
-   })
+   return nil
 }
 
-type client struct {
-   Activation *roku.Activation
-   Code       *roku.Code
-   Dash       *roku.Dash
-   Playback   *roku.Playback
-   Token      *roku.Token
-   // 1
-   Job maya.Job
-   // 2 token
-   // 3 set code
-   // 4
-   roku string
-   // 5
-   dash_id string
-}
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.Widevine,
+   )
 }
 
 func (c *client) do_set_code() error {
@@ -97,31 +66,6 @@ func (c *client) do_set_code() error {
       return err
    }
    return cache.Write(c)
-}
-
-func (c *client) do_roku(get_code bool) error {
-   var code *roku.Code
-   if get_code {
-      code = c.Code
-   }
-   var err error
-   c.Token, err = roku.FetchToken(code)
-   if err != nil {
-      return err
-   }
-   c.Playback, err = c.Token.Playback(c.roku)
-   if err != nil {
-      return err
-   }
-   c.Dash, err = c.Playback.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
 func (c *client) do_token() error {
@@ -138,11 +82,52 @@ func (c *client) do_token() error {
    return cache.Write(c)
 }
 
-const (
-   flag_d = "d"
-   flag_g = "g"
-   flag_r = "r"
-   flag_s = "s"
-   flag_t = "t"
-   flag_w = "w"
-)
+type client struct {
+   Activation *roku.Activation
+   Code       *roku.Code
+   Dash       *roku.Dash
+   Playback   *roku.Playback
+   Token      *roku.Token
+   // 1
+   Job maya.Job
+   // 4
+   roku_id string
+   // 5
+   dash_id string
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+func (c *client) do_roku_id(get_code bool) error {
+   var code *roku.Code
+   if get_code {
+      code = c.Code
+   }
+   var err error
+   c.Token, err = roku.FetchToken(code)
+   if err != nil {
+      return err
+   }
+   c.Playback, err = c.Token.Playback(c.roku_id)
+   if err != nil {
+      return err
+   }
+   c.Dash, err = c.Playback.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}

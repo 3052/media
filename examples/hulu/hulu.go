@@ -40,11 +40,15 @@ func (c *client) do() error {
    case set[address.Name]:
       return c.do_address()
    case set[dash_id.Name]:
-      return c.Job.DownloadDash(
-         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
-      )
+      return c.do_dash_id()
    }
    return nil
+}
+
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
+   )
 }
 
 func (c *client) do_address() error {

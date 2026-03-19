@@ -8,21 +8,15 @@ import (
    "log"
 )
 
-func (c *client) do_refresh(err error) error {
-   if err != nil {
-      return err
-   }
-   err = c.Client.Refresh()
+func (c *client) do_refresh() error {
+   err := c.Client.Refresh()
    if err != nil {
       return err
    }
    return cache.Write(c)
 }
 
-func (c *client) do_series(err error) error {
-   if err != nil {
-      return err
-   }
+func (c *client) do_series() error {
    series, err := c.Client.SeriesDetail(c.series)
    if err != nil {
       return err
@@ -40,10 +34,7 @@ func (c *client) do_series(err error) error {
    return nil
 }
 
-func (c *client) do_season(err error) error {
-   if err != nil {
-      return err
-   }
+func (c *client) do_season() error {
    season, err := c.Client.SeasonEpisodes(c.season)
    if err != nil {
       return err
@@ -61,10 +52,7 @@ func (c *client) do_season(err error) error {
    return nil
 }
 
-func (c *client) do_episode(err error) error {
-   if err != nil {
-      return err
-   }
+func (c *client) do_episode() error {
    sources, header, err := c.Client.Playback(c.episode)
    if err != nil {
       return err
@@ -95,8 +83,6 @@ type client struct {
    // 2
    email    string
    password string
-   // 3
-   refresh bool
    // 4
    series int
    // 5
@@ -107,12 +93,9 @@ type client struct {
    dash_id string
 }
 
-func (c *client) do_dash_id(err error) error {
-   if err != nil {
-      return err
-   }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, func(data []byte) ([]byte, error) {
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id,
+      func(data []byte) ([]byte, error) {
          return c.DataSource.Widevine(c.BcJwt, data)
       },
    )
@@ -128,54 +111,57 @@ func main() {
       log.Fatal(err)
    }
 }
-
 func (c *client) do() error {
    err := cache.Setup("rosso/amc.xml")
    if err != nil {
       return err
    }
-   err = cache.Read(c)
+   read_err := cache.Read(c)
    // 1
-   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
-   flag.StringVar(&c.email, "E", "", "email")
-   flag.StringVar(&c.password, "P", "", "password")
+   email := maya.StringVar(&c.email, "E", "email")
+   password := maya.StringVar(&c.password, "P", "password")
    // 3
-   flag.BoolVar(&c.refresh, "r", false, "refresh")
+   refresh := maya.BoolVar(new(bool), "r", "refresh")
    // 4
-   flag.IntVar(&c.series, "s", 0, "series ID")
+   series := maya.IntVar(&c.series, "s", "series ID")
    // 5
-   flag.IntVar(&c.season, "S", 0, "season ID")
+   season := maya.IntVar(&c.season, "S", "season ID")
    // 6
-   flag.IntVar(&c.episode, "e", 0, "episode or movie ID")
+   episode := maya.IntVar(&c.episode, "e", "episode or movie ID")
    // 7
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
-   case set["w"]:
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {email, password},
+         {refresh},
+         {series},
+         {season},
+         {episode},
+         {dash_id},
+      })
+   case set[widevine.Name]:
       return cache.Write(c)
-   case set["E"] && set["P"]:
+   case set[email.Name] && set[password.Name]:
       return c.do_email_password()
-   case set["r"]:
-      return c.do_refresh(err)
-   case set["s"]:
-      return c.do_series(err)
-   case set["S"]:
-      return c.do_season(err)
-   case set["e"]:
-      return c.do_episode(err)
-   case set["d"]:
-      return c.do_dash_id(err)
+   case read_err != nil:
+      return read_err
+   case set[refresh.Name]:
+      return c.do_refresh()
+   case set[series.Name]:
+      return c.do_series()
+   case set[season.Name]:
+      return c.do_season()
+   case set[episode.Name]:
+      return c.do_episode()
+   case set[dash_id.Name]:
+      return c.do_dash_id()
    }
-   return maya.Usage([][]string{
-      {"w"},
-      {"E", "P"},
-      {"r"},
-      {"s"},
-      {"S"},
-      {"e"},
-      {"d"},
-   })
+   return nil
 }
 
 func (c *client) do_email_password() error {

@@ -65,11 +65,13 @@ func (c *client) do() error {
    case set[media.Name]:
       return c.do_media_id()
    case set[hls_id.Name]:
-      return c.Job.DownloadHls(
-         c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady,
-      )
+      return c.do_hls_id()
    }
    return nil
+}
+
+func (c *client) do_hls_id() error {
+   return c.Job.DownloadHls(c.Hls.Body, c.Hls.Url, c.hls_id, c.Token.PlayReady)
 }
 
 func main() {
