@@ -13,7 +13,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   readErr := cache.Read(c)
+   read_err := cache.Read(c)
    // 1
    playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
    // 2
@@ -50,8 +50,8 @@ func (c *client) do() error {
       return cache.Write(c)
    case set[email.Name]:
       return c.do_email()
-   case readErr != nil:
-      return readErr
+   case read_err != nil:
+      return read_err
    case set[passcode.Name]:
       return c.do_passcode()
    case set[profile.Name]:

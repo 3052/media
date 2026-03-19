@@ -9,65 +9,44 @@ import (
    "path"
 )
 
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.m4s")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
 func (c *client) do() error {
    err := cache.Setup("rosso/peacock.xml")
    if err != nil {
       return err
    }
-   err = cache.Read(c)
+   read_err := cache.Read(c)
    // 1
-   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
+   email := maya.StringVar(&c.email, "e", "email")
+   password := maya.StringVar(&c.password, "p", "password")
    // 3
-   flag.StringVar(&c.address, "a", "", "address")
+   address := maya.StringVar(&c.address, "a", "address")
    // 4
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
-   case set["w"]:
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {email, password},
+         {address},
+         {dash_id},
+      })
+   case set[widevine.Name]:
       return cache.Write(c)
-   case set["e"] && set["p"]:
+   case set[email.Name] && set[password.Name]:
       return c.do_email_password()
-   }
-   if err != nil {
-      return err
-   }
-   switch {
-   case set["a"]:
+   case read_err != nil:
+      return read_err
+   case set[address.Name]:
       return c.do_address()
-   case set["d"]:
+   case set[dash_id.Name]:
       return c.Job.DownloadDash(
          c.Dash.Body, c.Dash.Url, c.dash_id, c.Playout.Widevine,
       )
    }
-   return maya.Usage([][]string{
-      {"w"},
-      {"e", "p"},
-      {"a"},
-      {"d"},
-   })
-}
-
-func (c *client) do_email_password() error {
-   var err error
-   c.Cookie, err = peacock.FetchIdSession(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
+   return nil
 }
 
 func (c *client) do_address() error {
@@ -92,6 +71,26 @@ func (c *client) do_address() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_email_password() error {
+   var err error
+   c.Cookie, err = peacock.FetchIdSession(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 type client struct {

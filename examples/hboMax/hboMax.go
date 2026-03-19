@@ -9,9 +9,75 @@ import (
    "net/http"
 )
 
+func (c *client) do() error {
+   err := cache.Setup("rosso/hboMax.xml")
+   if err != nil {
+      return err
+   }
+   read_err := cache.Read(c)
+   // 1
+   playReady := maya.StringVar(&c.Job.PlayReady, "p", "PlayReady")
+   // 2
+   initiate := maya.BoolVar(new(bool), "i", "initiate")
+   c.market = hboMax.Markets[0]
+   market := maya.StringVar(&c.market, "m", fmt.Sprint(hboMax.Markets))
+   // 3
+   login := maya.BoolVar(new(bool), "l", "login")
+   // 4
+   address := maya.StringVar(&c.address, "a", "address")
+   season := maya.IntVar(&c.season, "s", "season")
+   // 5
+   edit := maya.StringVar(&c.edit, "e", "edit ID")
+   // 6
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {playReady},
+         {initiate, market},
+         {login},
+         {address, season},
+         {edit},
+         {dash_id},
+      })
+   case set[playReady.Name]:
+      return cache.Write(c)
+   case set[initiate.Name]:
+      return c.do_initiate()
+   case read_err != nil:
+      return read_err
+   case set[login.Name]:
+      return c.do_login()
+   case set[address.Name]:
+      return c.do_address()
+   case set[edit.Name]:
+      return c.do_edit_id()
+   case set[dash_id.Name]:
+      return c.Job.DownloadDash(
+         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.PlayReady,
+      )
+   }
+   return nil
+}
+
+func (c *client) do_initiate() error {
+   var err error
+   c.St, err = hboMax.FetchSt()
+   if err != nil {
+      return err
+   }
+   initiate, err := hboMax.FetchInitiate(c.St, c.market)
+   if err != nil {
+      return err
+   }
+   fmt.Println(initiate)
+   return cache.Write(c)
+}
+
 func (c *client) do_edit_id() error {
    var err error
-   c.Playback, err = c.Login.PlayReady(c.edit_id)
+   c.Playback, err = c.Login.PlayReady(c.edit)
    if err != nil {
       return err
    }
@@ -37,73 +103,24 @@ func main() {
    }
 }
 
-func (c *client) do() error {
-   err := cache.Setup("rosso/hboMax.xml")
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c)
+type client struct {
+   Dash     *hboMax.Dash
+   Login    *hboMax.Login
+   Playback *hboMax.Playback
+   St       *http.Cookie
    // 1
-   flag.StringVar(&c.Job.PlayReady, "p", c.Job.PlayReady, "PlayReady")
+   Job maya.Job
    // 2
-   flag.Bool("i", false, "device initiate")
-   flag.StringVar(
-      &c.market, "m", hboMax.Markets[0], fmt.Sprint(hboMax.Markets),
-   )
-   // 3
-   flag.Bool("l", false, "device login")
+   market string
    // 4
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.IntVar(&c.season, "s", 0, "season")
+   address string
+   season  int
    // 5
-   flag.StringVar(&c.edit_id, "e", "", "edit ID")
+   edit string
    // 6
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   set := maya.Parse()
-   switch {
-   case set["p"]:
-      return cache.Write(c)
-   case set["i"]:
-      return c.do_initiate()
-   }
-   if err != nil {
-      return err
-   }
-   switch {
-   case set["l"]:
-      return c.do_login()
-   case set["a"]:
-      return c.do_address()
-   case set["e"]:
-      return c.do_edit_id()
-   case set["d"]:
-      return c.Job.DownloadDash(
-         c.Dash.Body, c.Dash.Url, c.dash_id, c.Playback.PlayReady,
-      )
-   }
-   return maya.Usage([][]string{
-      {"p"},
-      {"i", "m"},
-      {"l"},
-      {"a", "s"},
-      {"e"},
-      {"d"},
-   })
+   dash_id string
 }
 
-func (c *client) do_initiate() error {
-   var err error
-   c.St, err = hboMax.FetchSt()
-   if err != nil {
-      return err
-   }
-   initiate, err := hboMax.FetchInitiate(c.St, c.market)
-   if err != nil {
-      return err
-   }
-   fmt.Println(initiate)
-   return cache.Write(c)
-}
 func (c *client) do_login() error {
    var err error
    c.Login, err = hboMax.FetchLogin(c.St)
@@ -135,23 +152,4 @@ func (c *client) do_address() error {
       fmt.Println(video)
    }
    return nil
-}
-
-type client struct {
-   Dash     *hboMax.Dash
-   Login    *hboMax.Login
-   Playback *hboMax.Playback
-   St       *http.Cookie
-   // 1
-   Job maya.Job
-   // 2 initiate
-   market string
-   // 3 login
-   // 4
-   address string
-   season  int
-   // 5
-   edit_id string
-   // 6
-   dash_id string
 }
