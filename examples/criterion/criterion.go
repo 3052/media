@@ -8,13 +8,40 @@ import (
    "path"
 )
 
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
+func (c *client) do() error {
+   err := cache.Setup("rosso/criterion.xml")
    if err != nil {
       return err
    }
-   job.Send = c.MediaFile.Widevine
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+   read_err := cache.Read(c)
+   // 1
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
+   // 2
+   email := maya.StringVar(&c.email, "e", "email")
+   password := maya.StringVar(&c.password, "p", "password")
+   // 3
+   address := maya.StringVar(&c.address, "a", "address")
+   // 4
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {email, password},
+         {address},
+         {dash_id},
+      })
+   case set[email] && set[password]:
+      return c.do_email_password()
+   case read_err != nil:
+      return read_err
+   case set[address]:
+      return c.do_address()
+   case set[dash_id]:
+      return c.do_dash_id()
+   }
+   return nil
 }
 
 func main() {
@@ -28,50 +55,47 @@ func main() {
 
 var cache maya.Cache
 
-var job maya.WidevineJob
-
-func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := cache.Setup("rosso/criterion.xml")
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.StringVar(&c.email, "e", "", "email")
-   flag.StringVar(&c.password, "p", "", "password")
-   // 2
-   flag.StringVar(&c.address, "a", "", "address")
-   // 3
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.StringVar(&job.ClientId, "C", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "P", job.PrivateKey, "private key")
-   flag.Parse()
-   if c.email != "" {
-      if c.password != "" {
-         return c.do_email_password()
-      }
-   }
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.dash_id != "" {
-      return c.do_dash_id()
-   }
-   return maya.Usage([][]string{
-      {"e", "p"},
-      {"a"},
-      {"d", "C", "P"},
-   })
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.MediaFile.Widevine,
+   )
 }
 
 func (c *client) do_email_password() error {
-   c.Token = &criterion.Token{}
-   err := c.Token.Fetch(c.email, c.password)
+   var err error
+   c.Token, err = criterion.FetchToken(c.email, c.password)
    if err != nil {
       return err
    }
    return cache.Write(c)
+}
+
+func (c *client) do_address() error {
+   err := c.Token.Refresh()
+   if err != nil {
+      return err
+   }
+   item, err := c.Token.Item(path.Base(c.address))
+   if err != nil {
+      return err
+   }
+   files, err := c.Token.Files(item)
+   if err != nil {
+      return err
+   }
+   c.MediaFile, err = files.Dash()
+   if err != nil {
+      return err
+   }
+   c.Dash, err = c.MediaFile.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
 type client struct {
@@ -79,37 +103,12 @@ type client struct {
    MediaFile *criterion.MediaFile
    Token     *criterion.Token
    // 1
+   Job maya.Job
+   // 2
    email    string
    password string
-   // 2
-   address string
    // 3
+   address string
+   // 4
    dash_id string
-}
-
-func (c *client) do_address() error {
-   err := cache.Update(c, func() error {
-      err := c.Token.Refresh()
-      if err != nil {
-         return err
-      }
-      item, err := c.Token.Item(path.Base(c.address))
-      if err != nil {
-         return err
-      }
-      files, err := c.Token.Files(item)
-      if err != nil {
-         return err
-      }
-      c.MediaFile, err = files.Dash()
-      if err != nil {
-         return err
-      }
-      c.Dash, err = c.MediaFile.Dash()
-      return err
-   })
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

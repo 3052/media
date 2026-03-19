@@ -4,11 +4,50 @@ import (
    "bytes"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
    "strings"
 )
+
+func FetchToken(username, password string) (*Token, error) {
+   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
+      "client_id":  {client_id},
+      "grant_type": {"password"},
+      "password":   {password},
+      "username":   {username},
+   })
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Token
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if err := result.AsError(); err != nil {
+      return nil, err
+   }
+   return &result, nil
+}
+
+type Token struct {
+   AccessToken      string `json:"access_token"`
+   Error            string
+   ErrorDescription string `json:"error_description"`
+   RefreshToken     string `json:"refresh_token"`
+}
+
+// AsError returns a standard Go error if the token response was an error, 
+// otherwise it returns nil.
+func (t *Token) AsError() error {
+   if t.Error == "" {
+      return nil
+   }
+   return fmt.Errorf("%s: %s", t.Error, t.ErrorDescription)
+}
 
 func (m *MediaFile) Dash() (*Dash, error) {
    resp, err := http.Get(m.Links.Source.Href)
@@ -109,36 +148,6 @@ func (m MediaFiles) Dash() (*MediaFile, error) {
    return nil, errors.New("DASH media file not found")
 }
 
-func (t *Token) GetError() error {
-   if t.Error == "" {
-      return nil
-   }
-   var data strings.Builder
-   data.WriteString("error = ")
-   data.WriteString(t.Error)
-   data.WriteString("\ndescription = ")
-   data.WriteString(t.ErrorDescription)
-   return errors.New(data.String())
-}
-
-func (t *Token) Fetch(username, password string) error {
-   resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
-      "client_id":  {client_id},
-      "grant_type": {"password"},
-      "password":   {password},
-      "username":   {username},
-   })
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(t)
-   if err != nil {
-      return err
-   }
-   return t.GetError()
-}
-
 func (t *Token) Refresh() error {
    resp, err := http.PostForm("https://auth.vhx.com/v1/oauth/token", url.Values{
       "client_id":     {client_id},
@@ -153,14 +162,7 @@ func (t *Token) Refresh() error {
    if err != nil {
       return err
    }
-   return t.GetError()
-}
-
-type Token struct {
-   AccessToken      string `json:"access_token"`
-   Error            string
-   ErrorDescription string `json:"error_description"`
-   RefreshToken     string `json:"refresh_token"`
+   return t.AsError()
 }
 
 func (t *Token) Files(item *VideoItem) (MediaFiles, error) {
