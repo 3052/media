@@ -14,6 +14,50 @@ import (
    "strings"
 )
 
+func FetchPlaylist(urlData string) (*Playlist, error) {
+   data, err := json.Marshal(map[string]any{
+      "client": map[string]string{
+         "id": "browser",
+      },
+      "variantAvailability": map[string]any{
+         "drm": map[string]string{
+            "maxSupported": "L3",
+            "system":       "widevine",
+         },
+         "featureset": []string{ // need all these to get 720p
+            "hd",
+            "mpeg-dash",
+            "single-track",
+            "widevine",
+         },
+         "platformTag": "ctv", // 1080p
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest("POST", urlData, bytes.NewReader(data))
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
+   req.Header.Set("user-agent", "!")
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Playlist
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   return &result, nil
+}
+
 func (m *MediaFile) Dash() (*Dash, error) {
    var err error
    http.DefaultClient.Jar, err = cookiejar.New(nil)
@@ -82,7 +126,6 @@ func Titles(legacyId string) ([]Title, error) {
       return nil, err
    }
    var req http.Request
-   req.Header = http.Header{}
    req.URL = &url.URL{
       Scheme: "https",
       Host:   "content-inventory.prd.oasvc.itv.com",
@@ -92,6 +135,7 @@ func Titles(legacyId string) ([]Title, error) {
          "variables": {data.String()},
       }.Encode(),
    }
+   req.Header = http.Header{}
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
       return nil, err
@@ -118,52 +162,6 @@ type Title struct {
    }
    EpisodeNumber int
    Title         string
-}
-
-func (t *Title) Playlist() (*Playlist, error) {
-   data, err := json.Marshal(map[string]any{
-      "client": map[string]string{
-         "id": "browser",
-      },
-      "variantAvailability": map[string]any{
-         "drm": map[string]string{
-            "maxSupported": "L3",
-            "system":       "widevine",
-         },
-         "featureset": []string{ // need all these to get 720p
-            "hd",
-            "mpeg-dash",
-            "single-track",
-            "widevine",
-         },
-         "platformTag": "ctv", // 1080p
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", t.LatestAvailableVersion.PlaylistUrl, bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("accept", "application/vnd.itv.vod.playlist.v4+json")
-   req.Header.Set("user-agent", "!")
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var play Playlist
-   err = json.NewDecoder(resp.Body).Decode(&play)
-   if err != nil {
-      return nil, err
-   }
-   if play.Error != "" {
-      return nil, errors.New(play.Error)
-   }
-   return &play, nil
 }
 
 func (p *Playlist) playReady(id string) error {
