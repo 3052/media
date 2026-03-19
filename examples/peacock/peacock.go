@@ -33,15 +33,15 @@ func (c *client) do() error {
          {address},
          {dash_id},
       })
-   case set[widevine.Name]:
+   case set[widevine]:
       return cache.Write(c)
-   case set[email.Name] && set[password.Name]:
+   case set[email] && set[password]:
       return c.do_email_password()
    case read_err != nil:
       return read_err
-   case set[address.Name]:
+   case set[address]:
       return c.do_address()
-   case set[dash_id.Name]:
+   case set[dash_id]:
       return c.do_dash_id()
    }
    return nil

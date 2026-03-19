@@ -8,6 +8,71 @@ import (
    "log"
 )
 
+func (c *client) do() error {
+   err := cache.Setup("rosso/amc.xml")
+   if err != nil {
+      return err
+   }
+   read_err := cache.Read(c)
+   // 1
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
+   // 2
+   email := maya.StringVar(&c.email, "E", "email")
+   password := maya.StringVar(&c.password, "P", "password")
+   // 3
+   refresh := maya.BoolVar(new(bool), "r", "refresh")
+   // 4
+   series := maya.IntVar(&c.series, "s", "series ID")
+   // 5
+   season := maya.IntVar(&c.season, "S", "season ID")
+   // 6
+   episode := maya.IntVar(&c.episode, "e", "episode or movie ID")
+   // 7
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {email, password},
+         {refresh},
+         {series},
+         {season},
+         {episode},
+         {dash_id},
+      })
+   case set[widevine]:
+      return cache.Write(c)
+   case set[email] && set[password]:
+      return c.do_email_password()
+   case read_err != nil:
+      return read_err
+   case set[refresh]:
+      return c.do_refresh()
+   case set[series]:
+      return c.do_series()
+   case set[season]:
+      return c.do_season()
+   case set[episode]:
+      return c.do_episode()
+   case set[dash_id]:
+      return c.do_dash_id()
+   }
+   return nil
+}
+
+func (c *client) do_email_password() error {
+   var err error
+   c.Client, err = amc.Unauth()
+   if err != nil {
+      return err
+   }
+   err = c.Client.Login(c.email, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
 func (c *client) do_refresh() error {
    err := c.Client.Refresh()
    if err != nil {
@@ -110,69 +175,4 @@ func main() {
    if err != nil {
       log.Fatal(err)
    }
-}
-func (c *client) do() error {
-   err := cache.Setup("rosso/amc.xml")
-   if err != nil {
-      return err
-   }
-   read_err := cache.Read(c)
-   // 1
-   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
-   // 2
-   email := maya.StringVar(&c.email, "E", "email")
-   password := maya.StringVar(&c.password, "P", "password")
-   // 3
-   refresh := maya.BoolVar(new(bool), "r", "refresh")
-   // 4
-   series := maya.IntVar(&c.series, "s", "series ID")
-   // 5
-   season := maya.IntVar(&c.season, "S", "season ID")
-   // 6
-   episode := maya.IntVar(&c.episode, "e", "episode or movie ID")
-   // 7
-   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
-   set := maya.Parse()
-   switch {
-   case len(set) == 0:
-      return maya.Usage([][]*flag.Flag{
-         {widevine},
-         {email, password},
-         {refresh},
-         {series},
-         {season},
-         {episode},
-         {dash_id},
-      })
-   case set[widevine.Name]:
-      return cache.Write(c)
-   case set[email.Name] && set[password.Name]:
-      return c.do_email_password()
-   case read_err != nil:
-      return read_err
-   case set[refresh.Name]:
-      return c.do_refresh()
-   case set[series.Name]:
-      return c.do_series()
-   case set[season.Name]:
-      return c.do_season()
-   case set[episode.Name]:
-      return c.do_episode()
-   case set[dash_id.Name]:
-      return c.do_dash_id()
-   }
-   return nil
-}
-
-func (c *client) do_email_password() error {
-   var err error
-   c.Client, err = amc.Unauth()
-   if err != nil {
-      return err
-   }
-   err = c.Client.Login(c.email, c.password)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
 }

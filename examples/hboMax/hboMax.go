@@ -41,19 +41,19 @@ func (c *client) do() error {
          {edit},
          {dash_id},
       })
-   case set[playReady.Name]:
+   case set[playReady]:
       return cache.Write(c)
-   case set[initiate.Name]:
+   case set[initiate]:
       return c.do_initiate()
    case read_err != nil:
       return read_err
-   case set[login.Name]:
+   case set[login]:
       return c.do_login()
-   case set[address.Name]:
+   case set[address]:
       return c.do_address()
-   case set[edit.Name]:
+   case set[edit]:
       return c.do_edit_id()
-   case set[dash_id.Name]:
+   case set[dash_id]:
       return c.do_dash_id()
    }
    return nil

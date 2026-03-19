@@ -8,40 +8,6 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id() error {
-   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id,
-      func(data []byte) ([]byte, error) {
-         return c.Login.Widevine(c.PlayManifest, data)
-      },
-   )
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.m4s")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-var cache maya.Cache
-
-type client struct {
-   Dash         *kanopy.Dash
-   Login        *kanopy.Login
-   PlayManifest *kanopy.PlayManifest
-   // 1
-   Job maya.Job
-   // 2
-   email    string
-   password string
-   // 3
-   address string
-   // 4
-   dash_id string
-}
-
 func (c *client) do() error {
    err := cache.Setup("rosso/kanopy.xml")
    if err != nil {
@@ -66,13 +32,13 @@ func (c *client) do() error {
          {address},
          {dash_id},
       })
-   case set[email.Name] && set[password.Name]:
+   case set[email] && set[password]:
       return c.do_email_password()
    case read_err != nil:
       return read_err
-   case set[address.Name]:
+   case set[address]:
       return c.do_address()
-   case set[dash_id.Name]:
+   case set[dash_id]:
       return c.do_dash_id()
    }
    return nil
@@ -124,4 +90,37 @@ func (c *client) do_address() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id,
+      func(data []byte) ([]byte, error) {
+         return c.Login.Widevine(c.PlayManifest, data)
+      },
+   )
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+var cache maya.Cache
+
+type client struct {
+   Dash         *kanopy.Dash
+   Login        *kanopy.Login
+   PlayManifest *kanopy.PlayManifest
+   // 1
+   Job maya.Job
+   // 2
+   email    string
+   password string
+   // 3
+   address string
+   // 4
+   dash_id string
 }

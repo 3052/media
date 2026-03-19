@@ -35,19 +35,19 @@ func (c *client) do() error {
          {roku_id, get_code},
          {dash_id},
       })
-   case set[widevine.Name]:
+   case set[widevine]:
       return cache.Write(c)
-   case set[token.Name]:
+   case set[token]:
       return c.do_token()
-   case set[roku_id.Name] && !set[get_code.Name]:
+   case set[roku_id] && !set[get_code]:
       return c.do_roku_id(false)
    case read_err != nil:
       return read_err
-   case set[set_code.Name]:
+   case set[set_code]:
       return c.do_set_code()
-   case set[roku_id.Name]:
+   case set[roku_id]:
       return c.do_roku_id(true)
-   case set[dash_id.Name]:
+   case set[dash_id]:
       return c.do_dash_id()
    }
    return nil

@@ -46,25 +46,25 @@ func (c *client) do() error {
          {media},
          {hls_id},
       })
-   case set[playReady.Name]:
+   case set[playReady]:
       return cache.Write(c)
-   case set[email.Name]:
+   case set[email]:
       return c.do_email()
    case read_err != nil:
       return read_err
-   case set[passcode.Name]:
+   case set[passcode]:
       return c.do_passcode()
-   case set[profile.Name]:
+   case set[profile]:
       return c.do_profile_id()
-   case set[refresh.Name]:
+   case set[refresh]:
       return c.do_refresh()
-   case set[address.Name]:
+   case set[address]:
       return c.do_address()
-   case set[season.Name]:
+   case set[season]:
       return c.do_season_id()
-   case set[media.Name]:
+   case set[media]:
       return c.do_media_id()
-   case set[hls_id.Name]:
+   case set[hls_id]:
       return c.do_hls_id()
    }
    return nil
