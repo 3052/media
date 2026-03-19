@@ -11,6 +11,66 @@ import (
    "strings"
 )
 
+var classificationMap = map[string]int{
+   "cz": 272,
+   "es": 5,
+   "fr": 23,
+   "ie": 41,
+   "nl": 69,
+   "pl": 277,
+   "pt": 64,
+   "se": 282,
+   "uk": 18,
+}
+
+// Parse extracts metadata from a Rakuten URL and returns a new Content struct
+func ParseContent(urlData string) (*Content, error) {
+   urlParse, err := url.Parse(urlData)
+   if err != nil {
+      return nil, err
+   }
+
+   c := &Content{}
+
+   // Trim prefix once and extract the market code
+   path := strings.TrimPrefix(urlParse.Path, "/")
+   c.MarketCode, _, _ = strings.Cut(path, "/")
+
+   // Check if the market code exists in the map and set ClassificationId
+   var ok bool
+   c.ClassificationId, ok = classificationMap[c.MarketCode]
+   if !ok {
+      return nil, errors.New("unknown market code")
+   }
+
+   // 1. Check Query Parameters
+   query := urlParse.Query()
+   contentType := query.Get("content_type")
+   switch contentType {
+   case "movies":
+      c.Id = query.Get("content_id")
+      c.Type = contentType
+      return c, nil
+   case "tv_shows":
+      c.Id = query.Get("tv_show_id")
+      c.Type = contentType
+      return c, nil
+   }
+
+   // 2. Check Path Segments
+   segments := strings.Split(path, "/")
+   for _, segment := range segments {
+      switch segment {
+      case "movies", "tv_shows":
+         c.Id = segments[len(segments)-1]
+         c.Type = segment
+         return c, nil
+      }
+   }
+
+   return nil, errors.New("not a movie or tv show url")
+}
+
 // Stream requests a playback stream.
 // For TV Shows, 'id' should be the Episode ID.
 // For Movies, 'id' is ignored (uses c.Id).
@@ -129,63 +189,6 @@ func (s Stream) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-var classificationMap = map[string]int{
-   "cz": 272,
-   "es": 5,
-   "fr": 23,
-   "ie": 41,
-   "nl": 69,
-   "pl": 277,
-   "pt": 64,
-   "se": 282,
-   "uk": 18,
-}
-
-// Parse extracts metadata from a Rakuten URL and populates the Content struct
-func (c *Content) Parse(urlData string) error {
-   urlParse, err := url.Parse(urlData)
-   if err != nil {
-      return err
-   }
-
-   // Trim prefix once and extract the market code
-   path := strings.TrimPrefix(urlParse.Path, "/")
-   c.MarketCode, _, _ = strings.Cut(path, "/")
-
-   // Check if the market code exists in the map and set ClassificationId
-   var ok bool
-   c.ClassificationId, ok = classificationMap[c.MarketCode]
-   if !ok {
-      return errors.New("unknown market code")
-   }
-
-   // 1. Check Query Parameters
-   query := urlParse.Query()
-   contentType := query.Get("content_type")
-   switch contentType {
-   case "movies":
-      c.Id = query.Get("content_id")
-      c.Type = contentType
-      return nil
-   case "tv_shows":
-      c.Id = query.Get("tv_show_id")
-      c.Type = contentType
-      return nil
-   }
-
-   // 2. Check Path Segments
-   segments := strings.Split(path, "/")
-   for _, segment := range segments {
-      switch segment {
-      case "movies", "tv_shows":
-         c.Id = segments[len(segments)-1]
-         c.Type = segment
-         return nil
-      }
-   }
-   return errors.New("not a movie or tv show url")
 }
 
 func (c *Content) IsMovie() bool {

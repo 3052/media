@@ -2,6 +2,14 @@ package rakuten
 
 import "net/url"
 
+// Content represents the parsed Rakuten URL data
+type Content struct {
+   Id               string
+   MarketCode       string
+   Type             string
+   ClassificationId int
+}
+
 // Constants for device and player configuration
 const DeviceId = "atvui40"
 
@@ -16,15 +24,8 @@ const (
 )
 
 type VideoQuality string
-type Player string
 
-// Content represents the parsed Rakuten URL data
-type Content struct {
-   Id               string
-   MarketCode       string
-   Type             string
-   ClassificationId int
-}
+type Player string
 
 type Stream struct {
    StreamInfos []struct {
