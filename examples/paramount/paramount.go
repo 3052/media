@@ -8,47 +8,66 @@ import (
    "net/http"
 )
 
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s,*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type client struct {
+   Cookie *http.Cookie
+   Dash   *paramount.Dash
+   // 1
+   Job maya.Job
+   // 2
+   username string
+   password string
+   // 3
+   paramount_id string
+   // 4
+   dash_id string
+   get_cookie  bool
+}
 func (c *client) do() error {
-   job.CertificateChain, _ = maya.ResolveCache("SL2000/CertificateChain")
-   job.EncryptSignKey, _ = maya.ResolveCache("SL2000/EncryptSignKey")
    err := cache.Setup("rosso/paramount.xml")
    if err != nil {
       return err
    }
+   read_err := cache.Read(c)
    // 1
-   flag.StringVar(&c.proxy, "x", "", "proxy")
+   playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
    // 2
-   flag.StringVar(&c.username, "U", "", "username")
-   flag.StringVar(&c.password, "P", "", "password")
+   username := maya.StringVar(&c.username, "U", "username")
+   password := maya.StringVar(&c.password, "P", "password")
    // 3
-   flag.StringVar(&c.paramount, "p", "", "paramount ID")
+   paramount_id := maya.StringVar(&c.paramount_id, "p", "paramount ID")
    // 4
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.BoolVar(&c.cookie, "c", false, "cookie")
-   flag.StringVar(&job.CertificateChain, "C", job.CertificateChain, "certificate chain")
-   flag.StringVar(&job.EncryptSignKey, "E", job.EncryptSignKey, "encrypt sign key")
-   flag.Parse()
-   err = maya.SetProxy(c.proxy, "*.m4s,*.mp4")
-   if err != nil {
-      return err
-   }
-   if c.username != "" {
-      if c.password != "" {
-         return c.do_username_password()
-      }
-   }
-   if c.paramount != "" {
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   get_cookie := maya.BoolVar(&c.get_cookie, "c", "get cookie")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {playReady},
+         {username, password},
+         {paramount_id},
+         {dash_id, get_cookie},
+      })
+   case set[username] && set[password]:
+      return c.do_username_password()
+   case set[paramount_id] && !set[get_cookie]:
       return c.do_paramount()
-   }
-   if c.dash_id != "" {
+   case read_err != nil:
+      return read_err
+   case set[paramount_id]:
+      return c.do_paramount()
+   case set[dash_id]:
       return c.do_dash_id()
    }
-   return maya.Usage([][]string{
-      {"x"},
-      {"U", "P"},
-      {"p"},
-      {"d", "c", "C", "E"},
-   })
+   return nil
 }
 
 func (c *client) do_dash_id() error {
@@ -60,24 +79,17 @@ func (c *client) do_dash_id() error {
    if err != nil {
       return err
    }
-   err = cache.Read(c)
-   if err != nil {
-      return err
-   }
-   if !c.cookie {
+   if !c.get_cookie {
       c.Cookie = nil
    }
-   token, err := paramount.PlayReady(at, c.paramount, c.Cookie)
+   token, err := paramount.PlayReady(at, c.paramount_id, c.Cookie)
    if err != nil {
       return err
    }
-   job.Send = token.Send
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, token.Send)
 }
 
 var cache maya.Cache
-
-var job maya.PlayReadyJob
 
 func (c *client) do_username_password() error {
    app_secret, err := paramount.FetchAppSecret()
@@ -104,7 +116,7 @@ func (c *client) do_paramount() error {
    if err != nil {
       return err
    }
-   item, err := paramount.FetchItem(at, c.paramount)
+   item, err := paramount.FetchItem(at, c.paramount_id)
    if err != nil {
       return err
    }
@@ -117,27 +129,4 @@ func (c *client) do_paramount() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-type client struct {
-   Cookie *http.Cookie
-   Dash   *paramount.Dash
-   // 1
-   proxy string
-   // 2
-   username string
-   password string
-   // 3
-   paramount string
-   // 4
-   dash_id string
-   cookie  bool
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
 }

@@ -22,7 +22,7 @@ func (c *client) do() error {
    set_code := maya.BoolVar(new(bool), "s", "set code")
    // 4
    roku_id := maya.StringVar(&c.roku_id, "r", "Roku ID")
-   get_code := maya.BoolVar(new(bool), "g", "get code")
+   get_code := maya.BoolVar(&c.get_code, "g", "get code")
    // 5
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
@@ -40,13 +40,13 @@ func (c *client) do() error {
    case set[token]:
       return c.do_token()
    case set[roku_id] && !set[get_code]:
-      return c.do_roku_id(false)
+      return c.do_roku_id()
    case read_err != nil:
       return read_err
    case set[set_code]:
       return c.do_set_code()
    case set[roku_id]:
-      return c.do_roku_id(true)
+      return c.do_roku_id()
    case set[dash_id]:
       return c.do_dash_id()
    }
@@ -82,20 +82,6 @@ func (c *client) do_token() error {
    return cache.Write(c)
 }
 
-type client struct {
-   Activation *roku.Activation
-   Code       *roku.Code
-   Dash       *roku.Dash
-   Playback   *roku.Playback
-   Token      *roku.Token
-   // 1
-   Job maya.Job
-   // 4
-   roku_id string
-   // 5
-   dash_id string
-}
-
 var cache maya.Cache
 
 func main() {
@@ -107,9 +93,9 @@ func main() {
    }
 }
 
-func (c *client) do_roku_id(get_code bool) error {
+func (c *client) do_roku_id() error {
    var code *roku.Code
-   if get_code {
+   if c.get_code {
       code = c.Code
    }
    var err error
@@ -130,4 +116,19 @@ func (c *client) do_roku_id(get_code bool) error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+type client struct {
+   Activation *roku.Activation
+   Code       *roku.Code
+   Dash       *roku.Dash
+   Playback   *roku.Playback
+   Token      *roku.Token
+   // 1
+   Job maya.Job
+   // 4
+   roku_id string
+   get_code bool
+   // 5
+   dash_id string
 }

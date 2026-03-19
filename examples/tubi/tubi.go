@@ -7,13 +7,36 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id() error {
-   if cache.Error != nil {
-      return cache.Error
+func (c *client) do() error {
+   err := cache.Setup("rosso/tubi.xml")
+   if err != nil {
+      return err
    }
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.VideoResource.Widevine,
-   )
+   read_err := cache.Read(c)
+   // 1
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
+   // 2
+   tubi_id := maya.IntVar(&c.tubi_id, "t", "Tubi ID")
+   // 3
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {tubi_id},
+         {dash_id},
+      })
+   case set[widevine]:
+      return cache.Write(c)
+   case set[tubi_id]:
+      return c.do_tubi()
+   case read_err != nil:
+      return read_err
+   case set[dash_id]:
+      return c.do_dash_id()
+   }
+   return nil
 }
 
 var cache maya.Cache
@@ -27,52 +50,25 @@ func main() {
    }
 }
 
-func (c *client) do() error {
-   err := cache.Setup("rosso/tubi.xml")
-   if err != nil {
-      return err
-   }
-   err = cache.Read(c, true)
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.IntVar(&c.tubi, "t", 0, "Tubi ID")
-   // 2
-   flag.StringVar(&c.Job.Widevine, "w", c.Job.Widevine, "Widevine")
-   // 3
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   set := maya.Parse()
-   if set["t"] {
-      return c.do_tubi()
-   }
-   if set["w"] {
-      return cache.Write(c)
-   }
-   if set["d"] {
-      return c.do_dash_id()
-   }
-   return maya.Usage([][]string{
-      {"t"},
-      {"w"},
-      {"d"},
-   })
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.VideoResource.Widevine,
+   )
 }
 
 type client struct {
    Dash          *tubi.Dash
    VideoResource *tubi.VideoResource
    // 1
-   tubi int
-   // 2
    Job maya.Job
+   // 2
+   tubi_id int
    // 3
    dash_id string
 }
 
 func (c *client) do_tubi() error {
-   var content tubi.Content
-   err := content.Fetch(c.tubi)
+   content, err := tubi.FetchContent(c.tubi_id)
    if err != nil {
       return err
    }
