@@ -10,6 +10,31 @@ import (
    "strings"
 )
 
+func FetchUser() (*User, error) {
+   var req http.Request
+   req.Method = "POST"
+   req.URL = &url.URL{
+      Scheme: "https",
+      Host:   "plex.tv",
+      Path:   "/api/v2/users/anonymous",
+   }
+   req.Header = http.Header{}
+   req.Header.Set("accept", "application/json")
+   req.Header.Set("x-plex-product", "Plex Mediaverse")
+   req.Header.Set("x-plex-client-identifier", "!")
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   result := &User{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
+}
+
 func (u User) Dash(part *MediaPart, forwardedFor string) (*Dash, error) {
    var req http.Request
    req.URL = &url.URL{
@@ -172,23 +197,4 @@ func (i *ItemMetadata) Dash() (*MediaPart, error) {
    }
    // Failure: No "dash" protocol was found.
    return nil, errors.New("DASH media part not found")
-}
-func (u *User) Fetch() error {
-   var req http.Request
-   req.Method = "POST"
-   req.URL = &url.URL{
-      Scheme: "https",
-      Host:   "plex.tv",
-      Path:   "/api/v2/users/anonymous",
-   }
-   req.Header = http.Header{}
-   req.Header.Set("accept", "application/json")
-   req.Header.Set("x-plex-product", "Plex Mediaverse")
-   req.Header.Set("x-plex-client-identifier", "!")
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(u)
 }

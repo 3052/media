@@ -11,26 +11,32 @@ import (
    "strings"
 )
 
-func (d *Dash) Fetch(urlData *url.URL) error {
+// It assumes Vod and Stitched.Paths always have at least one entry
+func (s *Series) GetMovieUrl() *url.URL {
+   // Directly access the required path based on the data guarantees
+   path := s.Vod[0].Stitched.Paths[0].Path
+   return s.buildStitcherUrl(path)
+}
+
+func FetchDash(urlData *url.URL) (*Dash, error) {
    var req http.Request
    req.URL = urlData
    req.Header = http.Header{}
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
-   d.Body, err = io.ReadAll(resp.Body)
+   body, err := io.ReadAll(resp.Body)
    if err != nil {
-      return err
+      return nil, err
    }
-   d.Url = resp.Request.URL
-   return nil
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
 }
 
 // pluto.tv/on-demand/movies/64946365c5ae350013623630
 // pluto.tv/on-demand/movies/disobedience-ca-2018-1-1
-func (s *Series) Fetch(movieShow string) error {
+func FetchSeries(movieShow string) (*Series, error) {
    data := url.Values{}
    data.Set("appName", app_name)
    data.Set("appVersion", "9")
@@ -55,21 +61,22 @@ func (s *Series) Fetch(movieShow string) error {
    }
    resp, err := http.DefaultClient.Do(&req)
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
+   var result Series
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
-      return err
+      return nil, err
    }
    if strings.Contains(movieShow, "-") {
-      if s.Vod[0].Slug != movieShow {
-         return errors.New("slug mismatch")
+      if result.Vod[0].Slug != movieShow {
+         return nil, errors.New("slug mismatch")
       }
-   } else if s.Vod[0].Id != movieShow {
-      return errors.New("id mismatch")
+   } else if result.Vod[0].Id != movieShow {
+      return nil, errors.New("id mismatch")
    }
-   return nil
+   return &result, nil
 }
 
 type Vod struct {
@@ -113,13 +120,6 @@ func Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-// It assumes Vod and Stitched.Paths always have at least one entry
-func (s *Series) GetMovieUrl() *url.URL {
-   // Directly access the required path based on the data guarantees
-   path := s.Vod[0].Stitched.Paths[0].Path
-   return s.buildStitcherUrl(path)
 }
 
 func (s *Series) GetEpisodeUrl(episodeId string) (*url.URL, error) {

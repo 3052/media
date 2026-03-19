@@ -7,9 +7,42 @@ import (
    "log"
 )
 
+func (c *client) do() error {
+   err := cache.Setup("rosso/plex.xml")
+   if err != nil {
+      return err
+   }
+   read_err := cache.Read(c)
+   // 1
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
+   // 2
+   address := maya.StringVar(&c.address, "a", "address")
+   xff := maya.StringVar(&c.xff, "x", "x-forwarded-for")
+   // 3
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case len(set) == 0:
+      return maya.Usage([][]*flag.Flag{
+         {widevine},
+         {address, xff},
+         {dash_id},
+      })
+   case set[widevine]:
+      return cache.Write(c)
+   case set[address]:
+      return c.do_address()
+   case read_err != nil:
+      return read_err
+   case set[dash_id]:
+      return c.do_dash_id()
+   }
+   return nil
+}
+
 func (c *client) do_address() error {
-   c.User = &plex.User{}
-   err := c.User.Fetch()
+   var err error
+   c.User, err = plex.FetchUser()
    if err != nil {
       return err
    }
@@ -21,7 +54,7 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   metadata, err = c.User.Media(metadata, c.x_forwarded_for)
+   metadata, err = c.User.Media(metadata, c.xff)
    if err != nil {
       return err
    }
@@ -29,7 +62,7 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   c.Dash, err = c.User.Dash(c.MediaPart, c.x_forwarded_for)
+   c.Dash, err = c.User.Dash(c.MediaPart, c.xff)
    if err != nil {
       return err
    }
@@ -38,17 +71,6 @@ func (c *client) do_address() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-func (c *client) do_dash_id() error {
-   err := cache.Read(c)
-   if err != nil {
-      return err
-   }
-   job.Send = func(data []byte) ([]byte, error) {
-      return c.User.Widevine(c.MediaPart, data)
-   }
-   return job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id)
 }
 
 func main() {
@@ -62,33 +84,12 @@ func main() {
 
 var cache maya.Cache
 
-var job maya.WidevineJob
-
-func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
-   err := cache.Setup("rosso/plex.xml")
-   if err != nil {
-      return err
-   }
-   // 1
-   flag.StringVar(&c.address, "a", "", "address")
-   flag.StringVar(&c.x_forwarded_for, "x", "", "x-forwarded-for")
-   // 2
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
-   flag.Parse()
-   if c.address != "" {
-      return c.do_address()
-   }
-   if c.dash_id != "" {
-      return c.do_dash_id()
-   }
-   return maya.Usage([][]string{
-      {"a", "x"},
-      {"d", "c", "p"},
-   })
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id,
+      func(data []byte) ([]byte, error) {
+         return c.User.Widevine(c.MediaPart, data)
+      },
+   )
 }
 
 type client struct {
@@ -96,8 +97,10 @@ type client struct {
    MediaPart *plex.MediaPart
    User      *plex.User
    // 1
-   address         string
-   x_forwarded_for string
+   Job maya.Job
    // 2
+   address         string
+   xff string
+   // 3
    dash_id string
 }
