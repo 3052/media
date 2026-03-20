@@ -8,6 +8,48 @@ import (
    "net/http"
 )
 
+func (c *client) do() error {
+   err := cache.Setup("rosso/paramount.xml")
+   if err != nil {
+      return err
+   }
+   with_cache := cache.Read(c)
+   // 1
+   playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
+   // 2
+   username := maya.StringVar(&c.username, "U", "username")
+   password := maya.StringVar(&c.password, "P", "password")
+   // 3
+   paramount_id := maya.StringVar(&c.paramount_id, "p", "paramount ID")
+   // 4
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   get_cookie := maya.BoolVar(&c.get_cookie, "c", "get cookie")
+   set := maya.Parse()
+   if set[playReady] {
+      return cache.Write(c)
+   }
+   if set[username] {
+      if set[password] {
+         return c.do_username_password()
+      }
+   }
+   if set[paramount_id] {
+      if set[get_cookie] {
+         return with_cache(c.do_paramount)
+      }
+      return c.do_paramount()
+   }
+   if set[dash_id] {
+      return with_cache(c.do_dash_id)
+   }
+   return maya.Usage([][]*flag.Flag{
+      {playReady},
+      {username, password},
+      {paramount_id},
+      {dash_id, get_cookie},
+   })
+}
+
 func main() {
    log.SetFlags(log.Ltime)
    maya.SetProxy("", "*.m4s,*.mp4")
@@ -30,44 +72,6 @@ type client struct {
    // 4
    dash_id string
    get_cookie  bool
-}
-func (c *client) do() error {
-   err := cache.Setup("rosso/paramount.xml")
-   if err != nil {
-      return err
-   }
-   read_err := cache.Read(c)
-   // 1
-   playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
-   // 2
-   username := maya.StringVar(&c.username, "U", "username")
-   password := maya.StringVar(&c.password, "P", "password")
-   // 3
-   paramount_id := maya.StringVar(&c.paramount_id, "p", "paramount ID")
-   // 4
-   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
-   get_cookie := maya.BoolVar(&c.get_cookie, "c", "get cookie")
-   set := maya.Parse()
-   switch {
-   case len(set) == 0:
-      return maya.Usage([][]*flag.Flag{
-         {playReady},
-         {username, password},
-         {paramount_id},
-         {dash_id, get_cookie},
-      })
-   case set[username] && set[password]:
-      return c.do_username_password()
-   case set[paramount_id] && !set[get_cookie]:
-      return c.do_paramount()
-   case read_err != nil:
-      return read_err
-   case set[paramount_id]:
-      return c.do_paramount()
-   case set[dash_id]:
-      return c.do_dash_id()
-   }
-   return nil
 }
 
 func (c *client) do_dash_id() error {
