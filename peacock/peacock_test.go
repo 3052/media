@@ -1,7 +1,6 @@
 package peacock
 
 import (
-   "net/http"
    "os"
    "os/exec"
    "testing"
@@ -14,27 +13,6 @@ var bugonia = []string{
 
 func TestWatch(t *testing.T) {
    t.Log(bugonia)
-}
-
-func TestSignRead(t *testing.T) {
-   cache, err := os.UserCacheDir()
-   if err != nil {
-      t.Fatal(err)
-   }
-   data, err := os.ReadFile(cache + "/peacock/peacock.txt")
-   if err != nil {
-      t.Fatal(err)
-   }
-   id, err := http.ParseSetCookie(string(data))
-   if err != nil {
-      t.Fatal(err)
-   }
-   var auth Token
-   err = auth.Fetch(id)
-   if err != nil {
-      t.Fatal(err)
-   }
-   t.Log(auth)
 }
 
 func TestSignWrite(t *testing.T) {

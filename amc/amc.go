@@ -11,19 +11,6 @@ import (
    "strings"
 )
 
-func (d *DataSource) Dash() (*Dash, error) {
-   resp, err := http.Get(d.Src)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
-}
-
 func BcJwt(header http.Header) string {
    return header.Get("x-amcn-bc-jwt")
 }
@@ -274,6 +261,19 @@ type DataSource struct {
    } `json:"key_systems"`
    Src  string // URL to the MPD manifest
    Type string // e.g., "application/dash+xml"
+}
+
+func (d *DataSource) Dash() (*Dash, error) {
+   resp, err := http.Get(d.Src)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
 }
 
 type Metadata struct {

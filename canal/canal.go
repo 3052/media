@@ -16,6 +16,27 @@ import (
    "time"
 )
 
+const device_serial = "!!!!"
+
+// Global variables for authentication
+const (
+   client_key = "web.NhFyz4KsZ54"
+   secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
+)
+
+func (p *Player) Dash() (*Dash, error) {
+   resp, err := http.Get(p.Url)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
 func FetchSession(ssoToken string) (*Session, error) {
    data, err := json.Marshal(map[string]string{
       "brand":        "m7cp",
@@ -44,26 +65,91 @@ func FetchSession(ssoToken string) (*Session, error) {
    return &result, nil
 }
 
-func (p *Player) Dash() (*Dash, error) {
-   resp, err := http.Get(p.Url)
+func (t *Ticket) Login(username, password string) (*Login, error) {
+   data, err := json.Marshal(map[string]any{
+      "ticket": t.Ticket,
+      "userInput": map[string]string{
+         "username": username,
+         "password": password,
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cp.login.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   client, err := get_client(req.URL, data)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", client)
+   resp, err := http.DefaultClient.Do(req)
    if err != nil {
       return nil, err
    }
    defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
+   var result Login
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
+   if resp.StatusCode != http.StatusOK {
+      return nil, &result
+   }
+   return &result, nil
 }
 
-const device_serial = "!!!!"
+type Ticket struct {
+   Message string
+   Ticket  string
+}
 
-// Global variables for authentication
-const (
-   client_key = "web.NhFyz4KsZ54"
-   secret_key = "OXh0-pIwu3gEXz1UiJtqLPscZQot3a0q"
-)
+func FetchTicket() (*Ticket, error) {
+   data, err := json.Marshal(map[string]any{
+      "deviceInfo": map[string]string{
+         "brand":        "m7cp", // sg.ui.sso.fatal.internal_error
+         "deviceModel":  "Firefox",
+         "deviceOem":    "Firefox",
+         "deviceSerial": device_serial,
+         "deviceType":   "PC",
+         "osVersion":    "Windows 10",
+      },
+   })
+   if err != nil {
+      return nil, err
+   }
+   req, err := http.NewRequest(
+      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   client, err := get_client(req.URL, data)
+   if err != nil {
+      return nil, err
+   }
+   req.Header.Set("authorization", client)
+   resp, err := http.DefaultClient.Do(req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Ticket
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
+   }
+   return &result, nil
+}
+
+///
 
 func get_client(url_data *url.URL, body []byte) (string, error) {
    encoding := base64.RawURLEncoding
@@ -264,88 +350,4 @@ func (s *Session) Episodes(tracking string, season int) ([]Episode, error) {
       return nil, errors.New(result.Message)
    }
    return result.Assets, nil
-}
-
-func (t *Ticket) Login(username, password string) (*Login, error) {
-   data, err := json.Marshal(map[string]any{
-      "ticket": t.Ticket,
-      "userInput": map[string]string{
-         "username": username,
-         "password": password,
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cp.login.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   client, err := get_client(req.URL, data)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Login
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if resp.StatusCode != http.StatusOK {
-      return nil, &result
-   }
-   return &result, nil
-}
-
-type Ticket struct {
-   Message string
-   Ticket  string
-}
-
-func FetchTicket() (*Ticket, error) {
-   data, err := json.Marshal(map[string]any{
-      "deviceInfo": map[string]string{
-         "brand":        "m7cp", // sg.ui.sso.fatal.internal_error
-         "deviceModel":  "Firefox",
-         "deviceOem":    "Firefox",
-         "deviceSerial": device_serial,
-         "deviceType":   "PC",
-         "osVersion":    "Windows 10",
-      },
-   })
-   if err != nil {
-      return nil, err
-   }
-   req, err := http.NewRequest(
-      "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
-   )
-   if err != nil {
-      return nil, err
-   }
-   client, err := get_client(req.URL, data)
-   if err != nil {
-      return nil, err
-   }
-   req.Header.Set("authorization", client)
-   resp, err := http.DefaultClient.Do(req)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   var result Ticket
-   err = json.NewDecoder(resp.Body).Decode(&result)
-   if err != nil {
-      return nil, err
-   }
-   if result.Message != "" {
-      return nil, errors.New(result.Message)
-   }
-   return &result, nil
 }
