@@ -14,14 +14,13 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
-   // 2
+   //--------------------------------------------------------------
    username := maya.StringVar(&c.username, "U", "username")
    password := maya.StringVar(&c.password, "P", "password")
-   // 3
+   //--------------------------------------------------------------
    paramount_id := maya.StringVar(&c.paramount_id, "p", "paramount ID")
-   // 4
+   //--------------------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    get_cookie := maya.BoolVar(&c.get_cookie, "c", "get cookie")
    set := maya.Parse()
@@ -62,16 +61,16 @@ func main() {
 type client struct {
    Cookie *http.Cookie
    Dash   *paramount.Dash
-   // 1
+   //--------------------
    Job maya.Job
-   // 2
+   //--------------------
    username string
    password string
-   // 3
+   //--------------------
    paramount_id string
-   // 4
-   dash_id string
-   get_cookie  bool
+   //--------------------
+   dash_id    string
+   get_cookie bool
 }
 
 func (c *client) do_dash_id() error {

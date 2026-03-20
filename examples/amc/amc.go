@@ -14,20 +14,19 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
-   // 2
+   //----------------------------------------------------------
    email := maya.StringVar(&c.email, "E", "email")
    password := maya.StringVar(&c.password, "P", "password")
-   // 3
+   //----------------------------------------------------------
    refresh := maya.BoolVar(new(bool), "r", "refresh")
-   // 4
+   //----------------------------------------------------------
    series := maya.IntVar(&c.series, "s", "series ID")
-   // 5
+   //----------------------------------------------------------
    season := maya.IntVar(&c.season, "S", "season ID")
-   // 6
+   //----------------------------------------------------------
    episode := maya.IntVar(&c.episode, "e", "episode or movie ID")
-   // 7
+   //----------------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    if set[widevine] {
@@ -147,18 +146,18 @@ type client struct {
    Client     *amc.Client
    Dash       *amc.Dash
    DataSource *amc.DataSource
-   // 1
+   //------------------------
    Job maya.Job
-   // 2
+   //------------------------
    email    string
    password string
-   // 4
+   //------------------------
    series int
-   // 5
+   //------------------------
    season int
-   // 6
+   //------------------------
    episode int
-   // 7
+   //------------------------
    dash_id string
 }
 

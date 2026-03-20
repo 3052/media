@@ -239,4 +239,3 @@ func (a *Asset) Dash() (*Dash, error) {
    }
    return &Dash{Body: body, Url: resp.Request.URL}, nil
 }
-

@@ -52,6 +52,7 @@ func main() {
 }
 
 var cache maya.Cache
+
 func (c *client) do() error {
    err := cache.Setup("rosso/canal.xml")
    if err != nil {

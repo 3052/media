@@ -40,7 +40,7 @@ type Token struct {
    RefreshToken     string `json:"refresh_token"`
 }
 
-// AsError returns a standard Go error if the token response was an error, 
+// AsError returns a standard Go error if the token response was an error,
 // otherwise it returns nil.
 func (t *Token) AsError() error {
    if t.Error == "" {

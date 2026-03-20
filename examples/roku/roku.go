@@ -14,16 +14,15 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
-   // 2
+   //----------------------------------------------------------
    token := maya.BoolVar(new(bool), "t", "token")
-   // 3
+   //----------------------------------------------------------
    set_code := maya.BoolVar(new(bool), "s", "set code")
-   // 4
+   //----------------------------------------------------------
    roku_id := maya.StringVar(&c.roku_id, "r", "Roku ID")
    get_code := maya.BoolVar(&c.get_code, "g", "get code")
-   // 5
+   //----------------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    if set[widevine] {
@@ -124,11 +123,11 @@ type client struct {
    Dash       *roku.Dash
    Playback   *roku.Playback
    Token      *roku.Token
-   // 1
+   //--------------------
    Job maya.Job
-   // 4
-   roku_id string
+   //--------------------
+   roku_id  string
    get_code bool
-   // 5
+   //--------------------
    dash_id string
 }

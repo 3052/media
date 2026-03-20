@@ -308,6 +308,7 @@ type Ticket struct {
    Message string
    Ticket  string
 }
+
 func FetchTicket() (*Ticket, error) {
    data, err := json.Marshal(map[string]any{
       "deviceInfo": map[string]string{

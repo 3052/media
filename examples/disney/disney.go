@@ -14,23 +14,22 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
-   // 2
+   //--------------------------------------------------------------
    email := maya.StringVar(&c.Email, "e", "email")
-   // 3
+   //--------------------------------------------------------------
    passcode := maya.StringVar(&c.passcode, "p", "passcode")
-   // 4
+   //--------------------------------------------------------------
    profile := maya.StringVar(&c.profile, "P", "profile ID")
-   // 5
+   //--------------------------------------------------------------
    refresh := maya.BoolVar(new(bool), "r", "refresh")
-   // 6
+   //--------------------------------------------------------------
    address := maya.StringVar(&c.address, "a", "address")
-   // 7
+   //--------------------------------------------------------------
    season := maya.StringVar(&c.season, "s", "season ID")
-   // 8
+   //--------------------------------------------------------------
    media := maya.StringVar(&c.media, "m", "media ID")
-   // 9
+   //--------------------------------------------------------------
    hls_id := maya.IntVar(&c.hls_id, "h", "HLS ID")
    set := maya.Parse()
    switch {
@@ -82,21 +81,21 @@ func main() {
 type client struct {
    Hls   *disney.Hls
    Token *disney.Token
-   // 1
+   //-----------------
    Job maya.Job
-   // 2
+   //-----------------
    Email string
-   // 3
+   //-----------------
    passcode string
-   // 4
+   //-----------------
    profile string
-   // 6
+   //-----------------
    address string
-   // 7
+   //-----------------
    season string
-   // 8
+   //-----------------
    media string
-   // 9
+   //-----------------
    hls_id int
 }
 
