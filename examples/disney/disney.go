@@ -13,7 +13,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   read_err := cache.Read(c)
+   with_cache := cache.Read(c)
    // 1
    playReady := maya.StringVar(&c.Job.PlayReady, "PR", "PlayReady")
    // 2
@@ -34,40 +34,36 @@ func (c *client) do() error {
    hls_id := maya.IntVar(&c.hls_id, "h", "HLS ID")
    set := maya.Parse()
    switch {
-   case len(set) == 0:
-      return maya.Usage([][]*flag.Flag{
-         {playReady},
-         {email},
-         {passcode},
-         {profile},
-         {refresh},
-         {address},
-         {season},
-         {media},
-         {hls_id},
-      })
    case set[playReady]:
       return cache.Write(c)
    case set[email]:
       return c.do_email()
-   case read_err != nil:
-      return read_err
    case set[passcode]:
-      return c.do_passcode()
+      return with_cache(c.do_passcode)
    case set[profile]:
-      return c.do_profile_id()
+      return with_cache(c.do_profile_id)
    case set[refresh]:
-      return c.do_refresh()
+      return with_cache(c.do_refresh)
    case set[address]:
-      return c.do_address()
+      return with_cache(c.do_address)
    case set[season]:
-      return c.do_season_id()
+      return with_cache(c.do_season_id)
    case set[media]:
-      return c.do_media_id()
+      return with_cache(c.do_media_id)
    case set[hls_id]:
-      return c.do_hls_id()
+      return with_cache(c.do_hls_id)
    }
-   return nil
+   return maya.Usage([][]*flag.Flag{
+      {playReady},
+      {email},
+      {passcode},
+      {profile},
+      {refresh},
+      {address},
+      {season},
+      {media},
+      {hls_id},
+   })
 }
 
 func (c *client) do_hls_id() error {
