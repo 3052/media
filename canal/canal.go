@@ -16,6 +16,34 @@ import (
    "time"
 )
 
+func FetchSession(ssoToken string) (*Session, error) {
+   data, err := json.Marshal(map[string]string{
+      "brand":        "m7cp",
+      "deviceSerial": device_serial,
+      "deviceType":   "PC",
+      "ssoToken":     ssoToken,
+   })
+   if err != nil {
+      return nil, err
+   }
+   resp, err := http.Post(
+      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
+   )
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Session
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
+   }
+   return &result, nil
+}
+
 func (p *Player) Dash() (*Dash, error) {
    resp, err := http.Get(p.Url)
    if err != nil {
@@ -67,8 +95,8 @@ func get_client(url_data *url.URL, body []byte) (string, error) {
    return data.String(), nil
 }
 
-func FetchTracking(url_data string) (string, error) {
-   resp, err := http.Get(url_data)
+func FetchTracking(urlData string) (string, error) {
+   resp, err := http.Get(urlData)
    if err != nil {
       return "", err
    }
@@ -157,33 +185,6 @@ func (p *Player) Widevine(data []byte) ([]byte, error) {
    }
    defer resp.Body.Close()
    return io.ReadAll(resp.Body)
-}
-
-func (s *Session) Fetch(ssoToken string) error {
-   data, err := json.Marshal(map[string]string{
-      "brand":        "m7cp",
-      "deviceSerial": device_serial,
-      "deviceType":   "PC",
-      "ssoToken":     ssoToken,
-   })
-   if err != nil {
-      return err
-   }
-   resp, err := http.Post(
-      "https://tvapi-hlm2.solocoo.tv/v1/session", "", bytes.NewReader(data),
-   )
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Message != "" {
-      return errors.New(s.Message)
-   }
-   return nil
 }
 
 func (s *Session) Player(tracking string) (*Player, error) {
@@ -303,7 +304,11 @@ func (t *Ticket) Login(username, password string) (*Login, error) {
    return &result, nil
 }
 
-func (t *Ticket) Fetch() error {
+type Ticket struct {
+   Message string
+   Ticket  string
+}
+func FetchTicket() (*Ticket, error) {
    data, err := json.Marshal(map[string]any{
       "deviceInfo": map[string]string{
          "brand":        "m7cp", // sg.ui.sso.fatal.internal_error
@@ -315,35 +320,31 @@ func (t *Ticket) Fetch() error {
       },
    })
    if err != nil {
-      return err
+      return nil, err
    }
    req, err := http.NewRequest(
       "POST", "https://m7cplogin.solocoo.tv/login", bytes.NewReader(data),
    )
    if err != nil {
-      return err
+      return nil, err
    }
    client, err := get_client(req.URL, data)
    if err != nil {
-      return err
+      return nil, err
    }
    req.Header.Set("authorization", client)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(t)
+   var result Ticket
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
-      return err
+      return nil, err
    }
-   if t.Message != "" {
-      return errors.New(t.Message)
+   if result.Message != "" {
+      return nil, errors.New(result.Message)
    }
-   return nil
-}
-
-type Ticket struct {
-   Message string
-   Ticket  string
+   return &result, nil
 }
