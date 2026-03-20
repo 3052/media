@@ -12,7 +12,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   read_err := cache.Read(c)
+   with_cache := cache.Read(c)
    // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
@@ -24,23 +24,21 @@ func (c *client) do() error {
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
-   case len(set) == 0:
-      return maya.Usage([][]*flag.Flag{
-         {widevine},
-         {email, password},
-         {address},
-         {dash_id},
-      })
+   case set[widevine]:
+      return cache.Write(c)
    case set[email] && set[password]:
       return c.do_email_password()
-   case read_err != nil:
-      return read_err
    case set[address]:
-      return c.do_address()
+      return with_cache(c.do_address)
    case set[dash_id]:
-      return c.do_dash_id()
+      return with_cache(c.do_dash_id)
    }
-   return nil
+   return maya.Usage([][]*flag.Flag{
+      {widevine},
+      {email, password},
+      {address},
+      {dash_id},
+   })
 }
 
 func (c *client) do_email_password() error {

@@ -8,52 +8,57 @@ import (
 )
 
 func (c *client) do() error {
-   job.ClientId, _ = maya.ResolveCache("L3/client_id.bin")
-   job.PrivateKey, _ = maya.ResolveCache("L3/private_key.pem")
    err := cache.Setup("rosso/ctv.xml")
    if err != nil {
       return err
    }
+   with_cache := cache.Read(c)
    // 1
-   flag.StringVar(&c.proxy, "x", "", "proxy")
+   widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
-   flag.StringVar(&c.address, "a", "", "address")
+   address := maya.StringVar(&c.address, "a", "address")
    // 3
-   flag.StringVar(&c.dash_id, "d", "", "DASH ID")
-   flag.IntVar(&job.Threads, "t", 2, "threads")
-   flag.StringVar(&job.ClientId, "c", job.ClientId, "client ID")
-   flag.StringVar(&job.PrivateKey, "p", job.PrivateKey, "private key")
-   flag.Parse()
-   err = maya.SetProxy(c.proxy, "*.m4a,*.m4v")
-   if err != nil {
-      return err
-   }
-   if c.address != "" {
+   dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   set := maya.Parse()
+   switch {
+   case set[widevine]:
+      return cache.Write(c)
+   case set[address]:
       return c.do_address()
+   case set[dash_id]:
+      return with_cache(c.do_dash_id)
    }
-   if c.dash_id != "" {
-      return c.do_dash_id()
-   }
-   return maya.Usage([][]string{
-      {"x"},
-      {"a"},
-      {"d", "c", "p"},
+   return maya.Usage([][]*flag.Flag{
+      {widevine},
+      {address},
+      {dash_id},
    })
-}
-
-func (c *client) do_dash_id() error {
-   var dash ctv.Dash
-   err := cache.Read(&dash)
-   if err != nil {
-      return err
-   }
-   job.Send = ctv.Widevine
-   return job.DownloadDash(dash.Body, dash.Url, c.dash_id)
 }
 
 var cache maya.Cache
 
-var job maya.WidevineJob
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4a,*.m4v")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type client struct {
+   Dash *ctv.Dash
+   // 1
+   Job maya.Job
+   // 2
+   address string
+   // 3
+   dash_id string
+}
+
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, ctv.Widevine)
+}
 
 func (c *client) do_address() error {
    path, err := ctv.GetPath(c.address)
@@ -76,30 +81,13 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   dash, err := manifest.Dash()
+   c.Dash, err = manifest.Dash()
    if err != nil {
       return err
    }
-   err = cache.Write(dash)
+   err = cache.Write(c)
    if err != nil {
       return err
    }
-   return maya.ListDash(dash.Body, dash.Url)
-}
-
-type client struct {
-   // 1
-   proxy string
-   // 2
-   address string
-   // 3
-   dash_id string
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }

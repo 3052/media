@@ -8,49 +8,12 @@ import (
    "log"
 )
 
-func (c *client) do_dash_id() error {
-   stream, err := c.Content.Stream(
-      c.Episode, c.Language, rakuten.Widevine, rakuten.Hd,
-   )
-   if err != nil {
-      return err
-   }
-   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, stream.Widevine)
-}
-
-func main() {
-   log.SetFlags(log.Ltime)
-   // server checks location on all requests
-   maya.SetProxy("", "*.isma,*.ismv")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-var cache maya.Cache
-
-type client struct {
-   Content *rakuten.Content
-   Dash    *rakuten.Dash
-   // 1
-   Job maya.Job
-   // 2
-   address string
-   // 3
-   season string
-   // 4
-   Language string
-   Episode  string
-   // 5
-   dash_id string
-}
 func (c *client) do() error {
    err := cache.Setup("rosso/rakuten.xml")
    if err != nil {
       return err
    }
-   read_err := cache.Read(c)
+   with_cache := cache.Read(c)
    // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
@@ -64,26 +27,24 @@ func (c *client) do() error {
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
-   case len(set) == 0:
-      return maya.Usage([][]*flag.Flag{
-         {widevine},
-         {address},
-         {season},
-         {language, episode},
-         {dash_id},
-      })
+   case set[widevine]:
+      return cache.Write(c)
    case set[address]:
       return c.do_address()
-   case read_err != nil:
-      return read_err
    case set[season]:
-      return c.do_season()
+      return with_cache(c.do_season)
    case set[language]:
-      return c.do_language()
+      return with_cache(c.do_language)
    case set[dash_id]:
-      return c.do_dash_id()
+      return with_cache(c.do_dash_id)
    }
-   return nil
+   return maya.Usage([][]*flag.Flag{
+      {widevine},
+      {address},
+      {season},
+      {language, episode},
+      {dash_id},
+   })
 }
 func (c *client) do_address() error {
    var err error
@@ -138,4 +99,41 @@ func (c *client) do_language() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+func (c *client) do_dash_id() error {
+   stream, err := c.Content.Stream(
+      c.Episode, c.Language, rakuten.Widevine, rakuten.Hd,
+   )
+   if err != nil {
+      return err
+   }
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, stream.Widevine)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   // server checks location on all requests
+   maya.SetProxy("", "*.isma,*.ismv")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+var cache maya.Cache
+
+type client struct {
+   Content *rakuten.Content
+   Dash    *rakuten.Dash
+   // 1
+   Job maya.Job
+   // 2
+   address string
+   // 3
+   season string
+   // 4
+   Language string
+   Episode  string
+   // 5
+   dash_id string
 }
