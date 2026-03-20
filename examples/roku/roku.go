@@ -13,7 +13,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   read_err := cache.Read(c)
+   with_cache := cache.Read(c)
    // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    // 2
@@ -26,31 +26,31 @@ func (c *client) do() error {
    // 5
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
-   switch {
-   case len(set) == 0:
-      return maya.Usage([][]*flag.Flag{
-         {widevine},
-         {token},
-         {set_code},
-         {roku_id, get_code},
-         {dash_id},
-      })
-   case set[widevine]:
+   if set[widevine] {
       return cache.Write(c)
-   case set[token]:
-      return c.do_token()
-   case set[roku_id] && !set[get_code]:
-      return c.do_roku_id()
-   case read_err != nil:
-      return read_err
-   case set[set_code]:
-      return c.do_set_code()
-   case set[roku_id]:
-      return c.do_roku_id()
-   case set[dash_id]:
-      return c.do_dash_id()
    }
-   return nil
+   if set[token] {
+      return c.do_token()
+   }
+   if set[set_code] {
+      return with_cache(c.do_set_code)
+   }
+   if set[roku_id] {
+      if set[get_code] {
+         return with_cache(c.do_roku_id)
+      }
+      return c.do_roku_id()
+   }
+   if set[dash_id] {
+      return with_cache(c.do_dash_id)
+   }
+   return maya.Usage([][]*flag.Flag{
+      {widevine},
+      {token},
+      {set_code},
+      {roku_id, get_code},
+      {dash_id},
+   })
 }
 
 func (c *client) do_dash_id() error {

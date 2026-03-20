@@ -14,7 +14,7 @@ func (c *client) do() error {
    if err != nil {
       return err
    }
-   read_err := cache.Read(c)
+   with_cache := cache.Read(c)
    // 1
    playReady := maya.StringVar(&c.Job.PlayReady, "p", "PlayReady")
    // 2
@@ -32,31 +32,27 @@ func (c *client) do() error {
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
-   case len(set) == 0:
-      return maya.Usage([][]*flag.Flag{
-         {playReady},
-         {initiate, market},
-         {login},
-         {address, season},
-         {edit},
-         {dash_id},
-      })
    case set[playReady]:
       return cache.Write(c)
    case set[initiate]:
       return c.do_initiate()
-   case read_err != nil:
-      return read_err
    case set[login]:
-      return c.do_login()
+      return with_cache(c.do_login)
    case set[address]:
-      return c.do_address()
+      return with_cache(c.do_address)
    case set[edit]:
-      return c.do_edit_id()
+      return with_cache(c.do_edit)
    case set[dash_id]:
-      return c.do_dash_id()
+      return with_cache(c.do_dash_id)
    }
-   return nil
+   return maya.Usage([][]*flag.Flag{
+      {playReady},
+      {initiate, market},
+      {login},
+      {address, season},
+      {edit},
+      {dash_id},
+   })
 }
 
 func (c *client) do_dash_id() error {
@@ -79,7 +75,7 @@ func (c *client) do_initiate() error {
    return cache.Write(c)
 }
 
-func (c *client) do_edit_id() error {
+func (c *client) do_edit() error {
    var err error
    c.Playback, err = c.Login.PlayReady(c.edit)
    if err != nil {
