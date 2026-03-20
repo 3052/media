@@ -8,6 +8,19 @@ import (
    "net/http"
 )
 
+func (c *client) do_paramount() error {
+   var err error
+   c.Dash, err = paramount.FetchDash(c.paramount_id)
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
 func (c *client) do() error {
    err := cache.Setup("rosso/paramount.xml")
    if err != nil {
@@ -108,28 +121,4 @@ func (c *client) do_username_password() error {
       return err
    }
    return cache.Write(c)
-}
-
-func (c *client) do_paramount() error {
-   app_secret, err := paramount.FetchAppSecret()
-   if err != nil {
-      return err
-   }
-   at, err := paramount.GetAt(app_secret)
-   if err != nil {
-      return err
-   }
-   item, err := paramount.FetchItem(at, c.paramount_id)
-   if err != nil {
-      return err
-   }
-   c.Dash, err = item.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
