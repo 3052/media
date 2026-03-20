@@ -11,71 +11,61 @@ import (
    "strings"
 )
 
-func (a *Asset) Dash() (*Dash, error) {
-   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
+type MediaId struct {
+   Program int
+   Channel int
 }
 
-// Parse extracts the IDs from a Molotov URL and populates the MediaId struct.
-// It maps the first number in the URL to Program and the second to Channel.
-func (m *MediaId) Parse(urlData string) error {
-   // 1. Cut the string to get everything after "/p/"
+func ParseMediaId(urlData string) (*MediaId, error) {
    _, remainder, found := strings.Cut(urlData, "/p/")
    if !found {
-      return errors.New("url does not contain the /p/ marker")
+      return nil, errors.New("url does not contain the /p/ marker")
    }
-   // 2. Cut the remainder at the next slash to remove any trailing text (e.g., title)
-   // If no slash exists, strings.Cut returns the whole string as 'idsStr', which is what we want.
-   idsStr, _, _ := strings.Cut(remainder, "/")
-   // 3. Cut the string at the hyphen to separate the two numbers
-   progStr, chanStr, found := strings.Cut(idsStr, "-")
+   ids, _, _ := strings.Cut(remainder, "/")
+   program, channel, found := strings.Cut(ids, "-")
    if !found {
-      return errors.New("invalid format: hyphen not found between IDs")
+      return nil, errors.New("invalid format: hyphen not found between IDs")
    }
-   // 4. Convert and assign to the struct fields
+   m := &MediaId{}
    var err error
-   m.Program, err = strconv.Atoi(progStr)
-   if err != nil {
-      return errors.New("program ID is not a valid integer")
+   // Assign directly to the struct fields
+   if m.Program, err = strconv.Atoi(program); err != nil {
+      return nil, errors.New("program ID is not a valid integer")
    }
-   m.Channel, err = strconv.Atoi(chanStr)
-   if err != nil {
-      return errors.New("channel ID is not a valid integer")
+   if m.Channel, err = strconv.Atoi(channel); err != nil {
+      return nil, errors.New("channel ID is not a valid integer")
    }
-   return nil
+   return m, nil
 }
 
-func (l *Login) Fetch(email, password string) error {
+func FetchLogin(email, password string) (*Login, error) {
    data, err := json.Marshal(map[string]string{
       "grant_type": "password",
       "email":      email,
       "password":   password,
    })
    if err != nil {
-      return err
+      return nil, err
    }
    req, err := http.NewRequest(
       "POST", "https://fapi.molotov.tv/v3.1/auth/login",
       bytes.NewReader(data),
    )
    if err != nil {
-      return err
+      return nil, err
    }
    req.Header.Set("x-molotov-agent", customer_area)
    resp, err := http.DefaultClient.Do(req)
    if err != nil {
-      return err
+      return nil, err
    }
    defer resp.Body.Close()
-   return json.NewDecoder(resp.Body).Decode(l)
+   result := &Login{}
+   err = json.NewDecoder(resp.Body).Decode(result)
+   if err != nil {
+      return nil, err
+   }
+   return result, nil
 }
 
 func (l *Login) ProgramView(rosso *MediaId) (*ProgramView, error) {
@@ -209,11 +199,6 @@ const (
    customer_area = `{ "app_build": 1, "app_id": "customer_area" }`
 )
 
-type MediaId struct {
-   Program int
-   Channel int
-}
-
 type Dash struct {
    Body []byte
    Url  *url.URL
@@ -242,3 +227,16 @@ func (l *Login) Refresh() error {
 func join(items ...string) string {
    return strings.Join(items, "")
 }
+func (a *Asset) Dash() (*Dash, error) {
+   resp, err := http.Get(strings.Replace(a.Stream.Url, "high", "fhdready", 1))
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
