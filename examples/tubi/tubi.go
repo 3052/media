@@ -13,11 +13,10 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
-   // 2
+   //----------------------------------------------------------
    tubi_id := maya.IntVar(&c.tubi_id, "t", "Tubi ID")
-   // 3
+   //------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
@@ -55,11 +54,11 @@ func (c *client) do_dash_id() error {
 type client struct {
    Dash          *tubi.Dash
    VideoResource *tubi.VideoResource
-   // 1
+   //-------------------------------
    Job maya.Job
-   // 2
+   //-------------------------------
    tubi_id int
-   // 3
+   //-------------------------------
    dash_id string
 }
 
