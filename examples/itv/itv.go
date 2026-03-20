@@ -14,13 +14,12 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
-   // 2
+   //----------------------------------------------------------
    address := maya.StringVar(&c.address, "a", "address")
-   // 3
+   //----------------------------------------------------------
    playlist := maya.StringVar(&c.playlist, "p", "playlist URL")
-   // 4
+   //----------------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
@@ -96,12 +95,12 @@ func (c *client) do_playlist() error {
 type client struct {
    Dash      *itv.Dash
    MediaFile *itv.MediaFile
-   // 1
+   //----------------------
    Job maya.Job
-   // 2
+   //----------------------
    address string
-   // 3
+   //----------------------
    playlist string
-   // 4
+   //----------------------
    dash_id string
 }

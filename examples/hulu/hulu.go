@@ -78,14 +78,14 @@ type client struct {
    Dash     *hulu.Dash
    Playlist *hulu.Playlist
    Session  *hulu.Session
-   // 1
+   //--------------------
    Job maya.Job
-   // 2
+   //--------------------
    email    string
    password string
-   // 3
+   //--------------------
    address string
-   // 4
+   //--------------------
    dash_id string
 }
 

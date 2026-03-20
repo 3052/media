@@ -15,20 +15,19 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    playReady := maya.StringVar(&c.Job.PlayReady, "p", "PlayReady")
-   // 2
+   //-------------------------------------------------------------
    initiate := maya.BoolVar(new(bool), "i", "initiate")
    c.market = hboMax.Markets[0]
    market := maya.StringVar(&c.market, "m", fmt.Sprint(hboMax.Markets))
-   // 3
+   //-------------------------------------------------------------
    login := maya.BoolVar(new(bool), "l", "login")
-   // 4
+   //-------------------------------------------------------------
    address := maya.StringVar(&c.address, "a", "address")
    season := maya.IntVar(&c.season, "s", "season")
-   // 5
+   //-------------------------------------------------------------
    edit := maya.StringVar(&c.edit, "e", "edit ID")
-   // 6
+   //-------------------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
@@ -108,16 +107,16 @@ type client struct {
    Login    *hboMax.Login
    Playback *hboMax.Playback
    St       *http.Cookie
-   // 1
+   //-------------------
    Job maya.Job
-   // 2
+   //-------------------
    market string
-   // 4
+   //-------------------
    address string
    season  int
-   // 5
+   //-------------------
    edit string
-   // 6
+   //-------------------
    dash_id string
 }
 

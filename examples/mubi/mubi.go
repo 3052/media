@@ -14,15 +14,14 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
-   // 2
+   //----------------------------------------------------------
    code := maya.BoolVar(new(bool), "c", "link code")
-   // 3
+   //----------------------------------------------------------
    session := maya.BoolVar(new(bool), "s", "session")
-   // 4
+   //----------------------------------------------------------
    address := maya.StringVar(&c.address, "a", "address")
-   // 5
+   //----------------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
    switch {
@@ -114,10 +113,10 @@ type client struct {
    Dash     *mubi.Dash
    LinkCode *mubi.LinkCode
    Session  *mubi.Session
-   // 1
+   //--------------------
    Job maya.Job
-   // 4
+   //--------------------
    address string
-   // 5
+   //--------------------
    dash_id string
 }
