@@ -30,20 +30,27 @@ func (c *client) do() error {
    // 7
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
-   switch {
-   case set[widevine]:
+   if set[widevine] {
       return cache.Write(c)
-   case set[email] && set[password]:
-      return c.do_email_password()
-   case set[refresh]:
+   }
+   if set[email] {
+      if set[password] {
+         return c.do_email_password()
+      }
+   }
+   if set[refresh] {
       return with_cache(c.do_refresh)
-   case set[series]:
+   }
+   if set[series] {
       return with_cache(c.do_series)
-   case set[season]:
+   }
+   if set[season] {
       return with_cache(c.do_season)
-   case set[episode]:
+   }
+   if set[episode] {
       return with_cache(c.do_episode)
-   case set[dash_id]:
+   }
+   if set[dash_id] {
       return with_cache(c.do_dash_id)
    }
    return maya.Usage([][]*flag.Flag{

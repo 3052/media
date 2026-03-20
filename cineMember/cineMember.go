@@ -10,6 +10,36 @@ import (
    "strings"
 )
 
+// must run login first
+func FetchStream(session *http.Cookie, id int) (*Stream, error) {
+   var req http.Request
+   req.URL = &url.URL{
+      Scheme:   "https",
+      Host:     "www.cinemember.nl",
+      Path:     "/elements/films/stream.php",
+      RawQuery: "id=" + strconv.Itoa(id),
+   }
+   req.Header = http.Header{}
+   req.AddCookie(session)
+   resp, err := http.DefaultClient.Do(&req)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   var result Stream
+   err = json.NewDecoder(resp.Body).Decode(&result)
+   if err != nil {
+      return nil, err
+   }
+   if result.Error != "" {
+      return nil, errors.New(result.Error)
+   }
+   if result.NoAccess {
+      return nil, errors.New("no access")
+   }
+   return &result, nil
+}
+
 func (m *MediaLink) Dash() (*Dash, error) {
    resp, err := http.Get(m.Url)
    if err != nil {
@@ -115,35 +145,6 @@ type Dash struct {
 type MediaLink struct {
    MimeType string
    Url      string
-}
-
-// must run login first
-func (s *Stream) Fetch(session *http.Cookie, id int) error {
-   var req http.Request
-   req.URL = &url.URL{
-      Scheme:   "https",
-      Host:     "www.cinemember.nl",
-      Path:     "/elements/films/stream.php",
-      RawQuery: "id=" + strconv.Itoa(id),
-   }
-   req.Header = http.Header{}
-   req.AddCookie(session)
-   resp, err := http.DefaultClient.Do(&req)
-   if err != nil {
-      return err
-   }
-   defer resp.Body.Close()
-   err = json.NewDecoder(resp.Body).Decode(s)
-   if err != nil {
-      return err
-   }
-   if s.Error != "" {
-      return errors.New(s.Error)
-   }
-   if s.NoAccess {
-      return errors.New("no access")
-   }
-   return nil
 }
 
 type Stream struct {
