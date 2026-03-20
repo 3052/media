@@ -15,24 +15,27 @@ func (c *client) do() error {
       return err
    }
    with_cache := cache.Read(c)
-   // 1
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
-   // 2
+   //----------------------------------------------------------
    email := maya.StringVar(&c.email, "e", "email")
    password := maya.StringVar(&c.password, "p", "password")
-   // 3
+   //------------------------------------------------------
    address := maya.StringVar(&c.address, "a", "address")
-   // 4
+   //---------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
-   switch {
-   case set[widevine]:
+   if set[widevine] {
       return cache.Write(c)
-   case set[email] && set[password]:
-      return c.do_email_password()
-   case set[address]:
+   }
+   if set[email] {
+      if set[password] {
+         return c.do_email_password()
+      }
+   }
+   if set[address] {
       return with_cache(c.do_address)
-   case set[dash_id]:
+   }
+   if set[dash_id] {
       return with_cache(c.do_dash_id)
    }
    return maya.Usage([][]*flag.Flag{
