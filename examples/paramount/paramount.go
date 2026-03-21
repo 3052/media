@@ -59,8 +59,8 @@ func main() {
 
 type client struct {
    AppSecret string
-   Cookie *http.Cookie
-   Dash   *paramount.Dash
+   Cookie    *http.Cookie
+   Dash      *paramount.Dash
    //--------------------
    Job maya.Job
    //--------------------
@@ -133,7 +133,7 @@ func (c *client) do() error {
       {playReady},
       {app_secret},
       {username, password},
-      
+
       {paramount_id, get_cookie},
       {dash_id, get_cookie},
    })
