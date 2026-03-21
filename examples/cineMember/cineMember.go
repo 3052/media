@@ -44,7 +44,7 @@ func (c *client) do_address() error {
    if err != nil {
       return err
    }
-   stream, err := cineMember.FetchStream(c.Cookie, id)
+   stream, err := cineMember.FetchStream(c.Session, id)
    if err != nil {
       return err
    }
@@ -80,11 +80,11 @@ var cache maya.Cache
 
 func (c *client) do_email_password() error {
    var err error
-   c.Cookie, err = cineMember.FetchSession()
+   c.Session, err = cineMember.FetchSession()
    if err != nil {
       return err
    }
-   err = cineMember.FetchLogin(c.Cookie, c.email, c.password)
+   err = cineMember.FetchLogin(c.Session, c.email, c.password)
    if err != nil {
       return err
    }
@@ -92,8 +92,8 @@ func (c *client) do_email_password() error {
 }
 
 type client struct {
-   Cookie *http.Cookie
    Dash   *cineMember.Dash
+   Session *http.Cookie
    //---------------------
    Job maya.Job
    //-------------

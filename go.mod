@@ -2,11 +2,11 @@ module 41.neocities.org/rosso
 
 go 1.26.0
 
-require 41.neocities.org/maya v1.29.4
+require 41.neocities.org/maya v1.29.5
 
 require (
 	41.neocities.org/drm v1.9.0 // indirect
-	41.neocities.org/luna v1.33.6 // indirect
+	41.neocities.org/luna v1.33.7 // indirect
 	41.neocities.org/protobuf v1.6.0 // indirect
 	41.neocities.org/sofia v1.13.8 // indirect
 	filippo.io/nistec v0.0.4 // indirect
