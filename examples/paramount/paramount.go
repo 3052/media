@@ -8,6 +8,29 @@ import (
    "net/http"
 )
 
+func (c *client) do_paramount() error {
+   at, err := paramount.GetAt(c.AppSecret)
+   if err != nil {
+      return err
+   }
+   if !c.get_cookie {
+      c.Cookie = nil
+   }
+   item, err := paramount.FetchItem(at, c.ParamountId, c.Cookie)
+   if err != nil {
+      return err
+   }
+   c.Dash, err = item.Dash()
+   if err != nil {
+      return err
+   }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
 func (c *client) do_dash_id() error {
    at, err := paramount.GetAt(c.AppSecret)
    if err != nil {
@@ -69,29 +92,6 @@ func (c *client) do_username_password() error {
       return err
    }
    return cache.Write(c)
-}
-
-func (c *client) do_paramount() error {
-   at, err := paramount.GetAt(c.AppSecret)
-   if err != nil {
-      return err
-   }
-   if !c.get_cookie {
-      c.Cookie = nil
-   }
-   video, err := paramount.FetchVideo(at, c.ParamountId, c.Cookie)
-   if err != nil {
-      return err
-   }
-   c.Dash, err = video.Dash()
-   if err != nil {
-      return err
-   }
-   err = cache.Write(c)
-   if err != nil {
-      return err
-   }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
 func (c *client) do() error {

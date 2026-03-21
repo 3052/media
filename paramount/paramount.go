@@ -9,6 +9,7 @@ import (
    "encoding/hex"
    "encoding/json"
    "errors"
+   "fmt"
    "io"
    "net/http"
    "net/url"
@@ -16,7 +17,7 @@ import (
    "strings"
 )
 
-func FetchVideo(at, cid string, cbsCom *http.Cookie) (*Video, error) {
+func FetchItem(at, cid string, cbsCom *http.Cookie) (*Item, error) {
    var req http.Request
    req.Header = http.Header{}
    req.URL = &url.URL{
@@ -36,36 +37,26 @@ func FetchVideo(at, cid string, cbsCom *http.Cookie) (*Video, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, errors.New(resp.Status)
    }
-   result := &Video{}
-   err = json.NewDecoder(resp.Body).Decode(result)
+   var result struct {
+      ItemList []Item
+   }
+   err = json.NewDecoder(resp.Body).Decode(&result)
    if err != nil {
       return nil, err
    }
-   return result, nil
+   item := result.ItemList[0]
+   if item.StreamingUrl == "" {
+      return nil, fmt.Errorf(
+         "subscription level = %v\nCBS_COM = %v",
+         item.SubscriptionLevel, cbsCom,
+      )
+   }
+   return &item, nil
 }
 
-type Video struct {
-   ItemList []struct {
-      StreamingUrl string
-   }
-}
-
-type Dash struct {
-   Body []byte
-   Url  *url.URL
-}
-
-func (v *Video) Dash() (*Dash, error) {
-   resp, err := http.Get(v.ItemList[0].StreamingUrl)
-   if err != nil {
-      return nil, err
-   }
-   defer resp.Body.Close()
-   body, err := io.ReadAll(resp.Body)
-   if err != nil {
-      return nil, err
-   }
-   return &Dash{Body: body, Url: resp.Request.URL}, nil
+type Item struct {
+   StreamingUrl string
+   SubscriptionLevel string
 }
 
 // 1080p SL2000
@@ -285,3 +276,22 @@ var AppSecrets = []struct {
       International: "6c68178445de8138",
    },
 }
+
+type Dash struct {
+   Body []byte
+   Url  *url.URL
+}
+
+func (i *Item) Dash() (*Dash, error) {
+   resp, err := http.Get(i.StreamingUrl)
+   if err != nil {
+      return nil, err
+   }
+   defer resp.Body.Close()
+   body, err := io.ReadAll(resp.Body)
+   if err != nil {
+      return nil, err
+   }
+   return &Dash{Body: body, Url: resp.Request.URL}, nil
+}
+
