@@ -8,17 +8,31 @@ import (
    "net/http"
 )
 
-func (c *client) do_paramount() error {
-   var err error
-   c.Dash, err = paramount.FetchDash(c.paramount_id)
+var cache maya.Cache
+
+func (c *client) do_username_password() error {
+   app_secret, err := paramount.FetchAppSecret()
    if err != nil {
       return err
    }
-   err = cache.Write(c)
+   at, err := paramount.GetAt(app_secret)
    if err != nil {
       return err
    }
-   return maya.ListDash(c.Dash.Body, c.Dash.Url)
+   c.Cookie, err = paramount.Login(at, c.username, c.password)
+   if err != nil {
+      return err
+   }
+   return cache.Write(c)
+}
+
+func main() {
+   log.SetFlags(log.Ltime)
+   maya.SetProxy("", "*.m4s,*.mp4")
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
 }
 
 func (c *client) do() error {
@@ -32,7 +46,7 @@ func (c *client) do() error {
    username := maya.StringVar(&c.username, "U", "username")
    password := maya.StringVar(&c.password, "P", "password")
    //--------------------------------------------------------------
-   paramount_id := maya.StringVar(&c.paramount_id, "p", "paramount ID")
+   paramount_id := maya.StringVar(&c.ParamountId, "p", "paramount ID")
    //--------------------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    get_cookie := maya.BoolVar(&c.get_cookie, "c", "get cookie")
@@ -62,13 +76,17 @@ func (c *client) do() error {
    })
 }
 
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.m4s,*.mp4")
-   err := new(client).do()
+func (c *client) do_paramount() error {
+   var err error
+   c.Dash, err = paramount.FetchDash(c.ParamountId)
    if err != nil {
-      log.Fatal(err)
+      return err
    }
+   err = cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return maya.ListDash(c.Dash.Body, c.Dash.Url)
 }
 
 type client struct {
@@ -80,7 +98,7 @@ type client struct {
    username string
    password string
    //--------------------
-   paramount_id string
+   ParamountId string
    //--------------------
    dash_id    string
    get_cookie bool
@@ -98,27 +116,9 @@ func (c *client) do_dash_id() error {
    if !c.get_cookie {
       c.Cookie = nil
    }
-   token, err := paramount.PlayReady(at, c.paramount_id, c.Cookie)
+   token, err := paramount.PlayReady(at, c.ParamountId, c.Cookie)
    if err != nil {
       return err
    }
    return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, token.Send)
-}
-
-var cache maya.Cache
-
-func (c *client) do_username_password() error {
-   app_secret, err := paramount.FetchAppSecret()
-   if err != nil {
-      return err
-   }
-   at, err := paramount.GetAt(app_secret)
-   if err != nil {
-      return err
-   }
-   c.Cookie, err = paramount.Login(at, c.username, c.password)
-   if err != nil {
-      return err
-   }
-   return cache.Write(c)
 }
