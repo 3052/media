@@ -7,6 +7,16 @@ import (
    "log"
 )
 
+func (c *client) do_dash_id() error {
+   err := cache.Write(c)
+   if err != nil {
+      return err
+   }
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
+   )
+}
+
 func (c *client) do() error {
    err := cache.Setup("rosso/hulu.xml")
    if err != nil {
@@ -21,6 +31,7 @@ func (c *client) do() error {
    address := maya.StringVar(&c.address, "a", "address")
    //---------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
+   threads := maya.IntVar(&c.Job.Threads, "t", "threads")
    set := maya.Parse()
    if set[playReady] {
       return cache.Write(c)
@@ -40,14 +51,8 @@ func (c *client) do() error {
       {playReady},
       {email, password},
       {address},
-      {dash_id},
+      {dash_id, threads},
    })
-}
-
-func (c *client) do_dash_id() error {
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.Playlist.PlayReady,
-   )
 }
 
 func (c *client) do_address() error {
