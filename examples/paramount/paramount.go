@@ -8,15 +8,32 @@ import (
    "net/http"
 )
 
+func (c *client) do_dash_id() error {
+   at, err := paramount.GetAt(c.AppSecret)
+   if err != nil {
+      return err
+   }
+   var cookie *http.Cookie
+   if c.get_cookie {
+      cookie = c.Cookie
+   }
+   token, err := paramount.PlayReady(at, c.ParamountId, cookie)
+   if err != nil {
+      return err
+   }
+   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, token.Send)
+}
+
 func (c *client) do_paramount() error {
    at, err := paramount.GetAt(c.AppSecret)
    if err != nil {
       return err
    }
-   if !c.get_cookie {
-      c.Cookie = nil
+   var cookie *http.Cookie
+   if c.get_cookie {
+      cookie = c.Cookie
    }
-   item, err := paramount.FetchItem(at, c.ParamountId, c.Cookie)
+   item, err := paramount.FetchItem(at, c.ParamountId, cookie)
    if err != nil {
       return err
    }
@@ -29,21 +46,6 @@ func (c *client) do_paramount() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
-}
-
-func (c *client) do_dash_id() error {
-   at, err := paramount.GetAt(c.AppSecret)
-   if err != nil {
-      return err
-   }
-   if !c.get_cookie {
-      c.Cookie = nil
-   }
-   token, err := paramount.PlayReady(at, c.ParamountId, c.Cookie)
-   if err != nil {
-      return err
-   }
-   return c.Job.DownloadDash(c.Dash.Body, c.Dash.Url, c.dash_id, token.Send)
 }
 
 var cache maya.Cache
@@ -133,7 +135,6 @@ func (c *client) do() error {
       {playReady},
       {app_secret},
       {username, password},
-
       {paramount_id, get_cookie},
       {dash_id, get_cookie},
    })

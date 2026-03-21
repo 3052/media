@@ -17,25 +17,6 @@ import (
    "strings"
 )
 
-const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
-
-var AppSecrets = []struct {
-   Version       string
-   Us            string
-   International string
-}{
-   {
-      Version:       "16.4.1",
-      Us:            "7cd07f93a6e44cf7",
-      International: "68b4475a49bed95a",
-   },
-   {
-      Version:       "16.0.0",
-      Us:            "9fc14cb03691c342",
-      International: "6c68178445de8138",
-   },
-}
-
 func GetAt(appSecret string) (string, error) {
    // 1. Decode hex secret key
    key, err := hex.DecodeString(secret_key)
@@ -60,7 +41,7 @@ func GetAt(appSecret string) (string, error) {
    // 8. Create Header for block size (uint16)
    size := binary.BigEndian.AppendUint16(nil, aes.BlockSize)
    // 7 & 8. Combine [Size] + [IV] + [Encrypted Data]
-   data = slices.Concat(size[:], iv[:], data)
+   data = slices.Concat(size, iv[:], data)
    // 9. Return result base64 encoded
    return base64.StdEncoding.EncodeToString(data), nil
 }
@@ -293,4 +274,22 @@ func (s *SessionToken) Send(data []byte) ([]byte, error) {
       return nil, errors.New(string(data))
    }
    return data, nil
+}
+const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
+
+var AppSecrets = []struct {
+   Version       string
+   Us            string
+   International string
+}{
+   {
+      Version:       "16.4.1",
+      Us:            "7cd07f93a6e44cf7",
+      International: "68b4475a49bed95a",
+   },
+   {
+      Version:       "16.0.0",
+      Us:            "9fc14cb03691c342",
+      International: "6c68178445de8138",
+   },
 }
