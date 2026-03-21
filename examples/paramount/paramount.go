@@ -13,11 +13,11 @@ func (c *client) do_dash_id() error {
    if err != nil {
       return err
    }
-   var cookie *http.Cookie
+   var cbs_com *http.Cookie
    if c.get_cookie {
-      cookie = c.Cookie
+      cbs_com = c.CbsCom
    }
-   token, err := paramount.PlayReady(at, c.ParamountId, cookie)
+   token, err := paramount.PlayReady(at, c.ParamountId, cbs_com)
    if err != nil {
       return err
    }
@@ -29,11 +29,11 @@ func (c *client) do_paramount() error {
    if err != nil {
       return err
    }
-   var cookie *http.Cookie
+   var cbs_com *http.Cookie
    if c.get_cookie {
-      cookie = c.Cookie
+      cbs_com = c.CbsCom
    }
-   item, err := paramount.FetchItem(at, c.ParamountId, cookie)
+   item, err := paramount.FetchItem(at, c.ParamountId, cbs_com)
    if err != nil {
       return err
    }
@@ -61,7 +61,7 @@ func main() {
 
 type client struct {
    AppSecret string
-   Cookie    *http.Cookie
+   CbsCom    *http.Cookie
    Dash      *paramount.Dash
    //--------------------
    Job maya.Job
@@ -89,7 +89,7 @@ func (c *client) do_username_password() error {
    if err != nil {
       return err
    }
-   c.Cookie, err = paramount.Login(at, c.username, c.password)
+   c.CbsCom, err = paramount.Login(at, c.username, c.password)
    if err != nil {
       return err
    }

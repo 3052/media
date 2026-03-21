@@ -15,12 +15,20 @@ func (c *client) do() error {
    with_cache := cache.Read(c)
    widevine := maya.StringVar(&c.Job.Widevine, "w", "Widevine")
    //----------------------------------------------------------
+   proxy := maya.StringVar(&c.Proxy, "x", "proxy")
+   //----------------------------------------------------------
    tubi_id := maya.IntVar(&c.tubi_id, "t", "Tubi ID")
    //------------------------------------------------
    dash_id := maya.StringVar(&c.dash_id, "d", "DASH ID")
    set := maya.Parse()
+   err = maya.SetProxy(c.Proxy, "*.mp4")
+   if err != nil {
+      return err
+   }
    switch {
    case set[widevine]:
+      return cache.Write(c)
+   case set[proxy]:
       return cache.Write(c)
    case set[tubi_id]:
       return c.do_tubi()
@@ -29,37 +37,10 @@ func (c *client) do() error {
    }
    return maya.Usage([][]*flag.Flag{
       {widevine},
+      {proxy},
       {tubi_id},
       {dash_id},
    })
-}
-
-var cache maya.Cache
-
-func main() {
-   log.SetFlags(log.Ltime)
-   maya.SetProxy("", "*.mp4")
-   err := new(client).do()
-   if err != nil {
-      log.Fatal(err)
-   }
-}
-
-func (c *client) do_dash_id() error {
-   return c.Job.DownloadDash(
-      c.Dash.Body, c.Dash.Url, c.dash_id, c.VideoResource.Widevine,
-   )
-}
-
-type client struct {
-   Dash          *tubi.Dash
-   VideoResource *tubi.VideoResource
-   //-------------------------------
-   Job maya.Job
-   //-------------------------------
-   tubi_id int
-   //-------------------------------
-   dash_id string
 }
 
 func (c *client) do_tubi() error {
@@ -77,4 +58,33 @@ func (c *client) do_tubi() error {
       return err
    }
    return maya.ListDash(c.Dash.Body, c.Dash.Url)
+}
+
+func (c *client) do_dash_id() error {
+   return c.Job.DownloadDash(
+      c.Dash.Body, c.Dash.Url, c.dash_id, c.VideoResource.Widevine,
+   )
+}
+
+var cache maya.Cache
+
+func main() {
+   log.SetFlags(log.Ltime)
+   err := new(client).do()
+   if err != nil {
+      log.Fatal(err)
+   }
+}
+
+type client struct {
+   Dash          *tubi.Dash
+   VideoResource *tubi.VideoResource
+   //-------------------------------
+   Job maya.Job
+   //-------------------------------
+   Proxy string
+   //-------------------------------
+   tubi_id int
+   //-------------------------------
+   dash_id string
 }

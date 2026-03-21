@@ -275,6 +275,7 @@ func (s *SessionToken) Send(data []byte) ([]byte, error) {
    }
    return data, nil
 }
+
 const secret_key = "302a6a0d70a7e9b967f91d39fef3e387816e3095925ae4537bce96063311f9c5"
 
 var AppSecrets = []struct {

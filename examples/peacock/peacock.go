@@ -53,7 +53,7 @@ func (c *client) do_dash_id() error {
 }
 
 func (c *client) do_address() error {
-   token, err := peacock.FetchToken(c.Cookie)
+   token, err := peacock.FetchToken(c.IdSession)
    if err != nil {
       return err
    }
@@ -78,7 +78,7 @@ func (c *client) do_address() error {
 
 func (c *client) do_email_password() error {
    var err error
-   c.Cookie, err = peacock.FetchIdSession(c.email, c.password)
+   c.IdSession, err = peacock.FetchIdSession(c.email, c.password)
    if err != nil {
       return err
    }
@@ -97,9 +97,9 @@ func main() {
 }
 
 type client struct {
-   Cookie  *http.Cookie
-   Dash    *peacock.Dash
-   Playout *peacock.Playout
+   Dash      *peacock.Dash
+   IdSession *http.Cookie
+   Playout   *peacock.Playout
    //----------------------
    Job maya.Job
    //----------------------

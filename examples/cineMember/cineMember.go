@@ -92,7 +92,7 @@ func (c *client) do_email_password() error {
 }
 
 type client struct {
-   Dash   *cineMember.Dash
+   Dash    *cineMember.Dash
    Session *http.Cookie
    //---------------------
    Job maya.Job

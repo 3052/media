@@ -100,6 +100,7 @@ type Stream struct {
    Links    []MediaLink
    NoAccess bool
 }
+
 // must run login first
 func FetchStream(session *http.Cookie, id int) (*Stream, error) {
    var req http.Request
