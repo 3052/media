@@ -26,7 +26,6 @@ type client struct {
    profile   maya.FlagString
    refresh   maya.FlagBool
    season    maya.FlagString
-   threads   maya.FlagInt
 
    cache maya.Cache
 }
@@ -52,7 +51,6 @@ func (c *client) do() error {
       {Name: "season-id", Value: &c.season},
       {Name: "media-id", Value: &c.media},
       {Name: "hls-id", Value: &c.hls},
-      {Name: "threads", Value: &c.threads, Needs: "hls-id"},
    }
    if err := flags.Parse(os.Args[1:]); err != nil {
       return err
@@ -130,7 +128,6 @@ func (c *client) do_hls() error {
       Device:  string(c.PlayReady),
       Drm:     maya.DrmPlayReady,
       License: token.FetchPlayReady,
-      Threads: int(c.threads),
    })
 }
 

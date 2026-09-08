@@ -43,7 +43,6 @@ type client struct {
    refresh   maya.FlagBool
    season    maya.FlagInt
    subtitles maya.FlagBool
-   threads   maya.FlagInt
    tracking  maya.FlagString
 
    cache maya.Cache
@@ -70,7 +69,6 @@ func (c *client) do() error {
       {Name: "season", Value: &c.season, Needs: "tracking"},
       {Name: "subtitles", Value: &c.subtitles},
       {Name: "dash-id", Value: &c.dash_id},
-      {Name: "threads", Value: &c.threads, Needs: "dash-id"},
    }
    if err := flags.Parse(os.Args[1:]); err != nil {
       return err
@@ -117,7 +115,6 @@ func (c *client) do_dash_id() error {
       Device:  string(c.Widevine),
       Drm:     maya.DrmWidevine,
       License: player.FetchWidevine,
-      Threads: int(c.threads),
    })
 }
 

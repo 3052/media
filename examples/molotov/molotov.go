@@ -25,7 +25,6 @@ type client struct {
    password maya.FlagString
    search   maya.FlagString
    refresh  maya.FlagBool
-   threads  maya.FlagInt
 
    cache maya.Cache
 }
@@ -49,7 +48,6 @@ func (c *client) do() error {
       {Name: "search", Value: &c.search},
       {Name: "asset-id", Value: &c.asset_id},
       {Name: "dash-id", Value: &c.dash_id},
-      {Name: "threads", Value: &c.threads, Needs: "dash-id"},
    }
    if err := flags.Parse(os.Args[1:]); err != nil {
       return err
@@ -111,7 +109,6 @@ func (c *client) do_dash_id() error {
       Device:  string(c.Widevine),
       Drm:     maya.DrmWidevine,
       License: asset.GetLicense,
-      Threads: int(c.threads),
    })
 }
 

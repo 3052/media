@@ -22,7 +22,6 @@ type client struct {
    dash_id   maya.FlagString
    password  maya.FlagString
    profile   maya.FlagString
-   threads   maya.FlagInt
    username  maya.FlagString
 
    cache maya.Cache
@@ -46,7 +45,6 @@ func (c *client) do() error {
       {Name: "profile-id", Value: &c.profile},
       {Name: "address", Value: &c.address},
       {Name: "dash-id", Value: &c.dash_id},
-      {Name: "threads", Value: &c.threads, Needs: "dash-id"},
    }
    if err := flags.Parse(os.Args[1:]); err != nil {
       return err
@@ -119,7 +117,6 @@ func (c *client) do_dash_id() error {
       Device:  string(c.PlayReady),
       Drm:     maya.DrmPlayReady,
       License: license,
-      Threads: int(c.threads),
    })
 }
 
